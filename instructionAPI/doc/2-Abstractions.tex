@@ -5,7 +5,7 @@ representation, the abstract syntax trees representing the operands of an
 instruction, and the decoder that creates the entire representation. We will
 present an overview of the features and uses of each of these three components,
 followed by an example of how the Instruction API can be applied to binary
-analysis. 
+analysis.
 
 \subsection{Instruction Interface}
 
@@ -24,7 +24,7 @@ Each Operand contains flags to indicate whether it is read, written, or both by
 the machine instruction represented by its parent Instruction, and contains a
 Expression abstract syntax tree representing the operations required to compute
 the value of the operand. Figure~\ref{fig:ownership-graph} depicts these
-ownership relationships within an Instruction. 
+ownership relationships within an Instruction.
 
 \begin{figure}
 \centering
@@ -64,7 +64,7 @@ instruction's Operands, and produces a decoded Instruction.
 \caption{The InstructionDecoder's inputs and outputs}
 \label{fig:decoder-use}
 \end{figure}
- 
+
 Instruction decoders are built from the following elements:
 
 \begin{itemize}
@@ -75,7 +75,7 @@ Instruction decoders are built from the following elements:
 From these elements, it is possible to generalize the construction of
 Instructions from Operations and Operands to an entirely platform-\/independent
 algorithm. Likewise, much of the construction of the ASTs representing each
-operand can be performed in a platform-\/independent manner. 
+operand can be performed in a platform-\/independent manner.
 
 \subsection{Expression Hierarchy}
 \label{subsec:hierarchy}
@@ -85,7 +85,7 @@ registers and immediates to produce an operand for the machine language
 instruction.
 
 The inheritance hierarchy of the AST classes is shown in
-Figure~\ref{fig:inheritance}. 
+Figure~\ref{fig:inheritance}.
 \begin{figure}
     \centering
 \includegraphics{fig/full_inheritance_graph}
@@ -99,7 +99,7 @@ BinaryFunction node, which may be constructed as either an addition or a
 multiplication. Also, a single node may descend from a Dereference node, which
 treats its child as a memory address. Figure~\ref{fig:ownership} shows the allowable parent/child
 relationships within a given tree, and Figure~\ref{fig:representation} shows how an example IA32
-instruction is represented using these objects. 
+instruction is represented using these objects.
 
 \begin{figure}
     \centering
@@ -107,7 +107,7 @@ instruction is represented using these objects.
 \caption{Expression intermediate node types and the objects they own}
 \label{fig:ownership}
 \end{figure}
- 
+
 \begin{figure}
     \centering
 \includegraphics{fig/instruction_representation}
@@ -115,7 +115,7 @@ instruction is represented using these objects.
 \label{fig:representation}
 \end{figure}
 
-These ASTs may be searched for leaf elements or subtrees (via 
+These ASTs may be searched for leaf elements or subtrees (via
 \code{getUsedRegisters} and \code{isUsed}) and traversed breadth-\/first or depth-\/first
 (via \code{getSubexpressions}).
 

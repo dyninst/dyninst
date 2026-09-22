@@ -27,7 +27,7 @@ static Absloc makeFP(Dyninst::Architecture arch);
 \end{apient}
 \apidesc{Shortcut interfaces for creating abstract locations representing PC,
 SP, and FP}
-  
+
 \begin{apient}
 bool isPC() const;
 bool isSP() const;
@@ -57,11 +57,11 @@ address \code{addr}.}
 Absloc(int o,
        int r,
        ParseAPI::Function *f);
-\end{apient}		       
+\end{apient}
 \apidesc{Create a Stack type abstract location, representing a stack variable in
 the frame of function \code{f}, within abstract region \code{r}, and at offset \code{o} within the frame.}
-    
-\begin{apient}    
+
+\begin{apient}
 std::string format() const;
 \end{apient}
 \apidesc{Return the string representation of this abstract location.}
@@ -114,7 +114,7 @@ Return the address of the heap variable represented by this abstract
 location. This method should only be called when this abstract location truly
 represents a heap variable.
 }
-  
+
 
 \begin{apient}
 bool operator<(const Absloc &rhs) const;
@@ -229,7 +229,7 @@ at address \code{addr} and replace PC with a constant value \code{addr}.}
 
 \begin{apient}
 void convertAll(InstructionAPI::Instruction::Ptr insn,
-                Address addr,		
+                Address addr,
                 ParseAPI::Function *func,
                 ParseAPI::Block *block,
                 std::vector<AbsRegion> &used,
@@ -244,7 +244,7 @@ expression.
 If PC appears in this expression, we assume the expression is
 at address \code{addr} and replace PC with a constant value \code{addr}.}
 
-\begin{apient} 
+\begin{apient}
 AbsRegion convert(InstructionAPI::RegisterAST::Ptr reg);
 \end{apient}
 \apidesc{Create an abstract region representing the register \code{reg}.}

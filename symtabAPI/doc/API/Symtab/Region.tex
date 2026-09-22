@@ -1,6 +1,6 @@
 \subsection{Class Region}
 
-This class represents a contiguous range of code or data as encoded in the object file. For ELF, regions represent ELF sections. 
+This class represents a contiguous range of code or data as encoded in the object file. For ELF, regions represent ELF sections.
 
 \begin{center}
 \begin{tabular}{ll}
@@ -77,7 +77,7 @@ static Region *createRegion(Offset diskOff,
                             unsigned long memAlign = sizeof(unsigned))
 \end{apient}
 \apidesc{
-This factory method creates a new region with the provided arguments. The \code{memOff} and \code{memSize} parameters identify where the region should be loaded in memory (modified by the base address of the file); if \code{memSize} is larger than \code{diskSize} the remainder will be zero-padded (e.g., bss regions). 
+This factory method creates a new region with the provided arguments. The \code{memOff} and \code{memSize} parameters identify where the region should be loaded in memory (modified by the base address of the file); if \code{memSize} is larger than \code{diskSize} the remainder will be zero-padded (e.g., bss regions).
 }
 
 \begin{apient}
@@ -91,7 +91,7 @@ Return \code{true} if the offset falls within the region data.
 void setRegionNumber(unsigned index) const
 \end{apient}
 \apidesc{
-Sets the region index; the value must not overlap with any other regions and is not checked. 
+Sets the region index; the value must not overlap with any other regions and is not checked.
 }
 
 \begin{apient}
@@ -99,7 +99,7 @@ bool setPtrToRawData(void *newPtr,
                      unsigned long rawsize)
 \end{apient}
 \apidesc{
-Set the raw data pointer of the region to \code{newPtr}. \code{rawsize} represents the size of the raw data buffer. 
+Set the raw data pointer of the region to \code{newPtr}. \code{rawsize} represents the size of the raw data buffer.
 Returns \code{true} if success or \code{false} when unable to set/change the raw data of the region. Implicitly changes the disk and memory sizes of the region.
 }
 
@@ -121,11 +121,11 @@ This method sets whether the region is loaded into memory at load time. Returns 
 \begin{apient}
 bool addRelocationEntry(Offset relocationAddr,
                         Symbol *dynref,
-                        unsigned long relType, 
+                        unsigned long relType,
                         Region::RegionType rtype = Region::RT_REL)
 \end{apient}
 \apidesc{
-Creates and adds a relocation entry for this region. The symbol \code{dynref} represents the symbol used by he relocation, \code{relType} is the (platform-specific) relocation type, and \code{rtype} represents whether the relocation is REL or RELA (ELF-specific). 
+Creates and adds a relocation entry for this region. The symbol \code{dynref} represents the symbol used by he relocation, \code{relType} is the (platform-specific) relocation type, and \code{rtype} represents whether the relocation is REL or RELA (ELF-specific).
 }
 
 \begin{apient}
@@ -149,24 +149,24 @@ Patch the raw data for this region. \code{buf} represents the buffer to be patch
 
 \subsubsection{REMOVED}
 
-The following methods were removed since they were inconsistent and dangerous to use. 
+The following methods were removed since they were inconsistent and dangerous to use.
 
 \begin{apient}
 Offset getRegionAddr() const
 \end{apient}
 \apidesc{
-Please use \code{getDiskOffset} or \code{getMemOffset} instead, as appropriate. 
+Please use \code{getDiskOffset} or \code{getMemOffset} instead, as appropriate.
 }
 
 \begin{apient}
 unsigned long getRegionSize() const
 \end{apient}
 \apidesc{
-Please use \code{getDiskSize} or \code{getMemSize} instead, as appropriate. 
+Please use \code{getDiskSize} or \code{getMemSize} instead, as appropriate.
 }
 
 \subsection{Relocation Information}
-This class represents object relocation information. 
+This class represents object relocation information.
 
 \begin{apient}
 Offset target_addr() const

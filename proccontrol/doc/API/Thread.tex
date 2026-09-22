@@ -36,7 +36,7 @@ Process::const_ptr getProcess() const
 
 \apidesc{
 These functions return a pointer to the Process object that contains this
-thread. 
+thread.
 }
 
 \begin{apient}
@@ -243,7 +243,7 @@ tls\_symbol\_offset is the TLS symbol\'s offset in lib, and
 can be found by reading a TLS symbol\'s value. The lib
 parameter can point to a library or the executable. The buffer parameter
 specifies an address in the controller process where ProcControlAPI should
-write the copied bytes. 
+write the copied bytes.
 It is an error to call this function on a Thread that is not in a stopped state.
 It is also an error to call this function on a Thread that has not have
 user-level thread information, which can be tested with haveUserThreadInfo.
@@ -334,7 +334,7 @@ void setSingleStepMode(bool mode) const
 \apidesc{
 This function sets whether a Thread is in single-step mode. If called with a
 mode of true, then the Thread is put in single-step mode. If called with a
-mode of false, then the Thread is taken out of single-step mode. 
+mode of false, then the Thread is taken out of single-step mode.
 A Thread in single-step mode will pause execution at each instruction and
 trigger an EventSingleStep event. After each EventSingleStep is handled (and
 presuming the Thread is still running and in single-step mode) the Thread will

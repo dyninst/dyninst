@@ -69,7 +69,7 @@
     printfArgs.push_back(fmt);
     BPatch_snippet *eae = new BPatch_effectiveAddressExpr();
     printfArgs.push_back(eae);
-    
+
     // Find the printf function
     std::vector<BPatch_function *> printfFuncs;
     appImage->findFunction(printf, printfFuncs);
@@ -77,10 +77,10 @@
       fprintf(stderr, "Could not find printf\n");
       return false;
     }
-    
+
     // Construct a function call snippet
     BPatch_funcCallExpr printfCall(*(printfFuncs[0]), printfArgs);
-    
+
     // Insert the snippet at the instrumentation points
     if (!app->insertSnippet(printfCall, *points)) {
       fprintf(stderr, "insertSnippet failed\n");

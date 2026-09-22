@@ -30,10 +30,10 @@ The createIRPC static function creates and returns a new IRPC object. The
 binary\_blob and size parameters specify a buffer of machine code bytes that
 this IRPC should execute when invoked. ProcControlAPI will maintain its own
 copy of the binary\_blob buffer, the ProcControlAPI user can free the buffer
-once this function completes. 
+once this function completes.
 If the non\_blocking parameter is true then calls to
 Process::handleEvents will block until this IRPC is
-completed. 
+completed.
 If the addr parameter is given, then ProcControlAPI will write and run the
 binary code at addr. Otherwise ProcControlAPI will select a location at
 which to run the IRPC.
@@ -55,7 +55,7 @@ void *getBinaryCodeBlob() const
 
 \apidesc{
 The getBinaryCodeBlob returns a pointer to memory that contains the binary code
-for this IRPC. 
+for this IRPC.
 }
 
 \begin{apient}
@@ -82,7 +82,7 @@ void setStartOffset(unsigned long off)
 \apidesc{
 By default an IRPC will start executing its code blob at the beginning of the
 blob. This function can be used to tell ProcControlAPI to start execution of
-the code blob at some byte offset, off, into the blob. 
+the code blob at some byte offset, off, into the blob.
 This function should be called before the IRPC is posted.
 }
 

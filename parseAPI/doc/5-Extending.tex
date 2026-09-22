@@ -17,7 +17,7 @@ order for these objects to be allocated during parsing.
 A CodeSource, as described above, exports its own and the InstructionSource interface for access to binary code and other details. In addition to implementing the virtual methods in the CodeSource base class (Section \ref{sec:codesource}), the methods in the pure-virtual InstructionSource class must be implemented:
 
 \begin{apient}
-virtual bool isValidAddress(const Address) 
+virtual bool isValidAddress(const Address)
 \end{apient}
 \apidesc{Returns {\scshape true} if the address is a valid code location.}
 
@@ -96,10 +96,10 @@ std::vector<Hint> _hints
 Users who which to incorporate the ParseAPI into large projects may need to store additional information about CFG objects like Functions, Blocks, and Edges. The simplest way to associate the ParseAPI-level CFG representation with higher-level implementation is to extend the CFG classes provided as part of the ParseAPI. Because the parser itself does not know how to construct such extended types, implementors must provide an implementation of the CFGFactory that is specialized for their CFG classes. The CFGFactory exports the following simple interface:
 
 \begin{apient}
-virtual Function * mkfunc(Address addr, 
+virtual Function * mkfunc(Address addr,
                           FuncSource src,
-                          std::string name, 
-                          CodeObject * obj, 
+                          std::string name,
+                          CodeObject * obj,
                           CodeRegion * region,
                           Dyninst::InstructionSource * isrc)
 \end{apient}

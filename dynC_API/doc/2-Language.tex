@@ -49,7 +49,7 @@ Block and line comments work as they do in C or C++.
 \end{lstlisting}
 
 \subsubsection{Conditionals}
-Use \code{if} to conditionally execute code. 
+Use \code{if} to conditionally execute code.
 \noindent Example:
 \begin{lstlisting}
    if(x == 0){
@@ -91,7 +91,7 @@ time that any of those snippets \underline{with the same name} is executed. In
 contrast, if a snippet is created by calling \code{createSnippet(...)} with a
 unique snippet name (or if a name is unspecified), the first-only code will be
 executed only once upon reaching the first point encountered in the execution of
-the mutatee where the returned \code{BPatch\_Snippet} is inserted. 
+the mutatee where the returned \code{BPatch\_Snippet} is inserted.
 
 \noindent Example Touch:
 \begin{lstlisting}
@@ -149,9 +149,9 @@ The value of \code{i} is then set to 5.  This is equivalent to:
 
 \subsubsection{Static Variables}
 
-Every time a snippet is executed, non-static variables are reinitialized. To create a variable with value that persists across executions of snippets, declare the variable as static. 
+Every time a snippet is executed, non-static variables are reinitialized. To create a variable with value that persists across executions of snippets, declare the variable as static.
 
-\noindent Example: 
+\noindent Example:
 \begin{lstlisting}
    int i = 10;
    inf`printf("i is %d.\n", i++);
@@ -194,7 +194,7 @@ DynC uses the DyninstAPI function \code{malloc(...)} to allocate dynC declared
 variables when \code{createSnippet(...)} is called. The variable name is mangled
 with the name of the snippet passed to createSnippet. Thus, variables declared
 in dynC snippets are accessible only to those snippets created by calling
-\code{createSnippet(...)} with the same name. 
+\code{createSnippet(...)} with the same name.
 
 If the variables are explicitly initialized, dynC sets the value of the variable
 with a \code{BPatch\_arithExpr(BPatch\_assign...)} snippet. Because of this, each
@@ -207,7 +207,7 @@ If a variable is declared with the \code{static} keyword, then the
 initialization is performed as if in a first-only block (see section
 \ref{sec:firstOnly}). Thus, a variable is initialized only the first time that
 snippet is executed, and subsequent executions of the variable initialization
-are ignored. 
+are ignored.
 
 \subsubsection{Creating Global Variables That Work With DynC}
 
@@ -222,18 +222,18 @@ code).
 \begin{lstlisting}
    ...
    // Creates a global variable of type in named globalIntN
-   myAddressSpace->malloc(myImage->getType("int"), "globalIntN"); 
-   
-   // file1 and file2 are FILE *, entryPoint and exitPoint are BPatch_point 
-   BPatch_snippet *snippet1 = dynC::createSnippet(file1, &entryPoint, "mySnippet1"); 
+   myAddressSpace->malloc(myImage->getType("int"), "globalIntN");
+
+   // file1 and file2 are FILE *, entryPoint and exitPoint are BPatch_point
+   BPatch_snippet *snippet1 = dynC::createSnippet(file1, &entryPoint, "mySnippet1");
    BPatch_snippet *snippet2 = dynC::createSnippet(file2, &exitPoint, "mySnippet2");
-   
+
    assert(snippet1);
    assert(snippet2);
-   
+
    myAdressSpace->insertSnippet(snippet1, &entryPoint);
    myAdressSpace->insertSnippet(snippet2, &exitPoint);
-   
+
    // run the mutatee
    ((BPatch_process *)myAdressSpace)->continueExecution();
    ...
@@ -243,13 +243,13 @@ code).
    {%
       global`globalIntN = 0; // initialize global variable in first-only section
    %}
-   inf`printf("Welcome to function %s. Global variable globalIntN = %d.\n", 
+   inf`printf("Welcome to function %s. Global variable globalIntN = %d.\n",
         dyninst`function_name, global`globalIntN++);
 \end{lstlisting}
 
 \noindent \textbf{file2:}
 \begin{lstlisting}
-   inf`printf("Goodbye from function %s. Global variable globalIntN = %d.\n", 
+   inf`printf("Goodbye from function %s. Global variable globalIntN = %d.\n",
         dyninst`function_name, global`globalIntN++);
 \end{lstlisting}
 
@@ -279,20 +279,20 @@ variable is specified by \code{\&<variable>}.
 For example, in reference to the previous example from section \ref{dataTypes}, the statement \code{*s} would evaluate to the character \code{h}.
 
 \subsubsection{Arrays}
-Arrays in DynC behave much the same way they do in C. 
+Arrays in DynC behave much the same way they do in C.
 
 \noindent Example:
 \begin{lstlisting}
    int array[3] = {1, 2, 3};
    char *names[] = {"Mark", "Phil", "Deb", "Tracy"};
    names[2] = "Gwen" // change Deb to Gwen
-   inf`printf("The seventh element of mutArray is %d.\n", global`mutArray[6]); //Mutatee array 
-   if(inf`strcmp(*names, "Mark") == 0){} // This will evaluate to true. 
+   inf`printf("The seventh element of mutArray is %d.\n", global`mutArray[6]); //Mutatee array
+   if(inf`strcmp(*names, "Mark") == 0){} // This will evaluate to true.
 \end{lstlisting}
 
 \subsection{DynC Limitations}
 The DynC, while quite expressive, is limited to those actions supported by the DyninstAPI. As such, it lacks certain abilities that many programmers have come to expect. These differences will be discussed in an exploration of those C abilities that dynC lacks.
- 
+
 \subsubsection{Loops}
 There are no looping structures in DynC.
 

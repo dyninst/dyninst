@@ -18,7 +18,7 @@ StepperGroup(Walker *walker)
 \end{apient}
 \apidesc{
     This factory constructor creates a new \code{StepperGroup} object associated
-with \code{walker}. 
+with \code{walker}.
 }
 
 \begin{apient}
@@ -27,7 +27,7 @@ virtual bool addStepper(FrameStepper *stepper)
 \apidesc{
     This method adds a new \code{FrameStepper} to this \code{StepperGroup}. The
     newly added stepper will be tracked by this \code{StepperGroup}, and it will
-    be considered for use when walking through stack frames. 
+    be considered for use when walking through stack frames.
 
     This method returns \code{\code{true}} if it successfully added the
     \code{FrameStepper}, and \code{\code{false}} on error.
@@ -49,14 +49,14 @@ virtual void registerStepper(FrameStepper *stepper);
   steppers and use it over the entire address space.}
 
 \begin{apient}
-virtual bool findStepperForAddr(Address addr, FrameStepper* &out, 
+virtual bool findStepperForAddr(Address addr, FrameStepper* &out,
                                 const FrameStepper *last_tried = NULL) = 0
 \end{apient}
 \apidesc{
     Given an address that points into a function (or function-like object),
     addr, this method decides which \code{FrameStepper} should be used to walk through
     the stack frame created by the function at that address. A pointer to the
-    \code{FrameStepper} will be returned in parameter \code{out}. 
+    \code{FrameStepper} will be returned in parameter \code{out}.
 
     It may be possible that the \code{FrameStepper} this method decides on is unable to
     walk through the stack frame (it returns \code{gcf\_not\_me} from
@@ -72,13 +72,13 @@ virtual bool findStepperForAddr(Address addr, FrameStepper* &out,
     walk through stack frames created in that code range. If multiple
     \code{FrameStepper} objects share the same range, then the one with the highest
     priority will be tried first.
-	
-    This method returns \code{true} on success and \code{false} on failure.  
+
+    This method returns \code{true} on success and \code{false} on failure.
 }
 
 \begin{apient}
 typedef std::pair<std::string, Address> LibAddrPair;
-typedef enum { library_load, library_unload } lib_change_t;    
+typedef enum { library_load, library_unload } lib_change_t;
 virtual void newLibraryNotification(LibAddrPair *libaddr, lib_change_t
 change);
 \end{apient}

@@ -13,9 +13,9 @@ The following \code{CMakeLists.txt} shows how create your mutator program with D
 \begin{lstlisting}
   cmake_minimum_required(VERSION 3.15)
   project(retee LANGUAGES CXX)
-  
+
   find_package(Dyninst REQUIRED)
-  
+
   add_executable(retee retee.cpp)
   target_link_libraries(retee PUBLIC Dyninst::dyninstAPI)
 \end{lstlisting}

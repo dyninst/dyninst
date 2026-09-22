@@ -15,14 +15,14 @@ for(auto *m : findModulesByName("foo")) {
 
   // Get the Line Information for module foo.
   LineInformation *info = m->getLineInformation();
-  
+
   //Iterate over the line information
   LineInformation::const_iterator iter;
   for( iter = info->begin(); iter != info->end(); iter++)
   {
   // First component represents the address range for the line
   const std::pair<Offset, Offset> addrRange = iter->first;
-  
+
   //Second component gives information about the line itself.
   LineNoTuple lt = iter->second;
   }

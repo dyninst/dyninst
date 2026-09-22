@@ -51,10 +51,10 @@ void parse(CodeRegion * cr,
            Address target,
            bool recursive)
 \end{apient}
-\apidesc{Parses the specified core region of the binary starting with the 
-instruction at the provided target address. If \code{recursive} is 
-{\scshape true}, recursive traversal parsing is used as in the default 
-\code{parse()} method; otherwise only instructions reachable through 
+\apidesc{Parses the specified core region of the binary starting with the
+instruction at the provided target address. If \code{recursive} is
+{\scshape true}, recursive traversal parsing is used as in the default
+\code{parse()} method; otherwise only instructions reachable through
 intraprocedural control flow are visited.
 }
 
@@ -66,11 +66,11 @@ struct NewEdgeToParse {
 }
 bool parseNewEdges( vector<NewEdgeToParse> & worklist )
 \end{apient}
-\apidesc{Parses a set of newly created edges specified in the worklist supplied 
-that were not included when the function was originally parsed. 
+\apidesc{Parses a set of newly created edges specified in the worklist supplied
+that were not included when the function was originally parsed.
 }
 
-ParseAPI is able to speculatively parse gaps 
+ParseAPI is able to speculatively parse gaps
 (regions of binary that has not been identified as code or data yet)
 to identify function entry points and
 perform control flow traversal.

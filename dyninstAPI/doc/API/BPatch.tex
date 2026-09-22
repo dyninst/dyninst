@@ -303,7 +303,7 @@ BPatch::waitForStatusChange. The file descriptor will reset when the user calls 
 }
 
 \begin{apient}
-BPatch_type *createArray(const char *name, BPatch_type *ptr, unsigned int low, unsigned int hi) 
+BPatch_type *createArray(const char *name, BPatch_type *ptr, unsigned int low, unsigned int hi)
 
 \end{apient}
 
@@ -315,7 +315,7 @@ element of the array is low, and the last is high. The standard rules of type co
 
 \begin{apient}
 BPatch_type *createEnum(const char *name, std::vector<char *> &elementNames,
-                        std::vector<int> &elementIds) 
+                        std::vector<int> &elementIds)
 
 BPatch_type *createEnum(const char *name, std::vector<char *> &elementNames)
 
@@ -332,7 +332,7 @@ function.
 }
 
 \begin{apient}
-BPatch_type *createScalar(const char *name, int size) 
+BPatch_type *createScalar(const char *name, int size)
 
 \end{apient}
 
@@ -344,7 +344,7 @@ type is compatible with other scalars with the same name and size.
 
 \begin{apient}
 BPatch_type *createStruct(const char *name, std::vector<char *> &fieldNames,
-                          std::vector<BPatch_type *> &fieldTypes) 
+                          std::vector<BPatch_type *> &fieldTypes)
 
 \end{apient}
 
@@ -357,7 +357,7 @@ the size of the elements in the fieldTypes vector.
 }
 
 \begin{apient}
-BPatch_type *createTypedef(const char *name, BPatch_type *ptr) 
+BPatch_type *createTypedef(const char *name, BPatch_type *ptr)
 
 \end{apient}
 
@@ -368,7 +368,7 @@ Create a new type called name and having the type ptr.
 \begin{apient}
 BPatch_type *createPointer(const char *name, BPatch_type *ptr)
 
-BPatch_type *createPointer(const char *name, BPatch_type *ptr, int size) 
+BPatch_type *createPointer(const char *name, BPatch_type *ptr, int size)
 
 \end{apient}
 
@@ -380,7 +380,7 @@ the value passed in the size parameter.
 
 \begin{apient}
 BPatch_type *createUnion(const char *name, std::vector<char *> &fieldNames,
-                         std::vector<BPatch_type *> &fieldTypes) 
+                         std::vector<BPatch_type *> &fieldTypes)
 
 \end{apient}
 

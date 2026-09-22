@@ -1,6 +1,6 @@
 \subsection{Class Function}\label{Function}
 The \code{Function} class represents a collection of symbols that have the same address
-and a type of \code{ST\_FUNCTION}. When appropriate, use this representation instead of the underlying \code{Symbol} objects. 
+and a type of \code{ST\_FUNCTION}. When appropriate, use this representation instead of the underlying \code{Symbol} objects.
 
 \begin{tabular}{p{1.25in}p{1.125in}p{3.125in}}
 \toprule
@@ -19,7 +19,7 @@ getRegion & Region * & Region containing this function. \\
 getReturnType & Type * & Type representing the return type of the function. \\
 \bottomrule
 \end{tabular}
-	
+
 \begin{apient}
 bool getSymbols(vector<Symbol *> &syms) const
 \end{apient}
@@ -62,7 +62,7 @@ bool addPrettyName(string name,
                    bool isPrimary)
 \end{apient}
 \apidesc{
-This method adds a pretty name \code{name} to the function. If \code{isPrimary} is \code{true} then it becomes the default name for the function. 
+This method adds a pretty name \code{name} to the function. If \code{isPrimary} is \code{true} then it becomes the default name for the function.
 This method returns \code{true} on success and \code{false} on failure.
 }
 
@@ -71,7 +71,7 @@ bool addTypedName(string name,
                   bool isPrimary)
 \end{apient}
 \apidesc{
-This method adds a typed name \code{name} to the function. If \code{isPrimary} is \code{true} then it becomes the default name for the function. 
+This method adds a typed name \code{name} to the function. If \code{isPrimary} is \code{true} then it becomes the default name for the function.
 This method returns \code{true} on success and \code{false} on failure.
 }
 
@@ -88,7 +88,7 @@ error code set to \code{NO\_DEBUG\_INFO} accordingly. Otherwise it returns \code
 std::vector<VariableLocation> &getFramePtr()
 \end{apient}
 \apidesc{
-This method returns a list of frame pointer offsets (abstract top of the stack) for the function. See the \code{VariableLocation} class description for more information. 
+This method returns a list of frame pointer offsets (abstract top of the stack) for the function. See the \code{VariableLocation} class description for more information.
 }
 
 \begin{apient}

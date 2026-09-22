@@ -6,10 +6,10 @@
 Edge predicates control iteration over edges. For example, the provided
 \code{Intraproc} edge predicate can be used with filter iterators and standard
 algorithms, ensuring that only intraprocedural edges are visited during
-iteration. Two other examples of edge predicates are provided: 
+iteration. Two other examples of edge predicates are provided:
 \code{SingleContext} only visits edges that stay in a single
-function context, and \code{NoSinkPredicate} does not visit edges to 
-the \emph{sink} block.  The following code traverses 
+function context, and \code{NoSinkPredicate} does not visit edges to
+the \emph{sink} block.  The following code traverses
 all of the basic blocks within a
 function:
 
@@ -26,7 +26,7 @@ function:
 
     vector<Block*> work;
     Intraproc epred; // ignore calls, returns
-   
+
     work.push_back(func->entry()); // assuming `func' is a Function*
 
     // do_stuff is a functor taking a Block* as its argument
@@ -36,12 +36,12 @@ function:
 
         Block::edgelist & targets = block->targets();
         // Do stuff for each out edge
-        std::for_each(make_filter_iterator(targets.begin(), epred), 
+        std::for_each(make_filter_iterator(targets.begin(), epred),
                       make_filter_iterator(targets.end(), epred),
                       do_stuff());
         std::transform(make_filter_iterator(targets.begin(), epred),
-                       make_filter_iterator(targets.end(), epred), 
-                       std::back_inserter(work), 
+                       make_filter_iterator(targets.end(), epred),
+                       std::back_inserter(work),
                        std::mem_fun(Edge::trg));
         Block::edgelist::const_iterator found_interproc =
                 std::find_if(targets.begin(), targets.end(), Interproc());
@@ -58,8 +58,8 @@ with equivalent code using filter iterators as follows:
 
 \begin{lstlisting}
   // OLD
-  for(Block::edgelist::iterator i = targets.begin(epred); 
-      i != targets.end(epred); 
+  for(Block::edgelist::iterator i = targets.begin(epred);
+      i != targets.end(epred);
       i++)
   {
     // ...
@@ -69,12 +69,12 @@ with equivalent code using filter iterators as follows:
            make_filter_iterator(epred, targets.end(), targets,end()),
            loop_body_as_function);
   // NEW (C++11)
-  for(auto i = make_filter_iterator(epred, targets.begin(), targets.end()); 
-      i != make_filter_iterator(epred, targets.end(), targets.end()); 
+  for(auto i = make_filter_iterator(epred, targets.begin(), targets.end());
+      i != make_filter_iterator(epred, targets.end(), targets.end());
       i++)
   {
     // ...
   }
-  
+
 
 \end{lstlisting}

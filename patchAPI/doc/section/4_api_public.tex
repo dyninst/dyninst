@@ -595,14 +595,14 @@ It represents code structure that may execute repeatedly.
 \begin{apient}
 PatchLoop* parent
 \end{apient}
-\apidesc{Returns the loop which directly encloses this loop. NULL if no such loop.} 
+\apidesc{Returns the loop which directly encloses this loop. NULL if no such loop.}
 
 
 \begin{apient}
 bool containsAddress(Address addr)
 \end{apient}
 \apidesc{Returns true if the given address is within the range of this loop's basic blocks.}
-	
+
 
 \begin{apient}
 bool containsAddressInclusive(Address addr)
@@ -613,15 +613,15 @@ bool containsAddressInclusive(Address addr)
 int getLoopEntries(vector<PatchBlock*>& entries);
 \end{apient}
 \apidesc{Fills \code{entries} with the set of entry basic blocks of the loop. Return the number of the entries that this loop has}
-        
-		   
+
+
 \begin{apient}
 int getBackEdges(vector<PatchEdge*> &edges)
 \end{apient}
-\apidesc{Sets \code{edges} to the set of back edges in this loop. 
-It returns the number of back edges that are in this loop. 
+\apidesc{Sets \code{edges} to the set of back edges in this loop.
+It returns the number of back edges that are in this loop.
 }
-	
+
 \begin{apient}
 bool getContainedLoops(vector<PatchLoop*> &loops)
 \end{apient}
@@ -632,18 +632,18 @@ bool getOuterLoops(vector<PatchLoop*> &loops)
 \end{apient}
 \apidesc{Returns a vector of loops that are directly nested under this loop.}
 
-	
+
 \begin{apient}
 bool getLoopBasicBlocks(vector<PatchBlock*> &blocks)
 \end{apient}
 \apidesc{Fills \code{blocks} with all basic blocks in the loop}
 
-        
+
 \begin{apient}
 bool getLoopBasicBlocksExclusive(vector<PatchBlock*> &blocks)
 \end{apient}
 \apidesc{Fills \code{blocks} with all basic blocks in this loop, excluding the blocks of its sub loops.}
-     
+
 \begin{apient}
 bool hasBlock(PatchBlock *b);
 \end{apient}
@@ -669,23 +669,23 @@ PatchFunction * getFunction();
 
 \textbf{Declared in}: PatchCFG.h
 
-The PatchLoopTreeNode class provides a tree interface to a collection of instances of class 
-PatchLoop contained in a function. The structure of the tree 
-follows the nesting relationship of the loops in a function. 
+The PatchLoopTreeNode class provides a tree interface to a collection of instances of class
+PatchLoop contained in a function. The structure of the tree
+follows the nesting relationship of the loops in a function.
 Each PatchLoopTreeNode contains a pointer to a loop (represented by PatchLoop), and a set
 of sub-loops (represented by other PatchLoopTreeNode objects). The \code{loop} field
-at the root node is always \code{NULL} since a function may contain multiple outer 
+at the root node is always \code{NULL} since a function may contain multiple outer
 loops. The \code{loop} field is never \code{NULL} at any other node since it
 always corresponds to a real loop.
-Therefore, the outer most loops in the function are contained in the vector of \code{children} of the root. 
+Therefore, the outer most loops in the function are contained in the vector of \code{children} of the root.
 
 
 Each instance of PatchLoopTreeNode is given a name that indicates its position in the hierarchy of loops.
-The name of each outermost loop takes the form of \code{loop\_x}, 
+The name of each outermost loop takes the form of \code{loop\_x},
 where \code{x} is an integer from 1 to n,
 where n is the number of outer loops in the function.
 Each sub-loop has the name of its parent,
-followed by a \code{.y}, where \code{y} is 1 to m, where m is the number of sub-loops under the outer loop.  
+followed by a \code{.y}, where \code{y} is 1 to m, where m is the number of sub-loops under the outer loop.
 For example, consider the following C function:
 
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
@@ -707,12 +707,12 @@ void foo() {
 }
 \end{lstlisting}
 
-The \code{foo} function will have a root PatchLoopTreeNode, containing a NULL loop entry and 
-two PatchLoopTreeNode children representing the functions outermost loops. These children 
-would have names \code{loop\_1} and \code{loop\_2}, respectively representing the \code{x} and \code{i} loops. \code{loop\_2} has 
+The \code{foo} function will have a root PatchLoopTreeNode, containing a NULL loop entry and
+two PatchLoopTreeNode children representing the functions outermost loops. These children
+would have names \code{loop\_1} and \code{loop\_2}, respectively representing the \code{x} and \code{i} loops. \code{loop\_2} has
 no children. \code{loop\_1} has two child PatchLoopTreeNode objects, named
-\code{loop\_1.1} and 
-\code{loop\_1.2}, respectively representing the \code{y} and \code{z} loops. 
+\code{loop\_1.1} and
+\code{loop\_1.2}, respectively representing the \code{y} and \code{z} loops.
 
 \begin{apient}
 PatchLoop *loop;
@@ -723,12 +723,12 @@ PatchLoop *loop;
 std::vector<PatchLoopTreeNode *> children;
 \end{apient}
 \apidesc{The PatchLoopTreeNode instances nested within this loop.}
-    
+
 \begin{apient}
-const char * name(); 
+const char * name();
 \end{apient}
 \apidesc{Returns the hierarchical name of this loop.}
-    
+
 \begin{apient}
 const char * getCalleeName(unsigned int i)
 \end{apient}
@@ -736,20 +736,20 @@ const char * getCalleeName(unsigned int i)
 
 \begin{apient}
 unsigned int numCallees()
-\end{apient}    
+\end{apient}
 \apidesc{Returns the number of callees contained in this loop's body.}
 
 \begin{apient}
 bool getCallees(vector<PatchFunction *> &v);
 \end{apient}
 \apidesc{Fills \code{v} with a vector of the functions called inside this loop.}
-    
-    
+
+
 \begin{apient}
 PatchLoop * findLoop(const char *name);
 \end{apient}
 \apidesc{Looks up a loop by the hierarchical name}
- 
+
 
 \subsection{Point/Snippet Interface}
 \label{sec-3.1}
@@ -863,7 +863,7 @@ template <class FilterFunc,
           class FilterArgument,
           class OutputIterator>
 bool findPoints(Location loc, Point::Type types, FilterFunc filter_func,
-                FilterArgument filter_arg, OutputIterator outputIter, 
+                FilterArgument filter_arg, OutputIterator outputIter,
                 bool create = true);
 \end{apient}
 
@@ -921,7 +921,7 @@ template <class FilterFunc,
           class FilterArgument,
           class OutputIterator>
 bool findPoints(Scope scope, Point::Type types, FilterFunc filter_func,
-                FilterArgument filter_arg, OutputIterator output_iter, 
+                FilterArgument filter_arg, OutputIterator output_iter,
                 bool create = true);
 \end{apient}
 
@@ -1403,6 +1403,6 @@ virtual void change_cb(Point *pt, PatchBlock *first, PatchBlock *second);
 \apidesc{
 Programmers implement this method, which is to be invoked after a block is
 split. The provided Point belonged to the first block and is being
-moved to the second. 
+moved to the second.
 }
 

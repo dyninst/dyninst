@@ -21,7 +21,7 @@ virtual void entryNodes(NodeIterator &begin, NodeIterator &end);
 virtual void exitNodes(NodeIterator &begin, NodeIterator &end);
 \end{apient}
 \apidesc{The exit nodes (nodes without any outgoing edges) of the graph.}
-    
+
 \begin{apient}
 virtual void allNodes(NodeIterator &begin, NodeIterator &end);
 \end{apient}
@@ -102,7 +102,7 @@ void outs(NodeIterator &begin, NodeIterator &end);
 this node.}
 
 \begin{apient}
-bool hasInEdges(); 
+bool hasInEdges();
 bool hasOutEdges();
 \end{apient}
 \apidesc{Return \code{true} if this node has incoming/outgoing edges.}
@@ -117,8 +117,8 @@ void deleteOutEdge(EdgeIterator e);
 virtual Address addr() const;
 \end{apient}
 \apidesc{Return the address of this node.}
-    
-\begin{apient}    
+
+\begin{apient}
 virtual std::string format() const = 0;
 \end{apient}
 \apidesc{Return the string representation.}
@@ -144,13 +144,13 @@ static Edge::Ptr Edge::createEdge(const Node::Ptr source, const Node::Ptr target
 \apidesc{Create a new directed edge from \code{source} to \code{target}.}
 
 \begin{apient}
-Node::Ptr Edge::source() const; 
+Node::Ptr Edge::source() const;
 Node::Ptr Edge::target() const;
 \end{apient}
 \apidesc{Return the source / target node.}
 
 \begin{apient}
-void Edge::setSource(Node::Ptr source); 
+void Edge::setSource(Node::Ptr source);
 void Edge::setTarget(Node::Ptr target);
 \end{apient}
 \apidesc{Set the source / target node.}

@@ -23,7 +23,7 @@ represent a target process and its threads, libraries, registers and other
 interesting aspects. Operations performed on these C++ objects in the
 controller process are translated into corresponding operations on the target
 process. The event interface uses a callback system to notify the
-ProcControlAPI user of interesting events in the target process. 
+ProcControlAPI user of interesting events in the target process.
 
 \subsection{Simple Example}
 
@@ -84,7 +84,7 @@ given arguments. ProcControlAPI will spawn a new target process
 \item After creating the new target process we register a callback
 function. We ask ProcControlAPI to call our
 function, on\_thread\_create, when an event of type EventType::ThreadCreate
-occurs in the target process. 
+occurs in the target process.
 
 \item The on\_thread\_create function takes a pointer to an object of type
 Event and returns a Process::cb\_ret\_t. The Event describes the target
@@ -95,7 +95,7 @@ regular pointer, but a reference counted shared pointer. This means that we
 do not have to be concerned with cleaning the Event- it
 will be automatically cleaned when the last reference disappears. The
 Process::cb\_ret\_t describes what action should be taken on the process in
-response to this event, which is described in more detail in section 6. 
+response to this event, which is described in more detail in section 6.
 
 \item The Event class has several child classes, one of which is EventNewThread.
 We start by casting the Event into an EventNewThread and then extract
@@ -113,10 +113,10 @@ were both stopped before delivery of the callback).
 calls to the callback function- the target process was
 created in a stopped state and has not yet been able to create any threads.
 We tell ProcControlAPI to continue the target process in this step, which
-allows it to execute and possibly start generating new events. 
+allows it to execute and possibly start generating new events.
 
 \item In this step we wait for the target process to finish executing and
 terminate. Calling Process::handleEvents
 blocks the controller process until an event occurs, allowing us to wait for
-events without needing to spin the controller process on the CPU. 
+events without needing to spin the controller process on the CPU.
 \end{enumerate}

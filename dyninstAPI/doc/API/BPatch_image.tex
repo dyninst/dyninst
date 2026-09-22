@@ -105,7 +105,7 @@ function \code{getImage}.
   If the incUninstrumentable flag is set, the returned table of
   procedures will include uninstrumentable functions. The
   default behavior is to omit these functions.
-  
+
   [NOTE: If name is not found to match any demangled function names
     in the module, the search is repeated as if name is a
     mangled function name. If this second search succeeds, functions
@@ -118,8 +118,8 @@ function \code{getImage}.
   bool (*BPatchFunctionNameSieve) (
     const char *name,
     void* sieve_data
-  )  
-  
+  )
+
   std::vector<BPatch_function*>*
   findFunction(std::vector<BPatch_function*> &funcs, BPatchFunctionNameSieve bpsieve,
                void *sieve_data = NULL, int showError = 0,
@@ -129,7 +129,7 @@ function \code{getImage}.
 \apidesc{
   Return a vector of \code{BPatch\_function} s according to the generalized
   user\-specified filter function bpsieve.
-  
+
   This permits users to easily build sets of functions according to
   their own specific criteria.
   Internally, for each \code{BPatch\_function} \code{f} in the image,

@@ -55,7 +55,7 @@ bool findVariablesByOffset(std::vector<Variable *> &ret,
                            const Offset offset)
 \end{apient}
 \apidesc{
-This method returns a vector of \code{Variable}s with the specified offset. 
+This method returns a vector of \code{Variable}s with the specified offset.
 There may be more than one variable at an offset if they have different sizes.
 Returns \code{true} on success and \code{false} if there is no matching variable.
 The error value is set to \code{No\_Such\_Variable}.
@@ -84,7 +84,7 @@ set to \code{No\_Such\_Symbol}.
 }
 
 \begin{apient}
-bool getAllSymbolsByType(vector<Symbol *> &ret, 
+bool getAllSymbolsByType(vector<Symbol *> &ret,
                          Symbol::SymbolType sType)
 \end{apient}
 \apidesc{
@@ -96,7 +96,7 @@ The error value is set to \code{No\_Such\_Symbol}.}
 
 
 \begin{apient}
-bool getAddressRanges(vector<pair<unsigned long, unsigned long> > & ranges, 
+bool getAddressRanges(vector<pair<unsigned long, unsigned long> > & ranges,
                       string lineSource, unsigned int lineNo)
 \end{apient}
 \apidesc{
@@ -109,8 +109,8 @@ bool getSourceLines(vector<Statement *> &lines,
                     Offset addressInRange)
 \end{apient}
 \apidesc{
-This method returns the source file names and line numbers corresponding to the given address \code{addressInRange}. Searches only this module for the given source. 
-Return \code{true} if at least one tuple corresponding to the offset was found and returns \code{false} if none found. The \code{Statement} class used to be named \code{LineNoTuple}; backwards compatibility is provided via typedef. 
+This method returns the source file names and line numbers corresponding to the given address \code{addressInRange}. Searches only this module for the given source.
+Return \code{true} if at least one tuple corresponding to the offset was found and returns \code{false} if none found. The \code{Statement} class used to be named \code{LineNoTuple}; backwards compatibility is provided via typedef.
 }
 
 \begin{apient}
@@ -135,7 +135,7 @@ bool findType(Type * &type,
               string name)
 \end{apient}
 \apidesc{
-This method performs a look up and returns a handle to the named \code{type}. 
+This method performs a look up and returns a handle to the named \code{type}.
 This method searches all the built-in types, standard types and user-defined types within the module. Returns \code{true} if a type is found with type containing the handle to the type, else return \code{false}.
 }
 
@@ -144,7 +144,7 @@ bool findLocalVariable(vector<localVar *> &vars,
                        string name)
 \end{apient}
 \apidesc{
-The method returns a list of local variables within the module with name \code{name}. 
+The method returns a list of local variables within the module with name \code{name}.
 Returns \code{true} with vars containing a list of \code{localVar} objects corresponding to the local variables if found or else returns \code{false}.
 }
 

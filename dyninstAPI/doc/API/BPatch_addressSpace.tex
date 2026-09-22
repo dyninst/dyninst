@@ -21,7 +21,7 @@ between the two subclasses.
   address, but certain compiler optimizations may lead to multiple filenames and
   lines at an address. This information is only available if the mutatee was compiled
   with debug information.
-  
+
   This function returns true if it was able to find any line information at addr,
   or false otherwise.
 }
@@ -105,7 +105,7 @@ between the two subclasses.
 
   BPatchSnippetHandle *insertSnippet(const BPatch_snippet &expr,
                                      const std::vector<BPatch_point *> &points,
-                                     BPatch_callWhen when, 
+                                     BPatch_callWhen when,
                                      BPatch_snippetOrder order = BPatch_firstSnippet)
 \end{apient}
 
@@ -238,7 +238,7 @@ between the two subclasses.
 
   \begin{lstlisting}[language=C++]
         void *origMalloc(unsigned long size);
-    
+
         void *fastMalloc(unsigned long size) {
           if (size == 1024) {
             unsigned long ret = fastPool;
@@ -264,7 +264,7 @@ between the two subclasses.
   \begin{lstlisting}[language=C++]
         using namespace Dyninst;
         using namespace SymtabAPI;
-    
+
         BPatch_function *malloc = appImage->findFunction(...);
         BPatch_function *fastMalloc = appImage->findFunction(...);
         Symtab *symtab = SymtabAPI::convert(fastMalloc->getModule());

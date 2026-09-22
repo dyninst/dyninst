@@ -13,7 +13,7 @@ Equality of two expressions, \code{E_1} and \code{E_2}, is defined by
 \begin{itemize}
 \item \code{E_1} and \code{E_2} are the same type
 \item If leaf nodes, they represent the same immediate value or the same register
-\item If non-\/leaf nodes, they represent the same operation and their corresponding children are equal 
+\item If non-\/leaf nodes, they represent the same operation and their corresponding children are equal
 \end{itemize}
 
 \begin{apient}
@@ -56,8 +56,8 @@ to determine its \code{Result} based on the \code{Result}s of its children. If t
 be determined (most likely because register contents have been filled in via
 \code{setValue} or \code{bind}), it will be returned from \code{eval}; if it can
 not be determined, a \code{Result} with an undefined value will be returned. See Figure
-6 for an illustration of this concept; the operand represented is 
-\code{[ \code{EBX} + \code{4} $\ast$ \code{EAX} ]}. 
+6 for an illustration of this concept; the operand represented is
+\code{[ \code{EBX} + \code{4} $\ast$ \code{EAX} ]}.
 The contents of \code{EBX} and \code{EAX} have been determined through some
 outside mechanism, and have been defined with \code{setValue}. The \code{eval}
 mechanism proceeds to determine the address being read by the \code{Dereference}, since
@@ -85,7 +85,7 @@ typedef boost::shared_ptr<Expression> Ptr
 }
 
 \begin{apient}
-bool operator==(const Expression &rhs) const  
+bool operator==(const Expression &rhs) const
 \end{apient}
 \apidesc{
 Compare two AST nodes for equality.
@@ -100,7 +100,7 @@ virtual bool isUsed(Expression::Ptr findMe) const
 \end{apient}
 \apidesc{
     Search for an arbitrary subexpression, \code{findMe}, as a subtree of
-    the current tree. 
+    the current tree.
 
     Returns \code{true} if \code{findMe} is used by this AST node.
 }
@@ -169,7 +169,7 @@ virtual void apply(Visitor *)
     perform postfix-order traversal of the ASTs represented by an
     \code{Expression}, with user-defined actions performed at each node of the
     tree. We present a thorough discussion with examples in Section
-    \ref{sec:visitor}. 
+    \ref{sec:visitor}.
 }
 
 \begin{apient}

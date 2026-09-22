@@ -2,7 +2,7 @@
 
 \definedin{CFG.h}
 
-The Function class represents the portion of the program CFG that is reachable through intraprocedural control flow transfers from the function's entry block. Functions in the ParseAPI have only a single entry point; multiple-entry functions such as those found in Fortran programs are represented as several functions that ``share'' a subset of the CFG. Functions may be non-contiguous and may share blocks with other functions. 
+The Function class represents the portion of the program CFG that is reachable through intraprocedural control flow transfers from the function's entry block. Functions in the ParseAPI have only a single entry point; multiple-entry functions such as those found in Fortran programs are represented as several functions that ``share'' a subset of the CFG. Functions may be non-contiguous and may share blocks with other functions.
 
 \begin{center}
 \begin{tabular}{ll}
@@ -75,7 +75,7 @@ Function(Address addr,
          CodeRegion * region,
          InstructionSource * isource)
 \end{apient}
-\apidesc{Creates a function at \code{addr} in the code region specified. 
+\apidesc{Creates a function at \code{addr} in the code region specified.
 Insructions for this function are given in \code{isource}.}
 
 \begin{apient}

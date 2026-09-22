@@ -50,8 +50,8 @@ PatchMgr *mgr = ...;
 
 std::vector<Point*> pts;
 mgr->findPoints(Scope(func),
-                Point::FuncEntry | 
-                Point::PreCall | 
+                Point::FuncEntry |
+                Point::PreCall |
                 Point::FuncExit,
                 back_inserter(pts));
 mgr->findPoints(Scope(block),

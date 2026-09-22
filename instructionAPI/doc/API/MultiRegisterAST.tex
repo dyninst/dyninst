@@ -4,7 +4,7 @@
 A \code{MultiMultiRegister} object represents a ordered collection of registers as a single operand
 As a \code{MultiMultiRegister} is a \code{Expression}, it may contain the physical register\'s contents if
 they are known.
- 
+
 
 \begin{apient}
 typedef dyn\_detail::boost::shared\_ptr<MultiRegister> Ptr
@@ -19,7 +19,7 @@ MultiRegister (MachRegister r)
 \apidesc{
 Construct a register using the provided register object \code{r}. The
 \code{MachRegister} datatype is Dyninst's register representation and
-should not be constructed manually. 
+should not be constructed manually.
 }
 
 \begin{apient}
@@ -61,7 +61,7 @@ MachRegister getID () const
 \end{apient}
 \apidesc{
 The \code{getID} function returns underlying register represented by
-this AST. 
+this AST.
 }
 
 \begin{apient}

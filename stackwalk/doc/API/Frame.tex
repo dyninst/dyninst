@@ -1,7 +1,7 @@
 \subsubsection{Class Frame}
 \label{subsec:frame}
 \definedin{frame.h}
-	
+
 The \code{Walker} class returns a call stack as a vector of \code{Frame} objects. As described
 in Section~\ref{subsec:definitions}, each Frame object represents a stack frame, and contains a
 return address (RA), stack pointer (SP) and frame pointer (FP). For each of
@@ -15,21 +15,21 @@ getFPLocation) that return the location in the target process' memory or
 registers where the RA, SP, or FP were found. These functions may be used to
 modify the stack. For example, the DyninstAPI uses these functions to change
 return addresses on the stack when it relocates code. The RA, SP, and FP may be
-found in a register or in a memory address on a call stack. 
+found in a register or in a memory address on a call stack.
 
 \begin{apient}
 static Frame *newFrame(Dyninst::MachRegisterVal ra,
-                       Dyninst::MachRegisterVal sp, 
-                       Dyninst::MachRegisterVal fp, 
+                       Dyninst::MachRegisterVal sp,
+                       Dyninst::MachRegisterVal fp,
                        Walker *walker)
 \end{apient}
 \apidesc{
     This method creates a new \code{Frame} object and sets the mandatory data
     members: RA, SP and FP. The new \code{Frame} object is associated with
     \code{walker}.
-	
+
     The optional location fields can be set by the methods below.
-	
+
     The new \code{Frame} object is created with the \code{new} operator, and the
     user should be deallocate it with the \code{delete} operator when it is no longer needed.
 }
@@ -83,18 +83,18 @@ void setFP(Dyninst::MachRegisterVal val)
 }
 
 \begin{apient}
-bool isTopFrame() const;                                                      
-bool isBottomFrame() const;                                                   
+bool isTopFrame() const;
+bool isBottomFrame() const;
 \end{apient}
 \apidesc{
   These methods return whether a \code{Frame} object is the top (e.g.,
   most recently executing) or bottom of the stack walk. }
 
 \begin{apient}
-typedef enum { 
-    loc_address, 
-    loc_register, 
-    loc_unknown 
+typedef enum {
+    loc_address,
+    loc_register,
+    loc_unknown
 } storage_t;
 \end{apient}
 
@@ -105,7 +105,7 @@ typedef struct {
         Dyninst::MachRegister reg;
     } val;
     storage_t location;
-} location_t; 
+} location_t;
 \end{apient}
 \apidesc{
     The \code{location\_t} structure is used by the \code{getRALocation},
@@ -173,14 +173,14 @@ This method returns the name of the object that created this stack frame. For
 stack frames created by functions, this symbolic name will be the function name.
 A symbolic name may not always be available for all \code{Frame} objects, such
 as in cases of stripped binaries or special stack frames types.
-	
+
 The function name is obtained by using this \code{Frame} object's RA to call the
 \code{SymbolLookup} callback. By default StackwalkerAPI will attempt to use the
 \code{SymtabAPI} package to look up symbol names in binaries. If
 \code{SymtabAPI} is not found, and no alternative \code{SymbolLookup} object is
 present, then this method will return an error.
-	
-This method returns \code{true} on success and \code{false} on error.  
+
+This method returns \code{true} on success and \code{false} on error.
 }
 
 \begin{apient}
@@ -193,18 +193,18 @@ bool getObject(void* &obj) const
 \code{SymbolLookup} implementation. Under the default implementation that uses
 SymtabAPI, the \code{void*} points to a Symbol object or NULL if no symbol is found.
 
-This method returns \code{true} on success and \code{false} on error.  
+This method returns \code{true} on success and \code{false} on error.
 }
 
 \begin{apient}
-  Walker *getWalker() const; 
+  Walker *getWalker() const;
 \end{apient}
 
 \apidesc{This method returns the \code{Walker} object that constructed
   this stack frame. }
 
 \begin{apient}
-  THR_ID getThread() const;                                                     
+  THR_ID getThread() const;
 \end{apient}
 \apidesc{This method returns the execution thread that the current
   \code{Frame} represents. }
@@ -214,9 +214,9 @@ FrameStepper* getStepper() const
 \end{apient}
 \apidesc{
     This method returns the \code{FrameStepper} object that was used to
-    construct this \code{Frame} object in the \code{stepper} output parameter. 
+    construct this \code{Frame} object in the \code{stepper} output parameter.
 
-    This method returns \code{true} on success and \code{false} on error.  
+    This method returns \code{true} on success and \code{false} on error.
 }
 
 \begin{apient}

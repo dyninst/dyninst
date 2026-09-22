@@ -15,7 +15,7 @@ name of the current function. Call to \code{createSnippet(...)} must specify a
 \code{module\_name} & \code{char *} & Anywhere & Evaluates to the name of the
 current module. Call to \code{createSnippet(...)} must specify a \code{BPatch\_point}.\\
 \hline
-\code{bytes\_accessed} & int & At a memory operation & Evaluates to the number of bytes accessed by a memory operation.\\  
+\code{bytes\_accessed} & int & At a memory operation & Evaluates to the number of bytes accessed by a memory operation.\\
 \hline
 \code{effective\_address} & \code{void *} & At a memory operation & Evaluates the effective address of a memory operation.\\
 \hline
@@ -23,11 +23,11 @@ current module. Call to \code{createSnippet(...)} must specify a \code{BPatch\_p
 \hline
 \code{actual\_address} & \code{void *} & Anywhere & Evaluates to the actual address of the instrumentation. \\
 \hline
-\code{return\_value} & \code{void *} & Function exit & Evaluates to the return value of a function.\\ 
+\code{return\_value} & \code{void *} & Function exit & Evaluates to the return value of a function.\\
 \hline
 \code{tid} & int & Anywhere & Returns the id of the thread the snippet is executing on.\\
 \hline
-\code{dynamic\_target} & \code{void *} & At calls, jumps, returns & Calculates the target of a control flow instruction.\\ 
+\code{dynamic\_target} & \code{void *} & At calls, jumps, returns & Calculates the target of a control flow instruction.\\
 \hline
 \code{break()} & void & Anywhere & Causes the mutatee to execute a breakpoint.\\
 \hline

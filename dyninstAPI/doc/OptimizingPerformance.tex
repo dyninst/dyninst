@@ -104,48 +104,48 @@ following:
 \setlength{\leftskip}{0.5cm}
 
   \textbf{Save General Purpose Registers}
-  
+
   In order to ensure that instrumentation doesn't corrupt the program,
   Dyninst saves all live general purpose registers.
-  
+
   \textbf{Save Floating Point Registers}
-  
+
   Dyninst may decide to separately save any floating point registers
   that may be corrupted by instrumentation.
-  
+
   \textbf{Generate A Stack Frame}
-  
+
   Dyninst builds a stack frame for instrumentation to run under. This
   provides the illusion to instrumentation that it is running as its own function.
-  
+
   \textbf{Calculate Thread Index}
-  
+
   Calculate an index value that identifies the current thread. This is
   primarily used as input to the Trampoline Guard.
-  
+
   \textbf{Test and Set Trampoline Guard}
-  
+
   Test to see if we are already recursively executing under
   instrumentation, and skip the user instrumentation if we are.
-  
+
   \textbf{Execute User Instrumentation}
-  
+
   Execute any \code{BPatch\_snippet} code.
-  
+
   \textbf{Unset Trampoline Guard}
-  
+
   Marks the this thread as no longer being in instrumentation
-  
+
   \textbf{Clean Stack Frame}
-  
+
   Clean the stack frame that was generated for instrumentation.
-  
+
   \textbf{Restore Floating Point Registers}
-  
+
   Restore the floating point registers to their original state.
-  
+
   \textbf{Restore General Purpose Registers}
-  
+
   Restore the general purpose registers to their original state.
 
 \setlength{\leftskip}{0cm}
@@ -224,5 +224,5 @@ possible. Users can assist by doing the following:
   information to instrument as selectively as possible.
   The best way to optimize your instrumentation, ultimately, is
   to know a priori that it was unnecessary and not insert it.
-  
+
 \setlength{\leftskip}{0cm}

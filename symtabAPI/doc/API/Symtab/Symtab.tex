@@ -153,7 +153,7 @@ static Symtab *findOpenSymtab(string name)
 Module *getDefaultModule() const
 \end{apient}
 \apidesc{
-Returns the default module, a collection of all functions, variables, and symbols that do not have an explicit module specified. 
+Returns the default module, a collection of all functions, variables, and symbols that do not have an explicit module specified.
 }
 
 \begin{apient}
@@ -202,7 +202,7 @@ success and \code{false} if there is no matching function. The error value is se
 \begin{apient}
 bool findFunctionsByName(std::vector<Function *> &ret,
                          const std::string name,
-                         NameType nameType = anyName, 
+                         NameType nameType = anyName,
                          bool isRegex = false,
                          bool checkCase = true)
 \end{apient}
@@ -219,7 +219,7 @@ bool getContainingFunction(Offset offset,
 \apidesc{
 This method returns the function, if any, that contains the provided \code{offset}.
 Returns \code{true} on success and \code{false} on failure. The error value is set to
-\code{No\_Such\_Function}. Note that this method does not parse, and therefore relies on the symbol table for information. As a result it may return incorrect information if the symbol table is wrong or if functions are either non-contiguous or overlapping. For more precision, use the ParseAPI library. 
+\code{No\_Such\_Function}. Note that this method does not parse, and therefore relies on the symbol table for information. As a result it may return incorrect information if the symbol table is wrong or if functions are either non-contiguous or overlapping. For more precision, use the ParseAPI library.
 }
 
 \begin{apient}
@@ -244,8 +244,8 @@ The error value is set to \code{No\_Such\_Variable}.
 \begin{apient}
 bool findVariablesByName(std::vector<Variable *> &ret,
                          const std::string name,
-                         NameType nameType = anyName, 
-                         bool isRegex = false, 
+                         NameType nameType = anyName,
+                         bool isRegex = false,
                          bool checkCase = true)
 \end{apient}
 \apidesc{
@@ -293,7 +293,7 @@ set to \code{No\_Such\_Symbol}.
 }
 
 \begin{apient}
-bool getAllSymbolsByType(vector<Symbol *> &ret, 
+bool getAllSymbolsByType(vector<Symbol *> &ret,
                          Symbol::SymbolType sType)
 \end{apient}
 \apidesc{
@@ -385,14 +385,14 @@ Find the region (ELF section) whose virtual address range contains \code{offset}
 bool emit(string file)
 \end{apient}
 \apidesc{
-	Creates a new file using the specified name that contains all changes made by the user. 
+	Creates a new file using the specified name that contains all changes made by the user.
 }
 
 \begin{apient}
 bool addLibraryPrereq(string lib)
 \end{apient}
 \apidesc{
-Add a library dependence to the file such that when the file is loaded, the library will be loaded as well. Cannot be used for static binaries. 
+Add a library dependence to the file such that when the file is loaded, the library will be loaded as well. Cannot be used for static binaries.
 }
 
 \begin{apient}
@@ -402,7 +402,7 @@ Function *createFunction(std::string name,
                          Module *mod = NULL)
 \end{apient}
 \apidesc{
-This method creates a \code{Function} and updates all necessary data structures (including creating Symbols, if necessary). The function has the provided mangled name, offset, and size, and is added to the Module \code{mod}. Symbols representing the function are added to the static and dynamic symbol tables. Returns the pointer to the new \code{Function} on success or \code{NULL} on failure. 
+This method creates a \code{Function} and updates all necessary data structures (including creating Symbols, if necessary). The function has the provided mangled name, offset, and size, and is added to the Module \code{mod}. Symbols representing the function are added to the static and dynamic symbol tables. Returns the pointer to the new \code{Function} on success or \code{NULL} on failure.
 }
 
 \begin{apient}
@@ -412,7 +412,7 @@ Variable *createVariable(std::string name,
                          Module *mod = NULL)
 \end{apient}
 \apidesc{
-This method creates a \code{Variable} and updates all necessary data structures (including creating Symbols, if necessary). The variable has the provided mangled name, offset, and size, and is added to the Module \code{mod}. Symbols representing the variable are added to the static and dynamic symbol tables. Returns the pointer to the new \code{Variable} on success or \code{NULL} on failure. 
+This method creates a \code{Variable} and updates all necessary data structures (including creating Symbols, if necessary). The variable has the provided mangled name, offset, and size, and is added to the Module \code{mod}. Symbols representing the variable are added to the static and dynamic symbol tables. Returns the pointer to the new \code{Variable} on success or \code{NULL} on failure.
 }
 
 \begin{apient}
@@ -464,14 +464,14 @@ bool addRegion(Offset vaddr,
                bool tls = false)
 \end{apient}
 \apidesc{
-Creates a new region using the specified parameters and adds it to the file. 
+Creates a new region using the specified parameters and adds it to the file.
 }
 
 \begin{apient}
 Offset getFreeOffset(unsigned size)
 \end{apient}
 \apidesc{
-	Find a contiguous region of unused space within the file (which may be at the end of the file) of the specified size and return an offset to the start of the region. Useful for allocating new regions. 
+	Find a contiguous region of unused space within the file (which may be at the end of the file) of the specified size and return an offset to the start of the region. Useful for allocating new regions.
 }
 
 \subsubsection{Catch and Exception block lookup}
@@ -480,7 +480,7 @@ Offset getFreeOffset(unsigned size)
 bool getAllExceptions(vector<ExceptionBlock *> &exceptions)
 \end{apient}
 \apidesc{
-This method retrieves all the exception blocks in the \code{Object} file. 
+This method retrieves all the exception blocks in the \code{Object} file.
 Returns \code{false} if there are no exception blocks else returns \code{true} with exceptions containing a vector of \code{ExceptionBlock}s.
 }
 
@@ -489,7 +489,7 @@ bool findException(ExceptionBlock &excp,
                    Offset addr)
 \end{apient}
 \apidesc{
-This method returns the exception block in the binary at the offset \code{addr}. 
+This method returns the exception block in the binary at the offset \code{addr}.
 Returns \code{false} if there is no exception block at the given offset else returns \code{true} with \code{excp} containing the exception block.
 }
 
@@ -552,7 +552,7 @@ bool getSourceLines(vector<LineNoTuple> &lines,
                     Offset addressInRange)
 \end{apient}
 \apidesc{
-This method returns the source file names and line numbers corresponding to the given address \code{addressInRange}. Searches all modules for the given source. 
+This method returns the source file names and line numbers corresponding to the given address \code{addressInRange}. Searches all modules for the given source.
 Return \code{true} if at least one tuple corresponding to the offset was found and returns \code{false} if none found.
 }
 
@@ -570,7 +570,7 @@ bool findType(Type *&type,
               string name)
 \end{apient}
 \apidesc{
-Performs a look up among all the built-in types, standard types and user-defined types and returns a handle to the found type with name \code{name}. 
+Performs a look up among all the built-in types, standard types and user-defined types and returns a handle to the found type with name \code{name}.
 Returns \code{true} if a type is found with type containing the handle to the type, else return \code{false}.
 }
 
@@ -600,7 +600,7 @@ bool findLocalVariable(vector<localVar *> &vars,
                        string name)
 \end{apient}
 \apidesc{
-The method returns a list of local variables named name within the object file. 
+The method returns a list of local variables named name within the object file.
 Returns \code{true} with \code{vars} containing a list of \code{localVar} objects corresponding to the local variables if found or else returns \code{false}.
 }
 
@@ -641,7 +641,7 @@ Invalid\_Flags & Flags passed are invalid.\\
 Bad\_Frame\_Data & Stack walking DWARF information has bad frame data.\\
 No\_Frame\_Entry & No stack walking frame data found in debug information for this location.\\
 Frame\_Read\_Error & Failed to read stack frame data.\\
-Multiple\_Region\_Matches & Multiple regions match the provided data. \\ 
+Multiple\_Region\_Matches & Multiple regions match the provided data. \\
 No\_Error & Previous operation did not result in failure.\\
 \bottomrule
 \end{tabular}
@@ -651,7 +651,7 @@ No\_Error & Previous operation did not result in failure.\\
 static SymtabError getLastSymtabError()
 \end{apient}
 \apidesc{
-This method returns an error value for the previously performed operation that resulted in a failure. 
+This method returns an error value for the previously performed operation that resulted in a failure.
 SymtabAPI sets a global error value in case of error during any operation. This call returns the last error that occurred while performing any operation.
 }
 

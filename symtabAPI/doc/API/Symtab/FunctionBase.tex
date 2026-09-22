@@ -12,7 +12,7 @@ getReturnType & Type * & Type representing the return type of the function. \\
 getName & std::string & Returns primary name of the function (first mangled name or DWARF name) \\
 \bottomrule
 \end{tabular}
-	
+
 \begin{apient}
 bool setModule (Module *module)
 \end{apient}
@@ -48,7 +48,7 @@ bool addPrettyName(string name,
                    bool isPrimary)
 \end{apient}
 \apidesc{
-This method adds a pretty name \code{name} to the function. If \code{isPrimary} is \code{true} then it becomes the default name for the function. 
+This method adds a pretty name \code{name} to the function. If \code{isPrimary} is \code{true} then it becomes the default name for the function.
 This method returns \code{true} on success and \code{false} on failure.
 }
 
@@ -57,7 +57,7 @@ bool addTypedName(string name,
                   bool isPrimary)
 \end{apient}
 \apidesc{
-This method adds a typed name \code{name} to the function. If \code{isPrimary} is \code{true} then it becomes the default name for the function. 
+This method adds a typed name \code{name} to the function. If \code{isPrimary} is \code{true} then it becomes the default name for the function.
 This method returns \code{true} on success and \code{false} on failure.
 }
 
@@ -74,7 +74,7 @@ error code set to \code{NO\_DEBUG\_INFO} accordingly. Otherwise it returns \code
 std::vector<VariableLocation> &getFramePtr()
 \end{apient}
 \apidesc{
-This method returns a list of frame pointer offsets (abstract top of the stack) for the function. See the \code{VariableLocation} class description for more information. 
+This method returns a list of frame pointer offsets (abstract top of the stack) for the function. See the \code{VariableLocation} class description for more information.
 }
 
 \begin{apient}

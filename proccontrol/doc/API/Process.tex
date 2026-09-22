@@ -5,7 +5,7 @@ certain types of events (e.g, fork on UNIX systems).
 
 The static functions of the Process class serve as a central location for
 performing general ProcControlAPI operations, such as handleEvents and
-registerEventCallback when dealing with callbacks. 
+registerEventCallback when dealing with callbacks.
 
 \begin{apient}
 Process::ptr Process::const_ptr
@@ -24,7 +24,7 @@ either exits or is detached.
 enum Process::cb_action_t {
   cbDefault,
   cbThreadContinue,
-  cbThreadStop, 
+  cbThreadStop,
   cbProcContinue,
   cbProcStop
 }
@@ -98,7 +98,7 @@ static Process::ptr createProcess(std::string executable,
 This function creates a new process by launching an executable file named by
 executable with the arguments specified by argv, the environment specified in
 envp, and it returns a pointer to the new Process object upon success. The
-new process will be created with its initial thread in the stopped state. 
+new process will be created with its initial thread in the stopped state.
 It is an error to call this function from a callback.
 If the fds map is not empty, then the new process will be created with the file
 descriptors from the fds\'  first elements dup2 mapped to
@@ -136,10 +136,10 @@ deliver callbacks. When an event requires a
 callback ProcControlAPI needs control of the main thread in order to deliver
 the callback. This function gives control of the main thread to
 ProcControlAPI for callback delivery. A user can know when to call
-handleEvents by using the EventNotify interface. 
+handleEvents by using the EventNotify interface.
 If the block parameter is true, then handleEvents will block until at least one
 debug event has been handled. If block is false then handleEvents returns
-immediately if no events are ready to be handled. 
+immediately if no events are ready to be handled.
 This function returns true if it handled at least one event and false otherwise.
 It is an error to call this function from a callback.
 }
@@ -153,7 +153,7 @@ This function registers a new callback function with ProcControlAPI. Upon
 receiving an event with type evt, ProcControlAPI will deliver a callback with
 that event to the cbfunc function. Multiple functions can be registered to
 receive callbacks for a single EventType, and a single function can be
-registered with multiple EventTypes. 
+registered with multiple EventTypes.
 If multiple callback functions are registered with a single EventType, then it
 is undefined what order those callback functions will be invoked in. In this
 case the cb\_ret\_t result of the last callback function called will be used to
@@ -199,7 +199,7 @@ static bool removeEventCallback(cb_func_t func)
 
 \apidesc{
 This function unregisters all instances of callback function func from any
-callback with any EventType. 
+callback with any EventType.
 This function returns true if a callback was successfully removed and false
 otherwise. Upon an error a subsequent call to getLastError returns details on
 the error.
@@ -211,7 +211,7 @@ Dyninst::PID getPid() const
 
 \apidesc{
 This function returns an OS handle referencing the process. On UNIX systems
-this is the pid of the process. 
+this is the pid of the process.
 }
 
 \begin{apient}
@@ -409,7 +409,7 @@ function returns true on success and false on error. Upon an error a
 subsequent call to getLastError returns details on the error.
 If the leaveStopped parameter is set to true, and the process is in a stopped
 state, then the target process will be left in a stopped state after the
-detach. 
+detach.
 It is an error to call this function from a callback.
 }
 
@@ -479,7 +479,7 @@ bool addLibrary(std::string libname)
 \apidesc{
 This function causes the specified library to be loaded into the process. It
 will trigger an event (and thus a user callback) for each library loaded
-(including dependencies). 
+(including dependencies).
 }
 
 \begin{apient}
@@ -560,7 +560,7 @@ bool readMemory(void *buffer, Dyninst::Address addr, size_t size) const
 This function reads from the target process\'  memory. The
 addr and size parameters specify an address in the target process from which
 ProcControlAPI should read. The buffer parameter specifies an address in the
-controller process where ProcControlAPI should write the copied bytes. 
+controller process where ProcControlAPI should write the copied bytes.
 It is an error to call this function on a Process that does not have at least
 one Thread in a stopped state.
 This function returns true on success and false on error. Upon an error a
@@ -676,7 +676,7 @@ SignalMask *getSignalMask()
 
 \apidesc{
 These functions return pointers to configuration objects for platform-specific
-features associated with this Process object. 
+features associated with this Process object.
 These functions return NULL if the specified feature is unsupported on the
 current platform.
 }

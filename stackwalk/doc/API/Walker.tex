@@ -8,9 +8,9 @@ each process from which they are walking call stacks. Each \code{Walker} object 
 associated with one process, but may walk call stacks on multiple threads within
 that process. The \code{Walker} class allows users to query for the threads available
 for walking, and it allows you to specify a particular thread whose call stack
-should be walked. Stackwalks are returned as a vector of Frame objects. 
+should be walked. Stackwalks are returned as a vector of Frame objects.
 
-Each Walker object contains three objects: 
+Each Walker object contains three objects:
 \begin{itemize}
     \item ProcessState
     \item StepperGroup
@@ -63,7 +63,7 @@ This method returns NULL if it was unable to create a new Walker object. The new
 was created with the new operator, and should be deallocated with the delete operator when it
 is no longer needed.
 }
- 
+
 \begin{apient}
 static bool newWalker(const std::vector<Dyninst::PID> &pids,
                       std::vector<Walker *> &walkers_out)
@@ -77,7 +77,7 @@ third-party stackwalks. As above, the first variant takes a list of PIDs and att
 processes; the second variant also specifies the executable binary.}
 
 \begin{apient}
-bool walkStack(std::vector<Frame> &stackwalk,	 
+bool walkStack(std::vector<Frame> &stackwalk,
                Dyninst::THR_ID thread = NULL_THR_ID)
 \end{apient}
 \apidesc{
@@ -99,7 +99,7 @@ bool walkStack(std::vector<Frame> &stackwalk,
 
     This method returns \code{true} on success and \code{false} on failure.
 }
- 
+
 \begin{apient}
 bool walkStackFromFrame(std::vector<Frame> &stackwalk, const Frame &frame)
 \end{apient}
@@ -112,7 +112,7 @@ bool walkStackFromFrame(std::vector<Frame> &stackwalk, const Frame &frame)
 
     This method returns \code{true} on success and \code{false} on failure.
 }
- 
+
 \begin{apient}
 bool walkSingleFrame(const Frame &in, Frame &out)
 \end{apient}
@@ -122,7 +122,7 @@ bool walkSingleFrame(const Frame &in, Frame &out)
 
     This method returns \code{true} on success and \code{false} on failure.
 }
- 
+
 \begin{apient}
 bool getInitialFrame(Frame &frame, Dyninst::THR_ID thread = NULL_THR_ID)
 \end{apient}
@@ -134,11 +134,11 @@ bool getInitialFrame(Frame &frame, Dyninst::THR_ID thread = NULL_THR_ID)
     \code{NULL\_THR\_ID}, then a default thread will be chosen. When doing a third party
     stackwalk, the default thread will be the process' initial thread. When
     doing a first party stackwalk, the default thread will be the thread that
-    called \code{getInitialFrame}. 
+    called \code{getInitialFrame}.
 
     This method returns \code{true} on success and \code{false} on failure.
 }
- 
+
 \begin{apient}
 bool getAvailableThreads(std::vector<Dyninst::THR_ID> &threads)
 \end{apient}
@@ -153,21 +153,21 @@ bool getAvailableThreads(std::vector<Dyninst::THR_ID> &threads)
 
     This method returns \code{true} on success and \code{false} on failure.
 }
- 
+
 \begin{apient}
 ProcessState *getProcessState() const
 \end{apient}
 \apidesc{
     This method returns the \code{ProcessState} object associated with this \code{Walker}.
 }
- 
+
 \begin{apient}
 StepperGroup *getStepperGroup() const
 \end{apient}
 \apidesc{
     This method returns the \code{StepperGroup} object associated with this \code{Walker}.
 }
- 
+
 \begin{apient}
 SymbolLookup *getSymbolLookup() const
 \end{apient}
@@ -189,7 +189,7 @@ static SymbolReaderFactory *getSymbolReader()
 methods it is global across all Walkers and is thus defined static.}
 
 \begin{apient}
-static void setSymbolReader(SymbolReaderFactory *);                       
+static void setSymbolReader(SymbolReaderFactory *);
 \end{apient}
 \apidesc{Set the symbol reader factory used when creating
   \code{Walker} objects.}

@@ -87,8 +87,8 @@ DYNINST_EXPORT Symbol(const std::string& name,
                      SymbolLinkage linkage,
                      SymbolVisibility visibility,
                      Offset offset,
-                     Module *module = NULL, 
-                     Region *region = NULL, 
+                     Module *module = NULL,
+                     Region *region = NULL,
                      unsigned size = 0,
                      bool dyamic = false,
                      bool absolute = false,
@@ -99,19 +99,19 @@ DYNINST_EXPORT Symbol(const std::string& name,
 \apidesc{
 Symbol creation interface:
 \begin{description}
-\item[name] The mangled name of the symbol. 
-\item[type] The type of the symbol as specified above. 
-\item[linkage] The linkage of the symbol as specified above. 
-\item[visibility] The visibility of the symbol as specified above. 
-\item[offset] The offset within the file that the symbol refers to. 
-\item[module] The source code module the symbol should belong to; default is no module. 
-\item[region] The region the symbol belongs to; if left unset this will be determined if a new binary is generated. 
-\item[size] The size of the object the symbol refers to; defaults to 0. 
-\item[dynamic] If true, the symbol belongs to the dynamic symbol table (ELF) and may be used as the target of inter-module references. 
-\item[absolute] If true, the offset specified is treated as an absolute value rather than an offset. 
-\item[index] The index in the symbol table. If left unset, it will be determined when generating a new binary. 
-\item[strindex] The index in the string table that contains the symbol name. If left unset, it will be determined when generating a new binary. 
-\item[commonStorage] If true, the symbol references common storage (Fortran). 
+\item[name] The mangled name of the symbol.
+\item[type] The type of the symbol as specified above.
+\item[linkage] The linkage of the symbol as specified above.
+\item[visibility] The visibility of the symbol as specified above.
+\item[offset] The offset within the file that the symbol refers to.
+\item[module] The source code module the symbol should belong to; default is no module.
+\item[region] The region the symbol belongs to; if left unset this will be determined if a new binary is generated.
+\item[size] The size of the object the symbol refers to; defaults to 0.
+\item[dynamic] If true, the symbol belongs to the dynamic symbol table (ELF) and may be used as the target of inter-module references.
+\item[absolute] If true, the offset specified is treated as an absolute value rather than an offset.
+\item[index] The index in the symbol table. If left unset, it will be determined when generating a new binary.
+\item[strindex] The index in the string table that contains the symbol name. If left unset, it will be determined when generating a new binary.
+\item[commonStorage] If true, the symbol references common storage (Fortran).
 \end{description}
 }
 
@@ -131,7 +131,7 @@ This method retrieves all the version names for this symbol. Returns \code{false
 
 \subsubsection{Symbol modification}
 
-Most elements of a \code{Symbol} can be modified using the functions below. Each returns \code{true} on success and \code{false} otherwise. 
+Most elements of a \code{Symbol} can be modified using the functions below. Each returns \code{true} on success and \code{false} otherwise.
 
 \begin{apient}
 bool setSize (unsigned size)
@@ -142,7 +142,7 @@ bool setModule (Module *module)
 bool setRegion (Region *region)
 bool setDynamic (bool dyn)
 bool setAbsolute (bool absolute)
-bool setCommonStorage (bool common) 
+bool setCommonStorage (bool common)
 bool setFunction (Function *func)
 bool setVariable (Variable *var)
 bool setIndex (int index)

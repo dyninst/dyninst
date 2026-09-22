@@ -11,7 +11,7 @@ determine the result of any computations that are encoded in it. It will rarely
 be the case that an Instruction is built with its Operands' state fully
 specified. This mechanism is instead intended to allow a user to fill in
 knowledge about the state of the processor at the time the Instruction is
-executed. 
+executed.
 
 \begin{apient}
 Operand(Expression::Ptr val, bool read, bool written)
@@ -23,7 +23,7 @@ Operand(Expression::Ptr val, bool read, bool written)
     \code{val} is a reference-counted pointer to the \code{Expression} that will
     be contained in the \code{Operand} being constructed. \code{read} is true if
     this operand is read. \code{written} is true if this operand is written.
-    
+
     An instruction can be true predicated, false predicated, or not predicated at all.
 }
 
@@ -109,7 +109,7 @@ std::string format(Architecture arch, Address addr = 0) const
     Return a printable string representation of the operand. The
     \code{arch} parameter must be supplied, as operands do not record
     their architectures. The optional \code{addr} parameter specifies
-    the value of the program counter. 
+    the value of the program counter.
 }
 
 \begin{apient}

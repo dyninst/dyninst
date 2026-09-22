@@ -8,7 +8,7 @@ enum follow_t {None, ImmediateDetach, DisableBreakpointsDetach, Follow }
 \apidesc{
 The follow\_t type represents the configurable behaviors under forking.
 None is specified when fork tracking is not available for the current platform.
-ImmediateDetach means that forked children are never attached to. 
+ImmediateDetach means that forked children are never attached to.
 DisableBreakpointsDetach means that inherited breakpoints are removed from
 forked children, and then the children are detached.
 Follow is the default behavior, and it means that forked children are attached

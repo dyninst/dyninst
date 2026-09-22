@@ -3,25 +3,25 @@
 \section{Building SymtabAPI}
 
 This appendix describes how to build SymtabAPI from source code, which can be
-downloaded from http://www.paradyn.org or http://www.dyninst.org.  
+downloaded from http://www.paradyn.org or http://www.dyninst.org.
 
 \subsection{Building on Unix}
 
 Building SymtabAPI on UNIX platforms is a four step process that involves:
 unpacking the SymtabAPI source, installing any SymtabAPI dependencies,
-configuring paths in make.config.local, and running the build.  
+configuring paths in make.config.local, and running the build.
 
 SymtabAPI's source code is packaged in a tar.gz format. If your SymtabAPI
 source tarball is called \texttt{symtab\_src\_1.0.tar.gz}, then you could extract
 it with the command \texttt{gunzip symtab\_src\_1.0.tar.gz; tar -xvf
-symtab\_src\_1.0.tar}. This will create two directories: core and scripts.  
+symtab\_src\_1.0.tar}. This will create two directories: core and scripts.
 
 SymtabAPI has several dependencies, depending on what platform you are using,
 which must be installed before SymtabAPI can be built. Note that for most of
 these packages Symtab needs to be able to access the package's include files,
 which means that development versions are required. If a version number is
 listed for a packaged, then there are known bugs that may affect Symtab with
-earlier versions of the package. 
+earlier versions of the package.
 
 \begin{center}
     \begin{tabular}{ll}
@@ -65,7 +65,7 @@ directory/lib and \${DYNINST\_ROOT}/\${PLATFORM}/lib directories.
 Once \texttt{make.config.local} is set you are ready to build SymtabAPI. Change
 to the core directory and execute the command make SymtabAPI. This will build
 the SymtabAPI library. Successfully built binaries will be stored in a directory
-named after your platform at the same level as the core directory. 
+named after your platform at the same level as the core directory.
 
 \subsection{Building on Windows}
 
@@ -73,11 +73,11 @@ SymtabAPI for Windows is built with Microsoft Visual Studio 2003 project and
 solution files.   Building SymtabAPI for Windows is similar to UNIX in that it
 is a four step process: unpack the SymtabAPI source code, install SymtabAPI's
 package dependencies, configure Visual Studio to use the dependencies, and run
-the build system. 
+the build system.
 
 SymtabAPI's source code is distributed as part of a tar.gz package. Most popular
 unzipping programs are capable of handling this format. Extracting the Symtab
-tarball results in two directories: core and scripts. 
+tarball results in two directories: core and scripts.
 
 Symtab for Windows depends on Microsoft's Debugging Tools for Windows, which
 could be found at http://www.microsoft.com/whdc/devtools/debugging/default.mspx
@@ -95,7 +95,7 @@ Visual Studios search paths. In Visual Studio 2003 select \texttt{Options...} fr
 tools menu. Next select Projects and VC++ Directories from the pane on the left.
 You should see a list of directories that are sorted into categories such as
 `Executable files', `Include files', etc. The current category can
-be changed with a drop down box in the upper right hand side of the Dialog. 
+be changed with a drop down box in the upper right hand side of the Dialog.
 
 First, change to the `Library files' category, and add an entry that
 points to \\
@@ -113,7 +113,7 @@ We have seen it installed at \texttt{\$(VCInstallDir)\textbackslash
     ..\textbackslash Visual Studio SDKs\textbackslash DIA
 SDK\textbackslash include}, although you may need to search for it. You also need to add the
 libxml2 include path depending on the where the libxml2 is installed on the
-system.  
+system.
 
 Once you have installed and configured the Debugging Tools for Windows
 you are ready to build Symtab. First, you need to create the directories where

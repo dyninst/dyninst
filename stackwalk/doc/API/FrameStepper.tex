@@ -1,6 +1,6 @@
 \subsubsection{Class FrameStepper}\label{subsec:framestepper}
 \definedin{framestepper.h}
-	
+
 The \code{FrameStepper} class is an interface that tells StackwalkerAPI how to walk
 through a specific type of stack frame. There may be many different ways of
 walking through a stack frame on a platform, e.g, on Linux/x86 there are
@@ -10,7 +10,7 @@ through one of these types of stack frames.
 
 A user can create their own \code{FrameStepper} classes that tell StackwalkerAPI how to
 walk through new types of stack frames. A new \code{FrameStepper} object must be added
-to a \code{StepperGroup} before it can be used. 
+to a \code{StepperGroup} before it can be used.
 
 In addition to walking through individual stack frames, a \code{FrameStepper} tells its
 \code{StepperGroup} when it can be used. The \code{FrameStepper} registers address ranges that
@@ -24,14 +24,14 @@ overlapping address ranges, then a priority value is used to determine which
 develop new \code{FrameStepper} objects should inherit from this class and implement
 the the desired virtual functions. The \code{getCallerFrame,
   getPriority}, and \code{getName} functions must be implemented; all
-others may be overridden if desired. 
+others may be overridden if desired.
 
 \begin{apient}
-typedef enum { 
+typedef enum {
     gcf_success,
     gcf_stackbottom,
-    gcf_not_me, 
-    gcf_error 
+    gcf_not_me,
+    gcf_error
 } gcframe_ret_t
 \end{apient}
 
@@ -139,7 +139,7 @@ virtual Walker *getWalker();
 \begin{apient}
 typedef std::pair<std::string, Address> LibAddrPair;
 typedef enum { library_load, library_unload } lib_change_t;
-virtual void newLibraryNotification(LibAddrPair *libAddr, 
+virtual void newLibraryNotification(LibAddrPair *libAddr,
                                     lib_change_t change);
 \end{apient}
 

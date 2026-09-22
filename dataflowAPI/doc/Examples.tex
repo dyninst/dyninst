@@ -38,7 +38,7 @@ class ConstantPred : public Slicer::Predicates {
         if (reg.absloc().type() == Absloc::Register) {
 	    MachRegister r = reg.absloc().reg();
 	    return !r.isPC();
-	} 
+	}
 	return true;
     }
 };
@@ -47,7 +47,7 @@ class ConstantPred : public Slicer::Predicates {
 void AnalyzeJumpTarget(Function *f, Block *b) {
     // Get the last instruction in this block, which should be a jump
     Instruction insn = b->getInsn(b->last());
-   
+
     // Convert the instruction to assignments
     // The first parameter means to cache the conversion results.
     // The second parameter means whether to use stack analysis to anlyze stack accesses.
@@ -81,7 +81,7 @@ The following example shows how to expand a slice to ASTs and analyze an AST.
 Suppose we have a slice representing the instructions that affect the jump
 target of an indirect jump instruction.
 We can get the expression of the jump targets and visit the expression to see if it
-is a constant. 
+is a constant.
 
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=left, numberstyle=\tiny, stepnumber=5, numbersep=5pt}
@@ -105,7 +105,7 @@ class ConstVisitor: public ASTVisitor {
         return AST::Ptr();
     };
 
-    // If the AST contains a variable 
+    // If the AST contains a variable
     // or an operation, then the control flow target cannot
     // be resolved through constant propagation
     virtual AST::Ptr visit(DataflowAPI::VariableAST *) {
@@ -153,14 +153,14 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-void LivenessAnalysis(Function *f, Block *b) {   
+void LivenessAnalysis(Function *f, Block *b) {
     // Construct a liveness analyzer based on the address width of the mutatee.
     // 32-bit code and 64-bit code have different ABI.
     LivenessAnalyzer la(f->obj()->cs()->getAddressWidth());
-   
+
     // Construct a liveness query location
     Location loc(f, b);
-   
+
     // Query live registers at the block entry
     bitArray liveEntry;
     if (!la.query(loc, LivenessAnalyzer::Before, liveEntry)) {
