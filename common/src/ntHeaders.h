@@ -173,8 +173,6 @@ inline char * P_strstr (char *HAYSTACK, const char *NEEDLE) {return (strstr(HAYS
 
 inline double P_strtod (const char *STRING, char **TAILPTR) {
   return (strtod(STRING, TAILPTR));}
-inline char * P_strtok (char *NEWSTRING, const char *DELIMITERS) {
-  return (strtok(NEWSTRING, DELIMITERS));}
 inline long int P_strtol (const char *STRING, char **TAILPTR, int BASE) {
   return (strtol(STRING, TAILPTR, BASE));}
 inline unsigned long int P_strtoul(const char *STRING, char **TAILPTR, int BASE) { 
