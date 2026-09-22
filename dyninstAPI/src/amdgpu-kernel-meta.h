@@ -47,7 +47,7 @@ struct KernelMeta {
   //                          so kd.getKernargSize() != originalKernargSize after finalize.
   //   COV5 implicit-args block sits at (originalKernargSize - 256).
   uint32_t originalKernargSize = 0;
-  uint32_t originalGrantedVgpr = 0;    // pristine granted VGPR count = (gran+1)*4
+  uint32_t originalGrantedVgpr = 0;    // pristine granted VGPR count = (gran+1)*vgprAllocGranule()
   bool     originalScratchEnabled = false;
   // Pristine private_segment_fixed_size = the caller kernel's OWN scratch frame [0,O).
   // Our IACR/spill region and the inserted callee's frame are seated ABOVE it (SADDR=O,
@@ -63,7 +63,7 @@ struct KernelMeta {
       : name(n), kdAddr(addr), kdSize(size),
         kd(const_cast<uint8_t *>(bytes), size, mach) {
     originalKernargSize    = kd.getKernargSize();
-    originalGrantedVgpr    = (kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount() + 1) * 4;
+    originalGrantedVgpr    = (kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount() + 1) * kd.vgprAllocGranule();
     originalScratchEnabled = kd.getKernelCodeProperty_EnableSgprFlatScratchInit();
     originalPrivateSegment = kd.getPrivateSegmentFixedSize();
     layoutCache_           = computeAbiSgprLayout(kd);
@@ -81,7 +81,7 @@ struct KernelMeta {
   }
   // CURRENT granted VGPR count (grows as bumpCallerKdForCallee raises it).
   uint32_t grantedVgpr() const {
-    return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount() + 1) * 4;
+    return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWorkitemVgprCount() + 1) * kd.vgprAllocGranule();
   }
 
 private:

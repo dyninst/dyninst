@@ -41,9 +41,28 @@ KernelMeta *mapped_object::getAmdgpuKernelMeta(const std::string &kernelName) {
     return nullptr;
   }
 
+  // Seed the KernelMeta's KD with the object's REAL AMDGPU machine, not a hardcoded
+  // GFX908. Everything downstream (enableScratchInKD, the entry-prologue scratch idiom,
+  // packed-vs-separate work-item id) branches on AmdgpuKernelDescriptor::
+  // supportsArchitectedFlatScratch()/isGfx9() which read this mach — a wrong default makes
+  // a gfx942 kernel emit the gfx908 manual FLAT_SCRATCH setup (garbage FLAT_SCRATCH ->
+  // scratch aperture violation). getArchitecture() folds gfx940/gfx942 (both CDNA3
+  // architected flat scratch) onto Arch_amdgpu_gfx940; map that to GFX942 so architected
+  // detection fires.
+  unsigned amdgpuMach = EF_AMDGPU_MACH_AMDGCN_GFX908;
+  if (image *pimg = parse_img()) {
+    if (SymtabAPI::Symtab *st = pimg->getObject()) {
+      switch (st->getArchitecture()) {
+      case Dyninst::Arch_amdgpu_gfx908: amdgpuMach = EF_AMDGPU_MACH_AMDGCN_GFX908; break;
+      case Dyninst::Arch_amdgpu_gfx90a: amdgpuMach = EF_AMDGPU_MACH_AMDGCN_GFX90A; break;
+      case Dyninst::Arch_amdgpu_gfx940: amdgpuMach = EF_AMDGPU_MACH_AMDGCN_GFX942; break;
+      case Dyninst::Arch_amdgpu_gfx950: amdgpuMach = EF_AMDGPU_MACH_AMDGCN_GFX950; break;
+      default: break;
+      }
+    }
+  }
   KernelMeta *km = new KernelMeta(kernelName, kdSym.getAddr(), kdBytes,
-                                  static_cast<uint32_t>(kdSize),
-                                  EF_AMDGPU_MACH_AMDGCN_GFX908);
+                                  static_cast<uint32_t>(kdSize), amdgpuMach);
   amdgpuKernelMeta_[kernelName] = km;
   return km;
 }

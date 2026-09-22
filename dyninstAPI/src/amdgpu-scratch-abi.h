@@ -88,7 +88,11 @@ public:
   // fabricate the scratch V# descriptor s[0:3] from FLAT_SCRATCH. false for a caller that
   // uses buffer scratch — emitCall has already reloaded the caller's REAL descriptor
   // (captured in IACR[OFF_VDESC] at entry) into s[0:3]; only set the stack pointer s32.
-  virtual void setupCalleeStack(uint32_t s32Base, bool reconstructDescriptor, codeGen &gen) = 0;
+  // `architected`: true for gfx942/CDNA3 architected flat scratch — the callee addresses
+  // its frame via scratch_* off s32 (a per-lane byte offset), NO buffer V# descriptor, so
+  // this only sets s32. false for gfx908 — fabricate/pass s[0:3] and set the per-wavefront s32.
+  virtual void setupCalleeStack(uint32_t s32Base, bool reconstructDescriptor,
+                                bool architected, codeGen &gen) = 0;
 };
 
 // gfx908 (CDNA1) implementation (defined in emit-amdgpu.C).
