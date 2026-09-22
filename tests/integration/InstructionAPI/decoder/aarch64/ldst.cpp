@@ -39,7 +39,7 @@ void reverseBuffer(unsigned char *buffer, int bufferSize) {
 } // namespace
 
 int main() {
-  constexpr auto num_tests = 136;
+  constexpr auto num_tests = 142;
 
   // clang-format off
   std::array<unsigned char, 4*num_tests> buffer = {{
@@ -162,6 +162,14 @@ int main() {
     0xa8,   0x80,   0x88,   0x61,        //stp     x1, x2, [x3],#8
     0xa8,   0x80,   0x88,   0x61,        //stp     x1, x2, [x3],#8
 
+    //SIMD&FP pair
+    0x6c,   0x00,   0x88,   0x61,        //stnp    d1, d2, [x3,#8]
+    0x6d,   0x00,   0x88,   0x61,        //stp     d1, d2, [x3,#8]
+    0x6d,   0x80,   0x88,   0x61,        //stp     d1, d2, [x3,#8]!
+    0x6c,   0x80,   0x88,   0x61,        //stp     d1, d2, [x3],#8
+    0x2d,   0x01,   0x08,   0x61,        //stp     s1, s2, [x3,#8]
+    0xad,   0x00,   0x88,   0x61,        //stp     q1, q2, [x3,#16]
+
     0x38,   0x00,   0x10,   0x61,        //sturb   w1, [x3,#1]
     0xf8,   0x00,   0x10,   0x61,        //str     x1, [x3,#1]
     0x78,   0x00,   0x10,   0x61,        //strh    w1, [x3,#1]
@@ -252,6 +260,13 @@ int main() {
   auto w15 = Dyninst::aarch64::w15;
   auto w29 = Dyninst::aarch64::w29;
   auto w30 = Dyninst::aarch64::w30;
+
+  auto s1 = Dyninst::aarch64::s1;
+  auto s2 = Dyninst::aarch64::s2;
+  auto d1 = Dyninst::aarch64::d1;
+  auto d2 = Dyninst::aarch64::d2;
+  auto q1 = Dyninst::aarch64::q1;
+  auto q2 = Dyninst::aarch64::q2;
 
   auto xzr = Dyninst::aarch64::xzr;
   auto sp = Dyninst::aarch64::sp;
@@ -620,6 +635,30 @@ int main() {
 
   // stp x1, x2, [x3],#8
   expectedRead.push_back(reg_set{x2, x1, x3});
+  expectedWritten.push_back(reg_set{});
+
+  // stnp d1, d2, [x3,#8]
+  expectedRead.push_back(reg_set{d1, d2, x3});
+  expectedWritten.push_back(reg_set{});
+
+  // stp d1, d2, [x3,#8]
+  expectedRead.push_back(reg_set{d1, d2, x3});
+  expectedWritten.push_back(reg_set{});
+
+  // stp d1, d2, [x3,#8]!
+  expectedRead.push_back(reg_set{d1, d2, x3});
+  expectedWritten.push_back(reg_set{});
+
+  // stp d1, d2, [x3],#8
+  expectedRead.push_back(reg_set{d1, d2, x3});
+  expectedWritten.push_back(reg_set{});
+
+  // stp s1, s2, [x3,#8]
+  expectedRead.push_back(reg_set{s1, s2, x3});
+  expectedWritten.push_back(reg_set{});
+
+  // stp q1, q2, [x3,#16]
+  expectedRead.push_back(reg_set{q1, q2, x3});
   expectedWritten.push_back(reg_set{});
 
   // sturb w1, [x3,#1]

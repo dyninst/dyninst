@@ -2227,11 +2227,24 @@ add_operand(makeRnExpr(), true, true);
   }
 
   void InstructionDecoder_aarch64::OPRopc() {
-    int opcVal = field<30, 31>(insn);
-    int lopc = (field<22, 22>(insn) << 1) | (opcVal & 0x1);
+    if(!IS_INSN_LDST_PAIR(insn))
+      return;
 
-    if((IS_INSN_LDST_PAIR_NOALLOC(insn) && !isSIMDInsn && (opcVal & 0x1) == 0x1) ||
-       (IS_INSN_LDST_PAIR(insn) && (opcVal == 0x3 || lopc == 0x1)))
+    // For a load/store pair, opc (bits 31:30) encodes the operand size, and which values
+    // are allocated depends on the V bit that selects general-purpose (V=0) from SIMD&FP
+    // (V=1) registers. opc=11 is unallocated for both.
+    int const opc = field<30, 31>(insn);
+    if(opc == 0x3) {
+      isValid = false;
+      return;
+    }
+
+    // For SIMD&FP, opc=01 is the 64-bit (D register) form, allocated for loads and stores
+    // alike in every addressing mode. For general-purpose registers it is LDPSW, so it is
+    // unallocated for stores and for the non-temporal forms (LDNP/STNP), which have no
+    // sign-extending variant.
+    bool const isLoad = field<22, 22>(insn) == 1;
+    if(!isSIMDInsn && opc == 0x1 && (!isLoad || IS_INSN_LDST_PAIR_NOALLOC(insn)))
       isValid = false;
   }
 
