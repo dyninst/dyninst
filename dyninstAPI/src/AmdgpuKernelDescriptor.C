@@ -659,6 +659,26 @@ bool AmdgpuKernelDescriptor::supportsArchitectedFlatScratch() const {
   }
 }
 
+bool AmdgpuKernelDescriptor::usesPackedWorkitemId() const {
+  // CDNA3 (gfx942/gfx950) delivers a PACKED work-item id in v0. gfx908/gfx90a deliver
+  // SEPARATE v0/v1/v2; gfx11 (also architected scratch) is NOT included here — packing is
+  // a CDNA3 property, so do not over-claim for other/unknown archs.
+  return amdgpuMach == EF_AMDGPU_MACH_AMDGCN_GFX942 ||
+         amdgpuMach == EF_AMDGPU_MACH_AMDGCN_GFX950;
+}
+
+bool AmdgpuKernelDescriptor::isWave64() const {
+  // Wavefront size read from the KD: the wave32 property clear => 64-lane wavefront. gfx908
+  // and gfx942 are wave64; a future wave32 (RDNA) kernel reports false here.
+  return !getKernelCodeProperty_EnableWavefrontSize32();
+}
+
+uint32_t AmdgpuKernelDescriptor::vgprAllocGranule() const {
+  // CDNA3 (gfx942/gfx950) allocates VGPRs in granules of 8; earlier gfx9 (gfx908/gfx90a) in 4.
+  return (amdgpuMach == EF_AMDGPU_MACH_AMDGCN_GFX942 ||
+          amdgpuMach == EF_AMDGPU_MACH_AMDGCN_GFX950) ? 8u : 4u;
+}
+
 //
 // ----- KERNEL_CODE_PROPERTIES end -----
 //

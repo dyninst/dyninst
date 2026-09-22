@@ -287,6 +287,31 @@ public:
   // DON'T USE THIS FOR MODIFYING KDs.
   void *getRawPtr() { return (void *)&kdRepr; }
 
+  // Architected/absolute flat scratch (gfx942/CDNA3, gfx11): the hardware sets up
+  // FLAT_SCRATCH per wave — no flat_scratch_init user SGPR, no system-SGPR shift. The
+  // emitter (emit-amdgpu.C) and point handler branch on this to select the scratch ABI
+  // and the packed-vs-separate work-item id path, so it must be public.
+  bool supportsArchitectedFlatScratch() const;
+
+  // ----- Distinct ISA-fact predicates (split of the formerly-overloaded architected check).
+  // Each gates ONE thing so a future wave32/architected arch (e.g. gfx11) is not mis-gated:
+  //  (a) architected flat scratch  -> the scratch ABI (FLAT_SCRATCH, s32 frame, ENABLE_PRIVATE_SEGMENT).
+  //  (b) packed work-item id       -> v0 packs x[9:0]/y[19:10]/z[29:20] at entry (CDNA3 only).
+  //  (c) wave64                    -> 64-lane wavefront (drives the *64 per-wave swizzle math).
+  bool usesArchitectedFlatScratch() const { return supportsArchitectedFlatScratch(); }
+  bool usesPackedWorkitemId() const;
+  bool isWave64() const;
+
+  // VGPR allocation granule for COMPUTE_PGM_RSRC1.GRANULATED_WORKITEM_VGPR_COUNT: CDNA3
+  // (gfx942/gfx950) allocates VGPRs in units of 8; earlier gfx9 (incl. gfx908) in units of 4.
+  // granted VGPRs = (GRANULATED_WORKITEM_VGPR_COUNT + 1) * granule.
+  uint32_t vgprAllocGranule() const;
+
+  // The AMDGPU machine id (EF_AMDGPU_MACH_*) this KD was parsed for. Public so the point
+  // handler can seed the entry-prologue's KD with the REAL arch instead of a hardcoded
+  // default (otherwise a gfx942 kernel's prologue would emit the gfx908 scratch idiom).
+  unsigned getAmdgpuMach() const { return amdgpuMach; }
+
 private:
   void dumpCOMPUTE_PGM_RSRC3(std::ostream &os) const;
   void dumpCOMPUTE_PGM_RSRC3_Gfx90aOr942(std::ostream &os) const;
@@ -307,8 +332,6 @@ private:
   bool isGfx10() const;
   bool isGfx10Plus() const;
   bool isGfx11() const;
-
-  bool supportsArchitectedFlatScratch() const;
 
   std::string name;
 

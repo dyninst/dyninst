@@ -120,8 +120,21 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
           fobj ? fobj->getAmdgpuKernelMeta(funcInstance->symTabName()) : nullptr;
       if (km) {
         const Dyninst::DyninstAPI::AbiSgprLayout &L = km->layout();
-        if (L.scratchEnabled()) {
-          for (uint32_t n = L.userSgprCount; n < L.liveSgprEnd; n++) {
+        // ARCHITECTED flat scratch (gfx942/CDNA3): there is NO Private Segment Buffer, so
+        // the Kernarg Segment Ptr is the FIRST user SGPRs (s[0:1]) and IS read by the entry
+        // prologue (per-wave base). Also L.scratchEnabled() is false (no flat_scratch_init),
+        // so the reservation below would be skipped entirely. Both facts mean the springboard's
+        // s_getpc veneer would grab s[0:1] and CLOBBER the live kernarg pointer before the
+        // prologue reads it (root-caused on MI300A: garbage per-wave base -> bb_inc SIGBUS).
+        // gfx908 is unaffected: its kernarg sits at s[4:5]+ and s[0:1] (Private Segment Buffer)
+        // is dead at entry, so the existing system-SGPR-only reservation is correct there.
+        const bool architected = km->kd.supportsArchitectedFlatScratch();
+        if (L.scratchEnabled() || architected) {
+          // gfx908: reserve system SGPRs [userSgprCount, liveSgprEnd) (user s[0:3] dead).
+          // gfx942: reserve the FULL ABI live-in range [0, liveSgprEnd) so the kernarg
+          // pointer at s[0:1] survives the s_getpc.
+          const uint32_t liveStart = architected ? 0u : L.userSgprCount;
+          for (uint32_t n = liveStart; n < L.liveSgprEnd; n++) {
             Dyninst::Register r = Dyninst::Register::makeScalarRegister(
                 Dyninst::OperandRegId(n), Dyninst::BlockSize(1));
             registerSlot *slot = (*regSpace)[r];
