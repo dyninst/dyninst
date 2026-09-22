@@ -377,19 +377,6 @@ DYNINST_EXPORT Offset Symtab::imageLength() const
     return imageLen_;
 }
 
-DYNINST_EXPORT void Symtab::fixup_code_and_data(Offset newImageOffset,
-                                               Offset newImageLength,
-                                               Offset newDataOffset,
-                                               Offset newDataLength)
-{
-    imageOffset_ = newImageOffset;
-    imageLen_ = newImageLength;
-    dataOffset_ = newDataOffset;
-    dataLen_ = newDataLength;
-
-    // Should we update the underlying Object?
-}
-
 DYNINST_EXPORT const char*  Symtab::getInterpreterName() const 
 {
    if (interpreter_name_.length())
@@ -1800,51 +1787,6 @@ DYNINST_EXPORT bool Symtab::getMappedRegions(std::vector<Region *> &mappedRegs) 
       return true;
 
    return false;
-}
-
-DYNINST_EXPORT bool Symtab::fixup_RegionAddr(const char* name, Offset memOffset, long memSize)
-{
-    Region *sec;
-
-    if (!findRegion(sec, name)) {
-        return false;
-    }
-
-    vector<relocationEntry> relocs;
-    Object *obj = getObject();
-
-    // Fix relocation table with correct memory address
-    if (obj) {
-        obj->get_func_binding_table(relocs);
-
-        for (unsigned i=0; i < relocs.size(); i++) {
-            Offset value = relocs[i].rel_addr();
-            relocs[i].setRelAddr(memOffset + value);
-        }
-    }
-    relocation_table_ = relocs;
-
-    vector<relocationEntry> &relref = sec->getRelocations();
-    for (unsigned i=0; i < relref.size(); i++) {
-        Offset value = relref[i].rel_addr();
-        relref[i].setRelAddr(memOffset + value);
-    }
-
-#if defined(_MSC_VER)
-    regionsByEntryAddr.erase(sec->getMemOffset());
-#endif
-
-    sec->setMemOffset(memOffset);
-    sec->setMemSize(memSize);
-
-#if defined(_MSC_VER)
-    regionsByEntryAddr[sec->getMemOffset()] = sec;
-#endif
-
-    std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
-    std::sort(dataRegions_.begin(), dataRegions_.end(), sort_reg_by_addr);
-    std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
-    return true;
 }
 
 DYNINST_EXPORT Offset Symtab::getFreeOffset(unsigned size) 

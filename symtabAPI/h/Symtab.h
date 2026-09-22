@@ -317,11 +317,6 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
 
    bool getSegments(std::vector<Segment> &segs) const;
    
-   void fixup_code_and_data(Offset newImageOffset,
-                                          Offset newImageLength,
-                                          Offset newDataOffset,
-                                          Offset newDataLength);
-   bool fixup_RegionAddr(const char* name, Offset memOffset, long memSize);
    Offset getFreeOffset(unsigned size);
 
    bool addLibraryPrereq(std::string const& libname);
@@ -384,7 +379,6 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    static void setSymtabError(SymtabError new_err);
    static std::string printError(SymtabError serr);
 
-   bool delSymbol(Symbol *sym) { return deleteSymbol(sym); }
    bool deleteSymbol(Symbol *sym); 
 
    /***** Private Member Functions *****/
