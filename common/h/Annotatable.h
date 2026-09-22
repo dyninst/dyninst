@@ -700,7 +700,7 @@ class DYNINST_EXPORT AnnotatableSparse
 		  std::vector<AnnotationClassBase *> atypes;
 		  annos_t &l_annos = *getAnnos();
 
-		  for (AnnotationClassID id = 0; id < l_annos.size(); ++id)
+		  for (AnnotationClassID id = 0; id < static_cast<AnnotationClassID>(l_annos.size()); ++id)
 		  {
 			  annos_by_type_t *abt = getAnnosOfType(id, false /*don't do create */);
 			  if (NULL == abt) continue;
