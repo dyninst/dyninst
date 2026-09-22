@@ -22,14 +22,18 @@ bool Codegen::generateInt() {
     // dlopen in the runtime linker. A symbol for dlopen exists in ld.so even
     // when it is stripped so we should always find that version of dlopen
 
+    ProcImplRef proc(proc_);
+    if (!proc) {
+      return false;
+    }
     auto aout = proc_->libraries().getExecutable();
-    SymReader *objSymReader = proc_->llproc()->getSymReader()->openSymbolReader(aout->getName());
+    SymReader *objSymReader = proc->getSymReader()->openSymbolReader(aout->getName());
     if (!objSymReader) {
       return false;
     }
     std::string interp = Dyninst::filesystem::canonicalize(objSymReader->getInterpreterName());
 
-    objSymReader = proc_->llproc()->getSymReader()->openSymbolReader(interp);
+    objSymReader = proc->getSymReader()->openSymbolReader(interp);
     if (!objSymReader) {
       return false;
     }

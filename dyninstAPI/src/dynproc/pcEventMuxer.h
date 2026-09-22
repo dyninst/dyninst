@@ -83,7 +83,13 @@ public:
 
 protected:
     std::map<int, int> procCount;
-    std::queue<Dyninst::ProcControlAPI::Event::const_ptr> eventQueue;
+    // Store the pid alongside the event so dequeue never has to call back into
+    // ProcControl (getProcess()->getData(), which takes the ProcControl
+    // work_lock) while holding queueCond.  queueCond is a leaf: it guards only
+    // the queue and procCount, never spans a ProcControl call -- otherwise a
+    // queueCond->work_lock nesting inverts against ProcControl delivering a
+    // callback (work_lock held) that enqueues here.
+    std::queue<std::pair<Dyninst::ProcControlAPI::Event::const_ptr, int> > eventQueue;
     CondVar<> queueCond;
 };
 
