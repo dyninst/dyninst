@@ -1504,13 +1504,6 @@ Register EmitterAmdgpuGfx908::emitCall(opCode op, codeGen &gen,
     if (nvgpr >= kernelVgpr + numPacks + 2u) { vImplTmp = nvgpr - 2u; vPack = nvgpr - 2u - numPacks; }
     else { vPack = vgprGrant; vImplTmp = vgprGrant + numPacks; }
   }
-  // Debug: the spill layout + the caller kernel's VGPR accounting. NB the KD's granulated VGPR
-  // count decodes with AmdgpuKernelDescriptor::vgprAllocGranule() (8 on CDNA3/gfx942, 4 on
-  // gfx908) — see AMDGPUUsage GRANULATED_WORKITEM_VGPR_COUNT. Kept as a diagnostic since the
-  // architected temp placement above also seats temps ABOVE nvgpr, robust to any grant misread.
-  if (getenv("DYNINST_DBG_VGPR"))
-    fprintf(stderr, "[dbg][amdgpu] arch=%d kernelVgpr=%u nvgpr=%u vgprGrant=%u argVEnd=%u -> vPack=v%u vImplTmp=v%u\n",
-            (int)architected, kernelVgpr, nvgpr, vgprGrant, argVEnd, vPack, vImplTmp);
 
   // Reserved SGPRs for the trampoline: a pair-aligned 4-SGPR block — EXEC save (pair),
   // scratch SADDR (=0), spare — that must SURVIVE the call.
