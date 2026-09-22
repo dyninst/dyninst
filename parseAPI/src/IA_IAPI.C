@@ -685,6 +685,27 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
         else
         {
             parsing_printf("... indirect jump at 0x%lx\n", current);
+            // AMDGPU: an indirect s_setpc_b64 whose target is a getpc-computed address (the
+            // relocation veneer / tail-call idiom) is resolvable by the SAME backward slice we
+            // already run for s_swappc CALLS (resolveDynamicCallTarget -> ResolveCallTargetBySlicing).
+            // The generic jump-table analysis below only handles memory-read tables, so it can't see
+            // a PC-relative computed target and would sink the edge to ADDRESS_INVALID. Try the slice
+            // first; on a resolved constant, emit a DIRECT edge so the CFG follows the branch.
+            {
+                Architecture a = _isrc->getArch();
+                bool isAmdgpu = (a == Arch_amdgpu_gfx908 || a == Arch_amdgpu_gfx90a ||
+                                 a == Arch_amdgpu_gfx940 || a == Arch_amdgpu_gfx950);
+                if (isAmdgpu) {
+                    bool sliceOk = false; Address sliceTgt = 0;
+                    boost::tie(sliceOk, sliceTgt) = resolveDynamicCallTarget(context, currBlk);
+                    if (sliceOk && _isrc->isValidAddress(sliceTgt)) {
+                        parsing_printf("%s[%d]: indirect s_setpc at 0x%lx resolved by slicing to %lx\n",
+                                FILE__, __LINE__, current, sliceTgt);
+                        outEdges.push_back(std::make_pair(sliceTgt, DIRECT));
+                        return;
+                    }
+                }
+            }
             if( num_insns == 2 ) {
                 // Handle a pernicious indirect tail call idiom here
                 // What we've seen is mov (%rdi), %rax; jmp *%rax
