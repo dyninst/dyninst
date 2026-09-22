@@ -15,7 +15,7 @@
 #include "inst-x86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "codegen/emitters/aarch64/EmitterAarch64.h"
-#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
 #include "emit-amdgpu.h"
 #else
 #error "Unknown architecture in ast.h"
