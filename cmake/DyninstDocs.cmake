@@ -54,6 +54,8 @@ add_dependencies(docs-install docs)
 #     MAIN         <file.tex>    document, relative to SOURCE_DIR
 #     [OUTPUT_DIR  <dir>]        defaults to CMAKE_CURRENT_BINARY_DIR
 #     [MAX_PASSES  <n>]          defaults to 5
+#     [ALLOW_WARNINGS <regex>]   log warnings matching this are not errors
+#     [MAX_OVERFULL_PT <n>]      overfull boxes wider than this are errors
 #     [DEPENDS     <files>...]   rebuild when any of these change
 #     [INSTALL_DESTINATION <d>]  install the PDF there, under component 'docs'
 # )
@@ -63,7 +65,8 @@ add_dependencies(docs-install docs)
 # ---------------------------------------------------------------------------
 function(dyninst_add_latex_document)
   set(_opts "")
-  set(_one TARGET SOURCE_DIR MAIN OUTPUT_DIR MAX_PASSES INSTALL_DESTINATION)
+  set(_one TARGET SOURCE_DIR MAIN OUTPUT_DIR MAX_PASSES INSTALL_DESTINATION
+          ALLOW_WARNINGS MAX_OVERFULL_PT)
   set(_many DEPENDS)
   cmake_parse_arguments(LTX "${_opts}" "${_one}" "${_many}" ${ARGN})
 
@@ -108,7 +111,9 @@ function(dyninst_add_latex_document)
     COMMAND
       ${CMAKE_COMMAND} -DPDFLATEX=${PDFLATEX_COMPILER}
       -DSOURCE_DIR=${LTX_SOURCE_DIR} -DOUTPUT_DIR=${LTX_OUTPUT_DIR}
-      -DMAIN=${LTX_MAIN} -DMAX_PASSES=${LTX_MAX_PASSES} -P
+      -DMAIN=${LTX_MAIN} -DMAX_PASSES=${LTX_MAX_PASSES}
+      -DALLOW_WARNINGS=${LTX_ALLOW_WARNINGS}
+      -DMAX_OVERFULL_PT=${LTX_MAX_OVERFULL_PT} -P
       ${PROJECT_SOURCE_DIR}/cmake/DyninstRunLaTeX.cmake
     DEPENDS ${LTX_DEPENDS} ${PROJECT_SOURCE_DIR}/cmake/DyninstRunLaTeX.cmake
     COMMENT "Building ${_stem}.pdf"
@@ -127,13 +132,14 @@ function(dyninst_add_latex_document)
 endfunction()
 
 # ---------------------------------------------------------------------------
-# dyninst_add_manual(<module>)
+# dyninst_add_manual(<module> [ALLOW_WARNINGS <regex>] [MAX_OVERFULL_PT <n>])
 #
 # The manuals all share a layout: <module>/doc/<module>.tex, inputs scattered
 # through <module>/doc, and the shared preamble and title page in common/doc.
 # Given that, the module name is the only thing worth stating.
 # ---------------------------------------------------------------------------
 function(dyninst_add_manual _module)
+  cmake_parse_arguments(M "" "ALLOW_WARNINGS;MAX_OVERFULL_PT" "" ${ARGN})
   set(_src "${PROJECT_SOURCE_DIR}/${_module}/doc")
   if(NOT EXISTS "${_src}/${_module}.tex")
     message(FATAL_ERROR "dyninst_add_manual: no ${_src}/${_module}.tex")
@@ -158,5 +164,7 @@ function(dyninst_add_manual _module)
     MAIN "${_module}.tex"
     OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}"
     DEPENDS ${_deps}
+    ALLOW_WARNINGS "${M_ALLOW_WARNINGS}"
+    MAX_OVERFULL_PT "${M_MAX_OVERFULL_PT}"
     INSTALL_DESTINATION "${DYNINST_DOCS_INSTALL_DIR}")
 endfunction()
