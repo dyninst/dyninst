@@ -2,7 +2,7 @@
 The \code{Function} class represents a collection of symbols that have the same address
 and a type of \code{ST\_FUNCTION}. When appropriate, use this representation instead of the underlying \code{Symbol} objects.
 
-\begin{tabular}{p{1.25in}p{1.125in}p{3.125in}}
+\begin{tabularx}{\textwidth}{llX}
 \toprule
 Method name & Return type & Method description \\
 \midrule
@@ -18,7 +18,7 @@ typed\_names\_end & Aggregate::name\_iter  & As above, but including full type s
 getRegion & Region * & Region containing this function. \\
 getReturnType & Type * & Type representing the return type of the function. \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 
 \begin{apient}
 bool getSymbols(vector<Symbol *> &syms) const;

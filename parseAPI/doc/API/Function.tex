@@ -47,7 +47,7 @@ typedef std::set<Edge*> edgelist;
 \end{apient}
 \apidesc{Containers for block and edge access. Library users \emph{must not} rely on the underlying container type of std::set/std::vector lists, as it is subject to change.}
 
-\begin{tabular}{p{1.25in}p{1.125in}p{3.125in}}
+\begin{tabularx}{\textwidth}{llX}
 \toprule
 Method name & Return type & Method description \\
 \midrule
@@ -70,7 +70,7 @@ restatus & FuncReturnStatus * & Returns the best-effort determination of whether
 getReturnType & Type * & Type representing the return type of the function. \\
 
 \bottomrule
-\end{tabular}
+\end{tabularx}
 
 \begin{apient}
 Function(Address addr,

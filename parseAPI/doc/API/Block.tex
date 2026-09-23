@@ -9,7 +9,7 @@ typedef std::vector<Edge *> edgelist;
 \end{apient}
 \apidesc{Container for edge access. Refer to Section \ref{sec:containers} for details. Library users \emph{must not} rely on the underlying container type of std::vector, as it is subject to change.}
 
-\begin{tabular}{p{1.25in}p{1.125in}p{3.125in}}
+\begin{tabularx}{\textwidth}{llX}
 \toprule
 Method name & Return type & Method description \\
 \midrule
@@ -25,7 +25,7 @@ sources & const edgelist \& & List of all in-edges to the block. \\
 targets & const edgelist \& & List of all out-edges from the block. \\
 containingFuncs & int & Number of Functions that contain this block. \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 
 \begin{apient}
 Block(CodeObject * o,

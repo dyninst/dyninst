@@ -3,7 +3,7 @@
 
 The \code{Symtab} class represents an object file either on-disk or in-memory. This class is responsible for the parsing of the \code{Object} file information and holding the data that can be accessed through look up functions.
 
-\begin{tabular}{p{1.25in}p{1in}p{3.25in}}
+\begin{tabularx}{\textwidth}{llX}
 \toprule
 Method name & Return type & Method description \\
 \midrule
@@ -30,7 +30,7 @@ Method name & Return type & Method description \\
 \code{getEntryOffset} & Offset & The entry point (where execution begins) of the binary. \\
 \code{getBaseOffset} & Offset & (Windows only) the OS-specified base offset of the file.  \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 
 \begin{apient}
 ObjectType getObjectType() const;

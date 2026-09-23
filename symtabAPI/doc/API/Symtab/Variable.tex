@@ -2,7 +2,7 @@
 
 The \code{Variable} class represents a collection of symbols that have the same address and represent data.
 
-\begin{tabular}{p{1.25in}p{1.125in}p{3.125in}}
+\begin{tabularx}{\textwidth}{llX}
 \toprule
 Method name & Return type & Method description \\
 \midrule
@@ -14,7 +14,7 @@ getType & Type * & Type of this variable, if known. \\
 getModule & const Module * & Module that contains this variable. \\
 getRegion & Region * & Region that contains this variable. \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 
 \begin{apient}
 bool getSymbols(vector<Symbol *> &syms) const;

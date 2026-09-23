@@ -30,7 +30,7 @@ RET & return \\
 \end{tabular}
 \end{center}
 
-\begin{tabular}{p{1.25in}p{1.125in}p{3.125in}}
+\begin{tabularx}{\textwidth}{llX}
 \toprule
 Method name & Return type & Method description \\
 \midrule
@@ -41,4 +41,4 @@ sinkEdge & bool & True if the target is the sink block. \\
 interproc & bool & True if the edge should be interpreted as interprocedural
 (e.g. calls, returns, unconditional or conditional tail calls). \\
 \bottomrule
-\end{tabular}
+\end{tabularx}

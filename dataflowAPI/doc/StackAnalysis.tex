@@ -89,7 +89,7 @@ typedef signed long Height_t;
 	The underlying data type used to convert between Height objects and integral values.
 }
 
-\begin{tabular}{p{1.25in}p{1.125in}p{3.125in}}
+\begin{tabularx}{\textwidth}{llX}
 	\toprule
 	Method name & Return type & Method description \\
 	\midrule
@@ -98,7 +98,7 @@ typedef signed long Height_t;
 	isTop & bool & True if this stack height is TOP.\\
 	isBottom & bool & True if this stack height is BOTTOM.\\
 	\bottomrule
-\end{tabular}
+\end{tabularx}
 
 \begin{apient}
 Height(const Height_t h);

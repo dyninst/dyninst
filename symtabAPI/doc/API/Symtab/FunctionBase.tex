@@ -1,7 +1,7 @@
 \subsection{Class FunctionBase}\label{FunctionBase}
 The \code{FunctionBase} class provides a common interface that can represent either a regular function or an inlined function.
 
-\begin{tabular}{p{1.25in}p{1.125in}p{3.125in}}
+\begin{tabularx}{\textwidth}{llX}
 \toprule
 Method name & Return type & Method description \\
 \midrule
@@ -11,7 +11,7 @@ getRegion & Region * & Region containing this function. \\
 getReturnType & Type * & Type representing the return type of the function. \\
 getName & std::string & Returns primary name of the function (first mangled name or DWARF name) \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 
 \begin{apient}
 bool setModule(Module *module);

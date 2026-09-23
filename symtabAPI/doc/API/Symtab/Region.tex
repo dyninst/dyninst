@@ -42,7 +42,7 @@ RT\_OTHER & Miscellaneous information \\
 \end{tabular}
 \end{center}
 
-\begin{tabular}{p{1.25in}p{1in}p{3.25in}}
+\begin{tabularx}{\textwidth}{llX}
 \toprule
 Method name & Return type & Method description \\
 \midrule
@@ -61,7 +61,7 @@ getRegionType & RegionType & Type of the region as defined above. \\
 isLoadable & bool & True if the region will be loaded into memory (e.g., code or data), false otherwise (e.g., debug information). \\
 isDirty & bool & True if the region's raw data buffer has been modified by the user. \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 
 \begin{apient}
 static Region *createRegion(Offset diskOff,
