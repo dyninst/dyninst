@@ -114,8 +114,6 @@ typedef enum {
 	sp_rem_cont_item = 5
 } ser_post_op_t;
 
-DYNINST_EXPORT const char *serPostOp2Str(ser_post_op_t);
-
 class DYNINST_EXPORT AnnotatableDense
 {
 	typedef void *anno_list_t;
