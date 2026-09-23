@@ -14,6 +14,8 @@ on:
   schedule:
     - cron: '0 4 * * 3'  # every Wednesday at 4pm
 
+permissions: {}
+
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
