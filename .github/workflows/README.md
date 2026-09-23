@@ -139,6 +139,12 @@ Ensures modified CMake files are correctly formatted using `cmake-format` and th
 
 **when**: on pull requests to the master branch when a CMake file is changed, or manually
 
+### Run CodeQL analyzer ([workflows/codeql](workflows/codeql.yaml))
+
+*Runs the GitHub CodeQL static analyzer for a simple build using gcc and the default x86 setup.*
+
+**when**: Every Wednesday at 4AM.
+
 ### Build with many compilers ([workflows/compiler-multibuild](workflows/compiler-multibuild.yaml))
 
 *Builds Dyninst with all supported versions of gcc and clang available on Ubuntu, the built-in versions of gcc and clang on Fedora, and the supported C++ standards*
