@@ -248,15 +248,12 @@ void LivenessAnalyzer::analyze(Function *func) {
        summarizeBlockLivenessInfo(func, block, regsDefined);
     }
 
-    // Step 2: We now have block-level summaries of gen/kill info
-    // within the block. Propagate them to a fixpoint with a worklist.
-    // Liveness is a backward analysis: IN(b) feeds only the OUT of b's
-    // predecessors, so a change to IN(b) requires revisiting just those.
-    // Seeding in descending address order visits most successors first,
-    // because fall-through edges always ascend.
+    // Step 2: propagate the block summaries to a fixpoint. Liveness is a
+    // backward analysis, so a change to IN(b) requires revisiting only b's
+    // predecessors. Seeding in descending address order visits most
+    // successors first, because fall-through edges always ascend.
     //
     // Maps each block of this function to whether it is on the worklist.
-    // Predecessors outside this function (shared code) are not updated.
     std::unordered_map<Block*, bool> onWorklist;
     std::deque<Block*> worklist;
     for (auto rit = std::reverse_iterator<Function::blocklist::iterator>(blocks.end());
@@ -274,8 +271,14 @@ void LivenessAnalyzer::analyze(Function *func) {
 
         boost::lock_guard<Block> g(*block);
         for (Edge *e : block->sources()) {
-            // Mirror the edges getLivenessOut reads IN(block) through
+            // Skip edges that getLivenessOut does not read IN(block) through:
+            // those rejected by Intraproc, and CATCH edges, which
+            // processEdgeLiveness ignores. This filter must never be stricter
+            // than getLivenessOut's, or a predecessor would miss the change.
             if (!epred(e) || e->type() == CATCH) continue;
+            // Skip a predecessor outside this function: it may have no
+            // summary from step 1. Skip one already queued: its pending visit
+            // reads the current IN(block).
             auto it = onWorklist.find(e->src());
             if (it == onWorklist.end() || it->second) continue;
             it->second = true;
