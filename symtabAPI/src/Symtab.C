@@ -383,6 +383,13 @@ DYNINST_EXPORT const char*  Symtab::getInterpreterName() const
       return interpreter_name_.c_str();
    return NULL;
 }
+
+DYNINST_EXPORT const char*  Symtab::getSOName() const
+{
+   if (soname_.length())
+      return soname_.c_str();
+   return NULL;
+}
  
 DYNINST_EXPORT Offset Symtab::getEntryOffset() const 
 { 
@@ -983,6 +990,9 @@ bool Symtab::extractInfo(Object *linkedFile)
 
     if (linkedFile->interpreter_name())
        interpreter_name_ = std::string(linkedFile->interpreter_name());
+
+    if (linkedFile->getSoname())
+       soname_ = std::string(linkedFile->getSoname());
 
     entry_address_ = linkedFile->getEntryAddress();
     base_address_ = linkedFile->getBaseAddress();

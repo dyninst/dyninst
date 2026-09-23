@@ -123,6 +123,16 @@ std::string SymtabReader::getInterpreterName()
    return std::string(interp);
 }
 
+std::string SymtabReader::getSOName()
+{
+   assert(symtab);
+   const char *soname = symtab->getSOName();
+
+   if (!soname)
+      return std::string();
+   return std::string(soname);
+}
+
 unsigned SymtabReader::getAddressWidth()
 {
    assert(symtab);
