@@ -349,6 +349,10 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
 
    const char*  getInterpreterName() const;
 
+   // DT_SONAME of this object, or NULL when it has none.  This is the name other
+   // objects link against, which is NOT necessarily the name of the file on disk.
+   const char*  getSOName() const;
+
    unsigned getAddressWidth() const;
    bool isBigEndianDataEncoding() const;
    bool getABIVersion(int &major, int &minor) const;
@@ -473,6 +477,7 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
 
    unsigned address_width_{sizeof(int)};
    std::string interpreter_name_{};
+   std::string soname_{};
    Offset entry_address_{};
    Offset base_address_{};
    Offset load_address_{};

@@ -78,6 +78,7 @@ class DYNINST_EXPORT SymtabReader : public SymReader {
    virtual unsigned long getSymbolSize(const Symbol_t &sym);
    virtual Symbol_t getContainingSymbol(Dyninst::Offset offset);
    virtual std::string getInterpreterName();
+   virtual std::string getSOName();
    virtual unsigned getAddressWidth();
    virtual bool isBigEndianDataEncoding() const;
    virtual bool getABIVersion(int &major, int &minor) const;
