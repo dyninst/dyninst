@@ -12,7 +12,7 @@ name: "CodeQL"
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 4 * * 3'  # every Wednesday at 4pm
+    - cron: '0 4 * * 3'  # every Wednesday at 4AM
 
 permissions: {}
 
