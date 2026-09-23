@@ -36,4 +36,9 @@
   breaklines=true,
   breakatwhitespace=true,
   postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+  %% listings maps * to \textasteriskcentered, which LaTeX takes from the
+  %% OMS encoding.  The typewriter family fvm has no OMS shape, so every
+  %% pointer declaration and /* */ in a listing fell back to Computer
+  %% Modern.  Emit the plain ASCII asterisk from the listing font instead.
+  literate={*}{{\char42}}1,
 }
