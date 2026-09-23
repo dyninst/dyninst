@@ -1,7 +1,7 @@
 # CodeQL is GitHub's static analysis scan tool
 # https://codeql.github.com/
 #
-# Ideally, every build permuation would be scanned individually.
+# Ideally, every build permutation would be scanned individually.
 # However, that would likely take days to complete. The configuration
 # here just scans a basic x86_64 build using Ubuntu 25.04.
 #
