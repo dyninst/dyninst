@@ -1201,6 +1201,20 @@ void InstructionDecoder_aarch64::set32Mode()
   }
 
   void InstructionDecoder_aarch64::getMemRefPair_RT(Result_Type& rt) {
+    // A load/store pair references TWO registers' worth of memory, and for SIMD&FP pairs opc
+    // selects the operand size independently of the general-purpose encoding: opc=00 is a pair
+    // of 4-byte S registers, 01 a pair of 8-byte D, 10 a pair of 16-byte Q. Decoding opc with
+    // the general-purpose table (below) under-reports D pairs as 8 bytes and Q pairs as 16.
+    if(isSIMDInsn) {
+      switch(field<30, 31>(insn)) {
+        case 0: rt = u64;    break;   // 2 x  4-byte S =  8
+        case 1: rt = dbl128; break;   // 2 x  8-byte D = 16
+        case 2: rt = m256;   break;   // 2 x 16-byte Q = 32
+        default: isValid = false;
+      }
+      return;
+    }
+
     unsigned int isSigned = field<30, 30>(insn);
     unsigned int size_ = field<31, 31>(insn);
 
@@ -2227,11 +2241,24 @@ add_operand(makeRnExpr(), true, true);
   }
 
   void InstructionDecoder_aarch64::OPRopc() {
-    int opcVal = field<30, 31>(insn);
-    int lopc = (field<22, 22>(insn) << 1) | (opcVal & 0x1);
+    if(!IS_INSN_LDST_PAIR(insn))
+      return;
 
-    if((IS_INSN_LDST_PAIR_NOALLOC(insn) && !isSIMDInsn && (opcVal & 0x1) == 0x1) ||
-       (IS_INSN_LDST_PAIR(insn) && (opcVal == 0x3 || lopc == 0x1)))
+    // For a load/store pair, opc (bits 31:30) encodes the operand size, and which values
+    // are allocated depends on the V bit that selects general-purpose (V=0) from SIMD&FP
+    // (V=1) registers. opc=11 is unallocated for both.
+    int const opc = field<30, 31>(insn);
+    if(opc == 0x3) {
+      isValid = false;
+      return;
+    }
+
+    // For SIMD&FP, opc=01 is the 64-bit (D register) form, allocated for loads and stores
+    // alike in every addressing mode. For general-purpose registers it is LDPSW, so it is
+    // unallocated for stores and for the non-temporal forms (LDNP/STNP), which have no
+    // sign-extending variant.
+    bool const isLoad = field<22, 22>(insn) == 1;
+    if(!isSIMDInsn && opc == 0x1 && (!isLoad || IS_INSN_LDST_PAIR_NOALLOC(insn)))
       isValid = false;
   }
 

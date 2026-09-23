@@ -36,10 +36,76 @@ void reverseBuffer(unsigned char *buffer, int bufferSize) {
   }
 }
 
+
+// The memory operand of a load/store pair covers TWO registers' worth of memory. For SIMD&FP
+// pairs the width comes from opc independently of the general-purpose encoding, so decoding opc
+// with the general-purpose table under-reports D pairs as 8 bytes and Q pairs as 16.
+//
+// The s1/s2 row is deliberate: two 4-byte registers coincidentally match what the
+// general-purpose table returns for opc=00, so a test covering only S passes against a decoder
+// that gets D and Q wrong. The general-purpose rows are controls.
+bool checkPairMemoryOperandSize() {
+  struct testcase {
+    uint32_t word;
+    char const *text;
+    unsigned int size;
+  };
+
+  testcase const cases[] = {
+      {0x29000861, "stp w1, w2, [x3]", 8},      {0xa9000861, "stp x1, x2, [x3]", 16},
+      {0x69400861, "ldpsw x1, x2, [x3]", 8},    {0x2d000861, "stp s1, s2, [x3]", 8},
+      {0x6d0127e8, "stp d8, d9, [sp,#16]", 16}, {0x6d400861, "ldp d1, d2, [x3]", 16},
+      {0x6c000861, "stnp d1, d2, [x3]", 16},    {0xad000861, "stp q1, q2, [x3]", 32},
+      {0xad400861, "ldp q1, q2, [x3]", 32},
+  };
+
+  bool failed = false;
+
+  for(auto const &c : cases) {
+    unsigned char bytes[4] = {
+        static_cast<unsigned char>(c.word & 0xff), static_cast<unsigned char>((c.word >> 8) & 0xff),
+        static_cast<unsigned char>((c.word >> 16) & 0xff),
+        static_cast<unsigned char>((c.word >> 24) & 0xff)};
+
+    di::InstructionDecoder dec(bytes, sizeof(bytes), Dyninst::Arch_aarch64);
+    di::Instruction insn = dec.decode();
+
+    std::clog << "Verifying memory operand size of '" << c.text << "'\n";
+
+    if(!insn.isValid()) {
+      std::cerr << "  failed to decode\n";
+      failed = true;
+      continue;
+    }
+
+    auto const &operands = insn.getAllOperands();
+
+    bool found = false;
+    for(auto const &op : operands) {
+      if(!op.readsMemory() && !op.writesMemory()) {
+        continue;
+      }
+      found = true;
+      unsigned int const size = op.getValue()->size();
+      if(size != c.size) {
+        std::cerr << "  expected " << c.size << " bytes, got " << size << '\n';
+        failed = true;
+      }
+    }
+
+    if(!found) {
+      std::cerr << "  no memory operand found\n";
+      failed = true;
+    }
+  }
+
+  return failed;
+}
+
 } // namespace
 
 int main() {
-  constexpr auto num_tests = 136;
+  constexpr auto num_tests = 142;
 
   // clang-format off
   std::array<unsigned char, 4*num_tests> buffer = {{
@@ -162,6 +228,14 @@ int main() {
     0xa8,   0x80,   0x88,   0x61,        //stp     x1, x2, [x3],#8
     0xa8,   0x80,   0x88,   0x61,        //stp     x1, x2, [x3],#8
 
+    //SIMD&FP pair
+    0x6c,   0x00,   0x88,   0x61,        //stnp    d1, d2, [x3,#8]
+    0x6d,   0x00,   0x88,   0x61,        //stp     d1, d2, [x3,#8]
+    0x6d,   0x80,   0x88,   0x61,        //stp     d1, d2, [x3,#8]!
+    0x6c,   0x80,   0x88,   0x61,        //stp     d1, d2, [x3],#8
+    0x2d,   0x01,   0x08,   0x61,        //stp     s1, s2, [x3,#8]
+    0xad,   0x00,   0x88,   0x61,        //stp     q1, q2, [x3,#16]
+
     0x38,   0x00,   0x10,   0x61,        //sturb   w1, [x3,#1]
     0xf8,   0x00,   0x10,   0x61,        //str     x1, [x3,#1]
     0x78,   0x00,   0x10,   0x61,        //strh    w1, [x3,#1]
@@ -252,6 +326,13 @@ int main() {
   auto w15 = Dyninst::aarch64::w15;
   auto w29 = Dyninst::aarch64::w29;
   auto w30 = Dyninst::aarch64::w30;
+
+  auto s1 = Dyninst::aarch64::s1;
+  auto s2 = Dyninst::aarch64::s2;
+  auto d1 = Dyninst::aarch64::d1;
+  auto d2 = Dyninst::aarch64::d2;
+  auto q1 = Dyninst::aarch64::q1;
+  auto q2 = Dyninst::aarch64::q2;
 
   auto xzr = Dyninst::aarch64::xzr;
   auto sp = Dyninst::aarch64::sp;
@@ -622,6 +703,30 @@ int main() {
   expectedRead.push_back(reg_set{x2, x1, x3});
   expectedWritten.push_back(reg_set{});
 
+  // stnp d1, d2, [x3,#8]
+  expectedRead.push_back(reg_set{d1, d2, x3});
+  expectedWritten.push_back(reg_set{});
+
+  // stp d1, d2, [x3,#8]
+  expectedRead.push_back(reg_set{d1, d2, x3});
+  expectedWritten.push_back(reg_set{});
+
+  // stp d1, d2, [x3,#8]!
+  expectedRead.push_back(reg_set{d1, d2, x3});
+  expectedWritten.push_back(reg_set{});
+
+  // stp d1, d2, [x3],#8
+  expectedRead.push_back(reg_set{d1, d2, x3});
+  expectedWritten.push_back(reg_set{});
+
+  // stp s1, s2, [x3,#8]
+  expectedRead.push_back(reg_set{s1, s2, x3});
+  expectedWritten.push_back(reg_set{});
+
+  // stp q1, q2, [x3,#16]
+  expectedRead.push_back(reg_set{q1, q2, x3});
+  expectedWritten.push_back(reg_set{});
+
   // sturb w1, [x3,#1]
   expectedRead.push_back(reg_set{x3, w1});
   expectedWritten.push_back(reg_set{});
@@ -816,7 +921,8 @@ int main() {
     return EXIT_FAILURE;
   }
 
-  bool failed = false;
+  bool failed = checkPairMemoryOperandSize();
+
   for(size_t i = 0; i < decodedInsns.size(); i++) {
     auto const &insn = decodedInsns[i];
 
