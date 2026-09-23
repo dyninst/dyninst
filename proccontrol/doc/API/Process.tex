@@ -8,7 +8,9 @@ performing general ProcControlAPI operations, such as handleEvents and
 registerEventCallback when dealing with callbacks.
 
 \begin{apient}
-Process::ptr Process::const_ptr;
+Process::ptr;
+
+Process::const_ptr;
 \end{apient}
 
 \apidesc{
@@ -28,19 +30,17 @@ enum Process::cb_action_t {
   cbProcContinue,
   cbProcStop
 };
-\end{apient}
 
-\apidesc{
-}
-
-\begin{apient}
 struct Process::cb_ret_t {
-  cb_ret_t(cb_action_t p)
-  cb_ret_t(cb_action_t p, cb_action_t c)
+  cb_ret_t(cb_action_t p);
+  cb_ret_t(cb_action_t p, cb_action_t c);
+  cb_action_t parent;
+  cb_action_t child;
+};
 \end{apient}
 
 \apidesc{
-The cb\_ret\_t enum is used as the return type for callback functions registered
+The cb\_ret\_t struct is used as the return type for callback functions registered
 through Process::registerEventCallback(). A callback function can specify
 whether the thread or process associated with its event should be stopped or
 continued by respectively returning cbThreadContinue, cbThreadStop,

@@ -27,9 +27,7 @@ virtual unsigned getAddressWidth() = 0;
   8 for 64-bit platforms (x86-64, PowerPC-64).}
 
 \begin{apient}
- typedef enum { Arch_x86, Arch_x86_64, Arch_ppc32, Arch_ppc64 };
-
- Architecture;
+ typedef enum { Arch_x86, Arch_x86_64, Arch_ppc32, Arch_ppc64 } Architecture;
 
  virtual Dyninst::Architecture getArchitecture() = 0;
 \end{apient}

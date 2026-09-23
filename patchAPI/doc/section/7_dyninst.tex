@@ -95,7 +95,7 @@ To access a PatchAPI class from a Dyninst class, use
 the \texttt{PatchAPI::convert} function, as in the following example:
 
 \begin{apient}
-  BPatch_basicBlock *bp_block = ...;
+  BPatch_basicBlock *bp_block;
 
   PatchAPI::PatchBlock *block = PatchAPI::convert(bp_block);
 \end{apient}
