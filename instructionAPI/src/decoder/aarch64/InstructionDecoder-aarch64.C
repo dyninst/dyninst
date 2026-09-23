@@ -1201,6 +1201,20 @@ void InstructionDecoder_aarch64::set32Mode()
   }
 
   void InstructionDecoder_aarch64::getMemRefPair_RT(Result_Type& rt) {
+    // A load/store pair references TWO registers' worth of memory, and for SIMD&FP pairs opc
+    // selects the operand size independently of the general-purpose encoding: opc=00 is a pair
+    // of 4-byte S registers, 01 a pair of 8-byte D, 10 a pair of 16-byte Q. Decoding opc with
+    // the general-purpose table (below) under-reports D pairs as 8 bytes and Q pairs as 16.
+    if(isSIMDInsn) {
+      switch(field<30, 31>(insn)) {
+        case 0: rt = u64;    break;   // 2 x  4-byte S =  8
+        case 1: rt = dbl128; break;   // 2 x  8-byte D = 16
+        case 2: rt = m256;   break;   // 2 x 16-byte Q = 32
+        default: isValid = false;
+      }
+      return;
+    }
+
     unsigned int isSigned = field<30, 30>(insn);
     unsigned int size_ = field<31, 31>(insn);
 
