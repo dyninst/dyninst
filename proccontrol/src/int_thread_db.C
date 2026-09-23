@@ -952,6 +952,37 @@ static string stripLibraryName(const char *libname)
    return p.filename().string();
 }
 
+/*
+ * The DT_SONAME recorded in a loaded object, or an empty string if it has none.
+ *
+ * Reading this parses the file, so the result is memoised per library path: a lookup
+ * that has to scan sonames pays for each library once, and only on systems where the
+ * cheap name comparison in getSymbolAddr() did not already find the object.
+ */
+const std::string &thread_db_process::getLibSOName(int_library *lib)
+{
+   const std::string &path = lib->getName();
+
+   std::map<std::string, std::string>::iterator i = soname_cache.find(path);
+   if (i != soname_cache.end())
+      return i->second;
+
+   std::string soname;
+   SymReader *reader = getSymReader()->openSymbolReader(path);
+   if (reader) {
+      soname = reader->getSOName();
+      // The name is copied into the cache above, so nothing here needs the parsed file
+      // to stay open.  A scan visits every loaded object, so holding them all would be
+      // a poor trade for a lookup that happens a handful of times per process.
+      getSymReader()->closeSymbolReader(reader);
+   } else {
+      pthrd_printf("Failed to open symbol reader for %s while reading its SONAME\n",
+                   path.c_str());
+   }
+
+   return soname_cache.insert(std::make_pair(path, soname)).first->second;
+}
+
 ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symName,
         psaddr_t *symbolAddr)
 {
@@ -970,11 +1001,38 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
        const char *name_c = objName ? objName : getThreadLibName(symName);
        std::string name = stripLibraryName(name_c);
 
+       /*
+        * libthread_db asks for objects by SONAME (LIBPTHREAD_SO is "libpthread.so.0"),
+        * whereas the names we hold come from the link map, i.e. the path the loader
+        * actually opened.  Usually the loader reached the file through its SONAME-named
+        * symlink and the two agree, so compare the file name first: that costs nothing
+        * and answers the common case.
+        */
        for (set<int_library *>::iterator i = memory()->libs.begin(); i != memory()->libs.end(); i++) {
           int_library *l = *i;
           if (stripLibraryName(l->getName().c_str()) ==  name) {
              lib = l;
              break;
+          }
+       }
+
+       /*
+        * They do not always agree.  glibc-hwcaps resolves libpthread.so.0 to a file
+        * named for the glibc version under a microarchitecture directory (on a RHEL8
+        * POWER9 box, /lib64/glibc-hwcaps/power9/libpthread-2.28.so), and an ld.so.cache
+        * or audit library can redirect a dependency just as well.  The SONAME is a
+        * property of the file rather than of the path, so fall back to the name the
+        * object actually declares.  Without this the agent is never created, no thread
+        * events are ever delivered, and the failure is silent.
+        */
+       if (!lib && !name.empty()) {
+          for (int_library *l : memory()->libs) {
+             if (getLibSOName(l) == name) {
+                pthrd_printf("Matched requested object %s to %s by SONAME\n",
+                             name.c_str(), l->getName().c_str());
+                lib = l;
+                break;
+             }
           }
        }
     }
