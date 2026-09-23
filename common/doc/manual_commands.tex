@@ -27,4 +27,13 @@
 
 \newcommand{\code}[1]{{\small\texttt{#1}}}
 
-\lstset{showstringspaces=false}
+%% Wrap long listing lines instead of letting them run off the page.
+%% breakatwhitespace keeps a break from landing inside an identifier, and
+%% postbreak marks the continuation so a wrapped line cannot be mistaken
+%% for one the author wrote that way.
+\lstset{
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=true,
+  postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+}
