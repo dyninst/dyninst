@@ -107,12 +107,6 @@ class AnnotationClass : public AnnotationClassBase {
 	  size_t size() {return sizeof(T);}
 };
 
-
-typedef enum {
-	    sparse,
-		dense
-} sparse_or_dense_anno_t;
-
 typedef enum {
 	sp_add_anno = 2,
 	sp_rem_anno = 3,
