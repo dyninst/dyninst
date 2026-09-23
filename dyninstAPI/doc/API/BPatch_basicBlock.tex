@@ -43,7 +43,7 @@ graph of the containing function.
 \begin{apient}
   bool getInstructions(std::vector<Dyninst::InstructionAPI::Instruction>&)
 
-  bool getInstructions(std::vector<std::pair<Dyninst::InstructionAPI::Instruction, Address> >&)
+  bool getInstructions(std::vector<std::pair<Dyninst::InstructionAPI::Instruction, Dyninst::Address> >&)
 \end{apient}
 
 \apidesc{
@@ -111,7 +111,7 @@ graph of the containing function.
   Find all points in the basic block that match the given operation.
 }
 \begin{apient}
-  BPatch_point *findEntryPoint(
+  BPatch_point *findEntryPoint()
   BPatch_point *findExitPoint()
 \end{apient}
 

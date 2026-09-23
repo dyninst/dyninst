@@ -141,11 +141,10 @@ It returns the number of elements removed.
 }
 
 \begin{apient}
-size_t erase(Dyninst::Address addr,
+size_t erase(Dyninst::Address addr, Process::const_ptr proc)
 \end{apient}
 
 \apidesc{
-Process::const\_ptr proc)
 This function removes any element that has and address and process of addr and
 proc from the AddressSet. It returns the number of elements removed.
 }
