@@ -41,7 +41,7 @@ The format method on a \code{MultiRegister} object returns the name associated w
 }
 
 \begin{apient}
-MultiRegister makePC(Dyninst::Architecture arch) [static];
+static MultiRegister makePC(Dyninst::Architecture arch);
 \end{apient}
 \apidesc{
 Utility function to get a \code{Register} object that represents the program counter.
@@ -65,7 +65,7 @@ this AST.
 }
 
 \begin{apient}
-MultiRegister::Ptr promote(const Expression::Ptr reg) [static];
+static MultiRegister::Ptr promote(const Expression::Ptr reg);
 \end{apient}
 \apidesc{
 Utility function to hide aliasing complexity on platforms (IA-32) that allow addressing part or all of a register
