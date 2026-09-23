@@ -5,13 +5,13 @@ The class \code{Type} represents the types of variables, parameters, return valu
 As described in Section \ref{subsec:typeInterface}, this class serves as a base class for all the other classes in this interface. An object of this class is returned from type look up operations performed through the Symtab class described in Section \ref{sec:symtabAPI}. The user can then obtain the specific type object from the generic Type class object. The following example shows how to get the specific object from a given \code{Type} object returned as part of a look up operation.
 
 \begin{lstlisting}
-//Example shows how to retrieve a structure type object from a given ``Type'' object
+//Example shows how to retrieve a structure type object from a given "Type" object
 using namespace Dyninst;
 using namespace SymtabAPI;
 
 //Obj represents a handle to a parsed object file using symtabAPI
 //Find a structure type in the object file
-Type *structType = obj->findType(``structType1'');
+Type *structType = obj->findType("structType1");
 
 // Get the specific typeStruct object
 typeStruct *stType = structType->isStructType();
@@ -23,7 +23,7 @@ string &getName();
 \apidesc{
 This method returns the name associated with this type.
 Each of the types is represented by a symbolic name. This method retrieves the
-name for the type. For example, in the example above "structType1"
+name for the type. For example, in the example above \code{structType1}
 represents the name for the \code{structType} object.
 }
 

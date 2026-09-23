@@ -9,7 +9,7 @@ a call stack. Users who operate in one of StackwalkerAPI's standard
 configurations do not need to use the Callback Interface.
 
 Figure~\ref{fig:object-ownership} shows the ownership hierarchy for
-StackwalkerAPI's classes. Ownership is a "contains" relationship; if one class
+StackwalkerAPI's classes. Ownership is a ``contains'' relationship; if one class
 owns another, then instances of the owner class maintain an exclusive instance
 of the other. For example, in Figure~\ref{fig:object-ownership} the each Walker
 instance contains exactly one instance of a ProcessState object.  No other
@@ -39,7 +39,7 @@ Section~\ref{sec:api}.
 \subsection{Callback Interface}
 StackwalkerAPI includes default implementations of the Callback Interface on
 each of its supported platforms. These default implementations allow
-StackwalkerAPI to work "out of the box" in a standard configuration on each
+StackwalkerAPI to work ``out of the box'' in a standard configuration on each
 platform. Users can port StackwalkerAPI to new platforms or customize its call
 stack walking behavior by implementing their own versions of the classes in the
 Callback Interface.
