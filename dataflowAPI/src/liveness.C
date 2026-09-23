@@ -240,12 +240,14 @@ void LivenessAnalyzer::analyze(Function *func) {
     funcRegsDefined[func] = abi->getCallReadRegisters();
     bitArray &regsDefined = funcRegsDefined[func];
 
+    // blocks() takes a recursive_mutex per call, so evaluate it once
+    Function::blocklist blocks = func->blocks();
+
     // Step 1: gather the block summaries
-    Function::blocklist::iterator sit = func->blocks().begin();
-    for( ; sit != func->blocks().end(); sit++) {
-       summarizeBlockLivenessInfo(func,*sit, regsDefined);
+    for (Block *block : blocks) {
+       summarizeBlockLivenessInfo(func, block, regsDefined);
     }
-    
+
     // Step 2: We now have block-level summaries of gen/kill info
     // within the block. Propagate them to a fixpoint with a worklist.
     // Liveness is a backward analysis: IN(b) feeds only the OUT of b's
@@ -255,7 +257,6 @@ void LivenessAnalyzer::analyze(Function *func) {
     //
     // Maps each block of this function to whether it is on the worklist.
     // Predecessors outside this function (shared code) are not updated.
-    Function::blocklist blocks = func->blocks();
     std::unordered_map<Block*, bool> onWorklist;
     std::deque<Block*> worklist;
     for (auto rit = std::reverse_iterator<Function::blocklist::iterator>(blocks.end());
