@@ -91,7 +91,6 @@ Variable::Variable(AbsRegion r, Address a);
 \begin{apient}
 bool Variable::operator==(const Variable &rhs) const;
 bool Variable::operator<(const Variable &rhs) const;
-
 \end{apient}
 \apidesc{Two Variable objects are equal when their AbsRegion are equal and their
 addresses are equal.}
@@ -103,6 +102,7 @@ const std::string Variable::format() const;
 
 \begin{apient}
 AbsRegion Variable::reg;
+
 Address Variable::addr;
 \end{apient}
 \apidesc{The abstraction region and the address of this Variable.}
@@ -133,6 +133,7 @@ const std::string Constant::format() const;
 
 \begin{apient}
 uint64_t Constant::val;
+
 size_t Constant::size;
 \end{apient}
 \apidesc{The numerical value and bit size of this value.}
@@ -202,6 +203,7 @@ const std::string ROSEOperation::format() const;
 
 \begin{apient}
 ROSEOperation::Op ROSEOperation::op;
+
 size_t ROSEOperation::size;
 \end{apient}
 
@@ -213,6 +215,7 @@ for ASTs.
 
 \begin{apient}
 typedef boost::shared_ptr<AST> ASTVisitor::ASTPtr;
+
 virtual ASTVisitor::ASTPtr ASTVisitor::visit(AST *);
 virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::BottomAST *);
 virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::ConstantAST *);

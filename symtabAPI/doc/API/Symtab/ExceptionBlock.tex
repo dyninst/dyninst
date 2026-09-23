@@ -15,7 +15,7 @@ catchStart & Offset & Start of the catch block. \\
 
 
 \begin{apient}
-bool contains(Offset addr) const
+bool contains(Offset addr) const;
 \end{apient}
 \apidesc{
 This method returns \code{true} if the offset \code{addr} is contained with in the try block. If there is no try block associated with this exception block or the offset does not fall within the try block, it returns \code{false}.

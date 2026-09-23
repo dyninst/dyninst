@@ -18,7 +18,7 @@ typeStruct *stType = structType->isStructType();
 \end{lstlisting}
 
 \begin{apient}
-string &getName()
+string &getName();
 \end{apient}
 \apidesc{
 This method returns the name associated with this type.
@@ -28,7 +28,7 @@ represents the name for the \code{structType} object.
 }
 
 \begin{apient}
-bool setName(string zname)
+bool setName(string zname);
 \end{apient}
 \apidesc{
 This method sets the name of this type to name. Returns \code{true} on success and \code{false} on failure.
@@ -54,7 +54,7 @@ typedef enum{
 \end{apient}
 
 \begin{apient}
-dataClass getDataClass()
+dataClass getDataClass();
 \end{apient}
 \apidesc{
 This method returns the data class associated with the type.
@@ -62,7 +62,7 @@ This value should be used to convert this generic type object to a specific type
 }
 
 \begin{apient}
-typeId_t getID()
+typeId_t getID();
 \end{apient}
 \apidesc{
 This method returns the ID associated with this type.
@@ -70,84 +70,84 @@ Each type is assigned a unique ID within the object file. For example an integer
 }
 
 \begin{apient}
-unsigned getSize()
+unsigned getSize();
 \end{apient}
 \apidesc{
 This method returns the total size in bytes occupied by the type.
 }
 
 \begin{apient}
-typeEnum *getEnumType()
+typeEnum *getEnumType();
 \end{apient}
 \apidesc{
 If this \code{Type} hobject represents an enum type, then return the object casting the \code{Type} object to \code{typeEnum} otherwise return \code{NULL}.
 }
 
 \begin{apient}
-typePointer *getPointerType()
+typePointer *getPointerType();
 \end{apient}
 \apidesc{
 If this \code{Type} object represents an pointer type, then return the object casting the \code{Type} object to \code{typePointer} otherwise return \code{NULL}.
 }
 
 \begin{apient}
-typeFunction *getFunctionType()
+typeFunction *getFunctionType();
 \end{apient}
 \apidesc{
 If this \code{Type} object represents an \code{Function} type, then return the object casting the \code{Type} object to \code{typeFunction} otherwise return \code{NULL}.
 }
 
 \begin{apient}
-typeRange *getSubrangeType()
+typeRange *getSubrangeType();
 \end{apient}
 \apidesc{
 If this \code{Type} object represents a \code{Subrange} type, then return the object casting the \code{Type} object to \code{typeSubrange} otherwise return \code{NULL}.
 }
 
 \begin{apient}
-typeArray *getArrayType()
+typeArray *getArrayType();
 \end{apient}
 \apidesc{
 If this \code{Type} object represents an \code{Array} type, then return the object casting the \code{Type} object to \code{typeArray} otherwise return \code{NULL}.
 }
 
 \begin{apient}
-typeStruct *getStructType()
+typeStruct *getStructType();
 \end{apient}
 \apidesc{
 If this \code{Type} object represents a \code{Structure} type, then return the object casting the \code{Type} object to \code{typeStruct} otherwise return \code{NULL}.
 }
 
 \begin{apient}
-typeUnion *getUnionType()
+typeUnion *getUnionType();
 \end{apient}
 \apidesc{
 If this \code{Type} object represents a \code{Union} type, then return the object casting the \code{Type} object to \code{typeUnion} otherwise return \code{NULL}.
 }
 
 \begin{apient}
-typeScalar *getScalarType()
+typeScalar *getScalarType();
 \end{apient}
 \apidesc{
 If this \code{Type} object represents a \code{Scalar} type, then return the object casting the \code{Type} object to \code{typeScalar} otherwise return \code{NULL}.
 }
 
 \begin{apient}
-typeCommon *getCommonType()
+typeCommon *getCommonType();
 \end{apient}
 \apidesc{
 If this \code{Type} object represents a \code{Common} type, then return the object casting the \code{Type} object to \code{typeCommon} otherwise return \code{NULL}.
 }
 
 \begin{apient}
-typeTypedef *getTypedefType()
+typeTypedef *getTypedefType();
 \end{apient}
 \apidesc{
 If this \code{Type} object represents a \code{TypeDef} type, then return the object casting the \code{Type} object to \code{typeTypedef} otherwise return \code{NULL}.
 }
 
 \begin{apient}
-typeRef *getRefType()
+typeRef *getRefType();
 \end{apient}
 \apidesc{
 If this \code{Type} object represents a \code{Reference} type, then return the object casting the \code{Type} object to \code{typeRef} otherwise return \code{NULL}.
@@ -159,10 +159,10 @@ This class represents an enumeration type containing a list of constants with va
 \begin{apient}
 static typeEnum *create(string &name,
                         vector<pair<string, int> *> &consts,
-                        Symtab *obj = NULL)
+                        Symtab *obj = NULL);
 static typeEnum *create(string &name,
                         vector<string> &constNames,
-                        Symtab *obj)
+                        Symtab *obj);
 \end{apient}
 \apidesc{
 These factory methods create a new enumerated type. There are two variations to this function. \code{consts} supplies the names and Id's of the constants of the enum. The first variant is used when user-defined identifiers are required; the second variant is used when system-defined identifiers will be used.
@@ -171,7 +171,7 @@ The newly created type is added to the \code{Symtab} object \code{obj}. If \code
 
 \begin{apient}
 bool addConstant(const string &constname,
-                 int value)
+                 int value);
 \end{apient}
 \apidesc{
 This method adds a constant to an enum type with name \code{constName} and value \code{value}.
@@ -186,7 +186,7 @@ This method returns the vector containing the enum constants represented by a (n
 }
 
 \begin{apient}
-bool setName(const char* name)
+bool setName(const char* name);
 \end{apient}
 \apidesc{
 This method sets the new name of the enum type to \code{name}.
@@ -194,7 +194,7 @@ Returns \code{true} if it succeeds, else returns \code{false}.
 }
 
 \begin{apient}
-bool isCompatible(Type *type)
+bool isCompatible(Type *type);
 \end{apient}
 \apidesc{
  This method returns \code{true} if the enum type is compatible with the given type \code{type} or else returns \code{false}.
@@ -208,7 +208,7 @@ This class represents a function type, containing a list of parameters and a ret
 static typeFunction *create(string &name,
                             Type *retType,
                             vector<Type *> &paramTypes,
-                            Symtab *obj = NULL)
+                            Symtab *obj = NULL);
 \end{apient}
 \apidesc{
 This factory method creates a new function type with name \code{name}. \code{retType} represents the return type of the function and \code{paramTypes} is a vector of the types of the parameters in order.
@@ -216,14 +216,14 @@ The the newly created type is added to the \code{Symtab} object \code{obj}. If \
 }
 
 \begin{apient}
-bool isCompatible(Type *type)
+bool isCompatible(Type *type);
 \end{apient}
 \apidesc{
 This method returns \code{true} if the function type is compatible with the given type \code{type} or else returns \code{false}.
 }
 
 \begin{apient}
-bool addParam(Type *type)
+bool addParam(Type *type);
 \end{apient}
 \apidesc{
 This method adds a new function parameter with type \code{type} to the function type.
@@ -231,28 +231,28 @@ Returns \code{true} if it succeeds, else returns \code{false}.
 }
 
 \begin{apient}
-Type *getReturnType() const
+Type *getReturnType() const;
 \end{apient}
 \apidesc{
  This method returns the return type for this function type. Returns \code{NULL} if there is no return type associated with this function type.
 }
 
 \begin{apient}
-bool setRetType(Type *rtype)
+bool setRetType(Type *rtype);
 \end{apient}
 \apidesc{
 This method sets the return type of the function type to \code{rtype}. Returns \code{true} if it succeeds, else returns \code{false}.
 }
 
 \begin{apient}
-bool setName(string &name)
+bool setName(string &name);
 \end{apient}
 \apidesc{
 This method sets the new name of the function type to \code{name}. Returns \code{true} if it succeeds, else returns \code{false}.
 }
 
 \begin{apient}
-vector< Type *> &getParams() const
+vector< Type *> &getParams() const;
 \end{apient}
 \apidesc{
 This method returns the vector containing the individual parameters represented by their types in order. Returns \code{NULL} if there are no parameters to the function type.
@@ -265,7 +265,7 @@ member functions of class \code{Type} are applicable. \code{typeScalar} inherits
 class.
 
 \begin{apient}
-static typeScalar *create(string &name, int size, Symtab *obj = NULL)
+static typeScalar *create(string &name, int size, Symtab *obj = NULL);
 \end{apient}
 \apidesc{
 This factory method creates a new scalar type. The \code{name} field is used to specify
@@ -276,14 +276,14 @@ it will be available for further queries.
 }
 
 \begin{apient}
-bool isSigned()
+bool isSigned();
 \end{apient}
 \apidesc{
 This method returns \code{true} if the scalar type is signed or else returns \code{false}.
 }
 
 \begin{apient}
-bool isCompatible(Type *type)
+bool isCompatible(Type *type);
 \end{apient}
 \apidesc{
 This method returns \code{true} if the scalar type is compatible with the given type \code{type} or else returns \code{false}.
@@ -308,35 +308,35 @@ A handle for identifying the visibility of a certain \code{Field} in a container
 \begin{apient}
 Field(string &name,
       Type *type,
-      visibility_t vis = visUnknown)
+      visibility_t vis = visUnknown);
 \end{apient}
 \apidesc{
 This constructor creates a new field with name \code{name}, type \code{type} and visibility \code{vis}. This newly created \code{Field} can be added to a container type.
 }
 
 \begin{apient}
-const string &getName()
+const string &getName();
 \end{apient}
 \apidesc{
 This method returns the name associated with the field in the container.
 }
 
 \begin{apient}
-Type *getType()
+Type *getType();
 \end{apient}
 \apidesc{
  This method returns the type associated with the field in the container.
 }
 
 \begin{apient}
-int getOffset()
+int getOffset();
 \end{apient}
 \apidesc{
 This method returns the offset associated with the field in the container.
 }
 
 \begin{apient}
-visibility_t getVisibility()
+visibility_t getVisibility();
 \end{apient}
 \apidesc{
 This method returns the visibility associated with a field in a container.
@@ -349,7 +349,7 @@ This class represents a container type. It is one of the three categories of typ
 
 
 \begin{apient}
-vector<Field *> *getComponents()
+vector<Field *> *getComponents();
 \end{apient}
 \apidesc{
 This method returns the list of all fields present in the container.
@@ -360,7 +360,7 @@ This gives information about the name, type and visibility of each of the fields
 void addField(std::string fieldname,
               Type *type,
               int offsetVal = -1,
-              visibility_t vis = visUnknown)
+              visibility_t vis = visUnknown);
 \end{apient}
 \apidesc{
 This method adds a new field at the end to the container type with field name \code{fieldname}, type \code{type} and type visibility \code{vis}.
@@ -371,21 +371,21 @@ void addField(unsigned num,
               std::string fieldname,
               Type *type,
               int offsetVal = -1,
-              visibility_t vis = visUnknown)
+              visibility_t vis = visUnknown);
 \end{apient}
 \apidesc{
 This method adds a field after the field with number \code{num} with field name \code{fieldname}, type \code{type} and type visibility \code{vis}.
 }
 
 \begin{apient}
-void addField(Field *fld)
+void addField(Field *fld);
 \end{apient}
 \apidesc{
 This method adds a new field \code{fld} to the container type.}
 
 \begin{apient}
 void addField(unsigned num,
-              Field *fld)
+              Field *fld);
 \end{apient}
 \apidesc{
 This method adds a field \code{fld} after field \code{num} to the container type.
@@ -403,7 +403,7 @@ applicable.
 \begin{apient}
 static typeStruct *create(string &name,
                           vector<pair<string, Type *>*> &flds,
-                          Symtab *obj = NULL)
+                          Symtab *obj = NULL);
 \end{apient}
 \apidesc{
 This factory method creates a new struct type. The name of the structure is specified in the \code{name} parameter. The \code{flds} vector specifies the names and types of the fields of the structure type.
@@ -413,7 +413,7 @@ The newly created type is added to the \code{Symtab} object \code{obj}. If \code
 \begin{apient}
 static typeStruct *create(string &name,
                           vector<Field *> &fields,
-                          Symtab *obj = NULL)
+                          Symtab *obj = NULL);
 \end{apient}
 \apidesc{
 This factory method creates a new struct type. The name of the structure is specified in the \code{name} parameter. The \code{fields} vector specifies the fields of the type.
@@ -421,7 +421,7 @@ The newly created type is added to the \code{Symtab} object \code{obj}. If \code
 }
 
 \begin{apient}
-bool isCompatible(Type *type)
+bool isCompatible(Type *type);
 \end{apient}
 \apidesc{
 This method returns \code{true} if the struct type is compatible with the given type \code{type} or else returns \code{false}.
@@ -436,7 +436,7 @@ This class represents a union type, a special case of the container type. The fi
 \begin{apient}
 static typeUnion *create(string &name,
                          vector<pair<string, Type *>*> &flds,
-                         Symtab *obj = NULL)
+                         Symtab *obj = NULL);
 \end{apient}
 \apidesc{
  This factory method creates a new union type. The name of the union is specified in the \code{name} parameter. The \code{flds} vector specifies the names and types of the fields of the union type.
@@ -446,7 +446,7 @@ The newly created type is added to the \code{Symtab} object \code{obj}. If \code
 \begin{apient}
 static typeUnion *create(string &name,
                          vector<Field *> &fields,
-                         Symtab *obj = NULL)
+                         Symtab *obj = NULL);
 \end{apient}
 \apidesc{
 This factory method creates a new union type. The name of the structure is specified in the \code{name} parameter. The \code{fields} vector specifies the fields of the type.
@@ -454,7 +454,7 @@ The newly created type is added to the \code{Symtab} object \code{obj}. If \code
 }
 
 \begin{apient}
-bool isCompatible(Type *type)
+bool isCompatible(Type *type);
 \end{apient}
 \apidesc{
 This method returns \code{true} if the union type is compatible with the given type \code{type} or else returns \code{false}.
@@ -467,7 +467,7 @@ This class represents a common block type in fortran, a special case of the cont
 
 
 \begin{apient}
-vector<CBlocks *> *getCBlocks()
+vector<CBlocks *> *getCBlocks();
 \end{apient}
 \apidesc{
 This method returns the common block objects for the type.
@@ -480,7 +480,7 @@ The methods of the \code{CBlock} can be used to access information about the mem
 This class represents a common block in Fortran. Multiple functions can share a common block.
 
 \begin{apient}
-bool getComponents(vector<Field *> *vars)
+bool getComponents(vector<Field *> *vars);
 \end{apient}
 \apidesc{
 This method returns the vector containing the individual variables of the common block.
@@ -488,7 +488,7 @@ Returns \code{true} if there is at least one variable, else returns \code{false}
 }
 
 \begin{apient}
-bool getFunctions(vector<Symbol *> *funcs)
+bool getFunctions(vector<Symbol *> *funcs);
 \end{apient}
 \apidesc{
 This method returns the functions that can see this common block with the set of variables described in \code{getComponents} method above.
@@ -500,7 +500,7 @@ This class represents a derived type which is a reference to another type. It is
 
 
 \begin{apient}
-Type *getConstituentType() const
+Type *getConstituentType() const;
 \end{apient}
 \apidesc{
  This method returns the type of the base type to which this type refers to.
@@ -515,11 +515,11 @@ This class represents a pointer type, a special case of the derived type. The ba
 \begin{apient}
 static typePointer *create(string &name,
                            Type *ptr,
-                           Symtab *obj = NULL)
+                           Symtab *obj = NULL);
 static typePointer *create(string &name,
                            Type *ptr,
                            int size,
-                           Symtab *obj = NULL)
+                           Symtab *obj = NULL);
 \end{apient}
 \apidesc{
 These factory methods create a new type, named \code{name}, which points to objects of type \code{ptr}. The first form creates a pointer whose size is equal to sizeof(void*) on the target platform where the application is running. In the second form, the size of the pointer is the value passed in the \code{size} parameter.
@@ -527,14 +527,14 @@ The newly created type is added to the \code{Symtab} object \code{obj}. If obj i
 }
 
 \begin{apient}
-bool isCompatible(Type *type)
+bool isCompatible(Type *type);
 \end{apient}
 \apidesc{
 This method returns \code{true} if the Pointer type is compatible with the given type \code{type} or else returns \code{false}.
 }
 
 \begin{apient}
-bool setPtr(Type *ptr)
+bool setPtr(Type *ptr);
 \end{apient}
 \apidesc{
 This method sets the pointer type to point to the type in \code{ptr}. Returns \code{true} if it succeeds, else returns \code{false}.
@@ -549,7 +549,7 @@ This class represents a \code{typedef} type, a special case of the derived type.
 \begin{apient}
 static typeTypedef *create(string &name,
                            Type *ptr,
-                           Symtab *obj = NULL)
+                           Symtab *obj = NULL);
 \end{apient}
 \apidesc{
 This factory method creates a new type called \code{name} and having the type \code{ptr}.
@@ -557,7 +557,7 @@ The newly created type is added to the \code{Symtab} object \code{obj}. If \code
 }
 
 \begin{apient}
-bool isCompatible(Type *type)
+bool isCompatible(Type *type);
 \end{apient}
 \apidesc{
 This method returns \code{true} if the typedef type is compatible with the given type \code{type} or else returns \code{false}.
@@ -572,14 +572,14 @@ This class represents a reference type, a special case of the derived type. The 
 \begin{apient}
 static typeRef *create(string &name,
                        Type *ptr,
-                       Symtab * obj = NULL)
+                       Symtab * obj = NULL);
 \end{apient}
 \apidesc{
 This factory method creates a new type, named \code{name}, which is a reference to objects of type \code{ptr}. The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{NULL} the type is not added to any object file, but it will be available for further queries.
 }
 
 \begin{apient}
-bool isCompatible(Type *type)
+bool isCompatible(Type *type);
 \end{apient}
 \apidesc{
 This method returns \code{true} if the ref type is compatible with the given type \code{type} or else returns \code{false}.
@@ -590,7 +590,7 @@ This class represents a range type with a lower and an upper bound. It is one of
 
 
 \begin{apient}
-unsigned long getLow() const
+unsigned long getLow() const;
 \end{apient}
 \apidesc{
 This method returns the lower bound of the range.
@@ -598,7 +598,7 @@ This can be the lower bound of the range type or the lowest index for an array t
 }
 
 \begin{apient}
-unsigned long getHigh() const
+unsigned long getHigh() const;
 \end{apient}
 \apidesc{
 This method returns the higher bound of the range.
@@ -616,7 +616,7 @@ static typeSubrange *create(string &name,
                             int size,
                             int low,
                             int hi,
-                            symtab *obj = NULL)
+                            symtab *obj = NULL);
 \end{apient}
 \apidesc{
 This factory method creates a new sub-range type. The name of the type is \code{name}, and the size is \code{size}. The lower bound of the type is represented by \code{low}, and the upper bound is represented by \code{high}.
@@ -624,7 +624,7 @@ The newly created type is added to the \code{Symtab} object \code{obj}. If \code
 }
 
 \begin{apient}
-bool isCompatible(Type *type)
+bool isCompatible(Type *type);
 \end{apient}
 \apidesc{
 This method returns \code{true} if this sub range type is compatible with the given type \code{type} or else returns \code{false}.
@@ -640,7 +640,7 @@ static typeArray *create(string &name,
                          Type *type,
                          int low,
                          int hi,
-                         Symtab *obj = NULL)
+                         Symtab *obj = NULL);
 \end{apient}
 \apidesc{
 This factory method creates a new array type. The name of the type is \code{name}, and the type of each element is \code{type}. The index of the first element of the array is \code{low}, and the last is \code{high}.
@@ -648,14 +648,14 @@ The newly created type is added to the \code{Symtab} object \code{obj}. If \code
 }
 
 \begin{apient}
-bool isCompatible(Type *type)
+bool isCompatible(Type *type);
 \end{apient}
 \apidesc{
 This method returns \code{true} if the array type is compatible with the given type \code{type} or else returns \code{false}.
 }
 
 \begin{apient}
-Type *getBaseType() const
+Type *getBaseType() const;
 \end{apient}
 \apidesc{
 This method returns the base type of this array type.

@@ -4,26 +4,23 @@
                       AddressSpace *as,
                       AstNodePtr ast_wrapper_,
                       BPatch_type *type,
-                      void* in_address)
-
+                      void* in_address);
   BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
                       AddressSpace *as,
                       void *in_address,
                       int in_register,
                       BPatch_type *type,
                       BPatch_storagestorage = BPatch_storageAddr,
-                      BPatch_point *scp = NULL)
-
+                      BPatch_point *scp = NULL);
   BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
                       AddressSpace *as,
                       BPatch_localVar *lv,
                       BPatch_type *type,
-                      BPatch_point *scp)
-
+                      BPatch_point *scp);
   BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
                       AddressSpace *ll_addSpace,
                       int_variable *iv,
-                      BPatch_type *type)
+                      BPatch_type *type);
 \end{apient}
 
 \apidesc{

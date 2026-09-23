@@ -35,11 +35,15 @@ RETURN & may return \\
 \end{center}
 
 \begin{apient}
-typedef boost::transform_iterator<selector, blockmap::iterator> bmap_iterator
-typedef boost::transform_iterator<selector, blockmap::const_iterator> bmap_const_iterator
-typedef boost::iterator_range<bmap_iterator> blocklist
-typedef boost::iterator_range<bmap_const_iterator> const_blocklist
-typedef std::set<Edge*> edgelist
+typedef boost::transform_iterator<selector, blockmap::iterator> bmap_iterator;
+
+typedef boost::transform_iterator<selector, blockmap::const_iterator> bmap_const_iterator;
+
+typedef boost::iterator_range<bmap_iterator> blocklist;
+
+typedef boost::iterator_range<bmap_const_iterator> const_blocklist;
+
+typedef std::set<Edge*> edgelist;
 \end{apient}
 \apidesc{Containers for block and edge access. Library users \emph{must not} rely on the underlying container type of std::set/std::vector lists, as it is subject to change.}
 
@@ -73,18 +77,18 @@ Function(Address addr,
          string name,
          CodeObject * obj,
          CodeRegion * region,
-         InstructionSource * isource)
+         InstructionSource * isource);
 \end{apient}
 \apidesc{Creates a function at \code{addr} in the code region specified.
 Insructions for this function are given in \code{isource}.}
 
 \begin{apient}
-LoopTreeNode* getLoopTree()
+LoopTreeNode* getLoopTree();
 \end{apient}
 \apidesc{Return the nesting tree of the loops in the function. See class \code{LoopTreeNode} for more details}
 
 \begin{apient}
-Loop* findLoop(const char *name)
+Loop* findLoop(const char *name);
 \end{apient}
 \apidesc{Return the loop with the given nesting name. See class \code{LoopTreeNode} for more details about how loop nesting names are assigned.}
 
@@ -143,28 +147,28 @@ void getAllPostDominates(Block *A, set<Block*> &dom);
 
 
 \begin{apient}
-std::vector<FuncExtent *> const& extents()
+std::vector<FuncExtent *> const& extents();
 \end{apient}
 \apidesc{Returns a list of contiguous extents of binary code within the function.}
 
 \begin{apient}
-void setEntryBlock(block * new_entry)
+void setEntryBlock(block * new_entry);
 \end{apient}
 \apidesc{Set the entry block for this function to \code{new\_entry}.}
 
 \begin{apient}
-void set_retstatus(FuncReturnStatus rs)
+void set_retstatus(FuncReturnStatus rs);
 \end{apient}
 \apidesc{Set the return status for the function to \code{rs}.}
 
 \begin{apient}
-bool contains(Block *b)
+bool contains(Block *b);
 \end{apient}
 \apidesc{Return true if this function contains the given block \code{b};
 otherwise false.}
 
 
 \begin{apient}
-void removeBlock(Block *)
+void removeBlock(Block *);
 \end{apient}
 \apidesc{Remove a basic block from the function.}

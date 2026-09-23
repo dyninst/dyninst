@@ -2,7 +2,7 @@ The \code{BPatch\_thread} class represents and controls a thread of
 execution that is running in a process.
 
 \begin{apient}
-  void getCallStack(std::vector<BPatch_frame>& stack)
+  void getCallStack(std::vector<BPatch_frame>& stack);
 \end{apient}
 
 \apidesc{
@@ -12,7 +12,7 @@ execution that is running in a process.
 }
 
 \begin{apient}
-  dynthread_t getTid()
+  dynthread_t getTid();
 \end{apient}
 
 \apidesc{
@@ -23,7 +23,7 @@ execution that is running in a process.
 }
 
 \begin{apient}
-  Dyninst::LWP getLWP()
+  Dyninst::LWP getLWP();
 \end{apient}
 
 \apidesc{
@@ -34,7 +34,7 @@ execution that is running in a process.
 }
 
 \begin{apient}
-  unsigned getBPatchID()
+  unsigned getBPatchID();
 \end{apient}
 
 \apidesc{
@@ -45,7 +45,7 @@ execution that is running in a process.
 }
 
 \begin{apient}
-  BPatch_function *getInitialFunc()
+  BPatch_function *getInitialFunc();
 \end{apient}
 
 \apidesc{
@@ -55,7 +55,7 @@ execution that is running in a process.
 }
 
 \begin{apient}
-  unsigned long getStackTopAddr()
+  unsigned long getStackTopAddr();
 \end{apient}
 
 \apidesc{
@@ -63,7 +63,7 @@ execution that is running in a process.
 }
 
 \begin{apient}
-  bool isDeadOnArrival()
+  bool isDeadOnArrival();
 \end{apient}
 
 \apidesc{
@@ -80,7 +80,7 @@ execution that is running in a process.
 }
 
 \begin{apient}
-  BPatch_process *getProcess()
+  BPatch_process *getProcess();
 \end{apient}
 
 \apidesc{
@@ -88,7 +88,7 @@ execution that is running in a process.
 }
 
 \begin{apient}
-  void *oneTimeCode(const BPatch_snippet &expr, bool *err = NULL)
+  void *oneTimeCode(const BPatch_snippet &expr, bool *err = NULL);
 \end{apient}
 
 \apidesc{
@@ -103,7 +103,7 @@ execution that is running in a process.
 
 \begin{apient}
   bool oneTimeCodeAsync(const BPatch_snippet  &expr, void *userData = NULL,
-                        BpatchOneTimeCodeCallback cb = NULL)
+                        BpatchOneTimeCodeCallback cb = NULL);
 \end{apient}
 
 \apidesc{

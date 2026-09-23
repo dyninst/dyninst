@@ -48,6 +48,7 @@ class SliceNode : public Node
 
 \begin{apient}
 typedef boost::shared_ptr<SliceNode> Ptr;
+
 static SliceNode::Ptr SliceNode::create(AssignmentPtr ptr,
                                         ParseAPI::Block *block,
                                         ParseAPI::Function *func);
@@ -78,6 +79,7 @@ class SliceEdge : public Edge
 
 \begin{apient}
 typedef boost::shared_ptr<SliceEdge> Ptr;
+
 static SliceEdge::Ptr create(SliceNode::Ptr source,
                              SliceNode::Ptr target,
                              AbsRegion const&data);
@@ -123,7 +125,7 @@ void setSearchForControlFlowDep(bool cfd);
 to \code{cfd}.}
 
 \begin{apient}
-virtual bool widenAtPoint(AssignmentPtr) { return false; }
+virtual bool widenAtPoint(AssignmentPtr) { return false; };
 \end{apient}
 \apidesc{The default behavior is to return \code{false}.}
 
@@ -138,11 +140,12 @@ not want to continue searching for this assignment. Otherwise, it should return
 
 \begin{apient}
 typedef std::pair<ParseAPI::Function *, int> StackDepth_t;
+
 typedef std::stack<StackDepth_t> CallStack_t;
+
 virtual bool followCall(ParseAPI::Function * callee,
                         CallStack_t & cs,
                         AbsRegion argument);
-
 \end{apient}
 \apidesc{This predicate function is called when the slicer reaches a direct call site.
 If it returns \code{true}, the slicer will follow into the callee function \code{callee}.

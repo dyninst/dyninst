@@ -3,7 +3,7 @@ of this class at a time. This class is used to perform functions and obtain info
 is not specific to a particular thread or image.
 
 \begin{apient}
-std::vector<BPatch_process*> *getProcesses()
+std::vector<BPatch_process*> *getProcesses();
 \end{apient}
 
 \apidesc{
@@ -14,11 +14,10 @@ the user to delete this vector when they are done with it.
 }
 
 \begin{apient}
-BPatch_process *processAttach(const char *path, int pid, BPatch_hybridMode mode=BPatch_normalMode)
-
+BPatch_process *processAttach(const char *path, int pid, BPatch_hybridMode mode=BPatch_normalMode);
 BPatch_process *processCreate(const char *path, const char *argv[], const char **envp = NULL,
                               int stdin_fd=0, int stdout_fd=1, int stderr_fd=2,
-                              BPatch_hybridMode mode=BPatch_normalMode)
+                              BPatch_hybridMode mode=BPatch_normalMode);
 \end{apient}
 
 \apidesc{
@@ -60,8 +59,7 @@ of Dyninst will target more advanced uses of defensive mode.
 }
 
 \begin{apient}
-BPatch_binaryEdit *openBinary(const char *path, bool openDependencies = false)
-
+BPatch_binaryEdit *openBinary(const char *path, bool openDependencies = false);
 \end{apient}
 
 \apidesc{
@@ -73,8 +71,7 @@ libraries. This function returns NULL in the event of an error.
 }
 
 \begin{apient}
-bool pollForStatusChange()
-
+bool pollForStatusChange();
 \end{apient}
 
 \apidesc{
@@ -84,8 +81,7 @@ has not yet been reported by either isStopped or isTerminated.
 }
 
 \begin{apient}
-void setDebugParsing (bool state)
-
+void setDebugParsing(bool state);
 \end{apient}
 
 \apidesc{
@@ -95,8 +91,7 @@ large. To disable parsing this information, call this method with a value of fal
 }
 
 \begin{apient}
-bool parseDebugInfo()
-
+bool parseDebugInfo();
 \end{apient}
 
 \apidesc{
@@ -104,8 +99,7 @@ Return true if debugger information parsing is enabled, or false otherwise.
 }
 
 \begin{apient}
-void setTrampRecursive (bool state)
-
+void setTrampRecursive(bool state);
 \end{apient}
 
 \apidesc{
@@ -121,8 +115,7 @@ the parameter true will result in a performance gain. The default value of this 
 }
 
 \begin{apient}
-bool isTrampRecursive ()
-
+bool isTrampRecursive();
 \end{apient}
 
 \apidesc{
@@ -130,8 +123,7 @@ Return whether trampoline recursion is enabled or not. True means that it is ena
 }
 
 \begin{apient}
-void setTypeChecking(bool state)
-
+void setTypeChecking(bool state);
 \end{apient}
 
 \apidesc{
@@ -142,8 +134,7 @@ type cast operation in the C programming language.
 }
 
 \begin{apient}
-bool isTypeChecked()
-
+bool isTypeChecked();
 \end{apient}
 
 \apidesc{
@@ -151,8 +142,7 @@ Return true if type-checking of snippets is enabled, or false otherwise.
 }
 
 \begin{apient}
-bool waitForStatusChange()
-
+bool waitForStatusChange();
 \end{apient}
 
 \apidesc{
@@ -162,8 +152,7 @@ loop, because waitForStatusChange blocks the mutator process while waiting.
 }
 
 \begin{apient}
-void setDelayedParsing (bool)
-
+void setDelayedParsing(bool);
 \end{apient}
 
 \apidesc{
@@ -177,8 +166,7 @@ small number of functions will benefit from delayed parsing.
 }
 
 \begin{apient}
-bool delayedParsingOn()
-
+bool delayedParsingOn();
 \end{apient}
 
 \apidesc{
@@ -186,8 +174,7 @@ Return true if delayed parsing is enabled, or false otherwise.
 }
 
 \begin{apient}
-void setInstrStackFrames(bool)
-
+void setInstrStackFrames(bool);
 \end{apient}
 
 \apidesc{
@@ -197,8 +184,7 @@ instrumentation. The default is to not create stack frames.
 }
 
 \begin{apient}
-bool getInstrStackFrames()
-
+bool getInstrStackFrames();
 \end{apient}
 
 \apidesc{
@@ -206,8 +192,7 @@ Return true if instrumentation will create stack frames, or false otherwise.
 }
 
 \begin{apient}
-void setMergeTramp (bool)
-
+void setMergeTramp(bool);
 \end{apient}
 
 \apidesc{
@@ -217,8 +202,7 @@ inserting and removing instrumentation may take more time. The default setting f
 }
 
 \begin{apient}
-bool isMergeTramp ()
-
+bool isMergeTramp();
 \end{apient}
 
 \apidesc{
@@ -226,8 +210,7 @@ This returns the current status of inlined trampolines. A value of true indicate
 }
 
 \begin{apient}
-void setSaveFPR (bool)
-
+void setSaveFPR(bool);
 \end{apient}
 
 \apidesc{
@@ -238,8 +221,7 @@ the user is positive this will never happen.
 }
 
 \begin{apient}
-bool isSaveFPROn ()
-
+bool isSaveFPROn();
 \end{apient}
 
 \apidesc{
@@ -248,8 +230,7 @@ analysis for the given platform.
 }
 
 \begin{apient}
-void setBaseTrampDeletion(bool)
-
+void setBaseTrampDeletion(bool);
 \end{apient}
 
 \apidesc{
@@ -258,8 +239,7 @@ in. The default value is false.
 }
 
 \begin{apient}
-bool baseTrampDeletion()
-
+bool baseTrampDeletion();
 \end{apient}
 
 \apidesc{
@@ -267,8 +247,7 @@ Return true if base trampolines are set to be deleted, or false otherwise.
 }
 
 \begin{apient}
-void setLivenessAnalysis(bool)
-
+void setLivenessAnalysis(bool);
 \end{apient}
 
 \apidesc{
@@ -280,8 +259,7 @@ Return true if liveness analysis is currently enabled.
 }
 
 \begin{apient}
-void getBPatchVersion(int &major, int &minor, int &subminor)
-
+void getBPatchVersion(int &major, int &minor, int &subminor);
 \end{apient}
 
 \apidesc{
@@ -291,8 +269,7 @@ return 5 in major, 1 in minor, and 0 in subminor.
 }
 
 \begin{apient}
-int getNotificationFD()
-
+int getNotificationFD();
 \end{apient}
 
 \apidesc{
@@ -303,8 +280,7 @@ BPatch::waitForStatusChange. The file descriptor will reset when the user calls 
 }
 
 \begin{apient}
-BPatch_type *createArray(const char *name, BPatch_type *ptr, unsigned int low, unsigned int hi)
-
+BPatch_type *createArray(const char *name, BPatch_type *ptr, unsigned int low, unsigned int hi);
 \end{apient}
 
 \apidesc{
@@ -315,10 +291,8 @@ element of the array is low, and the last is high. The standard rules of type co
 
 \begin{apient}
 BPatch_type *createEnum(const char *name, std::vector<char *> &elementNames,
-                        std::vector<int> &elementIds)
-
-BPatch_type *createEnum(const char *name, std::vector<char *> &elementNames)
-
+                        std::vector<int> &elementIds);
+BPatch_type *createEnum(const char *name, std::vector<char *> &elementNames);
 \end{apient}
 
 \apidesc{
@@ -332,8 +306,7 @@ function.
 }
 
 \begin{apient}
-BPatch_type *createScalar(const char *name, int size)
-
+BPatch_type *createScalar(const char *name, int size);
 \end{apient}
 
 \apidesc{
@@ -344,8 +317,7 @@ type is compatible with other scalars with the same name and size.
 
 \begin{apient}
 BPatch_type *createStruct(const char *name, std::vector<char *> &fieldNames,
-                          std::vector<BPatch_type *> &fieldTypes)
-
+                          std::vector<BPatch_type *> &fieldTypes);
 \end{apient}
 
 \apidesc{
@@ -357,8 +329,7 @@ the size of the elements in the fieldTypes vector.
 }
 
 \begin{apient}
-BPatch_type *createTypedef(const char *name, BPatch_type *ptr)
-
+BPatch_type *createTypedef(const char *name, BPatch_type *ptr);
 \end{apient}
 
 \apidesc{
@@ -366,10 +337,8 @@ Create a new type called name and having the type ptr.
 }
 
 \begin{apient}
-BPatch_type *createPointer(const char *name, BPatch_type *ptr)
-
-BPatch_type *createPointer(const char *name, BPatch_type *ptr, int size)
-
+BPatch_type *createPointer(const char *name, BPatch_type *ptr);
+BPatch_type *createPointer(const char *name, BPatch_type *ptr, int size);
 \end{apient}
 
 \apidesc{
@@ -380,8 +349,7 @@ the value passed in the size parameter.
 
 \begin{apient}
 BPatch_type *createUnion(const char *name, std::vector<char *> &fieldNames,
-                         std::vector<BPatch_type *> &fieldTypes)
-
+                         std::vector<BPatch_type *> &fieldTypes);
 \end{apient}
 
 \apidesc{

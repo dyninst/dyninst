@@ -55,7 +55,7 @@ PatchBlock *split(PatchBlock *orig, Address addr,
   returned.}
 
 \begin{apient}
-bool remove(std::vector<PatchBlock *> &blocks, bool force = true)
+bool remove(std::vector<PatchBlock *> &blocks, bool force = true);
 \end{apient}
 \apidesc{Removes the blocks specified by \code{blocks} from the
   CFG. If \code{force} is true, blocks are removed even if they have
@@ -63,7 +63,7 @@ bool remove(std::vector<PatchBlock *> &blocks, bool force = true)
   useful for reducing overhead.}
 
 \begin{apient}
-bool remove(PatchFunction *func)
+bool remove(PatchFunction *func);
 \end{apient}
 \apidesc{Removes \code{func} and all of its non-shared blocks from the
   CFG; any shared blocks remain.}
@@ -74,7 +74,7 @@ class InsertedCode {
   PatchBlock *entry();
   const std::vector<PatchEdge *> &exits();
   const std::set<PatchBlock *> &blocks();
-}
+};
 
 InsertedCode::Ptr insert(PatchObject *obj, SnippetPtr snip, Point *point);
 InsertedCode::Ptr insert(PatchObject *obj, void *start, unsigned size);

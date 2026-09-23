@@ -28,15 +28,15 @@ object is used to customize how StackwalkerAPI looks up symbolic names of the
 function or object that created a stack frame.
 
 \begin{apient}
-static Walker *newWalker()
-static Walker *newWalker(Dyninst::PID pid)
-static Walker *newWalker(Dyninst::PID pid, std::string executable)
+static Walker *newWalker();
+static Walker *newWalker(Dyninst::PID pid);
+static Walker *newWalker(Dyninst::PID pid, std::string executable);
 static Walker *newWalker(Dyninst::ProcControlAPI::Process::ptr proc);
 static Walker *newWalker(std::string executable,
-                         const std::vector<std::string> &argv)
+                         const std::vector<std::string> &argv);
 static Walker *newWalker(ProcessState *proc,
                          StepperGroup *steppergroup = NULL ,
-                         SymbolLookup *lookup = NULL)
+                         SymbolLookup *lookup = NULL);
 \end{apient}
 \apidesc{
 These factory methods return new Walker objects:
@@ -66,10 +66,10 @@ is no longer needed.
 
 \begin{apient}
 static bool newWalker(const std::vector<Dyninst::PID> &pids,
-                      std::vector<Walker *> &walkers_out)
+                      std::vector<Walker *> &walkers_out);
 static bool newWalker(const std::vector<Dyninst::PID> &pids,
                       std::vector<Walker *> &walkers_out,
-                      std::string executable)
+                      std::string executable);
 \end{apient}
 \apidesc{
  This method attaches to a group of processes and returns a vector of Walker objects that perform
@@ -78,7 +78,7 @@ processes; the second variant also specifies the executable binary.}
 
 \begin{apient}
 bool walkStack(std::vector<Frame> &stackwalk,
-               Dyninst::THR_ID thread = NULL_THR_ID)
+               Dyninst::THR_ID thread = NULL_THR_ID);
 \end{apient}
 \apidesc{
     This method walks a call stack in the process associated with this \code{Walker}.
@@ -101,7 +101,7 @@ bool walkStack(std::vector<Frame> &stackwalk,
 }
 
 \begin{apient}
-bool walkStackFromFrame(std::vector<Frame> &stackwalk, const Frame &frame)
+bool walkStackFromFrame(std::vector<Frame> &stackwalk, const Frame &frame);
 \end{apient}
 \apidesc{
     This method walks a call stack starting from the given stack frame,
@@ -114,7 +114,7 @@ bool walkStackFromFrame(std::vector<Frame> &stackwalk, const Frame &frame)
 }
 
 \begin{apient}
-bool walkSingleFrame(const Frame &in, Frame &out)
+bool walkSingleFrame(const Frame &in, Frame &out);
 \end{apient}
 \apidesc{
     This methods walks through single frame, \code{in}. Parameter \code{out}
@@ -124,7 +124,7 @@ bool walkSingleFrame(const Frame &in, Frame &out)
 }
 
 \begin{apient}
-bool getInitialFrame(Frame &frame, Dyninst::THR_ID thread = NULL_THR_ID)
+bool getInitialFrame(Frame &frame, Dyninst::THR_ID thread = NULL_THR_ID);
 \end{apient}
 \apidesc{
     This method returns the \code{Frame} object on the top of the stack in parameter
@@ -140,7 +140,7 @@ bool getInitialFrame(Frame &frame, Dyninst::THR_ID thread = NULL_THR_ID)
 }
 
 \begin{apient}
-bool getAvailableThreads(std::vector<Dyninst::THR_ID> &threads)
+bool getAvailableThreads(std::vector<Dyninst::THR_ID> &threads);
 \end{apient}
 \apidesc{
     This method returns a vector of threads in the target process upon which
@@ -155,35 +155,35 @@ bool getAvailableThreads(std::vector<Dyninst::THR_ID> &threads)
 }
 
 \begin{apient}
-ProcessState *getProcessState() const
+ProcessState *getProcessState() const;
 \end{apient}
 \apidesc{
     This method returns the \code{ProcessState} object associated with this \code{Walker}.
 }
 
 \begin{apient}
-StepperGroup *getStepperGroup() const
+StepperGroup *getStepperGroup() const;
 \end{apient}
 \apidesc{
     This method returns the \code{StepperGroup} object associated with this \code{Walker}.
 }
 
 \begin{apient}
-SymbolLookup *getSymbolLookup() const
+SymbolLookup *getSymbolLookup() const;
 \end{apient}
 \apidesc{
     This method returns the \code{SymbolLookup} object associated with this \code{Walker}.
 }
 
 \begin{apient}
-bool addStepper(FrameStepper *stepper)
+bool addStepper(FrameStepper *stepper);
 \end{apient}
 \apidesc{
 This method adds a provided FrameStepper to those used by the Walker.
 }
 
 \begin{apient}
-static SymbolReaderFactory *getSymbolReader()
+static SymbolReaderFactory *getSymbolReader();
 \end{apient}
 \apidesc{This method returns a factory for creating process-specific symbol readers. Unlike the above
 methods it is global across all Walkers and is thus defined static.}
@@ -195,7 +195,7 @@ static void setSymbolReader(SymbolReaderFactory *);
   \code{Walker} objects.}
 
 \begin{apient}
-static void version(int &major, int &minor, int &maintenance)
+static void version(int &major, int &minor, int &maintenance);
 \end{apient}
 
 \apidesc{This method returns version information (e.g., 8, 0, 0 for

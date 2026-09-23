@@ -7,8 +7,9 @@ It satisfies the C++
 concept. It also offers the standard \code{begin/end} members for iteration.
 
 \begin{apient}
-ThreadSet::ptr
-ThreadSet::const_ptr
+ThreadSet::ptr;
+
+ThreadSet::const_ptr;
 \end{apient}
 
 \apidesc{
@@ -18,8 +19,9 @@ ThreadSet is cleaned. The const\_ptr type is a const smart pointer.
 }
 
 \begin{apient}
-ThreadSet::weak_ptr
-ThreadSet::const_weak_ptr
+ThreadSet::weak_ptr;
+
+ThreadSet::const_weak_ptr;
 \end{apient}
 
 \apidesc{
@@ -31,7 +33,7 @@ const\_weak\_ptr type is a const weak smart pointer.
 }
 
 \begin{apient}
-static ThreadSet::ptr newThreadSet()
+static ThreadSet::ptr newThreadSet();
 \end{apient}
 
 \apidesc{
@@ -39,7 +41,7 @@ This function creates a new ThreadSet that is empty.
 }
 
 \begin{apient}
-static ThreadSet::ptr newThreadSet(Thread::ptr thr)
+static ThreadSet::ptr newThreadSet(Thread::ptr thr);
 \end{apient}
 
 \apidesc{
@@ -47,7 +49,7 @@ This function creates a new ThreadSet that contains thr.
 }
 
 \begin{apient}
-static ThreadSet::ptr newThreadSet(const ThreadPool &threadp)
+static ThreadSet::ptr newThreadSet(const ThreadPool &threadp);
 \end{apient}
 
 \apidesc{
@@ -56,7 +58,7 @@ in threadp.
 }
 
 \begin{apient}
-static ThreadSet::ptr newThreadSet(const std::set<Thread::const_ptr> &thrds)
+static ThreadSet::ptr newThreadSet(const std::set<Thread::const_ptr> &thrds);
 \end{apient}
 
 \apidesc{
@@ -64,7 +66,7 @@ This function creates a new ThreadSet that contains all of the threads in thrds.
 }
 
 \begin{apient}
-static ThreadSet::ptr newThreadSet(ProcessSet::ptr pset)
+static ThreadSet::ptr newThreadSet(ProcessSet::ptr pset);
 \end{apient}
 
 \apidesc{
@@ -73,7 +75,7 @@ in every process in pset.
 }
 
 \begin{apient}
-ThreadSet::ptr set_union(ThreadSet::ptr tset) const
+ThreadSet::ptr set_union(ThreadSet::ptr tset) const;
 \end{apient}
 
 \apidesc{
@@ -82,7 +84,7 @@ ThreadSet and tset.
 }
 
 \begin{apient}
-ThreadSet::ptr set_intersection(ThreadSet::ptr tset) const
+ThreadSet::ptr set_intersection(ThreadSet::ptr tset) const;
 \end{apient}
 
 \apidesc{
@@ -91,7 +93,7 @@ this ThreadSet and tset.
 }
 
 \begin{apient}
-ThreadSet::ptr set_difference(ThreadSet::ptr tset) const
+ThreadSet::ptr set_difference(ThreadSet::ptr tset) const;
 \end{apient}
 
 \apidesc{
@@ -100,8 +102,8 @@ this ThreadSet minus tset.
 }
 
 \begin{apient}
-iterator find(Thread::const_ptr thr)
-const_iterator find(Thread::const_ptr thr) const
+iterator find(Thread::const_ptr thr);
+const_iterator find(Thread::const_ptr thr) const;
 \end{apient}
 
 \apidesc{
@@ -110,7 +112,7 @@ that element. It returns ThreadSet::end() if no element is found
 }
 
 \begin{apient}
-bool empty() const
+bool empty() const;
 \end{apient}
 
 \apidesc{
@@ -119,7 +121,7 @@ otherwise.
 }
 
 \begin{apient}
-size_t size() const
+size_t size() const;
 \end{apient}
 
 \apidesc{
@@ -127,7 +129,7 @@ This function returns the number of elements in the ThreadSet.
 }
 
 \begin{apient}
-std::pair<iterator, bool> insert(Thread::const_ptr thr)
+std::pair<iterator, bool> insert(Thread::const_ptr thr);
 \end{apient}
 
 \apidesc{
@@ -138,7 +140,7 @@ insert happened and false otherwise.
 }
 
 \begin{apient}
-void erase(iterator pos)
+void erase(iterator pos);
 \end{apient}
 
 \apidesc{
@@ -146,7 +148,7 @@ This function removes the element pointed to by pos from the ThreadSet.
 }
 
 \begin{apient}
-size_t erase(Thread::const_ptr thr)
+size_t erase(Thread::const_ptr thr);
 \end{apient}
 
 \apidesc{
@@ -155,7 +157,7 @@ ThreadSet. It returns 1 if it erased an element and 0 otherwise.
 }
 
 \begin{apient}
-void clear()
+void clear();
 \end{apient}
 
 \apidesc{
@@ -163,7 +165,7 @@ This function erases all elements in the ThreadSet.
 }
 
 \begin{apient}
-ThreadSet::ptr getErrorSubset() const
+ThreadSet::ptr getErrorSubset() const;
 \end{apient}
 
 \apidesc{
@@ -174,7 +176,7 @@ last ThreadSet operation.
 }
 
 \begin{apient}
-void getErrorSubsets(std::map<ProcControlAPI::err_t, ThreadSet::ptr> &err) const
+void getErrorSubsets(std::map<ProcControlAPI::err_t, ThreadSet::ptr> &err) const;
 \end{apient}
 
 \apidesc{
@@ -186,8 +188,8 @@ new ThreadSet associated with that error code.
 }
 
 \begin{apient}
-bool allStopped() const
-bool anyStopped() const
+bool allStopped() const;
+bool anyStopped() const;
 \end{apient}
 
 \apidesc{
@@ -196,8 +198,8 @@ are stopped and false otherwise.
 }
 
 \begin{apient}
-bool allRunning() const
-bool anyRunning() const
+bool allRunning() const;
+bool anyRunning() const;
 \end{apient}
 
 \apidesc{
@@ -206,8 +208,8 @@ are running and false otherwise.
 }
 
 \begin{apient}
-bool allTerminated() const
-bool anyTerminated() const
+bool allTerminated() const;
+bool anyTerminated() const;
 \end{apient}
 
 \apidesc{
@@ -216,8 +218,8 @@ are terminated and false otherwise.
 }
 
 \begin{apient}
-bool allSingleStepMode() const
-bool anySingleStepMode() const
+bool allSingleStepMode() const;
+bool anySingleStepMode() const;
 \end{apient}
 
 \apidesc{
@@ -226,8 +228,8 @@ are running in single step mode, and false otherwise.
 }
 
 \begin{apient}
-bool allHaveUserThreadInfo() const
-bool anyHaveUserThreadInfo() const
+bool allHaveUserThreadInfo() const;
+bool anyHaveUserThreadInfo() const;
 \end{apient}
 
 \apidesc{
@@ -236,7 +238,7 @@ have user thread information available and false otherwise.
 }
 
 \begin{apient}
-ThreadSet::ptr getStoppedSubset() const
+ThreadSet::ptr getStoppedSubset() const;
 \end{apient}
 
 \apidesc{
@@ -245,7 +247,7 @@ contains every Thread that is stopped.
 }
 
 \begin{apient}
-ThreadSet::ptr getRunningSubset() const
+ThreadSet::ptr getRunningSubset() const;
 \end{apient}
 
 \apidesc{
@@ -254,7 +256,7 @@ contains every Thread that is running.
 }
 
 \begin{apient}
-ThreadSet::ptr getTerminatedSubset() const
+ThreadSet::ptr getTerminatedSubset() const;
 \end{apient}
 
 \apidesc{
@@ -263,7 +265,7 @@ contains every Thread that is terminated.
 }
 
 \begin{apient}
-ThreadSet::ptr getSingleStepSubset() const
+ThreadSet::ptr getSingleStepSubset() const;
 \end{apient}
 
 \apidesc{
@@ -272,7 +274,7 @@ contains every Thread that is in single step mode.
 }
 
 \begin{apient}
-ThreadSet::ptr getHaveUserThreadInfoSubset() const
+ThreadSet::ptr getHaveUserThreadInfoSubset() const;
 \end{apient}
 
 \apidesc{
@@ -281,7 +283,7 @@ contains every Thread that has user thread information available.
 }
 
 \begin{apient}
-bool getStartFunctions(AddressSet::ptr result) const
+bool getStartFunctions(AddressSet::ptr result) const;
 \end{apient}
 
 \apidesc{
@@ -292,7 +294,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 }
 
 \begin{apient}
-bool getStackBases(AddressSet::ptr result) const
+bool getStackBases(AddressSet::ptr result) const;
 \end{apient}
 
 \apidesc{
@@ -303,7 +305,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 }
 
 \begin{apient}
-bool getTLSs(AddressSet::ptr result) const
+bool getTLSs(AddressSet::ptr result) const;
 \end{apient}
 
 \apidesc{
@@ -315,7 +317,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 }
 
 \begin{apient}
-bool stopThreads() const
+bool stopThreads() const;
 \end{apient}
 
 \apidesc{
@@ -326,7 +328,7 @@ otherwise.
 }
 
 \begin{apient}
-bool continueThreads() const
+bool continueThreads() const;
 \end{apient}
 
 \apidesc{
@@ -337,7 +339,7 @@ otherwise.
 }
 
 \begin{apient}
-bool setSingleStepMode(bool v) const
+bool setSingleStepMode(bool v) const;
 \end{apient}
 
 \apidesc{
@@ -350,7 +352,7 @@ otherwise.
 
 \begin{apient}
 bool getRegister(Dyninst::MachRegister reg,
-                 std::map<Thread::ptr, Dyninst::MachRegisterVal> &res) const
+                 std::map<Thread::ptr, Dyninst::MachRegisterVal> &res) const;
 \end{apient}
 
 \apidesc{
@@ -363,7 +365,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 
 \begin{apient}
 bool getRegister(Dyninst::MachRegister reg,
-                 std::map<Dyninst::MachRegisterVal, ThreadSet::ptr> &res) const
+                 std::map<Dyninst::MachRegisterVal, ThreadSet::ptr> &res) const;
 \end{apient}
 
 \apidesc{
@@ -377,7 +379,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 
 \begin{apient}
 bool setRegister(Dyninst::MachRegister reg,
-                 const std::map<ThreadSet::const_ptr, Dyninst::MachRegisterVal> &vals) const
+                 const std::map<ThreadSet::const_ptr, Dyninst::MachRegisterVal> &vals) const;
 \end{apient}
 
 \apidesc{
@@ -390,7 +392,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 }
 
 \begin{apient}
-bool setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val) const
+bool setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val) const;
 \end{apient}
 
 \apidesc{
@@ -400,7 +402,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 }
 
 \begin{apient}
-bool getAllRegisters(std::map<Thread::ptr, RegisterPool> &results) const
+bool getAllRegisters(std::map<Thread::ptr, RegisterPool> &results) const;
 \end{apient}
 
 \apidesc{
@@ -412,7 +414,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 }
 
 \begin{apient}
-bool setAllRegisters(const std::map<Thread::const_ptr, RegisterPool> &val) const
+bool setAllRegisters(const std::map<Thread::const_ptr, RegisterPool> &val) const;
 \end{apient}
 
 \apidesc{
@@ -426,7 +428,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 }
 
 \begin{apient}
-bool postIRPC(const std::multimap<Thread::const_ptr, IRPC::ptr> &rpcs) const
+bool postIRPC(const std::multimap<Thread::const_ptr, IRPC::ptr> &rpcs) const;
 \end{apient}
 
 \apidesc{
@@ -437,7 +439,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 }
 
 \begin{apient}
-bool postIRPC(IRPC::ptr irpc, std::multimap<Thread::ptr, IRPC::ptr> *result = NULL)
+bool postIRPC(IRPC::ptr irpc, std::multimap<Thread::ptr, IRPC::ptr> *result = NULL);
 \end{apient}
 
 \apidesc{

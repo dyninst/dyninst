@@ -23,7 +23,7 @@ SymbolLookup(std::string exec_path = "");
 \begin{apient}
 virtual bool lookupAtAddr(Address addr,
                           string &out_name,
-                          void* &out_value) = 0
+                          void* &out_value) = 0;
 \end{apient}
 \apidesc{
     This method takes an address, \code{addr}, as input and returns the function name,
@@ -39,7 +39,7 @@ virtual bool lookupAtAddr(Address addr,
 }
 
 \begin{apient}
-virtual Walker *getWalker()
+virtual Walker *getWalker();
 \end{apient}
 \apidesc{
     This method returns the \code{Walker} object associated with this
@@ -47,7 +47,7 @@ virtual Walker *getWalker()
 }
 
 \begin{apient}
-virtual ProcessState *getProcessSate()
+virtual ProcessState *getProcessSate();
 \end{apient}
 \apidesc{
     This method returns the \code{ProcessState} object associated with this

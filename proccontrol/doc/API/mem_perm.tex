@@ -3,7 +3,7 @@ general memory page permission for the given memory page in the process.
 
 
 \begin{apient}
-Process::mem_perm::read Process::mem_perm::write Process::mem_perm::execute
+Process::mem_perm::read Process::mem_perm::write Process::mem_perm::execute;
 \end{apient}
 
 \apidesc{
@@ -13,7 +13,7 @@ read, write, and execution permission of given memory page.
 }
 
 \begin{apient}
-mem_perm(bool r, bool w, bool x)
+mem_perm(bool r, bool w, bool x);
 \end{apient}
 
 \apidesc{
@@ -22,9 +22,9 @@ permission for the given page.
 }
 
 \begin{apient}
-bool getR() const
-bool getW() const
-bool getX() const
+bool getR() const;
+bool getW() const;
+bool getX() const;
 \end{apient}
 
 \apidesc{
@@ -33,12 +33,12 @@ execution permission, respectively, and false otherwise.
 }
 
 \begin{apient}
-bool isNone() const
-bool isR()    const
-bool isX()    const
-bool isRW()   const
-bool isRX()   const
-bool isRWX()  const
+bool isNone() const;
+bool isR()    const;
+bool isX()    const;
+bool isRW()   const;
+bool isRX()   const;
+bool isRWX()  const;
 \end{apient}
 
 \apidesc{
@@ -48,9 +48,9 @@ READ\_WRITE\_EXECUTE, respectively, and false otherwise.
 }
 
 \begin{apient}
-Process::mem_perm& setR()
-Process::mem_perm& setW()
-Process::mem_perm& setX()
+Process::mem_perm& setR();
+Process::mem_perm& setW();
+Process::mem_perm& setX();
 \end{apient}
 
 \apidesc{
@@ -59,9 +59,9 @@ respectively, and return this mem\_perm.
 }
 
 \begin{apient}
-Process::mem_perm& clrR()
-Process::mem_perm& clrW()
-Process::mem_perm& clrX()
+Process::mem_perm& clrR();
+Process::mem_perm& clrW();
+Process::mem_perm& clrX();
 \end{apient}
 
 \apidesc{
@@ -70,7 +70,7 @@ page, respectively, and return this mem\_perm.
 }
 
 \begin{apient}
-bool operator<(const mem_perm& p) const
+bool operator<(const mem_perm& p) const;
 \end{apient}
 
 \apidesc{
@@ -80,7 +80,7 @@ otherwise.
 }
 
 \begin{apient}
-std::string getPermName()
+std::string getPermName();
 \end{apient}
 
 \apidesc{

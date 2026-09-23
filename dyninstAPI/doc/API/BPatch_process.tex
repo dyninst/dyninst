@@ -3,9 +3,10 @@ includes one or more threads of execution and an address
 space.
 
 \begin{apient}
-  bool stopExecution()
-  bool continueExecution()
-  bool terminateExecution
+  bool stopExecution();
+  bool continueExecution();
+
+  bool terminateExecution;
 \end{apient}
 
 
@@ -22,9 +23,9 @@ space.
 }
 
 \begin{apient}
-  bool isStopped()
-  int stopSignal()
-  bool isTerminated()
+  bool isStopped();
+  int stopSignal();
+  bool isTerminated();
 \end{apient}
 
 \apidesc{
@@ -38,7 +39,7 @@ space.
 }
 
 \begin{apient}
-  BPatch_variableExpr *getInheritedVariable(BPatch_variableExpr &parentVar)
+  BPatch_variableExpr *getInheritedVariable(BPatch_variableExpr &parentVar);
 \end{apient}
 
 \apidesc{
@@ -57,7 +58,7 @@ space.
 
 
 \begin{apient}
-  BPatchSnippetHandle *getInheritedSnippet(BPatchSnippetHandle &parentSnippet)
+  BPatchSnippetHandle *getInheritedSnippet(BPatchSnippetHandle &parentSnippet);
 \end{apient}
 
 \apidesc{
@@ -71,7 +72,7 @@ space.
 }
 
 \begin{apient}
-  void detach(bool cont)
+  void detach(bool cont);
 \end{apient}
 
 \apidesc{
@@ -86,7 +87,7 @@ space.
 }
 
 \begin{apient}
-  int getPid()
+  int getPid();
 \end{apient}
 
 \apidesc{
@@ -100,7 +101,7 @@ space.
     NoExit,
     ExitedNormally,
     ExitedViaSignal
-  }
+  };
 \end{apient}
 
 \apidesc{
@@ -108,7 +109,7 @@ space.
 }
 
 \begin{apient}
-  BPatch_exitType terminationStatus()
+  BPatch_exitType terminationStatus();
 \end{apient}
 
 \apidesc{
@@ -121,7 +122,7 @@ space.
 }
 
 \begin{apient}
-  int getExitCode()
+  int getExitCode();
 \end{apient}
 
 \apidesc{
@@ -135,7 +136,7 @@ space.
 }
 
 \begin{apient}
-  int getExitSignal()
+  int getExitSignal();
 \end{apient}
 
 \apidesc{
@@ -144,7 +145,7 @@ space.
 }
 
 \begin{apient}
-  void oneTimeCode(const BPatch_snippet &expr)
+  void oneTimeCode(const BPatch_snippet &expr);
 \end{apient}
 
 \apidesc{
@@ -159,7 +160,7 @@ space.
 }
 
 \begin{apient}
-  bool oneTimeCodeAsync(const BPatch_snippet &expr, void *userData = NULL)
+  bool oneTimeCodeAsync(const BPatch_snippet &expr, void *userData = NULL);
 \end{apient}
 
 \apidesc{
@@ -180,7 +181,7 @@ space.
 }
 
 \begin{apient}
-  void getThreads(std::vector<BPatch_thread *> &thrds)
+  void getThreads(std::vector<BPatch_thread *> &thrds);
 \end{apient}
 
 \apidesc{
@@ -188,8 +189,8 @@ space.
 }
 
 \begin{apient}
-  bool isMultithreaded()
-  bool isMultithreadCapable()
+  bool isMultithreaded();
+  bool isMultithreadCapable();
 \end{apient}
 
 \apidesc{

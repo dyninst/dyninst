@@ -3,7 +3,7 @@ and \code{BPatch\_binaryEdit} classes. It contains functionality that is common
 between the two subclasses.
 
 \begin{apient}
-  BPatch_image *getImage()
+  BPatch_image *getImage();
 \end{apient}
 
 \apidesc{
@@ -11,7 +11,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool getSourceLines(unsigned long addr, std::vector<BPatch_statement> &lines)
+  bool getSourceLines(unsigned long addr, std::vector<BPatch_statement> &lines);
 \end{apient}
 
 \apidesc{
@@ -28,7 +28,7 @@ between the two subclasses.
 
 \begin{apient}
   bool getAddressRanges(const char *fileName, unsigned int lineNo,
-                        std::vector<std::pair<unsigned long, unsigned long>> &ranges)
+                        std::vector<std::pair<unsigned long, unsigned long>> &ranges);
 \end{apient}
 
 \apidesc{
@@ -43,9 +43,8 @@ between the two subclasses.
 }
 
 \begin{apient}
-  BPatch_variableExpr *malloc(int n, std::string name = std::string(""))
-
-  BPatch_variableExpr *malloc(const BPatch_type &type, std::string name = std::string(""))
+  BPatch_variableExpr *malloc(int n, std::string name = std::string(""));
+  BPatch_variableExpr *malloc(const BPatch_type &type, std::string name = std::string(""));
 \end{apient}
 
 \apidesc{
@@ -64,7 +63,7 @@ between the two subclasses.
 \begin{apient}
   BPatch_variableExpr *createVariable(Dyninst::Address addr, BPatch_type *type,
                                       std::string var_name = std::string(""),
-                                      BPatch_module *in_module = NULL)
+                                      BPatch_module *in_module = NULL);
 \end{apient}
 
 \apidesc{
@@ -80,7 +79,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool free(BPatch_variableExpr &ptr)
+  bool free(BPatch_variableExpr &ptr);
 \end{apient}
 
 \apidesc{
@@ -91,7 +90,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool getRegisters(std::vector<BPatch_register> &regs)
+  bool getRegisters(std::vector<BPatch_register> &regs);
 \end{apient}
 
 \apidesc{
@@ -101,12 +100,11 @@ between the two subclasses.
 \begin{apient}
   BPatchSnippetHandle *insertSnippet(const BPatch_snippet &expr,  BPatch_point &point,
                                      BPatch_callWhen when,
-                                     BPatch_snippetOrder order = BPatch_firstSnippet)
-
+                                     BPatch_snippetOrder order = BPatch_firstSnippet);
   BPatchSnippetHandle *insertSnippet(const BPatch_snippet &expr,
                                      const std::vector<BPatch_point *> &points,
                                      BPatch_callWhen when,
-                                     BPatch_snippetOrder order = BPatch_firstSnippet)
+                                     BPatch_snippetOrder order = BPatch_firstSnippet);
 \end{apient}
 
 \apidesc{
@@ -132,7 +130,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool deleteSnippet(BPatchSnippetHandle *handle)
+  bool deleteSnippet(BPatchSnippetHandle *handle);
 \end{apient}
 
 \apidesc{
@@ -141,7 +139,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  void beginInsertionSet()
+  void beginInsertionSet();
 \end{apient}
 
 \apidesc{
@@ -161,7 +159,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool finalizeInsertionSet(bool atomic)
+  bool finalizeInsertionSet(bool atomic);
 \end{apient}
 
 \apidesc{
@@ -178,7 +176,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool removeFunctionCall(BPatch_point &point)
+  bool removeFunctionCall(BPatch_point &point);
 \end{apient}
 
 \apidesc{
@@ -191,9 +189,8 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool replaceFunction(BPatch_function &old, BPatch_function &new)
-
-  bool revertReplaceFunction(BPatch_function &old)
+  bool replaceFunction(BPatch_function &old, BPatch_function &new);
+  bool revertReplaceFunction(BPatch_function &old);
 \end{apient}
 
 \apidesc{
@@ -204,7 +201,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool replaceFunctionCall(BPatch_point &point, BPatch_function &newFunc)
+  bool replaceFunctionCall(BPatch_point &point, BPatch_function &newFunc);
 \end{apient}
 
 \apidesc{
@@ -222,9 +219,8 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool wrapFunction(BPatch_function *old, BPatch_function *new, Dyninst::SymtabAPI::Symbol *sym)
-
-  bool revertWrapFunction(BPatch_function *old)
+  bool wrapFunction(BPatch_function *old, BPatch_function *new, Dyninst::SymtabAPI::Symbol *sym);
+  bool revertWrapFunction(BPatch_function *old);
 \end{apient}
 
 \apidesc{
@@ -284,7 +280,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool replaceCode(BPatch_point *point, BPatch_snippet *snippet)
+  bool replaceCode(BPatch_point *point, BPatch_snippet *snippet);
 \end{apient}
 
 \apidesc{
@@ -294,7 +290,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  BPatch_module * loadLibrary(const char *libname, bool reload=false)
+  BPatch_module * loadLibrary(const char *libname, bool reload=false);
 \end{apient}
 
 \apidesc{
@@ -310,7 +306,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool isStaticExecutable()
+  bool isStaticExecutable();
 \end{apient}
 
 \apidesc{
@@ -319,7 +315,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  processType getType()
+  processType getType();
 \end{apient}
 
 \apidesc{

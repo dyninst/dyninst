@@ -3,7 +3,7 @@ target process. See \code{Process::postIRPC} and \code{Thread::postIRPC} for
 information about posting an IRPC.
 
 \begin{apient}
-IRPC::ptr IRPC::const_ptr
+IRPC::ptr IRPC::const_ptr;
 \end{apient}
 
 \apidesc{
@@ -15,14 +15,14 @@ currently posted or executing.
 }
 
 \begin{apient}
-IRPC::ptr createIRPC(void *binary_blob, unsigned int size, bool non_blocking = false)
+IRPC::ptr createIRPC(void *binary_blob, unsigned int size, bool non_blocking = false);
 \end{apient}
 
 \apidesc{
 }
 
 \begin{apient}
-IRPC::ptr createIRPC(void *binary_blob, unsigned int size, Dyninst::Address addr, bool non_blocking = false)
+IRPC::ptr createIRPC(void *binary_blob, unsigned int size, Dyninst::Address addr, bool non_blocking = false);
 \end{apient}
 
 \apidesc{
@@ -40,7 +40,7 @@ which to run the IRPC.
 }
 
 \begin{apient}
-Dyninst::Address getAddress() const
+Dyninst::Address getAddress() const;
 \end{apient}
 
 \apidesc{
@@ -50,7 +50,7 @@ running, then this function may return 0.
 }
 
 \begin{apient}
-void *getBinaryCodeBlob() const
+void *getBinaryCodeBlob() const;
 \end{apient}
 
 \apidesc{
@@ -59,7 +59,7 @@ for this IRPC.
 }
 
 \begin{apient}
-unsigned int getBinaryCodeSize() const
+unsigned int getBinaryCodeSize() const;
 \end{apient}
 
 \apidesc{
@@ -67,7 +67,7 @@ The getBinaryCodeSize function returns the size of the binary code blob buffer.
 }
 
 \begin{apient}
-unsigned long getID() const
+unsigned long getID() const;
 \end{apient}
 
 \apidesc{
@@ -76,7 +76,7 @@ IRPC.
 }
 
 \begin{apient}
-void setStartOffset(unsigned long off)
+void setStartOffset(unsigned long off);
 \end{apient}
 
 \apidesc{
@@ -87,7 +87,7 @@ This function should be called before the IRPC is posted.
 }
 
 \begin{apient}
-unsigned long getStartOffset() const
+unsigned long getStartOffset() const;
 \end{apient}
 
 \apidesc{

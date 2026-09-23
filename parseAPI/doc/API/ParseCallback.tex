@@ -12,7 +12,7 @@ struct default_details {
     unsigned char * ibuf;
     size_t isize;
     bool isbranch;
-}
+};
 \end{apient}
 \apidesc{Details used in the \code{unresolved\_cf} and \code{abruptEnd\_cf}
 callbacks.}
@@ -21,20 +21,20 @@ callbacks.}
 virtual void instruction_cb(Function *,
                             Block *,
                             Address,
-                            insn_details *)
+                            insn_details *);
 \end{apient}
 \apidesc{Invoked for each instruction decoded during parsing. Implementing this callback may incur significant overhead.}
 
 \begin{apient}
 struct insn_details {
     InsnAdapter::InstructionAdapter * insn;
-}
+};
 \end{apient}
 
 \begin{apient}
 void interproc_cf(Function *,
                   Address,
-                  interproc_details *)
+                  interproc_details *);
 \end{apient}
 \apidesc{Invoked for each interprocedural control flow instruction.}
 
@@ -56,12 +56,12 @@ struct interproc_details {
             bool dynamic_call;
         } call;
     } data;
-}
+};
 \end{apient}
 \apidesc{Details used in the \code{interproc\_cf} callback.}
 
 \begin{apient}
 void overlapping_blocks(Block *,
-                        Block *)
+                        Block *);
 \end{apient}
 \apidesc{Noification of inconsistent parse data (overlapping blocks).}

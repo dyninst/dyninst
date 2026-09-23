@@ -73,14 +73,14 @@ having user-provided values.}
 \end{figure}
 
 \begin{apient}
-typedef boost::shared_ptr<Expression> Ptr
+typedef boost::shared_ptr<Expression> Ptr;
 \end{apient}
 \apidesc{
     A type definition for a reference-counted pointer to an \code{Expression}.
 }
 
 \begin{apient}
-bool operator==(const Expression &rhs) const
+bool operator==(const Expression &rhs) const;
 \end{apient}
 \apidesc{
 Compare two AST nodes for equality.
@@ -91,7 +91,7 @@ equal. \code{RegisterAST}s are equal if they represent the same register.
 }
 
 \begin{apient}
-virtual bool isUsed(Expression::Ptr findMe) const
+virtual bool isUsed(Expression::Ptr findMe) const;
 \end{apient}
 \apidesc{
     Search for an arbitrary subexpression, \code{findMe}, as a subtree of
@@ -101,7 +101,7 @@ virtual bool isUsed(Expression::Ptr findMe) const
 }
 
 \begin{apient}
-virtual std::string format(formatStyle how == defaultStyle) const
+virtual std::string format(formatStyle how == defaultStyle) const;
 \end{apient}
 \apidesc{
     The \code{format} interface returns the contents of an \code{Expression}
@@ -109,7 +109,7 @@ virtual std::string format(formatStyle how == defaultStyle) const
 }
 
 \begin{apient}
-const Result & eval() const
+const Result & eval() const;
 \end{apient}
 \apidesc{
     If the \code{Expression} can be evaluated, returns a \code{Result}
@@ -117,7 +117,7 @@ const Result & eval() const
 }
 
 \begin{apient}
-const setValue(const Result & knownValue)
+const setValue(const Result & knownValue);
 \end{apient}
 \apidesc{
     Sets the result of \code{eval} for this \code{Expression} to
@@ -125,7 +125,7 @@ const setValue(const Result & knownValue)
 }
 
 \begin{apient}
-void clearValue()
+void clearValue();
 \end{apient}
 \apidesc{
     \code{clearValue} sets the contents of this \code{Expression} to undefined.
@@ -134,7 +134,7 @@ void clearValue()
 }
 
 \begin{apient}
-int size() const
+int size() const;
 \end{apient}
 \apidesc{
     \code{size} returns the size of this \code{Expression}'s \code{Result}, in
@@ -142,7 +142,7 @@ int size() const
 }
 
 \begin{apient}
-bool bind(Expression * expr, const Result & value)
+bool bind(Expression * expr, const Result & value);
 \end{apient}
 \apidesc{
     \code{bind} searches for all instances of the Expression \code{expr} within
@@ -157,7 +157,7 @@ bool bind(Expression * expr, const Result & value)
 }
 
 \begin{apient}
-virtual void apply(Visitor *)
+virtual void apply(Visitor *);
 \end{apient}
 \apidesc{
     \code{apply} applies a \code{Visitor} to this \code{Expression}. Visitors
@@ -168,7 +168,7 @@ virtual void apply(Visitor *)
 }
 
 \begin{apient}
-std::vector<Expression::Ptr> getSubexpressions() const
+std::vector<Expression::Ptr> getSubexpressions() const;
 \end{apient}
 \apidesc{
 Returns all subexpressions used by the current expression.

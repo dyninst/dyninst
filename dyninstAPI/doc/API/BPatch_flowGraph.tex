@@ -6,7 +6,7 @@ can be obtained by calling the getCFG method of a
 \code{BPatch\_function} object.
 
 \begin{apient}
-  bool containsDynamicCallsites()
+  bool containsDynamicCallsites();
 \end{apient}
 
 \apidesc{
@@ -15,7 +15,7 @@ can be obtained by calling the getCFG method of a
 }
 
 \begin{apient}
-  void getAllBasicBlocks(std::set<BPatch_basicBlock*>&)
+  void getAllBasicBlocks(std::set<BPatch_basicBlock*>&);
 \end{apient}
 
 \apidesc{
@@ -24,7 +24,7 @@ can be obtained by calling the getCFG method of a
 }
 
 \begin{apient}
-  void getEntryBasicBlock(std::vector<BPatch_basicBlock*>&)
+  void getEntryBasicBlock(std::vector<BPatch_basicBlock*>&);
 \end{apient}
 
 \apidesc{
@@ -33,7 +33,7 @@ can be obtained by calling the getCFG method of a
 }
 
 \begin{apient}
-  void getExitBasicBlock(std::vector<BPatch_basicBlock*>&)
+  void getExitBasicBlock(std::vector<BPatch_basicBlock*>&);
 \end{apient}
 
 \apidesc{
@@ -42,7 +42,7 @@ can be obtained by calling the getCFG method of a
 }
 
 \begin{apient}
-  void getLoops(std::vector<BPatch_basicBlockLoop*>&)
+  void getLoops(std::vector<BPatch_basicBlockLoop*>&);
 \end{apient}
 
 \apidesc{
@@ -51,7 +51,7 @@ can be obtained by calling the getCFG method of a
 }
 
 \begin{apient}
-  void getOuterLoops(std::vector<BPatch_basicBlockLoop*>&)
+  void getOuterLoops(std::vector<BPatch_basicBlockLoop*>&);
 \end{apient}
 
 \apidesc{
@@ -60,7 +60,7 @@ can be obtained by calling the getCFG method of a
 }
 
 \begin{apient}
-  BPatch_loopTreeNode *getLoopTree()
+  BPatch_loopTreeNode *getLoopTree();
 \end{apient}
 
 \apidesc{
@@ -73,7 +73,7 @@ can be obtained by calling the getCFG method of a
     BPatch_locLoopExit,
     BPatch_locLoopStartIter,
     BPatch_locLoopEndIter
-  }
+  };
 \end{apient}
 
 \apidesc{
@@ -82,7 +82,7 @@ can be obtained by calling the getCFG method of a
 
 \begin{apient}
   std::vector<BPatch_point*> *findLoopInstPoints(const BPatch_procedureLocation loc,
-                                                 BPatch_basicBlockLoop *loop)
+                                                 BPatch_basicBlockLoop *loop);
 \end{apient}
 
 \apidesc{

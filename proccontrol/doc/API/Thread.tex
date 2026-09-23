@@ -7,8 +7,9 @@ depending on availability, a Thread may have information from the user space
 threading library.
 
 \begin{apient}
-Thread::ptr
-Thread::const_ptr
+Thread::ptr;
+
+Thread::const_ptr;
 \end{apient}
 
 \apidesc{
@@ -21,7 +22,7 @@ detached.
 }
 
 \begin{apient}
-Dyninst::LWP getLWP() const
+Dyninst::LWP getLWP() const;
 \end{apient}
 
 \apidesc{
@@ -30,8 +31,8 @@ pid\_t for this thread. On FreeBSD, this returns a lwpid\_t.
 }
 
 \begin{apient}
-Process::ptr getProcess()
-Process::const_ptr getProcess() const
+Process::ptr getProcess();
+Process::const_ptr getProcess() const;
 \end{apient}
 
 \apidesc{
@@ -40,7 +41,7 @@ thread.
 }
 
 \begin{apient}
-bool isStopped() const
+bool isStopped() const;
 \end{apient}
 
 \apidesc{
@@ -49,7 +50,7 @@ otherwise.
 }
 
 \begin{apient}
-bool isRunning() const
+bool isRunning() const;
 \end{apient}
 
 \apidesc{
@@ -58,7 +59,7 @@ otherwise.
 }
 
 \begin{apient}
-bool isLive() const
+bool isLive() const;
 \end{apient}
 
 \apidesc{
@@ -67,7 +68,7 @@ thread has been destroyed.
 }
 
 \begin{apient}
-bool isDetached() const
+bool isDetached() const;
 \end{apient}
 
 \apidesc{
@@ -76,7 +77,7 @@ Process::temporaryDetach and false otherwise.
 }
 
 \begin{apient}
-bool isInitialThread() const
+bool isInitialThread() const;
 \end{apient}
 
 \apidesc{
@@ -85,7 +86,7 @@ and false otherwise.
 }
 
 \begin{apient}
-bool stopThread()
+bool stopThread();
 \end{apient}
 
 \apidesc{
@@ -100,7 +101,7 @@ error a subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool continueThread()
+bool continueThread();
 \end{apient}
 
 \apidesc{
@@ -114,7 +115,7 @@ error a subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val) const
+bool getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val) const;
 \end{apient}
 
 \apidesc{
@@ -130,7 +131,7 @@ error a subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool getAllRegisters(RegisterPool pool) const
+bool getAllRegisters(RegisterPool pool) const;
 \end{apient}
 
 \apidesc{
@@ -144,7 +145,7 @@ error a subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val) const
+bool setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val) const;
 \end{apient}
 
 \apidesc{
@@ -159,7 +160,7 @@ error a subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool setAllRegisters(RegisterPool &pool) const
+bool setAllRegisters(RegisterPool &pool) const;
 \end{apient}
 
 \apidesc{
@@ -173,7 +174,7 @@ error a subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool haveUserThreadInfo() const
+bool haveUserThreadInfo() const;
 \end{apient}
 
 \apidesc{
@@ -182,7 +183,7 @@ Thread\'s underlying user-level thread is available.
 }
 
 \begin{apient}
-Dyninst::THR_ID getTID() const
+Dyninst::THR_ID getTID() const;
 \end{apient}
 
 \apidesc{
@@ -191,7 +192,7 @@ value is only valid if haveUserThreadInfo returns true.
 }
 
 \begin{apient}
-Dyninst::Address getStartFunction() const
+Dyninst::Address getStartFunction() const;
 \end{apient}
 
 \apidesc{
@@ -200,7 +201,7 @@ thread. This value is only valid if haveUserThreadInfo returns true.
 }
 
 \begin{apient}
-Dyninst::Address getStackBase() const
+Dyninst::Address getStackBase() const;
 \end{apient}
 
 \apidesc{
@@ -210,7 +211,7 @@ haveUserThreadInfo returns true.
 }
 
 \begin{apient}
-unsigned long getStackSize() const
+unsigned long getStackSize() const;
 \end{apient}
 
 \apidesc{
@@ -220,7 +221,7 @@ haveUserThreadInfo returns true.
 }
 
 \begin{apient}
-Dyninst::Address getTLS() const
+Dyninst::Address getTLS() const;
 \end{apient}
 
 \apidesc{
@@ -233,7 +234,7 @@ valid if haveUserThreadInfo returns true.
 bool readThreadLocalMemory(void *buffer,
                            Library::const_ptr lib,
                            Dyninst::Offset tls_symbol_offset,
-                           size_t size) const
+                           size_t size) const;
 \end{apient}
 
 \apidesc{
@@ -255,7 +256,7 @@ subsequent call to getLastError returns details on the error.
 bool writeThreadLocalMemory(Library::const_ptr lib,
                             Dyninst::Offset tls_symbol_offset,
                             const void *buffer,
-                            size_t size) const
+                            size_t size) const;
 \end{apient}
 
 \apidesc{
@@ -276,7 +277,7 @@ subsequent call to getLastError returns details on the error.
 \begin{apient}
 bool getThreadLocalAddress(Library::const_ptr lib,
                            Dyninst::Offset tls_symbol_offset,
-                           Dyninst::Address &result_addr) const
+                           Dyninst::Address &result_addr) const;
 \end{apient}
 
 \apidesc{
@@ -293,7 +294,7 @@ subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool postIRPC(IRPC::ptr irpc) const
+bool postIRPC(IRPC::ptr irpc) const;
 \end{apient}
 
 \apidesc{
@@ -307,7 +308,7 @@ subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
+bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
 \end{apient}
 
 \apidesc{
@@ -318,7 +319,7 @@ subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-IRPC::const_ptr getRunningIRPC() const
+IRPC::const_ptr getRunningIRPC() const;
 \end{apient}
 
 \apidesc{
@@ -328,7 +329,7 @@ IRPC::const\_ptr().
 }
 
 \begin{apient}
-void setSingleStepMode(bool mode) const
+void setSingleStepMode(bool mode) const;
 \end{apient}
 
 \apidesc{
@@ -342,7 +343,7 @@ execute one more instruction and trigger another EventSingleStep.
 }
 
 \begin{apient}
-bool getSingleStepMode() const
+bool getSingleStepMode() const;
 \end{apient}
 
 \apidesc{
@@ -351,8 +352,8 @@ otherwise.
 }
 
 \begin{apient}
-void *getData() const
-void setData(void *p)
+void *getData() const;
+void setData(void *p);
 \end{apient}
 
 \apidesc{

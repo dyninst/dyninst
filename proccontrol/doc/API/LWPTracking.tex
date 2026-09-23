@@ -2,7 +2,7 @@
 associated Process.
 
 \begin{apient}
-static void setDefaultTrackLWPs(bool b)
+static void setDefaultTrackLWPs(bool b);
 \end{apient}
 
 \apidesc{
@@ -11,7 +11,7 @@ interrupt-driven (b = true) or polling-driven (b = false).
 }
 
 \begin{apient}
-static bool getDefaultTrackLWPs()
+static bool getDefaultTrackLWPs();
 \end{apient}
 
 \apidesc{
@@ -21,7 +21,7 @@ indicates polling-driven.
 }
 
 \begin{apient}
-bool setTrackLWPs(bool b) const
+bool setTrackLWPs(bool b) const;
 \end{apient}
 
 \apidesc{
@@ -31,7 +31,7 @@ Returns true on success and false on failure.
 }
 
 \begin{apient}
-bool getTrackLWPs() const
+bool getTrackLWPs() const;
 \end{apient}
 
 \apidesc{
@@ -41,7 +41,7 @@ indicates polling-driven.
 }
 
 \begin{apient}
-bool refreshLWPs()
+bool refreshLWPs();
 \end{apient}
 
 \apidesc{

@@ -8,7 +8,7 @@ performing general ProcControlAPI operations, such as handleEvents and
 registerEventCallback when dealing with callbacks.
 
 \begin{apient}
-Process::ptr Process::const_ptr
+Process::ptr Process::const_ptr;
 \end{apient}
 
 \apidesc{
@@ -27,7 +27,7 @@ enum Process::cb_action_t {
   cbThreadStop,
   cbProcContinue,
   cbProcStop
-}
+};
 \end{apient}
 
 \apidesc{
@@ -53,7 +53,7 @@ cb\_ret\_t.
 }
 
 \begin{apient}
-typedef Process::cb_ret_t(*cb_func_t)(Event::const_ptr)
+typedef Process::cb_ret_t(*cb_func_t)(Event::const_ptr);
 \end{apient}
 
 \apidesc{
@@ -70,7 +70,7 @@ enum OSType{
   Linux,
   FreeBSD,
   Windows
-}
+};
 \end{apient}
 
 \apidesc{
@@ -79,7 +79,7 @@ OS on which the target process is running.
 }
 
 \begin{apient}
-typedef std::pair<Dyninst::Address, Dyninst::Address> MemoryRegion
+typedef std::pair<Dyninst::Address, Dyninst::Address> MemoryRegion;
 \end{apient}
 
 \apidesc{
@@ -91,7 +91,7 @@ part of the pair is the start address, the second, the end.
 static Process::ptr createProcess(std::string executable,
                                   const std::vector<std::string> &argv,
                                   const std::vector<std::string> &envp = emptyEnv,
-                                  const std::map<int,int> &fds = emptyFDs)
+                                  const std::map<int,int> &fds = emptyFDs);
 \end{apient}
 
 \apidesc{
@@ -110,7 +110,7 @@ getLastError returns details on the error.
 }
 
 \begin{apient}
-static Process::ptr attachProcess(Dyninst::PID pid,  std::string executable = "")
+static Process::ptr attachProcess(Dyninst::PID pid,  std::string executable = "");
 \end{apient}
 
 \apidesc{
@@ -127,7 +127,7 @@ getLastError returns details on the error.
 }
 
 \begin{apient}
-static bool handleEvents(bool block)
+static bool handleEvents(bool block);
 \end{apient}
 
 \apidesc{
@@ -145,7 +145,7 @@ It is an error to call this function from a callback.
 }
 
 \begin{apient}
-static bool registerEventCallback(EventType evt, cb_func_t cbfunc)
+static bool registerEventCallback(EventType evt, cb_func_t cbfunc);
 \end{apient}
 
 \apidesc{
@@ -166,7 +166,7 @@ subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-static bool removeEventCallback(EventType evt, cb_func_t cbfunc)
+static bool removeEventCallback(EventType evt, cb_func_t cbfunc);
 \end{apient}
 
 \apidesc{
@@ -181,7 +181,7 @@ the error.
 }
 
 \begin{apient}
-static bool removeEventCallback(EventType evt)
+static bool removeEventCallback(EventType evt);
 \end{apient}
 
 \apidesc{
@@ -194,7 +194,7 @@ the error.
 }
 
 \begin{apient}
-static bool removeEventCallback(cb_func_t func)
+static bool removeEventCallback(cb_func_t func);
 \end{apient}
 
 \apidesc{
@@ -206,7 +206,7 @@ the error.
 }
 
 \begin{apient}
-Dyninst::PID getPid() const
+Dyninst::PID getPid() const;
 \end{apient}
 
 \apidesc{
@@ -215,7 +215,7 @@ this is the pid of the process.
 }
 
 \begin{apient}
-Dyninst::Architecture getArchitecture() const
+Dyninst::Architecture getArchitecture() const;
 \end{apient}
 
 \apidesc{
@@ -224,7 +224,7 @@ process.
 }
 
 \begin{apient}
-Dyninst::OSType getOS () const
+Dyninst::OSType getOS() const;
 \end{apient}
 
 \apidesc{
@@ -233,7 +233,7 @@ the beginning of this section for the definition of Dyninst::OSType.
 }
 
 \begin{apient}
-bool supportsLWPEvents () const
+bool supportsLWPEvents() const;
 \end{apient}
 
 \apidesc{
@@ -242,7 +242,7 @@ destroy events and false otherwise.
 }
 
 \begin{apient}
-bool supportsUserThreadEvents() const
+bool supportsUserThreadEvents() const;
 \end{apient}
 
 \apidesc{
@@ -251,7 +251,7 @@ and destroy events and false otherwise.
 }
 
 \begin{apient}
-bool supportsFork () const
+bool supportsFork() const;
 \end{apient}
 
 \apidesc{
@@ -260,7 +260,7 @@ process and false otherwise.
 }
 
 \begin{apient}
-bool supportsExec () const
+bool supportsExec() const;
 \end{apient}
 
 \apidesc{
@@ -269,7 +269,7 @@ process and false otherwise.
 }
 
 \begin{apient}
-bool isTerminated() const
+bool isTerminated() const;
 \end{apient}
 
 \apidesc{
@@ -279,7 +279,7 @@ process. It returns false otherwise.
 }
 
 \begin{apient}
-bool isExited() const
+bool isExited() const;
 \end{apient}
 
 \apidesc{
@@ -289,7 +289,7 @@ otherwise.
 }
 
 \begin{apient}
-int getExitCode() const
+int getExitCode() const;
 \end{apient}
 
 \apidesc{
@@ -299,7 +299,7 @@ Process\' isExited function returns false.
 }
 
 \begin{apient}
-bool isCrashed() const
+bool isCrashed() const;
 \end{apient}
 
 \apidesc{
@@ -308,7 +308,7 @@ returns false otherwise.
 }
 
 \begin{apient}
-int getCrashSignal() const
+int getCrashSignal() const;
 \end{apient}
 
 \apidesc{
@@ -319,7 +319,7 @@ returns false.
 }
 
 \begin{apient}
-bool hasStoppedThread() const
+bool hasStoppedThread() const;
 \end{apient}
 
 \apidesc{
@@ -329,7 +329,7 @@ event of an error a call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool hasRunningThread() const
+bool hasRunningThread() const;
 \end{apient}
 
 \apidesc{
@@ -339,7 +339,7 @@ event of an error a call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool allThreadsStopped() const
+bool allThreadsStopped() const;
 \end{apient}
 
 \apidesc{
@@ -349,7 +349,7 @@ event of an error a call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool allThreadsRunning() const
+bool allThreadsRunning() const;
 \end{apient}
 
 \apidesc{
@@ -359,7 +359,7 @@ event of an error a call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool allThreadsRunningWhenAttached() const
+bool allThreadsRunningWhenAttached() const;
 \end{apient}
 
 \apidesc{
@@ -370,7 +370,7 @@ true.
 }
 
 \begin{apient}
-bool continueProc()
+bool continueProc();
 \end{apient}
 
 \apidesc{
@@ -384,7 +384,7 @@ returns details on the error.
 }
 
 \begin{apient}
-bool stopProc()
+bool stopProc();
 \end{apient}
 
 \apidesc{
@@ -398,7 +398,7 @@ returns details on the error.
 }
 
 \begin{apient}
-bool detach(bool leaveStopped = false)
+bool detach(bool leaveStopped = false);
 \end{apient}
 
 \apidesc{
@@ -414,7 +414,7 @@ It is an error to call this function from a callback.
 }
 
 \begin{apient}
-bool temporaryDetach()
+bool temporaryDetach();
 \end{apient}
 
 \apidesc{
@@ -429,7 +429,7 @@ It is an error to call this function from a callback.
 }
 
 \begin{apient}
-bool reAttach()
+bool reAttach();
 \end{apient}
 
 \apidesc{
@@ -442,7 +442,7 @@ It is an error to call this function from a callback.
 }
 
 \begin{apient}
-bool terminate()
+bool terminate();
 \end{apient}
 
 \apidesc{
@@ -455,8 +455,8 @@ It is an error to call this function from a callback.
 }
 
 \begin{apient}
-const ThreadPool &threads()
-const ThreadPool &threads()
+const ThreadPool &threads();
+const ThreadPool &threads();
 \end{apient}
 
 \apidesc{
@@ -464,8 +464,8 @@ Returns the \code{ThreadPool} of the process.
 }
 
 \begin{apient}
-const LibraryPool &libraries() const
-LibraryPool &libraries()
+const LibraryPool &libraries() const;
+LibraryPool &libraries();
 \end{apient}
 
 \apidesc{
@@ -473,7 +473,7 @@ Returns the \code{LibraryPool} of the process.
 }
 
 \begin{apient}
-bool addLibrary(std::string libname)
+bool addLibrary(std::string libname);
 \end{apient}
 
 \apidesc{
@@ -483,8 +483,8 @@ will trigger an event (and thus a user callback) for each library loaded
 }
 
 \begin{apient}
-void *getData () const
-void setData (void *p)
+void *getData() const;
+void setData(void *p);
 \end{apient}
 
 \apidesc{
@@ -494,7 +494,7 @@ but remains associated with the process.
 }
 
 \begin{apient}
-unsigned getMemoryPageSize() const
+unsigned getMemoryPageSize() const;
 \end{apient}
 
 \apidesc{
@@ -503,8 +503,8 @@ process is running.
 }
 
 \begin{apient}
-Dyninst::Address mallocMemory(size_t size)
-Dyninst::Address mallocMemory(size_t size, Dyninst::Address addr)
+Dyninst::Address mallocMemory(size_t size);
+Dyninst::Address mallocMemory(size_t size, Dyninst::Address addr);
 \end{apient}
 
 \apidesc{
@@ -522,7 +522,7 @@ returns details on the error.
 }
 
 \begin{apient}
-bool freeMemory(Dyninst::Address addr)
+bool freeMemory(Dyninst::Address addr);
 \end{apient}
 
 \apidesc{
@@ -538,7 +538,7 @@ error a subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool writeMemory(Dyninst::Address addr, void *buffer, size_t size) const
+bool writeMemory(Dyninst::Address addr, void *buffer, size_t size) const;
 \end{apient}
 
 \apidesc{
@@ -553,7 +553,7 @@ subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool readMemory(void *buffer, Dyninst::Address addr, size_t size) const
+bool readMemory(void *buffer, Dyninst::Address addr, size_t size) const;
 \end{apient}
 
 \apidesc{
@@ -568,9 +568,8 @@ subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool getMemoryAccessRights(Dyninst::Address addr, mem_perm& rights)
-
-bool setMemoryAccessRights(Dyninst::Address addr, size_t size, mem_perm rights, mem_perm& oldRights)
+bool getMemoryAccessRights(Dyninst::Address addr, mem_perm& rights);
+bool setMemoryAccessRights(Dyninst::Address addr, size_t size, mem_perm rights, mem_perm& oldRights);
 \end{apient}
 
 \apidesc{
@@ -580,7 +579,7 @@ memory in the target process\' s address space of size size.
 }
 
 \begin{apient}
-bool findAllocatedRegionAround(Dyninst::Address addr, MemoryRegion& memRegion)
+bool findAllocatedRegionAround(Dyninst::Address addr, MemoryRegion& memRegion);
 \end{apient}
 
 \apidesc{
@@ -589,7 +588,7 @@ addr, and returns true on success, otherwise false.
 }
 
 \begin{apient}
-bool addBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const
+bool addBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const;
 \end{apient}
 
 \apidesc{
@@ -602,7 +601,7 @@ subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const
+bool rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const;
 \end{apient}
 
 \apidesc{
@@ -613,7 +612,7 @@ subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool postIRPC(IRPC::ptr irpc) const
+bool postIRPC(IRPC::ptr irpc) const;
 \end{apient}
 
 \apidesc{
@@ -627,7 +626,7 @@ subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool runIRPCSync(IRPC::ptr irpc)
+bool runIRPCSync(IRPC::ptr irpc);
 \end{apient}
 
 \apidesc{
@@ -642,7 +641,7 @@ It is an error to call this function from a callback.
 }
 
 \begin{apient}
-bool runIRPCAsync(IRPC::ptr irpc)
+bool runIRPCAsync(IRPC::ptr irpc);
 \end{apient}
 
 \apidesc{
@@ -654,7 +653,7 @@ It is an error to call this function from a callback.
 }
 
 \begin{apient}
-bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
+bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
 \end{apient}
 
 \apidesc{
@@ -667,11 +666,11 @@ subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-LibraryTracking *getLibraryTracking()
-ThreadTracking *getThreadTracking()
-LWPTracking *getLWPTracking()
-FollowFork *getFollowFork()
-SignalMask *getSignalMask()
+LibraryTracking *getLibraryTracking();
+ThreadTracking *getThreadTracking();
+LWPTracking *getLWPTracking();
+FollowFork *getFollowFork();
+SignalMask *getSignalMask();
 \end{apient}
 
 \apidesc{

@@ -19,7 +19,7 @@ are the entries
 of the loop. Neither block 1 nor block 2 domiantes block 3.
 
 \begin{apient}
-  bool containsAddress(unsigned long addr)
+  bool containsAddress(unsigned long addr);
 \end{apient}
 
 \apidesc{
@@ -27,7 +27,7 @@ of the loop. Neither block 1 nor block 2 domiantes block 3.
   this loop, excluding the block of any of its sub-loops.
 }
 \begin{apient}
-  bool containsAddressInclusive(unsigned long addr)
+  bool containsAddressInclusive(unsigned long addr);
 \end{apient}
 
 \apidesc{
@@ -35,7 +35,7 @@ of the loop. Neither block 1 nor block 2 domiantes block 3.
   this loop, or in the blocks of any of its sub-loops.
 }
 \begin{apient}
-  int getBackEdges(std::vector<BPatch_edge *> &edges)
+  int getBackEdges(std::vector<BPatch_edge *> &edges);
 \end{apient}
 
 \apidesc{
@@ -44,7 +44,7 @@ of the loop. Neither block 1 nor block 2 domiantes block 3.
   is from a block in the loop to an entry block of the loop.
 }
 \begin{apient}
-  int getLoopEntries(std::vector<BPatch_basicBlock *> &entries)
+  int getLoopEntries(std::vector<BPatch_basicBlock *> &entries);
 \end{apient}
 
 \apidesc{
@@ -53,21 +53,21 @@ of the loop. Neither block 1 nor block 2 domiantes block 3.
   have multiple entry blocks.
 }
 \begin{apient}
-  bool getContainedLoops(std::vector<BPatch_basicBlockLoop*>&)
+  bool getContainedLoops(std::vector<BPatch_basicBlockLoop*>&);
 \end{apient}
 
 \apidesc{
   Fill the given vector with a list of the loops nested within this loop.
 }
 \begin{apient}
-  BPatch_flowGraph *getFlowGraph()
+  BPatch_flowGraph *getFlowGraph();
 \end{apient}
 
 \apidesc{
   Return a pointer to the control flow graph that contains this loop.
 }
 \begin{apient}
-  bool getOuterLoops(std::vector<BPatch_basicBlockLoop*>&)
+  bool getOuterLoops(std::vector<BPatch_basicBlockLoop*>&);
 \end{apient}
 
 \apidesc{
@@ -75,7 +75,7 @@ of the loop. Neither block 1 nor block 2 domiantes block 3.
 }
 
 \begin{apient}
-  bool getLoopBasicBlocks(std::vector<BPatch_basicBlock*>&)
+  bool getLoopBasicBlocks(std::vector<BPatch_basicBlock*>&);
 \end{apient}
 
 \apidesc{
@@ -83,7 +83,7 @@ of the loop. Neither block 1 nor block 2 domiantes block 3.
   of this loop.
 }
 \begin{apient}
-  bool getLoopBasicBlocksExclusive(std::vector<BPatch_basicBlock*>&)
+  bool getLoopBasicBlocksExclusive(std::vector<BPatch_basicBlock*>&);
 \end{apient}
 
 \apidesc{
@@ -91,7 +91,7 @@ of the loop. Neither block 1 nor block 2 domiantes block 3.
   of this loop but not its sub-loops.
 }
 \begin{apient}
-  bool hasAncestor(BPatch_basicBlockLoop*)
+  bool hasAncestor(BPatch_basicBlockLoop*);
 \end{apient}
 
 \apidesc{
@@ -99,14 +99,14 @@ of the loop. Neither block 1 nor block 2 domiantes block 3.
   loop is one of its ancestors in the tree of loops).
 }
 \begin{apient}
-  bool hasBlock(BPatch_basicBlock *b)
+  bool hasBlock(BPatch_basicBlock *b);
 \end{apient}
 
 \apidesc{
   Return true if this loop or any of its sub-loops contain b, false otherwise.
 }
 \begin{apient}
-  bool hasBlockExclusive(BPatch_basicBlock *b)
+  bool hasBlockExclusive(BPatch_basicBlock *b);
 \end{apient}
 
 \apidesc{

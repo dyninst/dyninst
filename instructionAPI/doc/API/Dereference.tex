@@ -31,7 +31,7 @@ other type. The remainder of the \code{Expression} tree would, however, remain
 unchanged.
 
 \begin{apient}
-Dereference (Expression::Ptr addr, Result_Type result_type)
+Dereference(Expression::Ptr addr, Result_Type result_type);
 \end{apient}
 \apidesc{
 A \code{Dereference} is constructed from an \code{Expression} pointer (raw or shared) representing the address
@@ -39,14 +39,14 @@ to be dereferenced and a type indicating how the memory at the address in questi
 }
 
 \begin{apient}
-std::vector<Expression::Ptr> getSubexpressions() const
+std::vector<Expression::Ptr> getSubexpressions() const;
 \end{apient}
 \apidesc{
 Returns the expression for the address being dereferenced.
 }
 
 \begin{apient}
-virtual bool isUsed (Expression::Ptr findMe) const
+virtual bool isUsed(Expression::Ptr findMe) const;
 \end{apient}
 \apidesc{
 An \code{Expression} is used by a \code{Dereference} if it is equivalent to the \code{Dereference} or it is used by

@@ -8,8 +8,7 @@ well as accessing that parse data. The following API routines and data types
 are provided to support parsing and retrieving parsing products.
 
 \begin{apient}
-
-typedef std::set<Function *, Function::less> funclist
+typedef std::set<Function *, Function::less> funclist;
 \end{apient}
 \apidesc{Container for access to functions. Refer to Section \ref{sec:containers} for details. Library users \emph{must not} rely on the underlying container type of std::set, as it is subject to change.}
 
@@ -17,7 +16,7 @@ typedef std::set<Function *, Function::less> funclist
 CodeObject(CodeSource * cs,
            CFGFactory * fact = NULL,
            ParseCallback * cb = NULL,
-           bool defensiveMode = false)
+           bool defensiveMode = false);
 \end{apient}
 \apidesc{Constructs a new CodeObject from the provided CodeSource and
 optional object factory and callback handlers. Any parsing hints provided
@@ -31,7 +30,7 @@ recommended for most applications as it makes very conservative assumptions
 about control flow transfer instructions (see Section \ref{sec:defmode}).}
 
 \begin{apient}
-void parse()
+void parse();
 \end{apient}
 \apidesc{Recursively parses the binary represented by this CodeObject from all
 known function entry points (i.e., the hints provided by the CodeSource). This
@@ -42,14 +41,14 @@ parseGaps should be used for this purpose.}
 
 \begin{apient}
 void parse(Address target,
-           bool recursive)
+           bool recursive);
 \end{apient}
 \apidesc{Parses the binary starting with the instruction at the provided target address. If \code{recursive} is {\scshape true}, recursive traversal parsing is used as in the default \code{parse()} method; otherwise only instructions reachable through intraprocedural control flow are visited.}
 
 \begin{apient}
 void parse(CodeRegion * cr,
            Address target,
-           bool recursive)
+           bool recursive);
 \end{apient}
 \apidesc{Parses the specified core region of the binary starting with the
 instruction at the provided target address. If \code{recursive} is
@@ -63,8 +62,9 @@ struct NewEdgeToParse {
     Block *source;
     Address target;
     EdgeTypeEnum type;
-}
-bool parseNewEdges( vector<NewEdgeToParse> & worklist )
+};
+
+bool parseNewEdges( vector<NewEdgeToParse> & worklist );
 \end{apient}
 \apidesc{Parses a set of newly created edges specified in the worklist supplied
 that were not included when the function was originally parsed.
@@ -88,7 +88,7 @@ IdiomMatching & Based on a pre-trained model, this technique calculates the prob
 
 \begin{apient}
 void parseGaps(CodeRegion *cr,
-               GapParsingType type=IdiomMatching)
+               GapParsingType type=IdiomMatching);
 \end{apient}
 \apidesc{Speculatively parse the indicated region of the binary using the specified technique to find likely function entry points, enabled on the x86 and x86-64 platforms.}
 
@@ -103,14 +103,14 @@ which always requires a valid \texttt{CodeRegion}.%
 
 \begin{apient}
 Function * findFuncByEntry(CodeRegion * cr,
-                           Address entry)
+                           Address entry);
 \end{apient}
 \apidesc{Find the function starting at address \code{entry} in the indicated CodeRegion. Returns {\scshape null} if no such function exists.}
 
 \begin{apient}
 int findFuncs(CodeRegion * cr,
               Address addr,
-              std::set<Function*> & funcs)
+              std::set<Function*> & funcs);
 \end{apient}
 \apidesc{Finds all functions spanning \code{addr} in the code region, adding each to \code{funcs}. The number of results of this stabbing query are returned.}
 
@@ -118,62 +118,62 @@ int findFuncs(CodeRegion * cr,
 int findFuncs(CodeRegion * cr,
               Address start,
               Address end,
-              std::set<Function*> & funcs)
+              std::set<Function*> & funcs);
 \end{apient}
 \apidesc{Finds all functions overlapping the range \code{[start,end)} in the code region, adding each to \code{funcs}. The number of results of this stabbing query are returned.}
 
 \begin{apient}
-const funclist & funcs()
+const funclist & funcs();
 \end{apient}
 \apidesc{Returns a const reference to a container of all functions in the binary. Refer to Section \ref{sec:containers} for container access details.}
 
 \begin{apient}
 Block * findBlockByEntry(CodeRegion * cr,
-                         Address entry)
+                         Address entry);
 \end{apient}
 \apidesc{Find the basic block starting at address \code{entry}. Returns {\scshape null} if no such block exists.}
 
 \begin{apient}
 int findBlocks(CodeRegion * cr,
                Address addr,
-               std::set<Block*> & blocks)
+               std::set<Block*> & blocks);
 \end{apient}
 \apidesc{Finds all blocks spanning \code{addr} in the code region, adding each to \code{blocks}. Multiple blocks can be returned only on platforms with variable-length instruction sets (such as IA32) for which overlapping instructions are possible; at most one block will be returned on all other platforms.}
 
 \begin{apient}
 Block * findNextBlock(CodeRegion * cr,
-                      Address addr)
+                      Address addr);
 \end{apient}
 \apidesc{Find the next reachable basic block starting at address \code{entry}. Returns {\scshape null} if no such block exists.}
 
 \begin{apient}
-CodeSource * cs()
+CodeSource * cs();
 \end{apient}
 \apidesc{Return a reference to the underlying CodeSource.}
 
 \begin{apient}
-CFGFactory * fact()
+CFGFactory * fact();
 \end{apient}
 \apidesc{Return a reference to the CFG object factory.}
 
 \begin{apient}
-bool defensiveMode()
+bool defensiveMode();
 \end{apient}
 \apidesc{Return a boolean specifying whether or not defensive mode is enabled.}
 
 \begin{apient}
 bool isIATcall(Address insn,
-               std::string &calleeName)
+               std::string &calleeName);
 \end{apient}
 \apidesc{Returns a boolean specifying if the address at \code{addr} is located at the call named in \code{calleeName}. }
 
 \begin{apient}
-void startCallbackBatch()
+void startCallbackBatch();
 \end{apient}
 \apidesc{Starts a batch of callbacks that have been registered.}
 
 \begin{apient}
-void finishCallbackBatch()
+void finishCallbackBatch();
 \end{apient}
 \apidesc{Completes all callbacks in the current batch.}
 
@@ -189,22 +189,22 @@ void unregisterCallback(ParseCallback *cb);
 
 
 \begin{apient}
-void finalize()
+void finalize();
 \end{apient}
 \apidesc{Force complete parsing of the CodeObject; parsing operations are otherwise completed only as needed to answer queries.}
 
 \begin{apient}
-void destroy(Edge *)
+void destroy(Edge *);
 \end{apient}
 \apidesc{Destroy the edge listed.}
 
 \begin{apient}
-void destroy(Block *)
+void destroy(Block *);
 \end{apient}
 \apidesc{Destroy the code block listed.}
 
 \begin{apient}
-void destroy(Function *)
+void destroy(Function *);
 \end{apient}
 \apidesc{Destroy the function listed.}
 

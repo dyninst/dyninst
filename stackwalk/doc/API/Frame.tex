@@ -21,7 +21,7 @@ found in a register or in a memory address on a call stack.
 static Frame *newFrame(Dyninst::MachRegisterVal ra,
                        Dyninst::MachRegisterVal sp,
                        Dyninst::MachRegisterVal fp,
-                       Walker *walker)
+                       Walker *walker);
 \end{apient}
 \apidesc{
     This method creates a new \code{Frame} object and sets the mandatory data
@@ -35,48 +35,48 @@ static Frame *newFrame(Dyninst::MachRegisterVal ra,
 }
 
 \begin{apient}
-bool operator==(const Frame &)
+bool operator==(const Frame &);
 \end{apient}
 \apidesc{\code{Frame} objects have a defined equality operator.}
 
 
 \begin{apient}
-Dyninst::MachRegisterVal getRA() const
+Dyninst::MachRegisterVal getRA() const;
 \end{apient}
 \apidesc{
 	This method returns this \code{Frame} object's return address.
 }
 
 \begin{apient}
-void setRA(Dyninst::MachRegisterVal val)
+void setRA(Dyninst::MachRegisterVal val);
 \end{apient}
 \apidesc{
     This method sets this \code{Frame} object's return address to \code{val}.
 }
 
 \begin{apient}
-Dyninst::MachRegisterVal getSP() const
+Dyninst::MachRegisterVal getSP() const;
 \end{apient}
 \apidesc{
 	This method returns this \code{Frame} object's stack pointer.
 }
 
 \begin{apient}
-void setSP(Dyninst::MachRegisterVal val)
+void setSP(Dyninst::MachRegisterVal val);
 \end{apient}
 \apidesc{
     This method sets this \code{Frame} object's stack pointer to \code{val}.
 }
 
 \begin{apient}
-Dyninst::MachRegisterVal getFP() const
+Dyninst::MachRegisterVal getFP() const;
 \end{apient}
 \apidesc{
 	This method returns this \code{Frame} object's frame pointer.
 }
 
 \begin{apient}
-void setFP(Dyninst::MachRegisterVal val)
+void setFP(Dyninst::MachRegisterVal val);
 \end{apient}
 \apidesc{
     This method sets this \code{Frame} object's frame pointer to \code{val}.
@@ -122,49 +122,49 @@ typedef struct {
 }
 
 \begin{apient}
-location_t getRALocation() const
+location_t getRALocation() const;
 \end{apient}
 \apidesc{
 	This method returns a \code{location\_t} describing where the RA was found.
 }
 
 \begin{apient}
-void setRALocation(location_t newval)
+void setRALocation(location_t newval);
 \end{apient}
 \apidesc{
 	This method sets the location of where the RA was found to newval.
 }
 
 \begin{apient}
-location_t getSPLocation() const
+location_t getSPLocation() const;
 \end{apient}
 \apidesc{
 	This method returns a \code{location\_t} describing where the SP was found.
 }
 
 \begin{apient}
-void setSPLocation(location_t newval)
+void setSPLocation(location_t newval);
 \end{apient}
 \apidesc{
     This method sets the location of where the SP was found to \code{newval}.
 }
 
 \begin{apient}
-location_t getFPLocation() const
+location_t getFPLocation() const;
 \end{apient}
 \apidesc{
 	This method returns a \code{location\_t} describing where the FP was found.
 }
 
 \begin{apient}
-void setFPLocation(location_t newval)
+void setFPLocation(location_t newval);
 \end{apient}
 \apidesc{
     This method sets the location of where the FP was found to \code{newval}.
 }
 
 \begin{apient}
-bool getName(std::string &str) const
+bool getName(std::string &str) const;
 \end{apient}
 \apidesc{
 This method returns a stack frame's symbolic name. Most stack frames are created
@@ -184,7 +184,7 @@ This method returns \code{true} on success and \code{false} on error.
 }
 
 \begin{apient}
-bool getObject(void* &obj) const
+bool getObject(void* &obj) const;
 \end{apient}
 \apidesc{
     In addition to returning a symbolic name (see \code{getName}) the \code{SymbolLookup}
@@ -210,7 +210,7 @@ This method returns \code{true} on success and \code{false} on error.
   \code{Frame} represents. }
 
 \begin{apient}
-FrameStepper* getStepper() const
+FrameStepper* getStepper() const;
 \end{apient}
 \apidesc{
     This method returns the \code{FrameStepper} object that was used to
@@ -220,7 +220,7 @@ FrameStepper* getStepper() const
 }
 
 \begin{apient}
-bool getLibOffset(std::string &lib, Dyninst::Offset &offset, void* &symtab) const
+bool getLibOffset(std::string &lib, Dyninst::Offset &offset, void* &symtab) const;
 \end{apient}
 \apidesc{
 This method returns the DSO (a library or executable) and an offset into that
@@ -233,7 +233,7 @@ more information on using Dyninst::Symtab objects.
 }
 
 \begin{apient}
-bool nonCall() const
+bool nonCall() const;
 \end{apient}
 \apidesc{
     This method returns whether a \code{Frame} object represents a function

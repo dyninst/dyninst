@@ -102,7 +102,7 @@ The following four definitions deal with processes involved in StackwalkerAPI.
 \subsubsection{Basic Types}
 
 \begin{apient}
-typedef unsigned long Address
+typedef unsigned long Address;
 \end{apient}
 \apidesc{
     An integer value capable of holding an address in the target process.
@@ -113,13 +113,13 @@ typedef unsigned long Address
     process, but may be larger.
 }
 \begin{apient}
-typedef ... Dyninst::PID
+typedef ... Dyninst::PID;
 \end{apient}
 \apidesc{
 	A handle for identifying a process. On UNIX systems this will be an integer representing a PID. On Windows this will be a HANDLE object.
 }
 \begin{apient}
-typedef ... Dyninst::THR_ID
+typedef ... Dyninst::THR_ID;
 \end{apient}
 \apidesc{
 	A handle for identifying a thread. On Linux platforms this is an integer referring to a TID (Thread Identifier). On Windows it is a HANDLE object.
@@ -133,7 +133,7 @@ class Dyninst::MachRegister
 }
 
 \begin{apient}
-typedef unsigned long Dyninst::MachRegisterVal
+typedef unsigned long Dyninst::MachRegisterVal;
 \end{apient}
 \apidesc{
 	A value that holds the contents of a register. A Dyninst::MachRegister names a specific register, while a Dyninst::MachRegisterVal represents the value that may be in that register.
@@ -187,7 +187,7 @@ A pair consisting of a library filename and its base address in the target proce
 }
 
 \begin{apient}
-class LibraryState
+class LibraryState;
 \end{apient}
 \apidesc{
 Class providing interfaces for library tracking. Only the public query interfaces below are user-facing; the other public
@@ -240,7 +240,7 @@ local variables contained in that function and the types of those local
 variables. See the SymtabAPI Programmer's Guide for more information.
 
 \begin{apient}
-static Dyninst::SymtabAPI::Function *getFunctionForFrame(Frame f)
+static Dyninst::SymtabAPI::Function *getFunctionForFrame(Frame f);
 \end{apient}
 \apidesc{
 This method returns a SymtabAPI function handle for the function that created the call stack frame, f.
@@ -248,9 +248,13 @@ This method returns a SymtabAPI function handle for the function that created th
 
 \begin{apient}
 static int glvv_Success = 0;
+
 static int glvv_EParam = -1;
+
 static int glvv_EOutOfScope = -2;
+
 static int glvv_EBufferSize = -3;
+
 static int glvv_EUnknown = -4;
 \end{apient}
 
@@ -259,7 +263,7 @@ static int getLocalVariableValue(Dyninst::SymtabAPI::localVar *var,
                                  std::vector<Frame> &swalk,
                                  unsigned frame,
                                  void *out_buffer,
-                                 unsigned out_buffer_size)
+                                 unsigned out_buffer_size);
 \end{apient}
 \apidesc{
     Given a local variable and a stack frame from a call stack, this function

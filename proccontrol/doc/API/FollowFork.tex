@@ -2,7 +2,7 @@
 associated Process forks.
 
 \begin{apient}
-enum follow_t {None, ImmediateDetach, DisableBreakpointsDetach, Follow }
+enum follow_t {None, ImmediateDetach, DisableBreakpointsDetach, Follow };
 \end{apient}
 
 \apidesc{
@@ -16,7 +16,7 @@ to and remain under full control of ProcControlAPI.
 }
 
 \begin{apient}
-static void setDefaultFollowFork(follow_t f)
+static void setDefaultFollowFork(follow_t f);
 \end{apient}
 
 \apidesc{
@@ -24,7 +24,7 @@ This function sets the default forking behavior across all Process objects to f.
 }
 
 \begin{apient}
-static follow_t getDefaultFollowFork()
+static follow_t getDefaultFollowFork();
 \end{apient}
 
 \apidesc{
@@ -33,7 +33,7 @@ objects.
 }
 
 \begin{apient}
-bool setFollowFork(follow_t f) const
+bool setFollowFork(follow_t f) const;
 \end{apient}
 
 \apidesc{
@@ -42,7 +42,7 @@ This function returns true on success and false on failure.
 }
 
 \begin{apient}
-follow_t getFollowFork() const
+follow_t getFollowFork() const;
 \end{apient}
 
 \apidesc{

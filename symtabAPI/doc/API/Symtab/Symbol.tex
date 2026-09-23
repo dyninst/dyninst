@@ -94,7 +94,7 @@ DYNINST_EXPORT Symbol(const std::string& name,
                      bool absolute = false,
                      int index = -1,
                      int strindex = -1,
-                     bool commonStorage = false)
+                     bool commonStorage = false);
 \end{apient}
 \apidesc{
 Symbol creation interface:
@@ -116,14 +116,14 @@ Symbol creation interface:
 }
 
 \begin{apient}
-bool getVersionFileName(std::string &fileName)
+bool getVersionFileName(std::string &fileName);
 \end{apient}
 \apidesc{
 This method retrieves the file name in which this symbol is present. Returns \code{false} if this symbol does not have any version information present otherwise returns \code{true}.
 }
 
 \begin{apient}
-bool getVersions(std::vector<std::string> *&vers)
+bool getVersions(std::vector<std::string> *&vers);
 \end{apient}
 \apidesc{
 This method retrieves all the version names for this symbol. Returns \code{false} if the symbol does not have any version information present.
@@ -134,22 +134,22 @@ This method retrieves all the version names for this symbol. Returns \code{false
 Most elements of a \code{Symbol} can be modified using the functions below. Each returns \code{true} on success and \code{false} otherwise.
 
 \begin{apient}
-bool setSize (unsigned size)
-bool setOffset (Offset newOffset)
-bool setMangledName (string name)
-bool setType (SymbolType sType)
-bool setModule (Module *module)
-bool setRegion (Region *region)
-bool setDynamic (bool dyn)
-bool setAbsolute (bool absolute)
-bool setCommonStorage (bool common)
-bool setFunction (Function *func)
-bool setVariable (Variable *var)
-bool setIndex (int index)
-bool setStrIndex (int index)
-bool setPtrOffset (Offset ptr)
-bool setLocalTOC (Offset toc)
-bool setVersionNum (unsigned num)
-bool setVersionFileName (std::string &fileName)
-bool setVersions (std::vector<std::string> &vers)
+bool setSize(unsigned size);
+bool setOffset(Offset newOffset);
+bool setMangledName(string name);
+bool setType(SymbolType sType);
+bool setModule(Module *module);
+bool setRegion(Region *region);
+bool setDynamic(bool dyn);
+bool setAbsolute(bool absolute);
+bool setCommonStorage(bool common);
+bool setFunction(Function *func);
+bool setVariable(Variable *var);
+bool setIndex(int index);
+bool setStrIndex(int index);
+bool setPtrOffset(Offset ptr);
+bool setLocalTOC(Offset toc);
+bool setVersionNum(unsigned num);
+bool setVersionFileName(std::string &fileName);
+bool setVersions(std::vector<std::string> &vers);
 \end{apient}

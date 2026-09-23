@@ -268,12 +268,12 @@ Returns the PatchCallback object associated with this PatchFunction.
 }
 
 \begin{apient}
-PatchLoopTreeNode* getLoopTree()
+PatchLoopTreeNode* getLoopTree();
 \end{apient}
 \apidesc{Return the nesting tree of the loops in the function. See class \code{PatchLoopTreeNode} for more details}
 
 \begin{apient}
-PatchLoop* findLoop(const char *name)
+PatchLoop* findLoop(const char *name);
 \end{apient}
 \apidesc{Return the loop with the given nesting name. See class \code{PatchLoopTreeNode} for more details about how loop nesting names are assigned.}
 
@@ -395,6 +395,7 @@ Returns the number of functions that contain this block.
 
 \begin{apient}
 typedef std::map<Address, InstructionAPI::Instruction::Ptr> Insns;
+
 void getInsns(Insns &insns) const;
 \end{apient}
 
@@ -593,19 +594,19 @@ The PatchLoop class is a wrapper of ParseAPI's Loop class (has-a).
 It represents code structure that may execute repeatedly.
 
 \begin{apient}
-PatchLoop* parent
+PatchLoop* parent;
 \end{apient}
 \apidesc{Returns the loop which directly encloses this loop. NULL if no such loop.}
 
 
 \begin{apient}
-bool containsAddress(Address addr)
+bool containsAddress(Address addr);
 \end{apient}
 \apidesc{Returns true if the given address is within the range of this loop's basic blocks.}
 
 
 \begin{apient}
-bool containsAddressInclusive(Address addr)
+bool containsAddressInclusive(Address addr);
 \end{apient}
 \apidesc{Returns true if the given address is within the range of this loop's basic blocks or its children.}
 
@@ -616,31 +617,31 @@ int getLoopEntries(vector<PatchBlock*>& entries);
 
 
 \begin{apient}
-int getBackEdges(vector<PatchEdge*> &edges)
+int getBackEdges(vector<PatchEdge*> &edges);
 \end{apient}
 \apidesc{Sets \code{edges} to the set of back edges in this loop.
 It returns the number of back edges that are in this loop.
 }
 
 \begin{apient}
-bool getContainedLoops(vector<PatchLoop*> &loops)
+bool getContainedLoops(vector<PatchLoop*> &loops);
 \end{apient}
 \apidesc{Returns a vector of loops that are nested under this loop.}
 
 \begin{apient}
-bool getOuterLoops(vector<PatchLoop*> &loops)
+bool getOuterLoops(vector<PatchLoop*> &loops);
 \end{apient}
 \apidesc{Returns a vector of loops that are directly nested under this loop.}
 
 
 \begin{apient}
-bool getLoopBasicBlocks(vector<PatchBlock*> &blocks)
+bool getLoopBasicBlocks(vector<PatchBlock*> &blocks);
 \end{apient}
 \apidesc{Fills \code{blocks} with all basic blocks in the loop}
 
 
 \begin{apient}
-bool getLoopBasicBlocksExclusive(vector<PatchBlock*> &blocks)
+bool getLoopBasicBlocksExclusive(vector<PatchBlock*> &blocks);
 \end{apient}
 \apidesc{Fills \code{blocks} with all basic blocks in this loop, excluding the blocks of its sub loops.}
 
@@ -655,7 +656,7 @@ bool hasBlockExclusive(PatchBlock *b);
 \apidesc{Returns \code{true} if this loop contains basic block \code{b} and \code{b} is not in its sub loops.}
 
 \begin{apient}
-bool hasAncestor(PatchLoop *loop)
+bool hasAncestor(PatchLoop *loop);
 \end{apient}
 \apidesc{Returns true if this loop is a descendant of the given loop.}
 
@@ -730,12 +731,12 @@ const char * name();
 \apidesc{Returns the hierarchical name of this loop.}
 
 \begin{apient}
-const char * getCalleeName(unsigned int i)
+const char * getCalleeName(unsigned int i);
 \end{apient}
 \apidesc{Returns the function name of the ith callee.}
 
 \begin{apient}
-unsigned int numCallees()
+unsigned int numCallees();
 \end{apient}
 \apidesc{Returns the number of callees contained in this loop's body.}
 
@@ -1090,6 +1091,7 @@ enum Point::Type {
 
 \begin{apient}
 typedef std::list<InstancePtr>::iterator instance_iter;
+
 instance_iter begin();
 instance_iter end();
 \end{apient}
@@ -1359,7 +1361,6 @@ above method will be called after the block is split.  }
 \begin{apient}
 virtual void remove_edge_cb(PatchBlock *, PatchEdge *, edge_type_t);
 virtual void add_edge_cb(PatchBlock *, PatchEdge *, edge_type_t);
-
 \end{apient}
 
 

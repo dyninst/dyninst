@@ -11,7 +11,7 @@ Power machine with Dyninst::ppc32::r1.
 
 
 \begin{apient}
-typedef unsigned long MachRegisterVal
+typedef unsigned long MachRegisterVal;
 \end{apient}
 
 \apidesc{
@@ -21,7 +21,7 @@ it will be up cast into a MachRegisterVal.
 }
 
 \begin{apient}
-typedef enum { Arch_none, Arch_x86, Arch_x86_64, Arch_ppc32, Arch_ppc64 } Architecture
+typedef enum { Arch_none, Arch_x86, Arch_x86_64, Arch_ppc32, Arch_ppc64 } Architecture;
 \end{apient}
 
 \apidesc{
@@ -29,7 +29,7 @@ The Architecture enum represents a system\'s architecture.
 }
 
 \begin{apient}
-unsigned int getArchAddressWidth(Architecture arch)
+unsigned int getArchAddressWidth(Architecture arch);
 \end{apient}
 
 \apidesc{
@@ -37,7 +37,7 @@ Returns the size of a pointer, in bytes, on the given architecture, arch.
 }
 
 \begin{apient}
-MachRegister getPC(Dyninst::Architecture arch)
+MachRegister getPC(Dyninst::Architecture arch);
 \end{apient}
 
 \apidesc{
@@ -45,7 +45,7 @@ Returns the program counter (PC) for the architecture \code{arch}.
 }
 
 \begin{apient}
-MachRegister getFramePointer(Dyninst::Architecture arch)
+MachRegister getFramePointer(Dyninst::Architecture arch);
 \end{apient}
 
 \apidesc{
@@ -53,7 +53,7 @@ Returns the frame pointer for the architecture \code{arch}.
 }
 
 \begin{apient}
-MachRegister getStackPointer(Dyninst::Architecture arch)
+MachRegister getStackPointer(Dyninst::Architecture arch);
 \end{apient}
 
 \apidesc{
@@ -61,7 +61,7 @@ Returns the stack pointer for the architecture \code{arch}.
 }
 
 \begin{apient}
-MachRegister getBaseRegister() const
+MachRegister getBaseRegister() const;
 \end{apient}
 
 \apidesc{
@@ -70,7 +70,7 @@ register. For example, getBaseRegister on x86\_64::ah returns x86\_64::rax.
 }
 
 \begin{apient}
-Architecture getArchitecture() const
+Architecture getArchitecture() const;
 \end{apient}
 
 \apidesc{
@@ -78,7 +78,7 @@ This function returns the Architecture for this register.
 }
 
 \begin{apient}
-bool isValid() const
+bool isValid() const;
 \end{apient}
 
 \apidesc{
@@ -87,7 +87,7 @@ return invalid registers upon error.
 }
 
 \begin{apient}
-MachRegisterVal getSubRegVal(MachRegister subreg,  MachRegisterVal orig)
+MachRegisterVal getSubRegVal(MachRegister subreg,  MachRegisterVal orig);
 \end{apient}
 
 \apidesc{
@@ -98,7 +98,7 @@ of 0x11223344, then it would return 0x44.
 }
 
 \begin{apient}
-const char *name() const
+const char *name() const;
 \end{apient}
 
 \apidesc{
@@ -106,7 +106,7 @@ This function returns a human readable name that identifies this register.
 }
 
 \begin{apient}
-unsigned int size() const
+unsigned int size() const;
 \end{apient}
 
 \apidesc{
@@ -114,7 +114,7 @@ This function returns the size of the register in bytes.
 }
 
 \begin{apient}
-signed int val() const
+signed int val() const;
 \end{apient}
 
 \apidesc{
@@ -135,7 +135,7 @@ switch (reg.val()) {
 \end{lstlisting}
 
 \begin{apient}
-bool isPC() const
+bool isPC() const;
 \end{apient}
 
 \apidesc{
@@ -143,7 +143,7 @@ Returns \code{true} if the register is the program counter (PC) for any architec
 }
 
 \begin{apient}
-bool isFramePointer() const
+bool isFramePointer() const;
 \end{apient}
 
 \apidesc{
@@ -151,7 +151,7 @@ Returns \code{true} if the register is the frame pointer for any architecture.
 }
 
 \begin{apient}
-bool isStackPointer() const
+bool isStackPointer() const;
 \end{apient}
 
 \apidesc{

@@ -13,9 +13,9 @@ end is reached.  At that point, all subsequent calls to decode will return a nul
 
 \begin{apient}
   InstructionDecoder(const unsigned char *buffer, size_t size,
-                     Architecture arch)
+                     Architecture arch);
   InstructionDecoder(const void *buffer, size_t size,
-                     Architecture arch)
+                     Architecture arch);
 \end{apient}
 
 \apidesc{
@@ -47,7 +47,7 @@ Instruction::Ptr decode();
 }
 
 \begin{apient}
-  struct unknown_instruction
+  struct unknown_instruction;
 \end{apient}
 \apidesc{
   This interface allows registering a callback function to be invoked

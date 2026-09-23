@@ -32,11 +32,11 @@ typedef enum {
     gcf_stackbottom,
     gcf_not_me,
     gcf_error
-} gcframe_ret_t
+} gcframe_ret_t;
 \end{apient}
 
 \begin{apient}
-virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out) = 0
+virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out) = 0;
 \end{apient}
 \apidesc{
 This method walks through a single stack frame and generates a Frame object that
@@ -92,7 +92,7 @@ and the stack walk should be aborted.
 }
 
 \begin{apient}
-virtual void registerStepperGroup(StepperGroup *steppergroup)
+virtual void registerStepperGroup(StepperGroup *steppergroup);
 \end{apient}
 \apidesc{
 This method is used to notify a \code{FrameStepper} when StackwalkerAPI adds it to a
@@ -102,7 +102,7 @@ passed in parameter steppergroup. This method can be used to initialize the
 }
 
 \begin{apient}
-virtual unsigned getPriority() const = 0
+virtual unsigned getPriority() const = 0;
 \end{apient}
 \apidesc{
 This method is used by the \code{StepperGroup} to decide which \code{FrameStepper} to use if
@@ -138,7 +138,9 @@ virtual Walker *getWalker();
 
 \begin{apient}
 typedef std::pair<std::string, Address> LibAddrPair;
+
 typedef enum { library_load, library_unload } lib_change_t;
+
 virtual void newLibraryNotification(LibAddrPair *libAddr,
                                     lib_change_t change);
 \end{apient}

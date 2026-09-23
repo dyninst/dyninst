@@ -45,7 +45,7 @@ representing the x and i loops. \code{loop\_2} has no children.
 y and z loops.
 
 \begin{apient}
-  BPatch_basicBlockLoop *loop
+  BPatch_basicBlockLoop *loop;
 \end{apient}
 
 \apidesc{
@@ -54,7 +54,7 @@ y and z loops.
 }
 
 \begin{apient}
-  std::vector<BPatch_loopTreeNode *> children()
+  std::vector<BPatch_loopTreeNode *> children();
 \end{apient}
 
 \apidesc{
@@ -62,7 +62,7 @@ y and z loops.
 }
 
 \begin{apient}
-  const char *name()
+  const char *name();
 \end{apient}
 
 \apidesc{
@@ -71,7 +71,7 @@ y and z loops.
 }
 
 \begin{apient}
-  bool getCallees(std::vector<BPatch_function *> &v, BPatch_addressSpace *p)
+  bool getCallees(std::vector<BPatch_function *> &v, BPatch_addressSpace *p);
 \end{apient}
 
 \apidesc{
@@ -80,7 +80,7 @@ y and z loops.
 }
 
 \begin{apient}
-  const char *getCalleeName(unsigned int i)
+  const char *getCalleeName(unsigned int i);
 \end{apient}
 
 \apidesc{
@@ -88,7 +88,7 @@ y and z loops.
 }
 
 \begin{apient}
-  unsigned int numCallees()
+  unsigned int numCallees();
 \end{apient}
 
 \apidesc{
@@ -96,7 +96,7 @@ y and z loops.
 }
 
 \begin{apient}
-  BPatch_basicBlockLoop *findLoop(const char *name)
+  BPatch_basicBlockLoop *findLoop(const char *name);
 \end{apient}
 
 \apidesc{

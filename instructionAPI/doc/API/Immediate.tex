@@ -9,11 +9,11 @@ value is being modified, a new Immediate object should be created to represent
 the new value.
 
 \begin{apient}
-virtual bool isUsed(Expression::Ptr findMe) const
+virtual bool isUsed(Expression::Ptr findMe) const;
 \end{apient}
 
 \begin{apient}
-bool isUsed(InstructionAPI::Ptr findMe) const
+bool isUsed(InstructionAPI::Ptr findMe) const;
 \end{apient}
 \apidesc{
 \code{isUsed}, when called on an Immediate, will return true if \code{findMe}

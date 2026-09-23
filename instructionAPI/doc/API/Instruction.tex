@@ -45,11 +45,11 @@ enum InsnCategory {
   c_GPUKernelExitInsn, // AMD GPU kernel exit
   c_TransactionalInsn, // memory transaction (fences, hardware locks, etc.)
   c_NoCategory
-}
+};
 \end{apient}
 
 \begin{apient}
-  static const unsigned int maxInstructionLength
+  static const unsigned int maxInstructionLength;
 \end{apient}
 \apidesc{
   The maximum number of bytes an instruction on \it{any} architecture
@@ -61,10 +61,10 @@ enum InsnCategory {
 
 
 \begin{apient}
-Instruction (Operation::Ptr what,
+Instruction(Operation::Ptr what,
              size_t size,
              const unsigned char * raw,
-             Dyninst::Architecture arch)
+             Dyninst::Architecture arch);
 \end{apient}
 \apidesc{ \code{what} is the opcode of the instruction, \code{size}
   contains the number of bytes occupied by the corresponding machine
@@ -85,7 +85,7 @@ Instruction (Operation::Ptr what,
 }
 
 \begin{apient}
-const Operation & getOperation() const
+const Operation & getOperation() const;
 \end{apient}
 \apidesc{
     Returns the \code{Operation} used by the \code{Instruction}. See
@@ -93,7 +93,7 @@ const Operation & getOperation() const
 }
 
 \begin{apient}
-std::vector<Operand> getAllOperands() const
+std::vector<Operand> getAllOperands() const;
 \end{apient}
 \apidesc{
 Returns the operands in the order that they were decoded.
@@ -104,7 +104,7 @@ is implicitly modified to update the overflow and carry flags.
 }
 
 \begin{apient}
-std::vector<Operand> getImplicitOperands() const
+std::vector<Operand> getImplicitOperands() const;
 \end{apient}
 \apidesc{
 Returns the *implicit* operands in the order that they were decoded.
@@ -115,7 +115,7 @@ overflow and carry flags.
 }
 
 \begin{apient}
-std::vector<Operand> getExplicitOperands() const
+std::vector<Operand> getExplicitOperands() const;
 \end{apient}
 \apidesc{
 Returns the *explicit* operands in the order that they were decoded.
@@ -126,7 +126,7 @@ modified to update the overflow and carry flags.
 }
 
 \begin{apient}
-void getOperands(std::vector<Operand> & operands) const
+void getOperands(std::vector<Operand> & operands) const;
 \end{apient}
 \apidesc{
 DEPRECATED
@@ -135,7 +135,7 @@ Use `getAllOperands()`.
 }
 
 \begin{apient}
-std::vector<Operand> getDisplayOrderedOperands() const
+std::vector<Operand> getDisplayOrderedOperands() const;
 \end{apient}
 \apidesc{
   Returns a vector of non-implicit operands in printed order.
@@ -143,7 +143,7 @@ std::vector<Operand> getDisplayOrderedOperands() const
 
 
 \begin{apient}
-Operand getOperand(int index) const
+Operand getOperand(int index) const;
 \end{apient}
 \apidesc{
     The \code{getOperand} method returns the operand at position \code{index},
@@ -152,21 +152,21 @@ Operand getOperand(int index) const
 }
 
 \begin{apient}
-unsigned char rawByte(unsigned int index) const
+unsigned char rawByte(unsigned int index) const;
 \end{apient}
 \apidesc{
   Returns the index$^{th}$ byte in the instruction.
 }
 
 \begin{apient}
-size_t size() const
+size_t size() const;
 \end{apient}
 \apidesc{
 Returns the size of the corresponding machine instruction, in bytes.
 }
 
 \begin{apient}
-const void * ptr() const
+const void * ptr() const;
 \end{apient}
 \apidesc{
 Returns a pointer to the raw byte representation of the corresponding machine
@@ -174,7 +174,7 @@ instruction.
 }
 
 \begin{apient}
-void getWriteSet(std::set<RegisterAST::Ptr> & regsWritten) const
+void getWriteSet(std::set<RegisterAST::Ptr> & regsWritten) const;
 \end{apient}
 \apidesc{
   Inserts into \code{regsWritten} all registers written by the instruction.
@@ -188,7 +188,7 @@ void getWriteSet(std::set<RegisterAST::Ptr> & regsWritten) const
 }
 
 \begin{apient}
-void getReadSet(std::set<RegisterAST::Ptr> & regsRead) const
+void getReadSet(std::set<RegisterAST::Ptr> & regsRead) const;
 \end{apient}
 \apidesc{
   Inserts into \code{regsRead} all registers read by the instruction.
@@ -204,7 +204,7 @@ void getReadSet(std::set<RegisterAST::Ptr> & regsRead) const
 }
 
 \begin{apient}
-bool isRead(Expression::Ptr candidate) const
+bool isRead(Expression::Ptr candidate) const;
 \end{apient}
 \apidesc{
     \code{candidate} is the subexpression to search for among the values read by
@@ -214,7 +214,7 @@ bool isRead(Expression::Ptr candidate) const
 }
 
 \begin{apient}
-bool isWritten(Expression::Ptr candidate) const
+bool isWritten(Expression::Ptr candidate) const;
 \end{apient}
 \apidesc{
     \code{candidate} is the subexpression to search for among the values written by
@@ -224,7 +224,7 @@ bool isWritten(Expression::Ptr candidate) const
 }
 
 \begin{apient}
-bool readsMemory() const
+bool readsMemory() const;
 \end{apient}
 \apidesc{
     Returns \code{true} if the instruction reads from at least one memory address.
@@ -236,7 +236,7 @@ bool readsMemory() const
 }
 
 \begin{apient}
-bool writesMemory() const
+bool writesMemory() const;
 \end{apient}
 \apidesc{
     Returns \code{true} if the instruction writes to at least one memory address.
@@ -248,7 +248,7 @@ bool writesMemory() const
 }
 
 \begin{apient}
-void getMemoryReadOperands(std::set<Expression::Ptr> & memAccessors) const
+void getMemoryReadOperands(std::set<Expression::Ptr> & memAccessors) const;
 \end{apient}
 \apidesc{
     Addresses read by this instruction are inserted into \code{memAccessors}.
@@ -266,7 +266,7 @@ void getMemoryReadOperands(std::set<Expression::Ptr> & memAccessors) const
 }
 
 \begin{apient}
-void getMemoryWriteOperands(std::set<Expression::Ptr> & memAccessors) const
+void getMemoryWriteOperands(std::set<Expression::Ptr> & memAccessors) const;
 \end{apient}
 \apidesc{
     Addresses written by this instruction are inserted into \code{memAccessors}.
@@ -276,7 +276,7 @@ void getMemoryWriteOperands(std::set<Expression::Ptr> & memAccessors) const
 }
 
 \begin{apient}
-Expression::Ptr getControlFlowTarget() const
+Expression::Ptr getControlFlowTarget() const;
 \end{apient}
 \apidesc{
 When called on an explicitly control-\/flow altering instruction, returns the
@@ -300,7 +300,7 @@ if any, of this instruction.
 }
 
 \begin{apient}
-bool allowsFallThrough() const
+bool allowsFallThrough() const;
 \end{apient}
 \apidesc{
     Returns \code{false} if control flow will unconditionally go to the result
@@ -308,7 +308,7 @@ bool allowsFallThrough() const
 }
 
 \begin{apient}
-std::string format(Address addr = 0)
+std::string format(Address addr = 0);
 \end{apient}
 \apidesc{
     Returns the instruction as a string of assembly language. If
@@ -317,7 +317,7 @@ std::string format(Address addr = 0)
 }
 
 \begin{apient}
-bool isValid() const
+bool isValid() const;
 \end{apient}
 \apidesc{
     Returns \code{true} if this \code{Instruction} object is valid. Invalid
@@ -326,21 +326,21 @@ bool isValid() const
 }
 
 \begin{apient}
-bool isLegalInsn() const
+bool isLegalInsn() const;
 \end{apient}
 \apidesc{
     An alias for \code{isValid}.
 }
 
 \begin{apient}
-Architecture getArch() const
+Architecture getArch() const;
 \end{apient}
 \apidesc{Returns the architecture containing the instruction. As
   above, this will be an element from the set \code{\{Arch\_x86,
     Arch\_x86\_64, Arch\_ppc32, Arch\_ppc64\}}.}
 
 \begin{apient}
-InsnCategory getCategory() const
+InsnCategory getCategory() const;
 \end{apient}
 \apidesc{
     Currently, the valid categories are \code{c\_CallInsn},
@@ -357,9 +357,10 @@ struct CFT {
   bool isIndirect;
   bool isConditional;
   bool isFallthrough;
-}
+};
 
 typedef ... cftConstIter;
+
 cftConstIter cft_begin() const;
 cftConstIter cft_end() const;
 \end{apient}

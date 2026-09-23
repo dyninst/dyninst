@@ -19,8 +19,9 @@ The current list of libraries loaded into a process can be accessed via the
 \code{LibraryPool} of a \code{Process}.
 
 \begin{apient}
-  Library::ptr
-  Library::const_ptr
+  Library::ptr;
+
+  Library::const_ptr;
 \end{apient}
 
 \apidesc{
@@ -28,7 +29,7 @@ The current list of libraries loaded into a process can be accessed via the
 }
 
 \begin{apient}
-  std::string getName() const
+  std::string getName() const;
 \end{apient}
 
 \apidesc{
@@ -36,7 +37,7 @@ The current list of libraries loaded into a process can be accessed via the
 }
 
 \begin{apient}
-  std::string getAbsoluteName() const
+  std::string getAbsoluteName() const;
 \end{apient}
 
 \apidesc{
@@ -45,7 +46,7 @@ The current list of libraries loaded into a process can be accessed via the
 }
 
 \begin{apient}
-  Dyninst::Address getLoadAddress() const
+  Dyninst::Address getLoadAddress() const;
 \end{apient}
 
 \apidesc{
@@ -53,7 +54,7 @@ The current list of libraries loaded into a process can be accessed via the
 }
 
 \begin{apient}
-  Dyninst::Address getDataLoadAddress() const
+  Dyninst::Address getDataLoadAddress() const;
 \end{apient}
 
 \apidesc{
@@ -66,7 +67,7 @@ The current list of libraries loaded into a process can be accessed via the
 }
 
 \begin{apient}
-  Dyninst::Address getDynamicAddress() const
+  Dyninst::Address getDynamicAddress() const;
 \end{apient}
 
 \apidesc{
@@ -76,7 +77,7 @@ The current list of libraries loaded into a process can be accessed via the
 }
 
 \begin{apient}
-  bool isSharedLib() const
+  bool isSharedLib() const;
 \end{apient}
 
 \apidesc{
@@ -85,7 +86,7 @@ The current list of libraries loaded into a process can be accessed via the
 }
 
 \begin{apient}
-  void *getData() const
+  void *getData() const;
 \end{apient}
 
 \apidesc{
@@ -94,7 +95,7 @@ The current list of libraries loaded into a process can be accessed via the
 }
 
 \begin{apient}
-  void setData(void *p) const
+  void setData(void *p) const;
 \end{apient}
 
 \apidesc{

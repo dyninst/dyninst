@@ -12,7 +12,7 @@ Only implemented on x86 and x86-64.
 \subsubsection{Insert}
 
 \begin{apient}
-  Insert(int low, int high)
+  Insert(int low, int high);
 \end{apient}
 
 \apidesc{
@@ -27,7 +27,7 @@ Only implemented on x86 and x86-64.
 \subsubsection{Remove}
 
 \begin{apient}
-  Remove(int low, int high)
+  Remove(int low, int high);
 \end{apient}
 
 \apidesc{
@@ -42,7 +42,7 @@ Only implemented on x86 and x86-64.
 \subsubsection{Move}
 
 \begin{apient}
-  Move(int sLow, int sHigh, int dLow)
+  Move(int sLow, int sHigh, int dLow);
 \end{apient}
 
 \apidesc{
@@ -56,8 +56,8 @@ Only implemented on x86 and x86-64.
 \subsubsection{Canary}
 
 \begin{apient}
-  Canary()
-  Canary(BPatch_function* failFunc)
+  Canary();
+  Canary(BPatch_function* failFunc);
 \end{apient}
 
 \apidesc{
@@ -83,8 +83,8 @@ Only implemented on x86 and x86-64.
 \subsubsection{Randomize}
 
 \begin{apient}
-  Randomize()
-  Randomize(int seed)
+  Randomize();
+  Randomize(int seed);
 \end{apient}
 
 \apidesc{

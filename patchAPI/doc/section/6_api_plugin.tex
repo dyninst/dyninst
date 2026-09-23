@@ -221,6 +221,7 @@ Commands will succeed, or all will fail.
 typedef std::list<CommandPtr> CommandList;
 
 CommandList to_do_;
+
 CommandList done_;
 \end{apient}
 
@@ -371,7 +372,6 @@ It returns true on success; otherwise, it returns false.
 
 \begin{apient}
 virtual FuncModMap& funcWrapMap();
-
 \end{apient}
 
 
@@ -473,7 +473,7 @@ and install the instrumentation.
 
 
 \begin{apient}
-Patcher(PatchMgrPtr mgr)
+Patcher(PatchMgrPtr mgr);
 \end{apient}
 
 
@@ -507,10 +507,8 @@ structures.
 \begin{apient}
 virtual PatchFunction* makeFunction(ParseAPI::Function* func, PatchObject* obj);
 virtual PatchFunction* copyFunction(PatchFunction* func, PatchObject* obj);
-
 virtual PatchBlock* makeBlock(ParseAPI::Block* blk, PatchObject* obj);
 virtual PatchBlock* copyBlock(PatchBlock* blk, PatchObject* obj);
-
 virtual PatchEdge* makeEdge(ParseAPI::Edge* edge, PatchBlock* src,
                             PatchBlock* trg, PatchObject* obj);
 virtual PatchEdge* copyEdge(PatchEdge* edge, PatchObject* obj);

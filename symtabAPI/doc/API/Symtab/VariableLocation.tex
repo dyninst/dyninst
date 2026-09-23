@@ -23,7 +23,7 @@ struct VariableLocation  {
     long frameOffset;
     Address lowPC;
     Address hiPC;
-}
+};
 \end{apient}
 
 A \code{VariableLocation} is valid within the address range represented by \code{lowPC} and \code{hiPC}. If these are 0 and (Address) -1, respectively, the \code{VariableLocation} is always valid.

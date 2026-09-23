@@ -74,21 +74,21 @@ static Region *createRegion(Offset diskOff,
                             char *rawDataPtr = NULL,
                             bool isLoadable = false,
                             bool isTLS = false,
-                            unsigned long memAlign = sizeof(unsigned))
+                            unsigned long memAlign = sizeof(unsigned));
 \end{apient}
 \apidesc{
 This factory method creates a new region with the provided arguments. The \code{memOff} and \code{memSize} parameters identify where the region should be loaded in memory (modified by the base address of the file); if \code{memSize} is larger than \code{diskSize} the remainder will be zero-padded (e.g., bss regions).
 }
 
 \begin{apient}
-bool isOffsetInRegion(const Offset &offset) const
+bool isOffsetInRegion(const Offset &offset) const;
 \end{apient}
 \apidesc{
 Return \code{true} if the offset falls within the region data.
 }
 
 \begin{apient}
-void setRegionNumber(unsigned index) const
+void setRegionNumber(unsigned index) const;
 \end{apient}
 \apidesc{
 Sets the region index; the value must not overlap with any other regions and is not checked.
@@ -96,7 +96,7 @@ Sets the region index; the value must not overlap with any other regions and is 
 
 \begin{apient}
 bool setPtrToRawData(void *newPtr,
-                     unsigned long rawsize)
+                     unsigned long rawsize);
 \end{apient}
 \apidesc{
 Set the raw data pointer of the region to \code{newPtr}. \code{rawsize} represents the size of the raw data buffer.
@@ -104,7 +104,7 @@ Returns \code{true} if success or \code{false} when unable to set/change the raw
 }
 
 \begin{apient}
-bool setRegionPermissions(perm_t newPerms)
+bool setRegionPermissions(perm_t newPerms);
 \end{apient}
 \apidesc{
 This sets the regions permissions to \code{newPerms}. Returns \code{true} on success.
@@ -112,7 +112,7 @@ This sets the regions permissions to \code{newPerms}. Returns \code{true} on suc
 
 
 \begin{apient}
-bool setLoadable(bool isLoadable)
+bool setLoadable(bool isLoadable);
 \end{apient}
 \apidesc{
 This method sets whether the region is loaded into memory at load time. Returns \code{true} on success.
@@ -122,19 +122,19 @@ This method sets whether the region is loaded into memory at load time. Returns 
 bool addRelocationEntry(Offset relocationAddr,
                         Symbol *dynref,
                         unsigned long relType,
-                        Region::RegionType rtype = Region::RT_REL)
+                        Region::RegionType rtype = Region::RT_REL);
 \end{apient}
 \apidesc{
 Creates and adds a relocation entry for this region. The symbol \code{dynref} represents the symbol used by he relocation, \code{relType} is the (platform-specific) relocation type, and \code{rtype} represents whether the relocation is REL or RELA (ELF-specific).
 }
 
 \begin{apient}
-vector<relocationEntry> &getRelocations()
+vector<relocationEntry> &getRelocations();
 \end{apient}
 \apidesc{Get the vector of relocation entries that will modify this region. The vector should not be modified. }
 
 \begin{apient}
-bool addRelocationEntry(const relocationEntry& rel)
+bool addRelocationEntry(const relocationEntry& rel);
 \end{apient}
 \apidesc{Add the provided relocation entry to this region.}
 
@@ -152,14 +152,14 @@ Patch the raw data for this region. \code{buf} represents the buffer to be patch
 The following methods were removed since they were inconsistent and dangerous to use.
 
 \begin{apient}
-Offset getRegionAddr() const
+Offset getRegionAddr() const;
 \end{apient}
 \apidesc{
 Please use \code{getDiskOffset} or \code{getMemOffset} instead, as appropriate.
 }
 
 \begin{apient}
-unsigned long getRegionSize() const
+unsigned long getRegionSize() const;
 \end{apient}
 \apidesc{
 Please use \code{getDiskSize} or \code{getMemSize} instead, as appropriate.
@@ -169,33 +169,33 @@ Please use \code{getDiskSize} or \code{getMemSize} instead, as appropriate.
 This class represents object relocation information.
 
 \begin{apient}
-Offset target_addr() const
+Offset target_addr() const;
 \end{apient}
 \apidesc{Specifies the offset that will be overwritten when relocations are processed.}
 
 \begin{apient}
-Offset rel_addr() const
+Offset rel_addr() const;
 \end{apient}
 \apidesc{Specifies the offset of the relocation itself.}
 
 \begin{apient}
-Offset addend() const
+Offset addend() const;
 \end{apient}
 \apidesc{Specifies the value added to the relocation; whether this value is used or not is specific to the relocation type.}
 
 \begin{apient}
-const std::string name() const
+const std::string name() const;
 \end{apient}
 \apidesc{Specifies the user-readable name of the relocation.}
 
 
 \begin{apient}
-Symbol *getDynSym() const
+Symbol *getDynSym() const;
 \end{apient}
 \apidesc{Specifies the symbol whose final address will be used in the relocation calculation. How this address is used is specific to the relocation type.}
 
 \begin{apient}
-unsigned long getRelType() const
+unsigned long getRelType() const;
 \end{apient}
 \apidesc{Specifies the platform-specific relocation type.}
 

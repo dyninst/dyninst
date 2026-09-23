@@ -13,19 +13,19 @@ tree to represent the nesting relations between the loops.
 See class \code{LoopTreeNode} for more details.
 
 \begin{apient}
-Loop* parent
+Loop* parent;
 \end{apient}
 \apidesc{Returns the loop which directly encloses this loop. NULL if no such loop.}
 
 
 \begin{apient}
-bool containsAddress(Address addr)
+bool containsAddress(Address addr);
 \end{apient}
 \apidesc{Returns true if the given address is within the range of this loop's basic blocks.}
 
 
 \begin{apient}
-bool containsAddressInclusive(Address addr)
+bool containsAddressInclusive(Address addr);
 \end{apient}
 \apidesc{Returns true if the given address is within the range of this loop's basic blocks or its children.}
 
@@ -36,31 +36,31 @@ int getLoopEntries(vector<Block*>& entries);
 
 
 \begin{apient}
-int getBackEdges(vector<Edge*> &edges)
+int getBackEdges(vector<Edge*> &edges);
 \end{apient}
 \apidesc{Sets \code{edges} to the set of back edges in this loop.
 It returns the number of back edges that are in this loop.
 }
 
 \begin{apient}
-bool getContainedLoops(vector<Loop*> &loops)
+bool getContainedLoops(vector<Loop*> &loops);
 \end{apient}
 \apidesc{Returns a vector of loops that are nested under this loop.}
 
 \begin{apient}
-bool getOuterLoops(vector<Loop*> &loops)
+bool getOuterLoops(vector<Loop*> &loops);
 \end{apient}
 \apidesc{Returns a vector of loops that are directly nested under this loop.}
 
 
 \begin{apient}
-bool getLoopBasicBlocks(vector<Block*> &blocks)
+bool getLoopBasicBlocks(vector<Block*> &blocks);
 \end{apient}
 \apidesc{Fills \code{blocks} with all basic blocks in the loop}
 
 
 \begin{apient}
-bool getLoopBasicBlocksExclusive(vector<Block*> &blocks)
+bool getLoopBasicBlocksExclusive(vector<Block*> &blocks);
 \end{apient}
 \apidesc{Fills \code{blocks} with all basic blocks in this loop, excluding the blocks of its sub loops.}
 
@@ -75,7 +75,7 @@ bool hasBlockExclusive(Block *b);
 \apidesc{Returns \code{true} if this loop contains basic block \code{b} and \code{b} is not in its sub loops.}
 
 \begin{apient}
-bool hasAncestor(Loop *loop)
+bool hasAncestor(Loop *loop);
 \end{apient}
 \apidesc{Returns true if this loop is a descendant of the given loop.}
 

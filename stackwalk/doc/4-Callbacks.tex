@@ -116,7 +116,7 @@ process, and test for events such as process death. As an implementation of the
 functionality described in Section~\ref{subsec:processstate}.
 
 \begin{apient}
-virtual bool pause(Dyninst::THR_ID tid = NULL_THR_ID)
+virtual bool pause(Dyninst::THR_ID tid = NULL_THR_ID);
 \end{apient}
 \apidesc{
     This method pauses a process or thread. The paused object will not resume
@@ -137,7 +137,7 @@ virtual bool pause(Dyninst::THR_ID tid = NULL_THR_ID)
 }
 
 \begin{apient}
-virtual bool resume(Dyninst::THR_ID tid = NULL_THR_ID)
+virtual bool resume(Dyninst::THR_ID tid = NULL_THR_ID);
 \end{apient}
 \apidesc{
     This method resumes execution on a paused process or thread. This method
@@ -152,7 +152,7 @@ virtual bool resume(Dyninst::THR_ID tid = NULL_THR_ID)
 }
 
 \begin{apient}
-virtual bool detach(bool leave_stopped = false)
+virtual bool detach(bool leave_stopped = false);
 \end{apient}
 \apidesc{
     This method detaches StackwalkerAPI from the target process. StackwalkerAPI
@@ -173,7 +173,7 @@ virtual bool detach(bool leave_stopped = false)
 }
 
 \begin{apient}
-virtual bool isTerminated()
+virtual bool isTerminated();
 \end{apient}
 \apidesc{
     This method returns \code{true} if the associated target process has
@@ -188,7 +188,7 @@ handleDebugEvent.
 }
 
 \begin{apient}
-static int getNotificationFD()
+static int getNotificationFD();
 \end{apient}
 \apidesc{
     This method returns StackwalkerAPI's notification FD. The notification FD is
@@ -202,7 +202,7 @@ static int getNotificationFD()
 }
 
 \begin{apient}
-static bool handleDebugEvent(bool block = false)
+static bool handleDebugEvent(bool block = false);
 \end{apient}
 \apidesc{
     When this method is called StackwalkerAPI will receive and handle all
@@ -308,6 +308,7 @@ pointer.
 
 \begin{apient}
 typedef std::pair<frame_type, frame_state> alloc_frame_t;
+
 virtual alloc_frame_t allocatesFrame(Address addr) = 0;
 \end{apient}
 \apidesc{

@@ -2,7 +2,7 @@ The \code{BPatch\_edge} class represents a control flow edge in a
 \code{BPatch\_flowGraph}.
 
 \begin{apient}
-  BPatch_point *getPoint()
+  BPatch_point *getPoint();
 \end{apient}
 
 \apidesc{
@@ -17,13 +17,13 @@ The \code{BPatch\_edge} class represents a control flow edge in a
     CondJumpNottaken,
     UncondJump,
     NonJump
-  }
+  };
 \end{apient}
 
 \apidesc{}
 
 \begin{apient}
-  BPatch_edgeType getType()
+  BPatch_edgeType getType();
 \end{apient}
 
 \apidesc{
@@ -37,21 +37,21 @@ The \code{BPatch\_edge} class represents a control flow edge in a
   falls through into the next basic block.
 }
 \begin{apient}
-  BPatch_basicBlock *getSource()
+  BPatch_basicBlock *getSource();
 \end{apient}
 
 \apidesc{
   Return the source \code{BPatch\_basicBlock} that this edge flows from.
 }
 \begin{apient}
-  BPatch_basicBlock *getTarget()
+  BPatch_basicBlock *getTarget();
 \end{apient}
 
 \apidesc{
   Return the target \code{BPatch\_basicBlock} that this edge flows to.
 }
 \begin{apient}
-  BPatch_flowGraph *getFlowGraph()
+  BPatch_flowGraph *getFlowGraph();
 \end{apient}
 
 \apidesc{

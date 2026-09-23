@@ -13,7 +13,7 @@ A new \code{ProcessState} class can be created by inheriting from this class and
 implementing the necessary methods.
 
 \begin{apient}
-static ProcessState *getProcessStateByPid(Dyninst::PID pid)
+static ProcessState *getProcessStateByPid(Dyninst::PID pid);
 \end{apient}
 \apidesc{Given a \code{PID}, return the corresponding
   \code{ProcessState} object.}
@@ -27,8 +27,10 @@ virtual unsigned getAddressWidth() = 0;
   8 for 64-bit platforms (x86-64, PowerPC-64).}
 
 \begin{apient}
- typedef enum { Arch_x86, Arch_x86_64, Arch_ppc32, Arch_ppc64 }
+ typedef enum { Arch_x86, Arch_x86_64, Arch_ppc32, Arch_ppc64 };
+
  Architecture;
+
  virtual Dyninst::Architecture getArchitecture() = 0;
 \end{apient}
 \apidesc{Return the appropriate architecture for the target
@@ -37,7 +39,7 @@ process.}
 \begin{apient}
 virtual bool getRegValue(Dyninst::MachRegister reg,
                          Dyninst::THR_ID thread,
-                         Dyninst::MachRegisterVal &val) = 0
+                         Dyninst::MachRegisterVal &val) = 0;
 \end{apient}
 \apidesc{
     This method takes a register name as input, \code{reg}, and returns the
@@ -47,7 +49,7 @@ virtual bool getRegValue(Dyninst::MachRegister reg,
 }
 
 \begin{apient}
-virtual bool readMem(void *dest, Address source, size_t size) = 0
+virtual bool readMem(void *dest, Address source, size_t size) = 0;
 \end{apient}
 \apidesc{
     This method reads memory from the target process. Parameter \code{dest} should
@@ -60,7 +62,7 @@ virtual bool readMem(void *dest, Address source, size_t size) = 0
 }
 
 \begin{apient}
-virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads) = 0
+virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads) = 0;
 \end{apient}
 \apidesc{
     This method returns a list of threads whose call stacks can be walked in the
@@ -76,7 +78,7 @@ virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads) = 0
     This method returns \code{true} on success and \code{false} on error.  }
 
 \begin{apient}
-virtual bool getDefaultThread(Dyninst::THR_ID &default_tid) = 0
+virtual bool getDefaultThread(Dyninst::THR_ID &default_tid) = 0;
 \end{apient}
 \apidesc{
 	This method returns the thread representing the initial process in the
@@ -86,7 +88,7 @@ virtual bool getDefaultThread(Dyninst::THR_ID &default_tid) = 0
 }
 
 \begin{apient}
-virtual Dyninst::PID getProcessId()
+virtual Dyninst::PID getProcessId();
 \end{apient}
 \apidesc{
     This method returns a process ID for the target process. The default
@@ -120,7 +122,7 @@ Each \code{Library} is represented using a \code{LibAddrPair} object, which is d
 follows:
 
 \begin{apient}
-typedef std::pair<std::string, Dyninst::Address> LibAddrPair
+typedef std::pair<std::string, Dyninst::Address> LibAddrPair;
 \end{apient}
 \apidesc{
     \code{LibAddrPair.first} refers to the file path of the library that was
@@ -131,7 +133,7 @@ typedef std::pair<std::string, Dyninst::Address> LibAddrPair
 }
 
 \begin{apient}
-virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib) = 0
+virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib) = 0;
 \end{apient}
 \apidesc{
     This method returns a DSO, using the \code{lib} output parameter, that is
@@ -142,7 +144,7 @@ virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib) = 0
 }
 
 \begin{apient}
-virtual bool getLibraries(std::vector<LibAddrPair> &libs) = 0
+virtual bool getLibraries(std::vector<LibAddrPair> &libs) = 0;
 \end{apient}
 \apidesc{
 	This method returns all DSOs that are loaded into the process' address space
@@ -152,7 +154,7 @@ virtual bool getLibraries(std::vector<LibAddrPair> &libs) = 0
 }
 
 \begin{apient}
-virtual void notifyOfUpdate() = 0
+virtual void notifyOfUpdate() = 0;
 \end{apient}
 \apidesc{
     This method is called by the \code{ProcessState} when it detects a change in
@@ -161,7 +163,7 @@ virtual void notifyOfUpdate() = 0
 }
 
 \begin{apient}
-virtual Address getLibTrapAddress() = 0
+virtual Address getLibTrapAddress() = 0;
 \end{apient}
 \apidesc{
     Some platforms that implement the System/V standard (Linux)

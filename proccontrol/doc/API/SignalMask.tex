@@ -2,7 +2,7 @@
 Process.
 
 \begin{apient}
-dyn_sigset_t
+dyn_sigset_t;
 \end{apient}
 
 \apidesc{
@@ -10,7 +10,7 @@ On POSIX systems, this type is equivalent to sigset\_t.
 }
 
 \begin{apient}
-static void setDefaultSigMask(dyn_sigset_t s)
+static void setDefaultSigMask(dyn_sigset_t s);
 \end{apient}
 
 \apidesc{
@@ -18,7 +18,7 @@ This function sets the default signal mask across all Process objects to s.
 }
 
 \begin{apient}
-static dyn_sigset_t getDefaultSigMask()
+static dyn_sigset_t getDefaultSigMask();
 \end{apient}
 
 \apidesc{
@@ -27,7 +27,7 @@ objects.
 }
 
 \begin{apient}
-bool setSigMask(dyn_sigset_t s)
+bool setSigMask(dyn_sigset_t s);
 \end{apient}
 
 \apidesc{
@@ -36,7 +36,7 @@ This function returns true on success and false on failure.
 }
 
 \begin{apient}
-dyn_sigset_t getSigMask() const
+dyn_sigset_t getSigMask() const;
 \end{apient}
 
 \apidesc{

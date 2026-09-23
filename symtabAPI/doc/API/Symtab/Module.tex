@@ -44,7 +44,7 @@ typedef enum {
 \end{apient}
 
 \begin{apient}
-bool getAllFunctions(vector<Function *> &ret)
+bool getAllFunctions(vector<Function *> &ret);
 \end{apient}
 \apidesc{
 Returns all functions located within the PC address ranges covered by this module.
@@ -52,7 +52,7 @@ Returns all functions located within the PC address ranges covered by this modul
 
 \begin{apient}
 bool findVariablesByOffset(std::vector<Variable *> &ret,
-                           const Offset offset)
+                           const Offset offset);
 \end{apient}
 \apidesc{
 This method returns a vector of \code{Variable}s with the specified offset.
@@ -66,7 +66,7 @@ bool findVariablesByName(vector<Function> &ret,
                          const string &name,
                          Symtab::NameType nameType,
                          bool isRegex = false,
-                         bool checkCase = true)
+                         bool checkCase = true);
 \end{apient}
 \apidesc{
 This method finds and returns a vector of \code{Variable}s whose names match the given pattern. The \code{nameType} parameter determines which names are searched: mangled, pretty, typed, or any (note: a \code{Variable} may not have a typed name). If the \code{isRegex} flag is set a regular expression match is performed with the symbol names. \code{checkCase} is applicable only if \code{isRegex} has been set. This indicates if the case be considered while performing regular expression matching. \code{ret} contains the list of matching \code{Variables}, if any.
@@ -75,7 +75,7 @@ Returns \code{true} if it finds variables that match the given name, otherwise r
 }
 
 \begin{apient}
-bool getAllSymbols(vector<Symbol *> &ret)
+bool getAllSymbols(vector<Symbol *> &ret);
 \end{apient}
 \apidesc{
 This method returns all symbols.
@@ -85,7 +85,7 @@ set to \code{No\_Such\_Symbol}.
 
 \begin{apient}
 bool getAllSymbolsByType(vector<Symbol *> &ret,
-                         Symbol::SymbolType sType)
+                         Symbol::SymbolType sType);
 \end{apient}
 \apidesc{
 This method returns all symbols whose type matches the given type \code{sType}.
@@ -97,7 +97,7 @@ The error value is set to \code{No\_Such\_Symbol}.}
 
 \begin{apient}
 bool getAddressRanges(vector<pair<unsigned long, unsigned long> > & ranges,
-                      string lineSource, unsigned int lineNo)
+                      string lineSource, unsigned int lineNo);
 \end{apient}
 \apidesc{
 This method returns the address ranges in \code{ranges} corresponding to the line with line number \code{lineNo} in the source file \code{lineSource}. Searches only this module for the given source.
@@ -106,7 +106,7 @@ Return \code{true} if at least one address range corresponding to the line numbe
 
 \begin{apient}
 bool getSourceLines(vector<Statement *> &lines,
-                    Offset addressInRange)
+                    Offset addressInRange);
 \end{apient}
 \apidesc{
 This method returns the source file names and line numbers corresponding to the given address \code{addressInRange}. Searches only this module for the given source.
@@ -114,14 +114,14 @@ Return \code{true} if at least one tuple corresponding to the offset was found a
 }
 
 \begin{apient}
-LineInformation *getLineInformation() const
+LineInformation *getLineInformation() const;
 \end{apient}
 \apidesc{
 This method returns the line map (section \ref{LineInformation}) corresponding to the module. Returns \code{NULL} if
 there is no line information existing for the module.}
 
 \begin{apient}
-bool getStatements(std::vector<Statement *> &statements)
+bool getStatements(std::vector<Statement *> &statements);
 \end{apient}
 \apidesc{
 Returns all line information  (section \ref{Statement}) available for the module.
@@ -132,7 +132,7 @@ Returns all line information  (section \ref{Statement}) available for the module
 
 \begin{apient}
 bool findType(Type * &type,
-              string name)
+              string name);
 \end{apient}
 \apidesc{
 This method performs a look up and returns a handle to the named \code{type}.
@@ -141,7 +141,7 @@ This method searches all the built-in types, standard types and user-defined typ
 
 \begin{apient}
 bool findLocalVariable(vector<localVar *> &vars,
-                       string name)
+                       string name);
 \end{apient}
 \apidesc{
 The method returns a list of local variables within the module with name \code{name}.
@@ -150,7 +150,7 @@ Returns \code{true} with vars containing a list of \code{localVar} objects corre
 
 \begin{apient}
 bool findVariableType(Type *&type,
-                      std::string name)
+                      std::string name);
 \end{apient}
 \apidesc{
 This method looks up a global variable with name \code{name} and returns its type attribute.
