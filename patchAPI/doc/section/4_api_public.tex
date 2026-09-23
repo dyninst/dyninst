@@ -1,5 +1,5 @@
 \section{Public API Reference}
-\label{sec-public-api}
+\label{sec:public-api}
 
 This section describes public interfaces in PatchAPI. The API is organized as a
 collection of C++ classes. The classes in PatchAPI fall under the C++ namespace
@@ -23,7 +23,7 @@ the class name, e.g., PatchMgrPtr for PatchMgr.
 \subsection{CFG Interface}
 
 \subsubsection{PatchObject}
-\label{sec-3.2.8}
+\label{sec:patchobject}
 
 \textbf{Declared in}: PatchObject.h
 
@@ -178,7 +178,7 @@ Returns the PatchCallback object associated with this PatchObject.
 }
 
 \subsubsection{PatchFunction}
-\label{sec-3.2.9}
+\label{sec:patchfunction}
 
 \textbf{Declared in}: PatchCFG.h
 
@@ -329,7 +329,7 @@ void getAllPostDominates(PatchBlock *A, set<PatchBlock*> &dom);
 \apidesc{Fill \code{dom} with all the blocks post-dominated by block \code{A}}
 
 \subsubsection{PatchBlock}
-\label{sec-3.2.10}
+\label{sec:patchblock}
 
 \textbf{Declared in}: PatchCFG.h
 
@@ -516,7 +516,7 @@ Returns the PatchCallback object associated with this PatchBlock.
 }
 
 \subsubsection{PatchEdge}
-\label{sec-3.2.11}
+\label{sec:patchedge}
 
 \textbf{Declared in}: PatchCFG.h
 
@@ -585,7 +585,7 @@ Returns a Patchcallback object associated with this PatchEdge.
 }
 
 \subsubsection{PatchLoop}
-\label{sec-3.2.12}
+\label{sec:patchloop}
 
 \textbf{Declared in}: PatchCFG.h
 
@@ -665,7 +665,7 @@ PatchFunction * getFunction();
 \apidesc{Returns the function that this loop is in.}
 
 \subsubsection{PatchLoopTreeNode}
-\label{sec-3.2.13}
+\label{sec:patchlooptreenode}
 
 \textbf{Declared in}: PatchCFG.h
 
@@ -752,10 +752,10 @@ PatchLoop * findLoop(const char *name);
 
 
 \subsection{Point/Snippet Interface}
-\label{sec-3.1}
+\label{sec:point-snippet-interface}
 
 \subsubsection{PatchMgr}
-\label{sec-3.1.1}
+\label{sec:patchmgr}
 
 \textbf{Declared in}: PatchMgr.h
 
@@ -791,7 +791,7 @@ Point *findPoint(Location loc, Point::Type type, bool create = true);
 This method returns a unique Point according to a Location \emph{loc} and a Type
 \emph{type}. The Location structure is to specify a physical location of a Point
 (e.g., at function entry, at block entry, etc.), details of Location will be
-covered in Section~\ref{sec-3.1.2}. PatchAPI creates Points on demand, so if
+covered in Section~\ref{sec:point}. PatchAPI creates Points on demand, so if
 a Point is not yet created, the \emph{create} parameter is to indicate whether
 to create this Point. If the Point we want to find is already created, this
 method simply returns a pointer to this Point from a buffer, no matter whether
@@ -1019,7 +1019,7 @@ PointMaker, Instrumenter.
 }
 
 \subsubsection{Point}
-\label{sec-3.1.2}
+\label{sec:point}
 
 \textbf{Declared in}: Point.h
 
@@ -1265,7 +1265,7 @@ This static method removes a specific \emph{type} from a set of \emph{types}.
 }
 
 \subsubsection{Instance}
-\label{sec-3.1.3}
+\label{sec:instance}
 
 \textbf{Declared in}: Point.h
 
@@ -1303,11 +1303,11 @@ instances inserted at different Points or the same Point.
 }
 
 \subsection{Callback Interface}
-\label{sec-3.1}
+\label{sec:callback-interface}
 
 
 \subsubsection{PatchCallback}
-\label{sec-3.2.7}
+\label{sec:patchcallback}
 
 \textbf{Declared in}: PatchCallback.h
 

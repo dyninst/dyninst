@@ -1,5 +1,5 @@
 \section{Plugin API Reference}
-\label{sec-plugin-api}
+\label{sec:plugin-api}
 
 This section describes the various plugin interfaces for extending PatchAPI. We
 expect that most users should not have to ever explicitly use an interface from
@@ -10,7 +10,7 @@ As with the public interface, all objects and methods in this section are in the
 ``Dyninst::PatchAPI'' namespace.
 
 \subsection{AddrSpace}
-\label{sec-3.2.1}
+\label{sec:addrspace}
 
 \textbf{Declared in}: AddrSpace.h
 
@@ -124,7 +124,7 @@ Returns the PatchMgr's pointer, where the PatchMgr contains this address space.
 }
 
 \subsection{Snippet}
-\label{sec-3.2.2}
+\label{sec:snippet}
 
 \textbf{Declared in}: Snippet.h
 
@@ -157,7 +157,7 @@ in-param that identifies where the snippet is being generated.  Buffer {\em buf}
 is an out-param that holds the generated code.  }
 
 \subsection{Command}
-\label{sec-3.2.3}
+\label{sec:command}
 
 \textbf{Declared in}: Command.h
 
@@ -208,7 +208,7 @@ if (run()) {
 \end{lstlisting}
 
 \subsection{BatchCommand}
-\label{sec-3.2.4}
+\label{sec:batchcommand}
 
 \textbf{Declared in}: Command.h
 
@@ -261,7 +261,7 @@ This method removes a Command from \emph{to\_do\_}.
 }
 
 \subsection{Instrumenter}
-\label{sec-3.2.5}
+\label{sec:instrumenter}
 
 \textbf{Declared in}: Command.h
 
@@ -461,7 +461,7 @@ Returns the address space associated with this Instrumenter.
 }
 
 \subsection{Patcher}
-\label{sec-3.2.6}
+\label{sec:patcher}
 
 \textbf{Declared in}: Command.h
 
@@ -493,7 +493,7 @@ other Commands in the \emph{to\_do\_}.
 }
 
 \subsection{CFGMaker}
-\label{sec-3.2.12}
+\label{sec:cfgmaker}
 
 \textbf{Declared in}: CFGMaker.h
 
@@ -523,7 +523,7 @@ forking a new process).
 }
 
 \subsection{PointMaker}
-\label{sec-3.2.13}
+\label{sec:pointmaker}
 
 \textbf{Declared in}: Point.h
 
@@ -558,10 +558,10 @@ Point.
 }
 
 \subsection{Default Plugin}
-\label{sec-3.3}
+\label{sec:default-plugin}
 
 \subsection{PushFrontCommand and PushBackCommand}
-\label{sec-3.3.1}
+\label{sec:push-commands}
 
 \textbf{Declared in}: Command.h
 
@@ -589,7 +589,7 @@ Returns a snippet instance that is inserted at the point.
 }
 
 \subsection{RemoveSnippetCommand}
-\label{sec-3.3.2}
+\label{sec:removesnippetcommand}
 
 \textbf{Declared in}: Command.h
 
@@ -606,7 +606,7 @@ This static function creates an instance of RemoveSnippetCommand.
 }
 
 \subsection{RemoveCallCommand}
-\label{sec-3.3.3}
+\label{sec:removecallcommand}
 
 \textbf{Declared in}: Command.h
 
@@ -629,7 +629,7 @@ only from the PatchFuncton \emph{context}.
 }
 
 \subsection{ReplaceCallCommand}
-\label{sec-3.3.4}
+\label{sec:replacecallcommand}
 
 \textbf{Declared in}: Command.h
 
@@ -651,7 +651,7 @@ would be replaced in all PatchFunctions that contains it.
 }
 
 \subsection{ReplaceFuncCommand}
-\label{sec-3.3.5}
+\label{sec:replacefunccommand}
 
 \textbf{Declared in}: Command.h
 

@@ -1,5 +1,5 @@
 \section{Modification API Reference}
-\label{sec-modification-api}
+\label{sec:modification-api}
 
 This section describes the modification interface of PatchAPI. While
 PatchAPI's main goal is to allow users to insert new code into a
@@ -25,7 +25,7 @@ transformations to achieve their goals.
 Since modification can modify the CFG, it may invalidate any analyses
 the user has performed over the CFG. We suggest that users take
 advantage of the callback interface described in Section
-\ref{sec-3.2.7} to update any such analysis information.
+\ref{sec:patchcallback} to update any such analysis information.
 
 The PatchAPI modification capabilities are currently in beta; if you
 experience any problems or bugs, please contact \code{bugs@dyninst.org}.

@@ -1,4 +1,4 @@
-\section{Examples} \label{sec-example}
+\section{Examples} \label{sec:examples}
 To illustrate the ideas of PatchAPI, we present some simple code examples that
 demonstrate how the API can be used.
 
@@ -37,7 +37,7 @@ ParseAPI's CodeObject. Then, we traverse all functions in that object, and print
 out each function's name. For each function, we also print out the size of each
 basic block.
 
-\subsubsection{Point Finding} \label{sec-example-pt}
+\subsubsection{Point Finding} \label{sec:example-point-finding}
 
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=left}
@@ -89,8 +89,8 @@ patcher.commit();
 \end{lstlisting}
 
 The above code is to insert the same code \emph{snippet} to all points
-\emph{pts} found in Section~\ref{sec-example-pt}. We'll explain the snippet
-(Line 1) in the example in Section~\ref{sec-example-snip}. Each point maintains
+\emph{pts} found in Section~\ref{sec:example-point-finding}. We'll explain the snippet
+(Line 1) in the example in Section~\ref{sec:example-snippet-representation}. Each point maintains
 a list of snippet instances, and the PushBackCommand is to push a snippet
 instance to the end of that list. An instance of Patcher is to represent a
 transaction of code patching. In this example, all snippet insertions (or all
@@ -126,7 +126,7 @@ management methods during the code patching process. For example, the
 instrumentation engine needs to \emph{malloc} a buffer in Mutatee's address
 space, and then \emph{write} the code snippet into this buffer.
 
-\subsubsection{Snippet Representation} \label{sec-example-snip}
+\subsubsection{Snippet Representation} \label{sec:example-snippet-representation}
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=left}
 \begin{lstlisting}[caption=Example of implementing snippet plugin]
