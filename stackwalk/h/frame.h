@@ -32,7 +32,6 @@
 #define FRAME_H_
 
 #include "basetypes.h"
-#include "Annotatable.h"
 #include <string>
 #include <set>
 #include <vector>
@@ -45,7 +44,7 @@ namespace Stackwalker {
 class Walker;
 class FrameStepper;
 
-class DYNINST_EXPORT Frame : public AnnotatableDense {
+class DYNINST_EXPORT Frame {
   friend class Walker;
   friend class CallTree;
   friend class ::StackCallback;
