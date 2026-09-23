@@ -243,9 +243,7 @@ public:
    void updateUniqueTypeId(typeId_t);
 };
 
-#define FIELD_ANNOTATABLE_CLASS AnnotatableDense
-
-class DYNINST_EXPORT Field : public FIELD_ANNOTATABLE_CLASS
+class DYNINST_EXPORT Field : public AnnotatableDense
 {
    friend class typeStruct;
    friend class typeUnion;
