@@ -36,6 +36,72 @@ void reverseBuffer(unsigned char *buffer, int bufferSize) {
   }
 }
 
+
+// The memory operand of a load/store pair covers TWO registers' worth of memory. For SIMD&FP
+// pairs the width comes from opc independently of the general-purpose encoding, so decoding opc
+// with the general-purpose table under-reports D pairs as 8 bytes and Q pairs as 16.
+//
+// The s1/s2 row is deliberate: two 4-byte registers coincidentally match what the
+// general-purpose table returns for opc=00, so a test covering only S passes against a decoder
+// that gets D and Q wrong. The general-purpose rows are controls.
+bool checkPairMemoryOperandSize() {
+  struct testcase {
+    uint32_t word;
+    char const *text;
+    unsigned int size;
+  };
+
+  testcase const cases[] = {
+      {0x29000861, "stp w1, w2, [x3]", 8},      {0xa9000861, "stp x1, x2, [x3]", 16},
+      {0x69400861, "ldpsw x1, x2, [x3]", 8},    {0x2d000861, "stp s1, s2, [x3]", 8},
+      {0x6d0127e8, "stp d8, d9, [sp,#16]", 16}, {0x6d400861, "ldp d1, d2, [x3]", 16},
+      {0x6c000861, "stnp d1, d2, [x3]", 16},    {0xad000861, "stp q1, q2, [x3]", 32},
+      {0xad400861, "ldp q1, q2, [x3]", 32},
+  };
+
+  bool failed = false;
+
+  for(auto const &c : cases) {
+    unsigned char bytes[4] = {
+        static_cast<unsigned char>(c.word & 0xff), static_cast<unsigned char>((c.word >> 8) & 0xff),
+        static_cast<unsigned char>((c.word >> 16) & 0xff),
+        static_cast<unsigned char>((c.word >> 24) & 0xff)};
+
+    di::InstructionDecoder dec(bytes, sizeof(bytes), Dyninst::Arch_aarch64);
+    di::Instruction insn = dec.decode();
+
+    std::clog << "Verifying memory operand size of '" << c.text << "'\n";
+
+    if(!insn.isValid()) {
+      std::cerr << "  failed to decode\n";
+      failed = true;
+      continue;
+    }
+
+    auto const &operands = insn.getAllOperands();
+
+    bool found = false;
+    for(auto const &op : operands) {
+      if(!op.readsMemory() && !op.writesMemory()) {
+        continue;
+      }
+      found = true;
+      unsigned int const size = op.getValue()->size();
+      if(size != c.size) {
+        std::cerr << "  expected " << c.size << " bytes, got " << size << '\n';
+        failed = true;
+      }
+    }
+
+    if(!found) {
+      std::cerr << "  no memory operand found\n";
+      failed = true;
+    }
+  }
+
+  return failed;
+}
+
 } // namespace
 
 int main() {
@@ -855,7 +921,8 @@ int main() {
     return EXIT_FAILURE;
   }
 
-  bool failed = false;
+  bool failed = checkPairMemoryOperandSize();
+
   for(size_t i = 0; i < decodedInsns.size(); i++) {
     auto const &insn = decodedInsns[i];
 
