@@ -44,7 +44,6 @@
 #include <unordered_set>
 #include <unordered_map>
 
-#include "Annotatable.h"
 #include "dyninst_visibility.h"
 #include "Node.h"
 
@@ -56,7 +55,7 @@ class Node;
 class NodeIterator;
 class EdgeIterator;
     
-class DYNINST_EXPORT Graph : public AnnotatableSparse {
+class DYNINST_EXPORT Graph {
     friend class Edge;
     friend class Node;
     friend class Creator;
@@ -123,8 +122,6 @@ class DYNINST_EXPORT Graph : public AnnotatableSparse {
     void deleteNode(NodePtr node);
 
     void addNode(NodePtr node);
-
-    virtual void removeAnnotation() {}
 
     bool isEntryNode(NodePtr node);
     bool isExitNode(NodePtr node);
