@@ -110,9 +110,7 @@ typedef enum {
  
 DYNINST_EXPORT const char *visibility2Str(visibility_t v);
 				  
-#define TYPE_ANNOTATABLE_CLASS AnnotatableDense
-
-class DYNINST_EXPORT Type : public  TYPE_ANNOTATABLE_CLASS
+class DYNINST_EXPORT Type : public  AnnotatableDense
 {
    friend class typeCollection;
    static Type* upgradePlaceholder(Type *placeholder, Type *new_type);
