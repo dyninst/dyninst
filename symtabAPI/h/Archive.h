@@ -35,8 +35,8 @@
 #include <stddef.h>
 #include <string>
 #include <vector>
+#include "dyninst_visibility.h"
 #include "symutil.h"
-#include "Annotatable.h"
 #include "Symtab.h"
  
 class MappedFile;
@@ -70,7 +70,7 @@ class DYNINST_EXPORT ArchiveMember {
         Symtab *member_{};
 };
 
-class DYNINST_EXPORT Archive : public AnnotatableSparse {
+class DYNINST_EXPORT Archive {
    public:
       static bool openArchive(Archive *&img, std::string const& filename);
       static bool openArchive(Archive *&img, char *mem_image, size_t image_size);
