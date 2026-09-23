@@ -113,13 +113,6 @@ typedef enum {
 		dense
 } sparse_or_dense_anno_t;
 
-typedef struct {
-	AnnotationClassBase *acb;
-	void *data;
-	void *parent_id;
-	sparse_or_dense_anno_t sod;
-} ser_rec_t;
-
 typedef enum {
 	sp_add_anno = 2,
 	sp_rem_anno = 3,
