@@ -2,9 +2,9 @@
 \index{EventType: : : :!}The EventType class represents a type of event. Each
 instance of an Event happening has one associated EventType, and callback
 functions\index{callback function: : : :!} can be registered against
-EventTypes. All EventTypes have an associate code$\text{\textgreek{—}}$an
+EventTypes. All EventTypes have an associate code---an
 integral value that identifies the EventType. Some EventTypes also have a
-time associated with them (Pre, Post, or None)$\text{\textgreek{—}}$describing
+time associated with them (Pre, Post, or None)---describing
 when an Event may occur relative to the Code. For example, an EventType with
 a code of Exit and a time of Pre (written as pre-exit) would be associated with
 an Event that occurs just before a process exits and its address space is
@@ -80,7 +80,7 @@ static const int Library = 15
 
 static const int MaxProcCtrlEvent = 1000
 
-These constants describe possible values for an EventType$\text{\textgreek{’}}$s
+These constants describe possible values for an EventType's
 code. The Error and Unset codes are for handling error cases and should not
 be used for callback functions or be associated with Events.
 

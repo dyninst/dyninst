@@ -2,11 +2,11 @@ The \code{BPatch\_loopTreeNode} class provides a tree interface to a
 collection of instances of \code{BPatch\_basicBlockLoop}
 contained in a \code{BPatch\_flowGraph}. The structure of the tree
 follows the nesting relationship of the loops in a
-function's flow graph. Each \code{BPatch\_­loopTreeNode} contains a
+function's flow graph. Each \code{BPatch\_\-loopTreeNode} contains a
 pointer to a loop (represented by
 \code{BPatch\_basicBlockLoop}), and a set of sub-loops (represented
 by other \code{BPatch\_loopTreeNode} objects). The root
-\code{BPatch\_­loopTreeNode} instance has a null loop member since a
+\code{BPatch\_\-loopTreeNode} instance has a null loop member since a
 function may contain multiple outer loops. The outer
 loops are contained in the root instance's vector of children.
 

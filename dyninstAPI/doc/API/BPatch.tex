@@ -89,7 +89,7 @@ void setDebugParsing (bool state)
 \end{apient}
 
 \apidesc{
-Turn on or off the parsing of debugger information. By default, the debugger information (produced by the –g compiler
+Turn on or off the parsing of debugger information. By default, the debugger information (produced by the -g compiler
 option) is parsed on those platforms that support it. However, for some applications this information can be quite
 large. To disable parsing this information, call this method with a value of false prior to creating a process.
 }
@@ -296,7 +296,7 @@ int getNotificationFD()
 \end{apient}
 
 \apidesc{
-Returns a file descriptor that is suitable for inclusion in a call to select(). Dyninst will write data to this file
+Returns a file descriptor that is suitable for inclusion in a call~to select(). Dyninst will write data to this file
 descriptor when it to signal a state change in the process. BPatch::pollForStatusChange should then be called so that
 Dyninst can handle the state change. This is useful for applications where the user does not want to block in
 BPatch::waitForStatusChange. The file descriptor will reset when the user calls BPatch::pollForStatusChange.
@@ -374,7 +374,7 @@ BPatch_type *createPointer(const char *name, BPatch_type *ptr, int size)
 
 \apidesc{
 Create a new type, named name, which points to objects of type ptr. The first form creates a pointer whose size is equal
-to sizeof(void*)on the target platform where the muta­tee is running. In the second form, the size of the pointer is
+to sizeof(void*)on the target platform where the muta\-tee is running. In the second form, the size of the pointer is
 the value passed in the size parameter.
 }
 
