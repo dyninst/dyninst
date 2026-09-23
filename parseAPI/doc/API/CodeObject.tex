@@ -43,7 +43,7 @@ parseGaps should be used for this purpose.}
 void parse(Address target,
            bool recursive);
 \end{apient}
-\apidesc{Parses the binary starting with the instruction at the provided target address. If \code{recursive} is {\scshape true}, recursive traversal parsing is used as in the default \code{parse()} method; otherwise only instructions reachable through intraprocedural control flow are visited.}
+\apidesc{Parses the binary starting with the instruction at the provided target address. If \code{recursive} is \code{true}, recursive traversal parsing is used as in the default \code{parse()} method; otherwise only instructions reachable through intraprocedural control flow are visited.}
 
 \begin{apient}
 void parse(CodeRegion * cr,
@@ -52,7 +52,7 @@ void parse(CodeRegion * cr,
 \end{apient}
 \apidesc{Parses the specified core region of the binary starting with the
 instruction at the provided target address. If \code{recursive} is
-{\scshape true}, recursive traversal parsing is used as in the default
+\code{true}, recursive traversal parsing is used as in the default
 \code{parse()} method; otherwise only instructions reachable through
 intraprocedural control flow are visited.
 }
@@ -97,7 +97,7 @@ void parseGaps(CodeRegion *cr,
 When parsing binary objects such as .o files and static libraries which may have multiple
 \texttt{CodeRegion} objects that overlap in the address space, the \texttt{CodeRegion} argument
 \textit{must} be passed. For executable binaries and shared libraries that are fully linked, there
-is no ambiguity, and {\scshape null} can be passed. The only exception is \texttt{findFuncsByBlock}
+is no ambiguity, and \code{null} can be passed. The only exception is \texttt{findFuncsByBlock}
 which always requires a valid \texttt{CodeRegion}.%
 \end{minipage}}
 
@@ -105,7 +105,7 @@ which always requires a valid \texttt{CodeRegion}.%
 Function * findFuncByEntry(CodeRegion * cr,
                            Address entry);
 \end{apient}
-\apidesc{Find the function starting at address \code{entry} in the indicated CodeRegion. Returns {\scshape null} if no such function exists.}
+\apidesc{Find the function starting at address \code{entry} in the indicated CodeRegion. Returns \code{null} if no such function exists.}
 
 \begin{apient}
 int findFuncs(CodeRegion * cr,
@@ -131,7 +131,7 @@ const funclist & funcs();
 Block * findBlockByEntry(CodeRegion * cr,
                          Address entry);
 \end{apient}
-\apidesc{Find the basic block starting at address \code{entry}. Returns {\scshape null} if no such block exists.}
+\apidesc{Find the basic block starting at address \code{entry}. Returns \code{null} if no such block exists.}
 
 \begin{apient}
 int findBlocks(CodeRegion * cr,
@@ -144,7 +144,7 @@ int findBlocks(CodeRegion * cr,
 Block * findNextBlock(CodeRegion * cr,
                       Address addr);
 \end{apient}
-\apidesc{Find the next reachable basic block starting at address \code{entry}. Returns {\scshape null} if no such block exists.}
+\apidesc{Find the next reachable basic block starting at address \code{entry}. Returns \code{null} if no such block exists.}
 
 \begin{apient}
 CodeSource * cs();

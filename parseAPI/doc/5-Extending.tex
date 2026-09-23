@@ -19,7 +19,7 @@ A CodeSource, as described above, exports its own and the InstructionSource inte
 \begin{apient}
 virtual bool isValidAddress(const Address);
 \end{apient}
-\apidesc{Returns {\scshape true} if the address is a valid code location.}
+\apidesc{Returns \code{true} if the address is a valid code location.}
 
 \begin{apient}
 virtual void* getPtrToInstruction(const Address);
@@ -64,7 +64,7 @@ virtual Architecture getArch();
 \begin{apient}
 virtual bool isAligned(const Address);
 \end{apient}
-\apidesc{For fixed-width instruction architectures, must return {\scshape true} if the address is a valid instruction boundary and {\scshape false} otherwise; otherwise returns {\scshape true}. This method has a default implementation that should be sufficient.}
+\apidesc{For fixed-width instruction architectures, must return \code{true} if the address is a valid instruction boundary and \code{false} otherwise; otherwise returns \code{true}. This method has a default implementation that should be sufficient.}
 
 CodeSource implementors need to fill in several data structures in the base CodeSource class:
 
