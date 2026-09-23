@@ -33,16 +33,16 @@
 
 #include "boost/shared_ptr.hpp"
 #include "boost/weak_ptr.hpp"
+#include "dyninst_visibility.h"
 #include <stddef.h>
 #include <set>
-#include "Annotatable.h"
 #include <unordered_set>
 
 namespace Dyninst {
 class Graph;
 class Node;
     
-class DYNINST_EXPORT Edge : public AnnotatableSparse {
+class DYNINST_EXPORT Edge {
     friend class Node;
     friend class Graph;
     friend class Creator;
