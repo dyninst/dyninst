@@ -107,13 +107,6 @@ class AnnotationClass : public AnnotationClassBase {
 	  size_t size() {return sizeof(T);}
 };
 
-typedef enum {
-	sp_add_anno = 2,
-	sp_rem_anno = 3,
-	sp_add_cont_item = 4,
-	sp_rem_cont_item = 5
-} ser_post_op_t;
-
 class DYNINST_EXPORT AnnotatableDense
 {
 	typedef void *anno_list_t;
