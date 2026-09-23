@@ -246,11 +246,18 @@ void LivenessAnalyzer::analyze(Function *func) {
     // Step 2: We now have block-level summaries of gen/kill info
     // within the block. Propagate this via standard fixpoint
     // calculation
+    // Liveness is a backward analysis, so a sweep must visit a block's successors before the
+    // block itself; otherwise the fixpoint advances by only one edge per sweep. Fall-through
+    // edges always ascend, so descending address order visits successors first. The fixpoint
+    // is order-independent, so only the cost changes.
+    // blocks() is hoisted out of the loop because it takes a recursive_mutex per evaluation.
     bool changed = true;
+    Function::blocklist bl = func->blocks();
+    typedef std::reverse_iterator<Function::blocklist::iterator> rev_iter;
     while (changed) {
         changed = false;
-        for(sit = func->blocks().begin(); sit != func->blocks().end(); sit++) {
-           if (updateBlockLivenessInfo(*sit, regsDefined)) {
+        for (rev_iter rit(bl.end()); rit != rev_iter(bl.begin()); ++rit) {
+           if (updateBlockLivenessInfo(*rit, regsDefined)) {
                 changed = true;
             }
         }
