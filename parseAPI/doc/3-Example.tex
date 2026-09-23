@@ -12,9 +12,6 @@ G++ as follows: \code{g++ -std=c++0x -o code\_sample code\_sample.cc -L<library
 compiled with C++11x support; for G++ this is enabled with
 \code{-std=c++0x}, and it is on by default for Visual Studio.
 
-\lstset{language=[GNU]C++,basicstyle=\ttfamily\small}
-\lstset{numbers=left, numberstyle=\tiny, stepnumber=5, numbersep=5pt}
-\lstset{showstringspaces=false}
 \lstinputlisting{code_sample.cc}
 
 \subsection{Control flow graph traversal}
@@ -29,18 +26,12 @@ example, it can be built with G++ as follows: \code{g++ -std=c++0x -o example
 for G++ this is enabled with \code{-std=c++0x}, and it is on by
 default for Visual Studio.
 
-\lstset{language=[GNU]C++,basicstyle=\ttfamily\small}
-\lstset{numbers=left, numberstyle=\tiny, stepnumber=5, numbersep=5pt}
-\lstset{showstringspaces=false}
 \lstinputlisting{example.cc}
 
 \subsection{Loop analysis}
 
 The following code example shows how to get loop information using ParseAPI once we have an parsed Function object.
 
-\lstset{language=[GNU]C++,basicstyle=\ttfamily\small}
-\lstset{numbers=left, numberstyle=\tiny, stepnumber=5, numbersep=5pt}
-\lstset{showstringspaces=false}
 \begin{lstlisting}
 void GetLoopInFunc(Function *f) {
     // Get all loops in the function

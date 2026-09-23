@@ -12,9 +12,6 @@ convert an instruction to assignments; (2) how to perform slicing on a given
 assignment; (3) how to extend the default \texttt{Slicer::Predicates} and write
 call back functions to control the behavior of slicing.
 
-\lstset{language=[GNU]C++,basicstyle=\ttfamily\small}
-\lstset{numbers=left, numberstyle=\tiny, stepnumber=5, numbersep=5pt}
-\lstset{showstringspaces=false}
 \begin{lstlisting}
 #include "Instruction.h"
 #include "CFG.h"
@@ -83,9 +80,6 @@ target of an indirect jump instruction.
 We can get the expression of the jump targets and visit the expression to see if it
 is a constant.
 
-\lstset{language=[GNU]C++,basicstyle=\ttfamily\small}
-\lstset{numbers=left, numberstyle=\tiny, stepnumber=5, numbersep=5pt}
-\lstset{showstringspaces=false}
 \begin{lstlisting}
 #include "SymEval.h"
 #include "slicing.h"
@@ -142,9 +136,6 @@ Address ExpandSlice(GraphPtr slice, Assignment::Ptr pcAssign) {
 \subsection{Liveness Analysis}
 The following example shows how to query for live registers.
 
-\lstset{language=[GNU]C++,basicstyle=\ttfamily\small}
-\lstset{numbers=left, numberstyle=\tiny, stepnumber=5, numbersep=5pt}
-\lstset{showstringspaces=false}
 \begin{lstlisting}
 #include "Location.h"
 #include "liveness.h"
@@ -182,9 +173,6 @@ void LivenessAnalysis(Function *f, Block *b) {
 \subsection{Stack Analysis}
 The following example shows how to use stack analysis to print out all defined stack heights at the first instruction in a block.
 
-\lstset{language=[GNU]C++,basicstyle=\ttfamily\small}
-\lstset{numbers=left, numberstyle=\tiny, stepnumber=5, numbersep=5pt}
-\lstset{showstringspaces=false}
 \begin{lstlisting}
 #include "CFG.h"
 #include "Absloc.h"

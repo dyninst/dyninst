@@ -31,11 +31,30 @@
 
 \newcommand{\code}[1]{{\small\texttt{#1}}}
 
-%% Wrap long listing lines instead of letting them run off the page.
-%% breakatwhitespace keeps a break from landing inside an identifier, and
+%% Comments are meant to recede without becoming unreadable; a muted blue
+%% of roughly the lightness the old lightgray had.
+\definecolor{commentblue}{rgb}{0.40,0.55,0.75}
+
+%% One style for every code listing in every manual.  Keep it here: an
+%% \lstset outside a group is global and lasts to the end of the document,
+%% so a stray one in an input file silently restyles every later listing.
+%% A manual adds only its own emph list; everything else belongs here.
+%%
+%% breakatwhitespace keeps a wrap from landing inside an identifier, and
 %% postbreak marks the continuation so a wrapped line cannot be mistaken
 %% for one the author wrote that way.
 \lstset{
+  language={[GNU]C++},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\ttfamily\color{purple},
+  commentstyle=\ttfamily\color{commentblue},
+  stringstyle=\ttfamily\color{orange},
+  emphstyle=\color{blue},
+  frame=leftline,
+  numbers=left,
+  numberstyle=\tiny,
+  stepnumber=3,
+  numbersep=5pt,
   showstringspaces=false,
   breaklines=true,
   breakatwhitespace=true,

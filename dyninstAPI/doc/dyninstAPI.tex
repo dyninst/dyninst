@@ -14,12 +14,8 @@
 \input{../../common/doc/manual_frontpage.tex}
 
 \lstset{
-  basicstyle=\ttfamily\small,
-  keywordstyle=\ttfamily\color{purple},
-  commentstyle=\ttfamily\color{lightgray},
-  stringstyle=\ttfamily\color{orange},
-  frame=leftline,
-  % Highlight the BPatch types like they are keywords, but in a different color
+  %% Highlight this manual's own type names like keywords; the style
+  %% itself lives in common/doc/manual_commands.tex.
   emph={
     BPatch_actualAddressExpr, BPatch_addressSpace, BPatch_addrSpec_NP, BPatch_arithExpr,
     BPatch_basicBlockLoop, BPatch_basicBlock, BPatch_binaryEdit, BPatch_boolExpr,
@@ -32,7 +28,6 @@
     BPatch_sourceObj, BPatch_stopThreadExpr, BPatch, BPatch_thread, BPatch_tidExpr, BPatch_variableExpr,
     BPatch_whileExpr, StackMod
   },
-  emphstyle=\color{blue}
 }
 
 \tableofcontents

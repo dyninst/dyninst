@@ -6,8 +6,6 @@ demonstrate how the API can be used.
 The basic flow of doing code patching is to first find some points in a program,
 and then to insert, delete or update a piece of code at these points.
 \subsubsection{CFG Traversal}
-\lstset{language=[GNU]C++,basicstyle=\ttfamily\small}
-\lstset{numbers=left}
 \begin{lstlisting}[caption=Example of CFG traversal]
 ParseAPI::CodeObject* co = ...
 PatchObject* obj = PatchObject::create(co, code_base);
@@ -39,8 +37,6 @@ basic block.
 
 \subsubsection{Point Finding} \label{sec:example-point-finding}
 
-\lstset{language=[GNU]C++,basicstyle=\ttfamily\small}
-\lstset{numbers=left}
 \begin{lstlisting}[caption=Example of point finding]
 PatchFunction *func = ...;
 PatchBlock *block = ...;
@@ -74,8 +70,6 @@ that connects two basic blocks.
 
 \subsubsection{Code Patching}
 
-\lstset{language=[GNU]C++,basicstyle=\ttfamily\small}
-\lstset{numbers=left}
 \begin{lstlisting}[caption=Example of code patching]
 MySnippet::ptr snippet = MySnippet::create(new MySnippet);
 
@@ -100,8 +94,6 @@ invoked. That is, all snippet insertions would succeed or all would fail.
 \subsection{Using the plugin interface}
 
 \subsubsection{Address Space}
-\lstset{language=[GNU]C++,basicstyle=\ttfamily\small}
-\lstset{numbers=left}
 \begin{lstlisting}[caption=Example of implementing address space plugin]
 class MyAddrSpace : public AddrSpace {
   public:
@@ -127,8 +119,6 @@ instrumentation engine needs to \emph{malloc} a buffer in Mutatee's address
 space, and then \emph{write} the code snippet into this buffer.
 
 \subsubsection{Snippet Representation} \label{sec:example-snippet-representation}
-\lstset{language=[GNU]C++,basicstyle=\ttfamily\small}
-\lstset{numbers=left}
 \begin{lstlisting}[caption=Example of implementing snippet plugin]
 class MySnippet : public Snippet {
   public:
@@ -146,8 +136,6 @@ method, which will be used later in the instrumentation engine to generate
 binary code.
 
 \subsubsection{Code Parsing}
-\lstset{language=[GNU]C++,basicstyle=\ttfamily\small}
-\lstset{numbers=left}
 \begin{lstlisting}[caption=Example of customizing CFG parsing]
 class MyFunction : public PatchFunction {
   ...
@@ -167,8 +155,6 @@ CFGMaker class, to create the augmented CFG structures. The factory class will
 be used for CFG parsing.
 
 \subsubsection{Point Making}
-\lstset{language=[GNU]C++,basicstyle=\ttfamily\small}
-\lstset{numbers=left}
 \begin{lstlisting}[caption=Example of point making]
 class MyPoint : public Point {
   public:
@@ -190,8 +176,6 @@ will be invoked by PatchMgr::findPoint(s).
 
 
 \subsubsection{Instrumentation Engine}
-\lstset{language=[GNU]C++,basicstyle=\ttfamily\small}
-\lstset{numbers=left}
 \begin{lstlisting}[caption=Example of customizing instrumentation engine]
 class MyInstrumenter : public Instrumenter {
   public:
@@ -205,8 +189,6 @@ Instrumenter class, and implement the installation of instrumentation inside the
 method \emph{run()}.
 
 \subsubsection{Plugin Registration}
-\lstset{language=[GNU]C++,basicstyle=\ttfamily\small}
-\lstset{numbers=left}
 \begin{lstlisting}[caption=Example of registering plugins]
 MyCFGMakerPtr cm = ...
 PatchObject* obj = PatchObject::create(..., cm);

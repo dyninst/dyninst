@@ -12,18 +12,13 @@
 \input{../../common/doc/manual_frontpage.tex}
 
 \lstset{
-  basicstyle=\ttfamily\small,
-  keywordstyle=\ttfamily\color{purple},
-  commentstyle=\ttfamily\color{lightgray},
-  stringstyle=\ttfamily\color{orange},
-  frame=leftline,
-  % Highlight the proccontrol types like they are keywords, but in a different color
+  %% Highlight this manual's own type names like keywords; the style
+  %% itself lives in common/doc/manual_commands.tex.
   emph={
     Process,
     Event,
     EventType
   },
-  emphstyle=\color{blue}
 }
 
 \tableofcontents
