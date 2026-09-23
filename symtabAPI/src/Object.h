@@ -148,7 +148,7 @@ public:
     virtual void getDependencies(std::vector<std::string> &deps) { deps.clear(); }
     virtual const char *interpreter_name() const { return NULL; }
     // DT_SONAME, for object formats that have one.  NULL otherwise.
-    virtual const char *getSoname() const { return NULL; }
+    virtual const char *getSOName() const { return NULL; }
     virtual Offset getEntryAddress() const = 0;
     virtual Offset getBaseAddress() const = 0;
     virtual Offset getLoadAddress() const = 0;
