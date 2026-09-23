@@ -1,0 +1,162 @@
+# Build the LaTeX manuals.
+#
+# Nothing is written into the source tree: pdflatex reads the document in
+# place and -output-directory sends every file it produces into the build
+# tree.  See cmake/DyninstRunLaTeX.cmake for the fixed-point driver.
+#
+# Targets
+#   docs                 every manual
+#   <module>.pdf         one manual
+#   docs-install         install the manuals under CMAKE_INSTALL_DOCDIR
+#
+# DYNINST_BUILD_DOCS
+#   ON   pdflatex is required; the manuals build as part of 'all' and are
+#        installed by 'install'
+#   OFF  the manuals build only when asked for by name; if pdflatex is
+#        missing the targets still exist and fail with an explanation
+
+include_guard(GLOBAL)
+include(GNUInstallDirs)
+
+find_package(LATEX COMPONENTS PDFLATEX)
+
+if(DYNINST_BUILD_DOCS AND NOT LATEX_PDFLATEX_FOUND)
+  message(FATAL_ERROR
+          "DYNINST_BUILD_DOCS is ON but pdflatex was not found.\n"
+          "  Install a LaTeX distribution, or configure with "
+          "-DDYNINST_BUILD_DOCS=OFF to build the manuals on demand only.")
+endif()
+
+if(DYNINST_BUILD_DOCS)
+  add_custom_target(docs ALL COMMENT "Building the Dyninst manuals")
+else()
+  add_custom_target(docs COMMENT "Building the Dyninst manuals")
+endif()
+
+set(DYNINST_DOCS_INSTALL_DIR
+    "${CMAKE_INSTALL_DOCDIR}"
+    CACHE STRING "Where 'install' and 'docs-install' put the manuals")
+
+# Installing on demand.  install() is bound to the 'install' target, so route
+# through the generated cmake_install.cmake with the component filter; that
+# keeps DESTDIR and the install prefix working, which a plain copy would not.
+add_custom_target(
+  docs-install
+  COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_COMPONENT=docs -P
+          ${CMAKE_BINARY_DIR}/cmake_install.cmake
+  COMMENT "Installing the Dyninst manuals into ${DYNINST_DOCS_INSTALL_DIR}")
+add_dependencies(docs-install docs)
+
+# ---------------------------------------------------------------------------
+# dyninst_add_latex_document(
+#     TARGET       <name>        target to create
+#     SOURCE_DIR   <dir>         directory to run pdflatex in
+#     MAIN         <file.tex>    document, relative to SOURCE_DIR
+#     [OUTPUT_DIR  <dir>]        defaults to CMAKE_CURRENT_BINARY_DIR
+#     [MAX_PASSES  <n>]          defaults to 5
+#     [DEPENDS     <files>...]   rebuild when any of these change
+#     [INSTALL_DESTINATION <d>]  install the PDF there, under component 'docs'
+# )
+#
+# Everything is explicit; dyninst_add_manual() below fills most of it in from
+# the layout these manuals share.
+# ---------------------------------------------------------------------------
+function(dyninst_add_latex_document)
+  set(_opts "")
+  set(_one TARGET SOURCE_DIR MAIN OUTPUT_DIR MAX_PASSES INSTALL_DESTINATION)
+  set(_many DEPENDS)
+  cmake_parse_arguments(LTX "${_opts}" "${_one}" "${_many}" ${ARGN})
+
+  foreach(_r TARGET SOURCE_DIR MAIN)
+    if(NOT LTX_${_r})
+      message(FATAL_ERROR "dyninst_add_latex_document: ${_r} is required")
+    endif()
+  endforeach()
+  if(LTX_UNPARSED_ARGUMENTS)
+    message(FATAL_ERROR
+            "dyninst_add_latex_document: unrecognised: ${LTX_UNPARSED_ARGUMENTS}")
+  endif()
+
+  if(NOT LTX_OUTPUT_DIR)
+    set(LTX_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+  endif()
+  if(NOT LTX_MAX_PASSES)
+    set(LTX_MAX_PASSES 5)
+  endif()
+
+  get_filename_component(_stem "${LTX_MAIN}" NAME_WE)
+  set(_pdf "${LTX_OUTPUT_DIR}/${_stem}.pdf")
+
+  if(NOT LATEX_PDFLATEX_FOUND)
+    # Keep the target so the name always works; explain rather than fail
+    # obscurely, and only when someone actually asks for it.
+    add_custom_target(
+      ${LTX_TARGET}
+      COMMAND
+        ${CMAKE_COMMAND} -E echo
+        "error: cannot build ${_stem}.pdf - pdflatex was not found at configure time"
+      COMMAND ${CMAKE_COMMAND} -E false
+      COMMENT "Building ${_stem}.pdf")
+    add_dependencies(docs ${LTX_TARGET})
+    return()
+  endif()
+
+  add_custom_command(
+    OUTPUT "${_pdf}"
+    BYPRODUCTS "${LTX_OUTPUT_DIR}/${_stem}.aux" "${LTX_OUTPUT_DIR}/${_stem}.log"
+               "${LTX_OUTPUT_DIR}/${_stem}.toc" "${LTX_OUTPUT_DIR}/${_stem}.out"
+    COMMAND
+      ${CMAKE_COMMAND} -DPDFLATEX=${PDFLATEX_COMPILER}
+      -DSOURCE_DIR=${LTX_SOURCE_DIR} -DOUTPUT_DIR=${LTX_OUTPUT_DIR}
+      -DMAIN=${LTX_MAIN} -DMAX_PASSES=${LTX_MAX_PASSES} -P
+      ${PROJECT_SOURCE_DIR}/cmake/DyninstRunLaTeX.cmake
+    DEPENDS ${LTX_DEPENDS} ${PROJECT_SOURCE_DIR}/cmake/DyninstRunLaTeX.cmake
+    COMMENT "Building ${_stem}.pdf"
+    VERBATIM)
+
+  add_custom_target(${LTX_TARGET} DEPENDS "${_pdf}")
+  add_dependencies(docs ${LTX_TARGET})
+
+  if(LTX_INSTALL_DESTINATION)
+    install(
+      FILES "${_pdf}"
+      DESTINATION "${LTX_INSTALL_DESTINATION}"
+      COMPONENT docs
+      OPTIONAL)
+  endif()
+endfunction()
+
+# ---------------------------------------------------------------------------
+# dyninst_add_manual(<module>)
+#
+# The manuals all share a layout: <module>/doc/<module>.tex, inputs scattered
+# through <module>/doc, and the shared preamble and title page in common/doc.
+# Given that, the module name is the only thing worth stating.
+# ---------------------------------------------------------------------------
+function(dyninst_add_manual _module)
+  set(_src "${PROJECT_SOURCE_DIR}/${_module}/doc")
+  if(NOT EXISTS "${_src}/${_module}.tex")
+    message(FATAL_ERROR "dyninst_add_manual: no ${_src}/${_module}.tex")
+  endif()
+
+  # Over-approximate rather than parse \input, \includegraphics and
+  # \lstinputlisting: touching an unrelated file in one manual's directory
+  # costs a rebuild of that manual alone, and nothing goes stale silently.
+  set(_patterns "*.tex" "*.cc" "*.C" "*.pdf" "*.eps" "*.png" "*.dot")
+  set(_deps "")
+  foreach(_dir "${_src}" "${PROJECT_SOURCE_DIR}/common/doc")
+    foreach(_p ${_patterns})
+      file(GLOB_RECURSE _found CONFIGURE_DEPENDS "${_dir}/${_p}")
+      list(APPEND _deps ${_found})
+    endforeach()
+  endforeach()
+  list(REMOVE_DUPLICATES _deps)
+
+  dyninst_add_latex_document(
+    TARGET ${_module}.pdf
+    SOURCE_DIR "${_src}"
+    MAIN "${_module}.tex"
+    OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}"
+    DEPENDS ${_deps}
+    INSTALL_DESTINATION "${DYNINST_DOCS_INSTALL_DIR}")
+endfunction()

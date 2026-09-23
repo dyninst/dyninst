@@ -30,6 +30,7 @@ list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/cmake"
 # These need to be done before anything else
 include(DyninstLibrarySettings)
 include(DyninstOptions)
+include(DyninstDocs)
 
 # Set up Dyninst internals
 include(DyninstPlatform)
@@ -71,6 +72,19 @@ add_subdirectory(stackwalk)
 add_subdirectory(patchAPI)
 add_subdirectory(dyninstAPI)
 add_subdirectory(dynC_API)
+
+# The manuals.  These are their own directories so that each one has a scope
+# of its own; dataflowAPI in particular is include()d rather than added, so it
+# has no CMakeLists scope to hang a target on.
+add_subdirectory(dataflowAPI/doc)
+add_subdirectory(dynC_API/doc)
+add_subdirectory(dyninstAPI/doc)
+add_subdirectory(instructionAPI/doc)
+add_subdirectory(parseAPI/doc)
+add_subdirectory(patchAPI/doc)
+add_subdirectory(proccontrol/doc)
+add_subdirectory(stackwalk/doc)
+add_subdirectory(symtabAPI/doc)
 add_subdirectory(parseThat)
 add_subdirectory(dyninstAPI_RT)
 

@@ -20,6 +20,11 @@ option(ADD_VALGRIND_ANNOTATIONS "Enable annotations for Valgrind analysis" OFF)
 
 option(ENABLE_STATIC_LIBS "Build static libraries as well?" OFF)
 
+option(
+  DYNINST_BUILD_DOCS
+  "Require pdflatex and build the LaTeX manuals as part of 'all' and 'install'"
+  OFF)
+
 option(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS
        "Disable all warning suppressions and frame size overrides." OFF)
 
