@@ -311,8 +311,6 @@ class DYNINST_EXPORT AnnotatableDense
 	  }
 };
 
-#define AN_INLINE inline
-
 class DYNINST_EXPORT AnnotatableSparse
 {
    public:
@@ -421,7 +419,7 @@ class DYNINST_EXPORT AnnotatableSparse
       }
 
       template <class T>
-      AN_INLINE annos_by_type_t *getAnnosOfType(AnnotationClass<T> &a_id, bool do_create =false) const
+      annos_by_type_t *getAnnosOfType(AnnotationClass<T> &a_id, bool do_create =false) const
       {
          AnnotationClassID aid = a_id.getID();
 
@@ -456,7 +454,7 @@ class DYNINST_EXPORT AnnotatableSparse
          return target;
       }
 
-	  AN_INLINE bool addAnnotation(const void *a, AnnotationClassID aid)
+	  bool addAnnotation(const void *a, AnnotationClassID aid)
 	  {
 		  if (annotation_debug_flag())
 		  {
@@ -586,7 +584,7 @@ class DYNINST_EXPORT AnnotatableSparse
       }
 
       template<class T>
-      AN_INLINE bool addAnnotation(const T *a, AnnotationClass<T> &a_id)
+      bool addAnnotation(const T *a, AnnotationClass<T> &a_id)
          {
 		  annotatable_printf("%s[%d]:  Sparse(%p):  Add %s-%d, %s\n", FILE__, __LINE__, 
 				  (void*)this, a_id.getName().c_str(), a_id.getID(), typeid(T).name());
@@ -622,7 +620,7 @@ class DYNINST_EXPORT AnnotatableSparse
          }
 
       template<class T>
-      AN_INLINE bool getAnnotation(T *&a, AnnotationClass<T> &a_id) const 
+      bool getAnnotation(T *&a, AnnotationClass<T> &a_id) const 
       {
          a = NULL;
 
