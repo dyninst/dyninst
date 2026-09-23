@@ -250,10 +250,9 @@ void LivenessAnalyzer::analyze(Function *func) {
     // block itself; otherwise the fixpoint advances by only one edge per sweep. Fall-through
     // edges always ascend, so descending address order visits successors first. The fixpoint
     // is order-independent, so only the cost changes.
-    // blocks() is hoisted out of the loop because it takes a recursive_mutex per evaluation.
     bool changed = true;
     Function::blocklist bl = func->blocks();
-    typedef std::reverse_iterator<Function::blocklist::iterator> rev_iter;
+    using rev_iter = std::reverse_iterator<Function::blocklist::iterator>;
     while (changed) {
         changed = false;
         for (rev_iter rit(bl.end()); rit != rev_iter(bl.begin()); ++rit) {
