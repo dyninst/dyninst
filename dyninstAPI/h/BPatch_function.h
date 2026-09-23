@@ -35,7 +35,6 @@
 #include <set>
 #include <string>
 #include <vector>
-#include "Annotatable.h"
 #include "BPatch_Vector.h"
 #include "BPatch_enums.h"
 #include "BPatch_type.h"
@@ -72,8 +71,7 @@ namespace Dyninst {
 
 
 class DYNINST_EXPORT BPatch_function : 
-   public BPatch_sourceObj, 
-   public Dyninst::AnnotatableSparse
+   public BPatch_sourceObj
 {
     friend class BPatch_flowGraph;
     friend class BPatch_basicBlock;
