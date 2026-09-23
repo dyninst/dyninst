@@ -991,8 +991,8 @@ bool Symtab::extractInfo(Object *linkedFile)
     if (linkedFile->interpreter_name())
        interpreter_name_ = std::string(linkedFile->interpreter_name());
 
-    if (linkedFile->getSoname())
-       soname_ = std::string(linkedFile->getSoname());
+    if (linkedFile->getSOName())
+       soname_ = std::string(linkedFile->getSOName());
 
     entry_address_ = linkedFile->getEntryAddress();
     base_address_ = linkedFile->getBaseAddress();
