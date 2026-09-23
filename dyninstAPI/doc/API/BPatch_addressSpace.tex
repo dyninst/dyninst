@@ -254,7 +254,7 @@ between the two subclasses.
 
   The following code wraps malloc with fastMalloc, while allowing functions to
   still access the original malloc function by calling origMalloc. It makes use of
-  the new convert interface described in Section 5.
+  the new convert interface described in Section~\ref{sec:conversions}.
 }
 
   \begin{lstlisting}[language=C++]
@@ -286,7 +286,7 @@ between the two subclasses.
 \apidesc{
   This function has been removed; users interested in replacing code should instead use
   the PatchAPI code modification interface described in the PatchAPI manual. For
-  information on accessing PatchAPI abstractions from DyninstAPI abstractions, see Section 5.
+  information on accessing PatchAPI abstractions from DyninstAPI abstractions, see Section~\ref{sec:conversions}.
 }
 
 \begin{apient}

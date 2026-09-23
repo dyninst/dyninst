@@ -75,7 +75,7 @@ any registered callback functions. In addition to the information inherited
 from Event, the EventLibrary will contain extra information about the library
 that was loaded into the target process.
 
-Table 1 shows the Event subclass that is used for each EventType. Not all
+Table~\ref{tab:event-subclass} shows the Event subclass that is used for each EventType. Not all
 EventTypes are available on every platform- a checkmark
 under the specific OS column means that the EventType is available on that OS.
 
@@ -106,6 +106,8 @@ under the specific OS column means that the EventType is available on that OS.
     Crash & EventCrash & \checkmark & \checkmark & \checkmark \\ \hline
     ForceTerminate & EventForceTerminate & \checkmark & \checkmark & \checkmark \\ \hline
   \end{tabular}
+  \caption{Event subclass used for each EventType}
+  \label{tab:event-subclass}
 \end{table}
 
 

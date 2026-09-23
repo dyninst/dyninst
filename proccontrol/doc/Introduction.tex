@@ -27,14 +27,14 @@ ProcControlAPI user of interesting events in the target process.
 
 \subsection{Simple Example}
 
-As an example, consider the code in Figure 1 that creates a target process and
+As an example, consider the code in Listing~\ref{lst:thread-create} that creates a target process and
 prints a message whenever that target process creates a new thread. Details
 on the API function used in this example can be found in latter sections of
 this manual, but we will provide a high level description of the operations
 here. Note that proper error handling and checking have been left out for
 brevity.
 
-\begin{lstlisting}[language=c++]
+\begin{lstlisting}[language=c++, label=lst:thread-create, caption={Printing a message when the target process creates a thread}]
   #include "Event.h"
   #include "PCProcess.h"
 
