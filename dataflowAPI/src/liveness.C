@@ -41,6 +41,9 @@
 #include "dataflowAPI/h/liveness.h"
 #include "dataflowAPI/h/ABI.h"
 #include <boost/bind/bind.hpp>
+#include <deque>
+#include <iterator>
+#include <unordered_map>
 #include "instructionAPI/h/syscalls.h"
 #include "instructionAPI/h/interrupts.h"
 
@@ -244,15 +247,38 @@ void LivenessAnalyzer::analyze(Function *func) {
     }
     
     // Step 2: We now have block-level summaries of gen/kill info
-    // within the block. Propagate this via standard fixpoint
-    // calculation
-    bool changed = true;
-    while (changed) {
-        changed = false;
-        for(sit = func->blocks().begin(); sit != func->blocks().end(); sit++) {
-           if (updateBlockLivenessInfo(*sit, regsDefined)) {
-                changed = true;
-            }
+    // within the block. Propagate them to a fixpoint with a worklist.
+    // Liveness is a backward analysis: IN(b) feeds only the OUT of b's
+    // predecessors, so a change to IN(b) requires revisiting just those.
+    // Seeding in descending address order visits most successors first,
+    // because fall-through edges always ascend.
+    //
+    // Maps each block of this function to whether it is on the worklist.
+    // Predecessors outside this function (shared code) are not updated.
+    Function::blocklist blocks = func->blocks();
+    std::unordered_map<Block*, bool> onWorklist;
+    std::deque<Block*> worklist;
+    for (auto rit = std::reverse_iterator<Function::blocklist::iterator>(blocks.end());
+         rit != std::reverse_iterator<Function::blocklist::iterator>(blocks.begin()); ++rit) {
+        worklist.push_back(*rit);
+        onWorklist[*rit] = true;
+    }
+
+    Intraproc epred;
+    while (!worklist.empty()) {
+        Block *block = worklist.front();
+        worklist.pop_front();
+        onWorklist[block] = false;
+        if (!updateBlockLivenessInfo(block, regsDefined)) continue;
+
+        boost::lock_guard<Block> g(*block);
+        for (Edge *e : block->sources()) {
+            // Mirror the edges getLivenessOut reads IN(block) through
+            if (!epred(e) || e->type() == CATCH) continue;
+            auto it = onWorklist.find(e->src());
+            if (it == onWorklist.end() || it->second) continue;
+            it->second = true;
+            worklist.push_back(e->src());
         }
     }
 
