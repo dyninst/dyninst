@@ -33,8 +33,8 @@
 #include <iosfwd>
 #include <string>
 #include <vector>
+#include "dyninst_visibility.h"
 #include "symutil.h"
-#include "Annotatable.h"
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -44,7 +44,7 @@ class relocationEntry;
 class Symtab;
 
 
-class DYNINST_EXPORT Region : public AnnotatableSparse {
+class DYNINST_EXPORT Region {
    friend class Object;
    friend class ObjectELF;
    friend class ObjectPE;
