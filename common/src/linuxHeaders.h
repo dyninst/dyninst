@@ -82,7 +82,6 @@ inline int P_execve (const char* FILENAME,
 		     char* const ARGV[], char* const ENVP[]) {
     return (execve(FILENAME, ARGV, ENVP));
 }
-inline void P__exit (int STATUS) { _exit(STATUS);}
 inline int P_fcntl (int FILEDES, int COMMAND, int ARG2) {
   return (fcntl(FILEDES, COMMAND, ARG2));}
 inline FILE * P_fdopen (int FILEDES, const char *OPENTYPE) {
