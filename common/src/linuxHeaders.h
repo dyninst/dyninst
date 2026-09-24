@@ -81,7 +81,6 @@ inline pid_t P_getpid () { return (getpid());}
 inline int P_getpagesize() { return getpagesize(); }
 
 /* ANSI */
-inline int P_fflush(FILE *stream) { return (fflush(stream));}
 inline char * P_fgets (char *S, int COUNT, FILE *STREAM) {
   return (fgets(S, COUNT, STREAM));}
 inline void * P_malloc (size_t SIZE) { return (malloc(SIZE));}
