@@ -1741,7 +1741,7 @@ Offset emitElfStatic::allocateRelocationSection(std::map<Symbol *, std::pair<Off
   else
     target->findRegion(rela, ".rel.plt");
 
-  unsigned relocEntries = entries.size() + (rela ? rela->getRelocations().size() : 0);
+  size_t relocEntries = entries.size() + (rela ? rela->getRelocations().size() : 0);
   cur += relocEntries * relocSize;
 
   size = cur - relocOffset;
