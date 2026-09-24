@@ -98,7 +98,6 @@ typedef int key_t;
 typedef unsigned int socklen_t;
 
 /* POSIX */
-inline void P_abort (void) { abort();}
 inline int P_close (int FILEDES) { return (_close(FILEDES));}
 inline int P__dup2(int OLD, int NEW) { return (_dup2(OLD, NEW)); }
 inline void P__exit (int STATUS) { _exit(STATUS);}

@@ -69,7 +69,6 @@ extern const char *sys_errlist[];
 */
 
 /* POSIX */
-inline void P_abort (void) { abort();}
 inline int P_close (int FILEDES) { 
     return (close(FILEDES));
 }
