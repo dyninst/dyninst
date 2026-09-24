@@ -90,9 +90,6 @@ inline char *P_strdup(const char *S) { return (strdup(S));}
 
 /* BSD */
 
-inline caddr_t P_mmap(caddr_t addr, size_t len, int prot, int flags,
-		      int fd, off_t off) {
-  return (caddr_t)(mmap(addr, len, prot, flags, fd, off));}
 inline int P_munmap(caddr_t addr, int i) { return (munmap(addr, i));}
 inline int P_socket (int NAMESPACE, int STYLE, int PROTOCOL) {
   return (socket(NAMESPACE, STYLE, PROTOCOL));}
