@@ -85,8 +85,6 @@ inline char *P_strdup(const char *S) { return (strdup(S));}
    return (gethostname(name, size));} */
 /* inline int P_getrusage(int i, struct rusage *ru) { 
    return (getrusage(i, ru));} */
-inline struct servent * P_getservbyname (const char *NAME, const char *PROTO) {
-  return (getservbyname(NAME, PROTO));}
 inline int P_getsockname (int SOCKET, struct sockaddr *ADDR, socklen_t *LENGTH_PTR) {
   return (getsockname(SOCKET, ADDR, LENGTH_PTR));}
 inline int P_getsockopt(int s, int level, int optname, void *optval, int *optlen) {
