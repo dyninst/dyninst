@@ -71,7 +71,6 @@ extern const char *sys_errlist[];
 /* POSIX */
 inline pid_t P_getpid () { return (getpid());}
 
-inline int P_pclose (FILE *STREAM) { return (pclose(STREAM));}
 inline FILE *P_popen (const char *COMMAND, const char *MODE) {
   return (popen(COMMAND, MODE));}
 inline size_t P_read (int FILEDES, void *BUFFER, size_t SIZE) {
