@@ -84,9 +84,6 @@ inline int P_execve (const char* FILENAME,
 }
 inline int P_fcntl (int FILEDES, int COMMAND, int ARG2) {
   return (fcntl(FILEDES, COMMAND, ARG2));}
-inline FILE * P_fopen (const char *FILENAME, const char *OPENTYPE) {
-    return fopen(FILENAME, OPENTYPE);
-}
 int P_copy(const char *from, const char *to);
 int P_system(const char *string);
 inline int P_fstat (int FILEDES, struct stat *BUF) { return (fstat(FILEDES, BUF));}
