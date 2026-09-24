@@ -62,7 +62,6 @@
 #include <sys/syscall.h>
 
 
-typedef int PDSOCKET;
 /* Not going to use on Linux Platform - already declared in /usr/include/errno.h
 extern const char *sys_errlist[];
 */
