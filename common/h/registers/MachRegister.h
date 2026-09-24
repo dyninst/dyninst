@@ -44,22 +44,37 @@ namespace Dyninst {
   class DYNINST_EXPORT MachRegister {
   private:
     int32_t reg;
+    // Prototype (store-the-name): the register name is stored directly in the
+    // object (pointing at a string literal from DEF_REGISTER), which removes the
+    // dependency on the runtime registers::names map and lets the register
+    // constants be constexpr.
+    const char* reg_name = nullptr;
 
   public:
-    MachRegister();
-    explicit MachRegister(int32_t r);
-    explicit MachRegister(int32_t r, std::string n);
+    // Prototype (constexpr MachRegister): the integer handle makes MachRegister
+    // a literal type -- usable in constant expressions, so register constants
+    // can eventually be constexpr with no static-init/name-map dependency.
+    // Only the int-handle path is constexpr here; the name-populating
+    // constructor and name()/getAllRegistersForArch caches are unchanged (their
+    // migration to a static, generated table is the follow-up -- see PR notes).
+    constexpr MachRegister() : reg(0) {}
+    constexpr explicit MachRegister(int32_t r) : reg(r) {}
+    constexpr MachRegister(int32_t r, const char* n) : reg(r), reg_name(n) {}
 
     MachRegister getBaseRegister() const;
     Architecture getArchitecture() const;
     bool isValid() const;
 
-    std::string const& name() const;
+    // Returns by value (was `std::string const&`): the name now lives in the
+    // object as a `const char*`, so there is no long-lived std::string to
+    // reference. Returning by value keeps `const std::string& x = r.name();`
+    // working via lifetime extension.
+    std::string name() const { return reg_name ? std::string(reg_name) : std::string("<INVALID_REG>"); }
     unsigned int size() const;
-    bool operator<(const MachRegister& a) const;
-    bool operator==(const MachRegister& a) const;
-    operator int32_t() const;
-    int32_t val() const;
+    constexpr bool operator<(const MachRegister& a) const { return reg < a.reg; }
+    constexpr bool operator==(const MachRegister& a) const { return reg == a.reg; }
+    constexpr operator int32_t() const { return reg; }
+    constexpr int32_t val() const { return reg; }
 
     // Return the category of the MachRegister
     unsigned int regClass() const;
