@@ -115,8 +115,6 @@ inline int P_getpagesize() {
 inline int P_strcmp (const char *S1, const char *S2) {
   return (strcmp(S1, S2));}
 inline char *P_strdup(const char *S) { return (_strdup(S));}
-inline char * P_strncpy (char *TO, const char *FROM, size_t SIZE) {
-  return (strncpy(TO, FROM, SIZE));}
 
 inline const char * P_strrchr (const char *STRING, int C) {return (strrchr(STRING, C));}
 inline char * P_strrchr (char *STRING, int C) {return (strrchr(STRING, C));}

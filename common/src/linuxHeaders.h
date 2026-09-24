@@ -87,8 +87,6 @@ inline int P_strcmp (const char *S1, const char *S2) {
   return (strcmp(S1, S2));}
 inline char *P_strdup(const char *S) DYNINST_MALLOC_ANNOTATION;
 inline char *P_strdup(const char *S) { return (strdup(S));}
-inline char * P_strncpy (char *TO, const char *FROM, size_t SIZE) {
-  return (strncpy(TO, FROM, SIZE));}
 
 inline const char * P_strrchr (const char *P_STRING, int C) {return (strrchr(P_STRING, C));}
 inline char * P_strrchr (char *P_STRING, int C) {return (strrchr(P_STRING, C));}
