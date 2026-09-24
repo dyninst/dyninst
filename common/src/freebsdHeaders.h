@@ -82,10 +82,6 @@ inline char *P_strdup(const char *S) { return (strdup(S));}
 
 /* BSD */
 
-inline ssize_t P_recv(int s, void *buf, int len, int flags) {
-   return (recv(s, buf, len, flags));
-}
-
 inline long int P_ptrace(int req, pid_t pid, Address addr, Address data, int = -1) {
     return ((long int)ptrace(req, pid, (caddr_t)addr, (int)data));
 }

@@ -90,11 +90,6 @@ inline char *P_strdup(const char *S) { return (strdup(S));}
 
 /* BSD */
 
-inline ssize_t P_recv(int s, void *buf, int len, int flags) {
-   return (recv(s, buf, len, flags));
-}
-
-
 inline long int P_ptrace(int req, pid_t pid, Dyninst::Address addr, Dyninst::Address data, int = -1) {
 	return (ptrace((enum __ptrace_request)req, pid, addr, data));}
 
