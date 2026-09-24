@@ -98,7 +98,6 @@ typedef int key_t;
 typedef unsigned int socklen_t;
 
 /* POSIX */
-inline void P__exit (int STATUS) { _exit(STATUS);}
 inline FILE * P_fdopen (int FILEDES, const char *OPENTYPE) {
   return (_fdopen(FILEDES, OPENTYPE));}
 inline FILE * P_fopen (const char *FILENAME, const char *OPENTYPE) {
