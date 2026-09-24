@@ -75,7 +75,6 @@ extern const char *sys_errlist[];
 #define SYS_tkill 238
 #endif
 /* POSIX */
-inline void P_abort (void) { abort();}
 inline int P_close (int FILEDES) { 
     return (close(FILEDES));
 }
