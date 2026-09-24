@@ -102,7 +102,6 @@ inline int P_getpid () { return (_getpid());}
 inline int P__pclose (FILE *STREAM) { return (_pclose(STREAM));}
 inline FILE *P__popen (const char *COMMAND, const char *MODE) {
   return (_popen(COMMAND, MODE));}
-inline int P_putenv(char *str) { return _putenv(str); }
 
 /* ANSI */
 inline void P_exit (int STATUS) { exit(STATUS);}

@@ -78,7 +78,6 @@ extern const char *sys_errlist[];
 inline pid_t P_getpid () { return (getpid());}
 
 
-inline int P_putenv(char *str) { return putenv(str); }
 inline int P_getpagesize() { return getpagesize(); }
 /* SYSTEM-V shared memory */
 #include <sys/ipc.h>
