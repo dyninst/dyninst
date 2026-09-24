@@ -99,8 +99,6 @@ typedef unsigned int socklen_t;
 
 /* POSIX */
 inline int P_getpid () { return (_getpid());}
-inline FILE *P__popen (const char *COMMAND, const char *MODE) {
-  return (_popen(COMMAND, MODE));}
 
 /* ANSI */
 inline void P_exit (int STATUS) { exit(STATUS);}
