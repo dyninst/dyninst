@@ -81,7 +81,6 @@ inline pid_t P_getpid () { return (getpid());}
 inline int P_getpagesize() { return getpagesize(); }
 
 /* ANSI */
-inline void * P_malloc (size_t SIZE) { return (malloc(SIZE));}
 inline void * P_memcpy (void *A1, const void *A2, size_t SIZE)
     { return memcpy( A1, A2, SIZE ); }
 inline void * P_memset (void *BLOCK, int C, size_t SIZE) {
