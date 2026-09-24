@@ -96,7 +96,4 @@ inline long int P_ptrace(int req, pid_t pid, Dyninst::Address addr, Dyninst::Add
 extern DYNINST_EXPORT std::string P_cplus_demangle( const std::string &symbol,
 				bool includeTypes = false );
 
-inline int P_unlink(const char *pathname) {
-	return unlink(pathname);
-}
 #endif
