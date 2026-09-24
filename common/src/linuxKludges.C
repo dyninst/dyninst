@@ -83,17 +83,6 @@ static ssize_t process_vm_writev(pid_t pid,
 #endif /* !__GLIBC_PREREQ(2,15) */
 
 
-int P_copy(const char *from, const char *to) {
-    std::ifstream src(from, std::ios::binary);
-    std::ofstream dst(to, std::ios::binary | std::ios::trunc);
-    dst << src.rdbuf();
-    dst.close();
-    src.close();
-    return (src && dst) ? 0 : -1;
-}
-
-
-
 #include "symbolDemangleWithCache.h"
 
 std::string P_cplus_demangle( const std::string &symbol, bool includeTypes )
