@@ -80,7 +80,6 @@ inline int P_fcntl (int FILEDES, int COMMAND, int ARG2) {
   return (fcntl(FILEDES, COMMAND, ARG2));}
 int P_copy(const char *from, const char *to);
 int P_system(const char *string);
-inline int P_fstat (int FILEDES, struct stat *BUF) { return (fstat(FILEDES, BUF));}
 inline pid_t P_getpid () { return (getpid());}
 inline int P_kill(pid_t PID, int SIGNUM) { return (kill(PID, SIGNUM));}
 inline off_t P_lseek (int FILEDES, off_t OFFSET, int WHENCE) {

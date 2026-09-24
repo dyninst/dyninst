@@ -98,7 +98,6 @@ typedef int key_t;
 typedef unsigned int socklen_t;
 
 /* POSIX */
-inline int P_fstat (int FILEDES, struct stat *BUF) { return (fstat(FILEDES, BUF));}
 inline int P_getpid () { return (_getpid());}
 inline off_t P_lseek (int FILEDES, off_t OFFSET, int WHENCE) {
   return (_lseek(FILEDES, OFFSET, WHENCE));}
