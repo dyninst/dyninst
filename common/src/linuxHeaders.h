@@ -82,9 +82,6 @@ inline int P_getpagesize() { return getpagesize(); }
 /* SYSTEM-V shared memory */
 #include <sys/ipc.h>
 #include <sys/shm.h> /* shmid_ds */
-inline void *P_shmat(int shmid, void *addr, int flags) {
-   return shmat(shmid, (char *)addr, flags);
-}
 inline int P_shmdt(void *addr) {return shmdt((char*)addr);}
 inline int P_shmctl(int shmid, int cmd, struct shmid_ds *buf) {
    return shmctl(shmid, cmd, buf);
