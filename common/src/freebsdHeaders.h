@@ -69,7 +69,6 @@ extern const char *sys_errlist[];
 */
 
 /* POSIX */
-int P_system(const char *string);
 inline pid_t P_getpid () { return (getpid());}
 inline int P_kill(pid_t PID, int SIGNUM) { return (kill(PID, SIGNUM));}
 inline off_t P_lseek (int FILEDES, off_t OFFSET, int WHENCE) {
