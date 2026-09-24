@@ -81,8 +81,6 @@ inline int P_strcmp (const char *S1, const char *S2) {
 inline char *P_strdup(const char *S) { return (strdup(S));}
 
 /* BSD */
-inline struct hostent * P_gethostbyname (const char *NAME) {
-  return (gethostbyname(NAME));}
 /* inline int P_gethostname(char *name, size_t size) {
    return (gethostname(name, size));} */
 /* inline int P_getrusage(int i, struct rusage *ru) { 
