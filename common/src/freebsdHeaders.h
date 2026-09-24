@@ -86,10 +86,6 @@ inline long int P_ptrace(int req, pid_t pid, Address addr, Address data, int = -
     return ((long int)ptrace(req, pid, (caddr_t)addr, (int)data));
 }
 
-inline int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex,
-		    struct timeval *tm) {
-  return (select(wid, rd, wr, ex, tm));}
-
 extern std::string DYNINST_EXPORT P_cplus_demangle( const std::string &symbol,
 				bool includeTypes = false );
 
