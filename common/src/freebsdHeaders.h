@@ -69,7 +69,6 @@ extern const char *sys_errlist[];
 */
 
 /* POSIX */
-inline int P_dup2 (int OLD, int NEW) { return (dup2(OLD, NEW));}
 inline int P_execvp (const char *FILENAME, char *const ARGV[]) {
   return (execvp(FILENAME, ARGV));}
 inline int P_execve (const char* FILENAME,
