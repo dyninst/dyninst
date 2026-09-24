@@ -75,9 +75,6 @@ extern const char *sys_errlist[];
 #define SYS_tkill 238
 #endif
 /* POSIX */
-inline int P_close (int FILEDES) { 
-    return (close(FILEDES));
-}
 inline int P_dup2 (int OLD, int NEW) { return (dup2(OLD, NEW));}
 inline int P_execvp (const char *FILENAME, char *const ARGV[]) {
   return (execvp(FILENAME, ARGV));}

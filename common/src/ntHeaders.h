@@ -98,7 +98,6 @@ typedef int key_t;
 typedef unsigned int socklen_t;
 
 /* POSIX */
-inline int P_close (int FILEDES) { return (_close(FILEDES));}
 inline int P__dup2(int OLD, int NEW) { return (_dup2(OLD, NEW)); }
 inline void P__exit (int STATUS) { _exit(STATUS);}
 inline FILE * P_fdopen (int FILEDES, const char *OPENTYPE) {
