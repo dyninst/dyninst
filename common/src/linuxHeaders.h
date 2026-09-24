@@ -76,8 +76,6 @@ extern const char *sys_errlist[];
 #endif
 /* POSIX */
 inline pid_t P_getpid () { return (getpid());}
-inline off_t P_lseek (int FILEDES, off_t OFFSET, int WHENCE) {
-  return (lseek(FILEDES, OFFSET, WHENCE));}
 inline int P_open(const char *FILENAME, int FLAGS, mode_t MODE) {
     return open(FILENAME, FLAGS, MODE);
 }
