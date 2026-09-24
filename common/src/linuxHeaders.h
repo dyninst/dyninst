@@ -89,9 +89,6 @@ inline char *P_strdup(const char *S) DYNINST_MALLOC_ANNOTATION;
 inline char *P_strdup(const char *S) { return (strdup(S));}
 
 /* BSD */
-inline int P_setsockopt(int s, int level, int optname, void *optval, int optlen) {
-   return setsockopt(s, level, optname, (const char*)optval, optlen);
-}
 
 inline int P_listen (int socket, unsigned int n) { return (listen(socket, n));}
 inline caddr_t P_mmap(caddr_t addr, size_t len, int prot, int flags,

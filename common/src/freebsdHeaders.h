@@ -81,9 +81,6 @@ inline int P_strcmp (const char *S1, const char *S2) {
 inline char *P_strdup(const char *S) { return (strdup(S));}
 
 /* BSD */
-inline int P_setsockopt(int s, int level, int optname, void *optval, int optlen) {
-   return setsockopt(s, level, optname, (const char*)optval, optlen);
-}
 
 /* inline int P_gettimeofday (struct timeval *TP, struct timezone *TZP) {
   return (gettimeofday(TP, TZP));} */
