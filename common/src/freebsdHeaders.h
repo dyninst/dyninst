@@ -69,8 +69,6 @@ extern const char *sys_errlist[];
 */
 
 /* POSIX */
-inline int P_fcntl (int FILEDES, int COMMAND, int ARG2) {
-  return (fcntl(FILEDES, COMMAND, ARG2));}
 int P_copy(const char *from, const char *to);
 int P_system(const char *string);
 inline pid_t P_getpid () { return (getpid());}
