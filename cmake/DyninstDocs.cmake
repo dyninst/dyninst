@@ -19,6 +19,14 @@
 # whether what it reports fails the target or is only printed, and
 # DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS reports everything rather than only
 # what is not already known, exactly as they do for the C++ build.
+#
+# When Ghostscript is available the finished PDF is measured as well, because
+# the log alone cannot prove a page is clean: pdflatex reports a box's overflow
+# relative to whatever box encloses it, never its position on the page, so
+# overflows that compose - an over-wide table whose cell also overflows - can
+# each stay under the threshold while their sum prints past the trim.
+# Measuring the ink settles it.  DYNINST_DOCS_FORCE_VALIDATE makes Ghostscript
+# a hard requirement rather than letting the measurement be skipped silently.
 
 include_guard(GLOBAL)
 include(GNUInstallDirs)
@@ -30,6 +38,16 @@ if(DYNINST_BUILD_DOCS AND NOT LATEX_PDFLATEX_FOUND)
           "DYNINST_BUILD_DOCS is ON but pdflatex was not found.\n"
           "  Install a LaTeX distribution, or configure with "
           "-DDYNINST_BUILD_DOCS=OFF to build the manuals on demand only.")
+endif()
+
+find_package(Ghostscript)
+
+if(DYNINST_DOCS_FORCE_VALIDATE AND NOT Ghostscript_FOUND)
+  message(FATAL_ERROR
+          "DYNINST_DOCS_FORCE_VALIDATE is ON but Ghostscript was not found.\n"
+          "  Install Ghostscript, or configure with "
+          "-DDYNINST_DOCS_FORCE_VALIDATE=OFF to skip the measurement when it "
+          "is unavailable.")
 endif()
 
 if(DYNINST_BUILD_DOCS)
@@ -120,7 +138,8 @@ function(dyninst_add_latex_document)
       -DALLOW_WARNINGS=${LTX_ALLOW_WARNINGS}
       -DMAX_OVERFULL_PT=${LTX_MAX_OVERFULL_PT}
       -DWARNINGS_AS_ERRORS=${DYNINST_WARNINGS_AS_ERRORS}
-      -DDISABLE_SUPPRESSIONS=${DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS} -P
+      -DDISABLE_SUPPRESSIONS=${DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS}
+      -DGHOSTSCRIPT=${Ghostscript_EXECUTABLE} -P
       ${PROJECT_SOURCE_DIR}/cmake/DyninstRunLaTeX.cmake
     DEPENDS ${LTX_DEPENDS} ${PROJECT_SOURCE_DIR}/cmake/DyninstRunLaTeX.cmake
     COMMENT "Building ${_stem}.pdf"

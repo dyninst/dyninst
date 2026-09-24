@@ -25,6 +25,11 @@ option(
   "Require pdflatex and build the LaTeX manuals as part of 'all' and 'install'"
   OFF)
 
+option(
+  DYNINST_DOCS_FORCE_VALIDATE
+  "Require Ghostscript and check that no manual prints past the paper's edge"
+  OFF)
+
 option(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS
        "Disable all warning suppressions and frame size overrides." OFF)
 

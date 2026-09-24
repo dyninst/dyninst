@@ -45,7 +45,11 @@
 # Driven as: cmake -DPDFLATEX=... -DSOURCE_DIR=... -DOUTPUT_DIR=... -DMAIN=...
 #                  [-DMAX_PASSES=n] [-DALLOW_WARNINGS=regex]
 #                  [-DMAX_OVERFULL_PT=n] [-DWARNINGS_AS_ERRORS=bool]
-#                  [-DDISABLE_SUPPRESSIONS=bool] -P DyninstRunLaTeX.cmake
+#                  [-DDISABLE_SUPPRESSIONS=bool] [-DGHOSTSCRIPT=path]
+#                  -P DyninstRunLaTeX.cmake
+#
+# GHOSTSCRIPT is optional.  Given, the finished PDF is measured as well as the
+# log, and a page whose ink reaches the paper's edge is reported.
 #
 # Nothing is written outside OUTPUT_DIR: pdflatex reads the document in place
 # from SOURCE_DIR and -output-directory sends every file it creates elsewhere.
@@ -84,8 +88,10 @@ function(_dyninst_latex_state out)
 endfunction()
 
 function(_dyninst_latex_check _log)
-  # An empty -D still defines the variable, so test the value, not DEFINED.
-  if(MAX_OVERFULL_PT STREQUAL "")
+  # An empty -D still defines the variable, so the value has to be tested; and
+  # an undefined name compares as the literal string "MAX_OVERFULL_PT", never
+  # as "", so DEFINED has to be tested too.  Both spellings reach the default.
+  if(NOT DEFINED MAX_OVERFULL_PT OR MAX_OVERFULL_PT STREQUAL "")
     set(MAX_OVERFULL_PT 72.27) # the right margin, in points, at 1in margins
   endif()
   if(DISABLE_SUPPRESSIONS)
@@ -156,20 +162,143 @@ function(_dyninst_latex_check _log)
     endif()
   endforeach()
 
-  if(NOT _problems)
+  set(_check_problems "${_problems}" PARENT_SCOPE)
+endfunction()
+
+# Measure where the ink actually lands.  The log cannot settle this on its own:
+# pdflatex reports a box's overflow relative to whatever box encloses it and
+# never its position on the page, so overflows that compose - an over-wide
+# table whose cell also overflows - can each stay under the threshold while
+# their sum prints past the trim.
+#
+# Ghostscript clips at the page box, so a page whose content runs off the paper
+# reports a bounding box that reaches the edge.  That is the signal.  It cannot
+# say how far past the edge the content went, only that it got there, which is
+# all this needs to decide.
+#
+# The measurement is weakest vertically, where lines sit at discrete baseline
+# intervals: the last one above the edge can stop short of it and leave the box
+# looking healthy.  That is why an overfull \vbox is reported unconditionally
+# above rather than being left to this check.
+# Pull the numbers out of a line Ghostscript printed, as whole points.
+# Truncating sidesteps arithmetic CMake 3.14's math() cannot do on decimals,
+# and a point of precision is far finer than any clearance being tested for.
+function(_dyninst_points _text _out)
+  string(REGEX MATCHALL "-?[0-9]+(\\.[0-9]+)?" _tokens "${_text}")
+  set(_r "")
+  foreach(_t ${_tokens})
+    string(REGEX REPLACE "\\..*$" "" _t "${_t}")
+    list(APPEND _r "${_t}")
+  endforeach()
+  set(${_out} "${_r}" PARENT_SCOPE)
+endfunction()
+
+# TeX points (1in = 72.27pt) to PostScript points (1in = 72bp), rounded.
+# Worked in thousandths because integer arithmetic is all CMake 3.14's math()
+# offers.  "1${_f} - 1000" rather than "${_f}" so a fraction like 069 is not
+# read as octal.
+function(_dyninst_pt_to_bp _pt _out)
+  set(${_out} "" PARENT_SCOPE)
+  if(NOT _pt MATCHES "^([0-9]+)\\.?([0-9]*)$")
+    return()
+  endif()
+  set(_i "${CMAKE_MATCH_1}")
+  set(_f "${CMAKE_MATCH_2}000")
+  string(SUBSTRING "${_f}" 0 3 _f)
+  math(EXPR _milli "${_i} * 1000 + 1${_f} - 1000")
+  math(EXPR _bp "(${_milli} * 7200 / 7227 + 500) / 1000")
+  set(${_out} "${_bp}" PARENT_SCOPE)
+endfunction()
+
+function(_dyninst_latex_validate _pdf _log)
+  set(_p "")
+
+  # Ghostscript prints in points, and comparing truncated integers avoids
+  # needing arithmetic CMake 3.14's math() cannot do.  A point of precision is
+  # far finer than the clearance being tested for.
+  if(NOT DEFINED MIN_TRIM_CLEARANCE_BP OR MIN_TRIM_CLEARANCE_BP STREQUAL "")
+    set(MIN_TRIM_CLEARANCE_BP 3)
+  endif()
+
+  # The page box comes from the log rather than from the PDF.  geometry
+  # records it in every one, and the alternative means asking Ghostscript,
+  # which has no answer that spans its releases: -dPDFINFO exists only from
+  # 9.56, and reading the PDF from PostScript instead needs the file operator
+  # on a path that was never a command-line argument, which -dSAFER - the
+  # default since 9.50 - refuses.  The log has it, already on disk, in every
+  # version.  pdfTeX writes the PDF's MediaBox from these same lengths, so
+  # the box measured against is the box the pages were made with.
+  file(READ "${_log}" _ltxt)
+  set(_px1 "")
+  set(_py1 "")
+  if(_ltxt MATCHES "\\* .paperwidth=([0-9.]+)pt")
+    _dyninst_pt_to_bp("${CMAKE_MATCH_1}" _px1)
+  endif()
+  if(_ltxt MATCHES "\\* .paperheight=([0-9.]+)pt")
+    _dyninst_pt_to_bp("${CMAKE_MATCH_1}" _py1)
+  endif()
+  if(NOT _px1 OR NOT _py1)
+    set(_validate_problems
+        "\n    no page size in the log; is the geometry package loaded?"
+        PARENT_SCOPE)
+    return()
+  endif()
+  # pdfTeX puts the page's origin at the corner of the paper.
+  set(_px0 0)
+  set(_py0 0)
+
+  execute_process(
+    COMMAND "${GHOSTSCRIPT}" -q -dBATCH -dNOPAUSE -sDEVICE=bbox "${_pdf}"
+    OUTPUT_QUIET
+    ERROR_VARIABLE _bb
+    RESULT_VARIABLE _rc)
+  if(NOT _rc EQUAL 0)
+    set(_p "\n    Ghostscript could not measure the PDF")
+    set(_validate_problems "${_p}" PARENT_SCOPE)
     return()
   endif()
 
-  set(_msg "${MAIN}: the document built but the log is not clean:${_problems}\n"
-           "  full log: ${_log}")
-  if(WARNINGS_AS_ERRORS)
-    message(FATAL_ERROR "${_msg}\n"
-            "  Set -DDYNINST_WARNINGS_AS_ERRORS=OFF to report these without "
-            "failing, or add one to ALLOW_WARNINGS in the manual's "
-            "doc/CMakeLists.txt.")
-  else()
-    message(WARNING "${_msg}")
-  endif()
+  string(REGEX MATCHALL "%%HiResBoundingBox:[0-9. ]+" _pages "${_bb}")
+  set(_pageno 0)
+  foreach(_box ${_pages})
+    math(EXPR _pageno "${_pageno} + 1")
+    string(REGEX REPLACE "^[^:]*:" "" _box "${_box}")
+    _dyninst_points("${_box}" _edges)
+    list(LENGTH _edges _n2)
+    if(NOT _n2 EQUAL 4)
+      continue()
+    endif()
+    list(GET _edges 0 _llx)
+    list(GET _edges 1 _lly)
+    list(GET _edges 2 _urx)
+    list(GET _edges 3 _ury)
+
+    math(EXPR _left "${_llx} - (${_px0})")
+    math(EXPR _bottom "${_lly} - (${_py0})")
+    math(EXPR _right "${_px1} - (${_urx})")
+    math(EXPR _top "${_py1} - (${_ury})")
+
+    set(_sides "")
+    if(_left LESS MIN_TRIM_CLEARANCE_BP)
+      list(APPEND _sides "left")
+    endif()
+    if(_right LESS MIN_TRIM_CLEARANCE_BP)
+      list(APPEND _sides "right")
+    endif()
+    if(_bottom LESS MIN_TRIM_CLEARANCE_BP)
+      list(APPEND _sides "bottom")
+    endif()
+    if(_top LESS MIN_TRIM_CLEARANCE_BP)
+      list(APPEND _sides "top")
+    endif()
+    if(_sides)
+      string(REPLACE ";" ", " _sides "${_sides}")
+      string(APPEND _p "\n    page ${_pageno}: ink reaches the ${_sides} edge"
+                       " (clearance L${_left} R${_right} T${_top} B${_bottom} pt)")
+    endif()
+  endforeach()
+
+  set(_validate_problems "${_p}" PARENT_SCOPE)
 endfunction()
 
 # Seed the comparison with whatever a previous build left behind, so a
@@ -212,7 +341,41 @@ while(_pass LESS_EQUAL MAX_PASSES)
   endif()
 
   if(_current STREQUAL _previous AND NOT _rerun)
+    set(_check_problems "")
+    set(_validate_problems "")
     _dyninst_latex_check("${OUTPUT_DIR}/${_stem}.log")
+    if(GHOSTSCRIPT)
+      _dyninst_latex_validate("${OUTPUT_DIR}/${_stem}.pdf"
+                               "${OUTPUT_DIR}/${_stem}.log")
+    endif()
+
+    set(_report "")
+    if(_check_problems)
+      string(APPEND _report "\n  the log is not clean:${_check_problems}"
+                            "\n  full log: ${OUTPUT_DIR}/${_stem}.log")
+    endif()
+    if(_validate_problems)
+      string(APPEND _report
+             "\n  the page does not hold its content:${_validate_problems}")
+    endif()
+    if(_report)
+      if(WARNINGS_AS_ERRORS)
+        # ALLOW_WARNINGS only ever silences a log warning, so offer it only
+        # when one is what failed.  A page that does not hold its content has
+        # to be fixed in the document.
+        set(_hint "")
+        if(_check_problems)
+          set(_hint " or add one to ALLOW_WARNINGS in the manual's"
+                    " doc/CMakeLists.txt")
+        endif()
+        message(FATAL_ERROR
+                "${MAIN}: the document built but${_report}\n"
+                "  Set -DDYNINST_WARNINGS_AS_ERRORS=OFF to report these "
+                "without failing${_hint}.")
+      else()
+        message(WARNING "${MAIN}: the document built but${_report}")
+      endif()
+    endif()
     return()
   endif()
 
