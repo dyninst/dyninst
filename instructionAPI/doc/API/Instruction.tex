@@ -93,7 +93,7 @@ const Operation & getOperation() const;
 }
 
 \begin{apient}
-std::vector<Operand> getAllOperands() const;
+std::vector<Operand> const &getAllOperands() const;
 \end{apient}
 \apidesc{
 Returns the operands in the order that they were decoded.

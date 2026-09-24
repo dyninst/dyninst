@@ -44,7 +44,7 @@ typedef enum {
 \end{apient}
 
 \begin{apient}
-bool getAllFunctions(vector<Function *> &ret);
+std::vector<Function *> getAllFunctions() const;
 \end{apient}
 \apidesc{
 Returns all functions located within the PC address ranges covered by this module.

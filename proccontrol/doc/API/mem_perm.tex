@@ -3,7 +3,9 @@ general memory page permission for the given memory page in the process.
 
 
 \begin{apient}
-Process::mem_perm::read Process::mem_perm::write Process::mem_perm::execute;
+bool Process::mem_perm::read;
+bool Process::mem_perm::write;
+bool Process::mem_perm::execute;
 \end{apient}
 
 \apidesc{

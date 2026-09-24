@@ -9,7 +9,6 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 
 \begin{apient}
   ProcessSet::ptr;
-
   ProcessSet::const_ptr;
 \end{apient}
 
@@ -19,7 +18,6 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 
 \begin{apient}
   struct CreateInfo;
-
   struct AttachInfo;
 \end{apient}
 
@@ -31,7 +29,6 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 
 \begin{apient}
   struct write_t;
-
   struct read_t;
 \end{apient}
 
@@ -73,7 +70,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  static ProcessSet newProcessSet(AddressSet::const_iterator ab, AddressSet::const_iterator ae);
+  static ProcessSet::ptr newProcessSet(AddressSet::const_iterator ab, AddressSet::const_iterator ae);
 \end{apient}
 
 \apidesc{
@@ -117,7 +114,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  ProcessSet::ptr set_union(ProcessSet::ptrpset) const;
+  ProcessSet::ptr set_union(ProcessSet::ptr pset) const;
 \end{apient}
 
 \apidesc{
@@ -286,7 +283,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 
 \begin{apient}
   bool anyThreadStopped();
-  bool allThreadStopped();
+  bool allThreadsStopped();
 \end{apient}
 
 \apidesc{
@@ -296,7 +293,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 
 \begin{apient}
   bool anyThreadRunning();
-  bool allThreadRunning();
+  bool allThreadsRunning();
 \end{apient}
 
 \apidesc{
@@ -525,7 +522,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool writMemory(AddressSet::ptr addrs, const void *buffer, size_t sz) const;
+  bool writeMemory(AddressSet::ptr addrs, const void *buffer, size_t sz) const;
 \end{apient}
 
 \apidesc{

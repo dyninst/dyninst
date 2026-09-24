@@ -81,7 +81,7 @@ void getInsns(Insns &insns) const;
   \code{Insns}.}
 
 \begin{apient}
-InstructionAPI::Instruction::Ptr getInsn(Offset o) const;
+InstructionAPI::Instruction getInsn(Offset o) const;
 \end{apient}
 \apidesc{Returns the instruction starting at offset \code{o} within
   the block. Returns \code{InstructionAPI::Instruction::Ptr()} if

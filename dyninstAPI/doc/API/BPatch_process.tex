@@ -5,8 +5,7 @@ space.
 \begin{apient}
   bool stopExecution();
   bool continueExecution();
-
-  bool terminateExecution;
+  bool terminateExecution();
 \end{apient}
 
 
@@ -72,7 +71,7 @@ space.
 }
 
 \begin{apient}
-  void detach(bool cont);
+  bool detach(bool cont);
 \end{apient}
 
 \apidesc{
@@ -145,7 +144,7 @@ space.
 }
 
 \begin{apient}
-  void oneTimeCode(const BPatch_snippet &expr);
+  void *oneTimeCode(const BPatch_snippet &expr, bool *err = NULL);
 \end{apient}
 
 \apidesc{

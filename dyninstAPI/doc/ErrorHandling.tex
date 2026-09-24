@@ -21,7 +21,7 @@ pass a \code{BPatch\_thread} object when a
   bool registerThreadEventCallback(BPatch_asyncEventType type,
                                    BPatchAsyncThreadEventCallback cb);
   bool removeThreadEventCallback(BPatch_asyncEventType type,
-                                 BPatch_AsyncThreadEventCallback cb);
+                                 BPatchAsyncThreadEventCallback cb);
 \end{apient}
 
 \apidesc{
@@ -63,6 +63,7 @@ pass a \code{BPatch\_thread} object when a
     BPatch_Vector<BPatch_function*> &modFuncs,
     BPatch_Vector<BPatch_function*> &newFuncs
   );
+
   bool registerCodeOverwriteCallbacks(BPatchCodeOverwriteBeginCallback cbBegin,
                                       BPatchCodeOverwriteEndCallback cbEnd);
 \end{apient}
@@ -256,7 +257,7 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchOneTimeCodeCallback)(
-    Bpatch_thread *thr,
+    BPatch_thread *thr,
     void *userData,
     void *returnValue
   );

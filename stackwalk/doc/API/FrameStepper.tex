@@ -138,7 +138,6 @@ virtual Walker *getWalker();
 
 \begin{apient}
 typedef std::pair<std::string, Address> LibAddrPair;
-
 typedef enum { library_load, library_unload } lib_change_t;
 
 virtual void newLibraryNotification(LibAddrPair *libAddr,

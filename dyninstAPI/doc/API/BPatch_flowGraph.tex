@@ -15,7 +15,7 @@ can be obtained by calling the getCFG method of a
 }
 
 \begin{apient}
-  void getAllBasicBlocks(std::set<BPatch_basicBlock*>&);
+  bool getAllBasicBlocks(std::set<BPatch_basicBlock*>&);
 \end{apient}
 
 \apidesc{
@@ -24,7 +24,7 @@ can be obtained by calling the getCFG method of a
 }
 
 \begin{apient}
-  void getEntryBasicBlock(std::vector<BPatch_basicBlock*>&);
+  bool getEntryBasicBlock(std::vector<BPatch_basicBlock*>&);
 \end{apient}
 
 \apidesc{
@@ -33,7 +33,7 @@ can be obtained by calling the getCFG method of a
 }
 
 \begin{apient}
-  void getExitBasicBlock(std::vector<BPatch_basicBlock*>&);
+  bool getExitBasicBlock(std::vector<BPatch_basicBlock*>&);
 \end{apient}
 
 \apidesc{
@@ -42,7 +42,7 @@ can be obtained by calling the getCFG method of a
 }
 
 \begin{apient}
-  void getLoops(std::vector<BPatch_basicBlockLoop*>&);
+  bool getLoops(std::vector<BPatch_basicBlockLoop*>&);
 \end{apient}
 
 \apidesc{
@@ -51,7 +51,7 @@ can be obtained by calling the getCFG method of a
 }
 
 \begin{apient}
-  void getOuterLoops(std::vector<BPatch_basicBlockLoop*>&);
+  bool getOuterLoops(std::vector<BPatch_basicBlockLoop*>&);
 \end{apient}
 
 \apidesc{
