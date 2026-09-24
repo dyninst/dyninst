@@ -71,7 +71,6 @@ extern const char *sys_errlist[];
 /* POSIX */
 inline pid_t P_getpid () { return (getpid());}
 
-inline int P_chdir(const char *path) { return (chdir(path)); }
 inline int P_putenv(char *str) { return putenv(str); }
 inline int P_getpagesize() { return getpagesize(); }
 /* SYSTEM-V shared memory */
