@@ -1742,8 +1742,8 @@ Offset emitElfStatic::allocateRelocationSection(std::map<Symbol *, std::pair<Off
   size_t relocEntries = entries.size() + (rela ? rela->getRelocations().size() : 0);
 
   size = relocEntries * relocSize;
-  Offset cur = relocOffset + size;
-  return cur;
+
+  return relocOffset + size;
 }
 
 Offset emitElfStatic::allocateRelGOTSection(const std::map<Symbol *, std::pair<Offset, Offset> > &entries,
