@@ -84,8 +84,6 @@ inline int P_execve (const char* FILENAME,
 }
 inline int P_fcntl (int FILEDES, int COMMAND, int ARG2) {
   return (fcntl(FILEDES, COMMAND, ARG2));}
-inline FILE * P_fdopen (int FILEDES, const char *OPENTYPE) {
-  return (fdopen(FILEDES, OPENTYPE));}
 inline FILE * P_fopen (const char *FILENAME, const char *OPENTYPE) {
     return fopen(FILENAME, OPENTYPE);
 }
