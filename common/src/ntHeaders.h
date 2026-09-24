@@ -97,9 +97,6 @@ typedef int pid_t;
 typedef int key_t;
 typedef unsigned int socklen_t;
 
-// Apparently this doesn't exist on NT? Weird.
-int P_getopt(int argc, char *argv[], const char *optstring);
-
 /* POSIX */
 inline void P_abort (void) { abort();}
 inline int P_close (int FILEDES) { return (_close(FILEDES));}

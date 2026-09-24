@@ -83,14 +83,6 @@ static ssize_t process_vm_writev(pid_t pid,
 #endif /* !__GLIBC_PREREQ(2,15) */
 
 
-int P_getopt(int argc, char *argv[], const char *optstring)
-{
-  /* On linux we prepend a + character */
-  std::string newopt{"+"};
-  newopt += optstring;
-  return getopt(argc, argv, newopt.c_str());
-}
-
 int P_copy(const char *from, const char *to) {
     std::ifstream src(from, std::ios::binary);
     std::ofstream dst(to, std::ios::binary | std::ios::trunc);
