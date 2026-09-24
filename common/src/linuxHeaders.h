@@ -75,7 +75,6 @@ extern const char *sys_errlist[];
 #define SYS_tkill 238
 #endif
 /* POSIX */
-int P_copy(const char *from, const char *to);
 int P_system(const char *string);
 inline pid_t P_getpid () { return (getpid());}
 inline int P_kill(pid_t PID, int SIGNUM) { return (kill(PID, SIGNUM));}
