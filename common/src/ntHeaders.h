@@ -117,9 +117,6 @@ inline int P_strcmp (const char *S1, const char *S2) {
 inline char *P_strdup(const char *S) { return (_strdup(S));}
 
 /* BSD */
-inline int P_unlink(const char *pathname) {
-	return _unlink(pathname);
-}
 extern char *cplus_demangle(const char *, int, bool);
 /* We can't export this, it's inline. */
 inline std::string P_cplus_demangle( const std::string &symbol, bool includeTypes = false ) {
