@@ -116,14 +116,14 @@ Symbol creation interface:
 }
 
 \begin{apient}
-bool getVersionFileName(std::string &fileName);
+bool getVersionFileName(std::string &fileName) const;
 \end{apient}
 \apidesc{
 This method retrieves the file name in which this symbol is present. Returns \code{false} if this symbol does not have any version information present otherwise returns \code{true}.
 }
 
 \begin{apient}
-bool getVersions(std::vector<std::string> *&vers);
+bool getVersions(std::vector<std::string> *&vers) const;
 \end{apient}
 \apidesc{
 This method retrieves all the version names for this symbol. Returns \code{false} if the symbol does not have any version information present.

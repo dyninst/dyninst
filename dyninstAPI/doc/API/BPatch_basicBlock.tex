@@ -119,7 +119,7 @@ graph of the containing function.
 }
 
 \begin{apient}
-  unsigned long getStartAddress();
+  unsigned long getStartAddress() const;
 \end{apient}
 
 \apidesc{
@@ -127,7 +127,7 @@ graph of the containing function.
   is an absolute address.
 }
 \begin{apient}
-  unsigned long getEndAddress();
+  unsigned long getEndAddress() const;
 \end{apient}
 
 \apidesc{
@@ -135,28 +135,28 @@ graph of the containing function.
   an absolute address.
 }
 \begin{apient}
-  unsigned long getLastInsnAddress();
+  unsigned long getLastInsnAddress() const;
 \end{apient}
 
 \apidesc{
   Return the address of the last instruction in a basic block.
 }
 \begin{apient}
-  bool isEntryBlock();
+  bool isEntryBlock() const;
 \end{apient}
 
 \apidesc{
   This function returns true if this basic block is an entry block into a function.
 }
 \begin{apient}
-  bool isExitBlock();
+  bool isExitBlock() const;
 \end{apient}
 
 \apidesc{
   This function returns true if this basic block is an exit block of a function.
 }
 \begin{apient}
-  unsigned size();
+  unsigned size() const;
 \end{apient}
 
 \apidesc{

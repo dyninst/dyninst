@@ -272,8 +272,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool anyDetached();
-  bool allDetached();
+  bool anyDetached() const;
+  bool allDetached() const;
 \end{apient}
 
 \apidesc{
@@ -282,8 +282,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool anyThreadStopped();
-  bool allThreadsStopped();
+  bool anyThreadStopped() const;
+  bool allThreadsStopped() const;
 \end{apient}
 
 \apidesc{
@@ -292,8 +292,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool anyThreadRunning();
-  bool allThreadsRunning();
+  bool anyThreadRunning() const;
+  bool allThreadsRunning() const;
 \end{apient}
 
 \apidesc{
@@ -358,7 +358,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool continueProcs();
+  bool continueProcs() const;
 \end{apient}
 
 \apidesc{
@@ -368,7 +368,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool stopProcs();
+  bool stopProcs() const;
 \end{apient}
 
 \apidesc{
@@ -379,7 +379,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool detach(bool leaveStopped = true);
+  bool detach(bool leaveStopped = false) const;
 \end{apient}
 
 \apidesc{
@@ -392,7 +392,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool terminate();
+  bool terminate() const;
 \end{apient}
 
 \apidesc{
@@ -402,7 +402,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool temporaryDetach();
+  bool temporaryDetach() const;
 \end{apient}
 
 \apidesc{
@@ -413,7 +413,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool reAttach();
+  bool reAttach() const;
 \end{apient}
 
 \apidesc{
@@ -433,7 +433,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool mallocMemory(size_t size, AddressSet::ptr location);
+  bool mallocMemory(size_t size, AddressSet::ptr location) const;
 \end{apient}
 
 \apidesc{
@@ -507,7 +507,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool readMemory(std::multimap<Process::const_ptr, read_t> &addr);
+  bool readMemory(std::multimap<Process::const_ptr, read_t> &addr) const;
 \end{apient}
 
 \apidesc{
@@ -591,7 +591,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool postIRPC(IRPC::ptr irpc, std::multimap<Process::ptr, IRPC::ptr> *result = NULL);
+  bool postIRPC(IRPC::ptr irpc, std::multimap<Process::ptr, IRPC::ptr> *result = NULL) const;
 \end{apient}
 
 \apidesc{
@@ -607,7 +607,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 \begin{apient}
   bool postIRPC(IRPC::ptr irpc,
                 AddressSet::ptr addrs,
-                std::multimap<Process::ptr, IRPC::ptr> *result = NULL);
+                std::multimap<Process::ptr, IRPC::ptr> *result = NULL) const;
 \end{apient}
 
 \apidesc{

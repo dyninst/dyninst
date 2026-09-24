@@ -24,7 +24,7 @@ breakpoints.
 }
 
 \begin{apient}
-Breakpoint::ptr newBreakpoint();
+static Breakpoint::ptr newBreakpoint();
 \end{apient}
 
 \apidesc{
@@ -34,7 +34,7 @@ Process::addBreakpoint().
 }
 
 \begin{apient}
-Breakpoint::ptr newTransferBreakpoint(Dyninst::Address ctrl_to);
+static Breakpoint::ptr newTransferBreakpoint(Dyninst::Address ctrl_to);
 \end{apient}
 
 \apidesc{
@@ -44,7 +44,7 @@ specified by the ctrl\_to parameter.
 }
 
 \begin{apient}
-Breakpoint::ptr newHardwareBreakpoint(unsigned int mode, unsigned int size);
+static Breakpoint::ptr newHardwareBreakpoint(unsigned int mode, unsigned int size);
 \end{apient}
 
 \apidesc{

@@ -79,63 +79,63 @@ Function(Address addr,
 Insructions for this function are given in \code{isource}.}
 
 \begin{apient}
-LoopTreeNode* getLoopTree();
+LoopTreeNode* getLoopTree() const;
 \end{apient}
 \apidesc{Return the nesting tree of the loops in the function. See class \code{LoopTreeNode} for more details}
 
 \begin{apient}
-Loop* findLoop(const char *name);
+Loop* findLoop(const char *name) const;
 \end{apient}
 \apidesc{Return the loop with the given nesting name. See class \code{LoopTreeNode} for more details about how loop nesting names are assigned.}
 
 \begin{apient}
-bool getLoops(vector<Loop*> &loops);
+bool getLoops(vector<Loop*> &loops) const;
 \end{apient}
 \apidesc{Fill \code{loops} with all the loops in the function}
 
 \begin{apient}
-bool getOuterLoops(vector<Loop*> &loops);
+bool getOuterLoops(vector<Loop*> &loops) const;
 \end{apient}
 \apidesc{Fill \code{loops} with all the outermost loops in the function}
 
 \begin{apient}
-bool dominates(Block* A, Block *B);
+bool dominates(Block* A, Block *B) const;
 \end{apient}
 \apidesc{Return true if block \code{A} dominates block \code{B}}
 
 \begin{apient}
-Block* getImmediateDominator(Block *A);
+Block* getImmediateDominator(Block *A) const;
 \end{apient}
 \apidesc{Return the immediate dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate dominator.}
 
 \begin{apient}
-void getImmediateDominates(Block *A, set<Block*> &imm);
+void getImmediateDominates(Block *A, set<Block*> &imm) const;
 \end{apient}
 \apidesc{Fill \code{imm} with all the blocks immediate dominated by block \code{A}}
 
 \begin{apient}
-void getAllDominates(Block *A, set<Block*> &dom);
+void getAllDominates(Block *A, set<Block*> &dom) const;
 \end{apient}
 \apidesc{Fill \code{dom} with all the blocks dominated by block \code{A}}
 
 
 \begin{apient}
-bool postDominates(Block* A, Block *B);
+bool postDominates(Block* A, Block *B) const;
 \end{apient}
 \apidesc{Return true if block \code{A} post-dominates block \code{B}}
 
 \begin{apient}
-Block* getImmediatePostDominator(Block *A);
+Block* getImmediatePostDominator(Block *A) const;
 \end{apient}
 \apidesc{Return the immediate post-dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate post-dominator.}
 
 \begin{apient}
-void getImmediatePostDominates(Block *A, set<Block*> &imm);
+void getImmediatePostDominates(Block *A, set<Block*> &imm) const;
 \end{apient}
 \apidesc{Fill \code{imm} with all the blocks immediate post-dominated by block \code{A}}
 
 \begin{apient}
-void getAllPostDominates(Block *A, set<Block*> &dom);
+void getAllPostDominates(Block *A, set<Block*> &dom) const;
 \end{apient}
 \apidesc{Fill \code{dom} with all the blocks post-dominated by block \code{A}}
 
@@ -159,6 +159,7 @@ void set_retstatus(FuncReturnStatus rs);
 
 \begin{apient}
 bool contains(Block *b);
+bool contains(Block *b) const;
 \end{apient}
 \apidesc{Return true if this function contains the given block \code{b};
 otherwise false.}

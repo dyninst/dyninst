@@ -337,14 +337,14 @@ Create a new type called name and having the type ptr.
 }
 
 \begin{apient}
-BPatch_type *createPointer(const char *name, BPatch_type *ptr);
-BPatch_type *createPointer(const char *name, BPatch_type *ptr, int size);
+BPatch_type *createPointer(const char *name, BPatch_type *ptr,
+                           int size = sizeof(void *));
 \end{apient}
 
 \apidesc{
-Create a new type, named name, which points to objects of type ptr. The first form creates a pointer whose size is equal
-to sizeof(void*)on the target platform where the muta\-tee is running. In the second form, the size of the pointer is
-the value passed in the size parameter.
+Create a new type, named name, which points to objects of type ptr. The size of
+the pointer is the value passed in the size parameter; left out, it is
+sizeof(void*) on the target platform where the muta\-tee is running.
 }
 
 \begin{apient}

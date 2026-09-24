@@ -140,7 +140,7 @@ bool getInitialFrame(Frame &frame, Dyninst::THR_ID thread = NULL_THR_ID);
 }
 
 \begin{apient}
-bool getAvailableThreads(std::vector<Dyninst::THR_ID> &threads);
+bool getAvailableThreads(std::vector<Dyninst::THR_ID> &threads) const;
 \end{apient}
 \apidesc{
     This method returns a vector of threads in the target process upon which

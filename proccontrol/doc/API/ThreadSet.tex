@@ -437,7 +437,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 }
 
 \begin{apient}
-bool postIRPC(IRPC::ptr irpc, std::multimap<Thread::ptr, IRPC::ptr> *result = NULL);
+bool postIRPC(IRPC::ptr irpc, std::multimap<Thread::ptr, IRPC::ptr> *result = NULL) const;
 \end{apient}
 
 \apidesc{

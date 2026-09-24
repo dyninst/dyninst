@@ -54,7 +54,7 @@ typedef enum{
 \end{apient}
 
 \begin{apient}
-dataClass getDataClass();
+dataClass getDataClass() const;
 \end{apient}
 \apidesc{
 This method returns the data class associated with the type.
@@ -62,7 +62,7 @@ This value should be used to convert this generic type object to a specific type
 }
 
 \begin{apient}
-typeId_t getID();
+typeId_t getID() const;
 \end{apient}
 \apidesc{
 This method returns the ID associated with this type.

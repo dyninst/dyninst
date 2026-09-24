@@ -160,6 +160,7 @@ size zero.
 
 \begin{apient}
 iterator lower_bound(Dyninst::Address addr);
+const_iterator lower_bound(Dyninst::Address addr) const;
 \end{apient}
 
 \apidesc{
@@ -169,6 +170,7 @@ AddressSet that has an address greater than or equal to addr.
 
 \begin{apient}
 iterator upper_bound(Dyninst::Address addr);
+const_iterator upper_bound(Dyninst::Address addr) const;
 \end{apient}
 
 \apidesc{
@@ -187,7 +189,7 @@ value as the return of upper\_bound(addr).
 }
 
 \begin{apient}
-AddressSet::ptr set_union(AddressSet::const_ptr aset);
+AddressSet::ptr set_union(AddressSet::const_ptr aset) const;
 \end{apient}
 
 \apidesc{
@@ -196,7 +198,7 @@ AddressSet and aset.
 }
 
 \begin{apient}
-AddressSet::ptr set_intersection(AddressSet::const_ptr aset);
+AddressSet::ptr set_intersection(AddressSet::const_ptr aset) const;
 \end{apient}
 
 \apidesc{
@@ -205,7 +207,7 @@ of this AddressSet and aset.
 }
 
 \begin{apient}
-AddressSet::ptr set_difference(AddressSet::const_ptr aset);
+AddressSet::ptr set_difference(AddressSet::const_ptr aset) const;
 \end{apient}
 
 \apidesc{

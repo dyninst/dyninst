@@ -49,7 +49,7 @@ Operation + ExpressionPtrs -> Instruction + Operands
 
 
 \begin{apient}
-const Operation::registerSet & implicitReads() const;
+const Operation::registerSet & implicitReads();
 \end{apient}
 \apidesc{
 Returns the set of registers implicitly read (i.e. those not included in the
@@ -58,7 +58,7 @@ anyway).
 }
 
 \begin{apient}
-const Operation::registerSet & implicitWrites() const;
+const Operation::registerSet & implicitWrites();
 \end{apient}
 \apidesc{
 Returns the set of registers implicitly written (i.e. those not included in the
@@ -92,7 +92,7 @@ are enumerated values that correspond to assembly prefix mnemonics.
 }
 
 \begin{apient}
-bool isRead(Expression::Ptr candidate) const;
+bool isRead(Expression::Ptr candidate);
 \end{apient}
 \apidesc{
     Returns \code{true} if the expression represented by \code{candidate} is
@@ -100,7 +100,7 @@ bool isRead(Expression::Ptr candidate) const;
 }
 
 \begin{apient}
-bool isWritten(Expression::Ptr candidate) const;
+bool isWritten(Expression::Ptr candidate);
 \end{apient}
 \apidesc{
     Returns \code{true} if the expression represented by \code{candidate} is
@@ -108,14 +108,14 @@ bool isWritten(Expression::Ptr candidate) const;
 }
 
 \begin{apient}
-const Operation::VCSet & getImplicitMemReads() const;
+const Operation::VCSet & getImplicitMemReads();
 \end{apient}
 \apidesc{
 Returns the set of memory locations implicitly read.
 }
 
 \begin{apient}
-const Operation::VCSet & getImplicitMemWrites() const;
+const Operation::VCSet & getImplicitMemWrites();
 \end{apient}
 \apidesc{
 Returns the set of memory locations implicitly write.

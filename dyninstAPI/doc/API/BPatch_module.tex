@@ -10,7 +10,10 @@ objects that it cannot match to a source file.
 \begin{apient}
   std::vector<BPatch_function*> *findFunction(const char *name,
                                               std::vector<BPatch_function*> &funcs,
-                                              bool incUninstrumentable = false);
+                                              bool notify_on_failure = true,
+                                              bool regex_case_sensitive = true,
+                                              bool incUninstrumentable = false,
+                                              bool dont_use_regex = false);
 \end{apient}
 
 \apidesc{
@@ -26,6 +29,7 @@ objects that it cannot match to a source file.
 
 \begin{apient}
   BPatch_Vector<BPatch_function *> *findFunctionByAddress(void *addr,
+                                                          BPatch_Vector<BPatch_function *> &funcs,
                                                           bool notify_on_failure = true,
                                                           bool incUninstrumentable = false);
 \end{apient}

@@ -62,9 +62,9 @@ The error value is set to \code{No\_Such\_Variable}.
 }
 
 \begin{apient}
-bool findVariablesByName(vector<Function> &ret,
+bool findVariablesByName(vector<Variable *> &ret,
                          const string &name,
-                         Symtab::NameType nameType,
+                         NameType nameType = anyName,
                          bool isRegex = false,
                          bool checkCase = true);
 \end{apient}
@@ -114,7 +114,7 @@ Return \code{true} if at least one tuple corresponding to the offset was found a
 }
 
 \begin{apient}
-LineInformation *getLineInformation() const;
+LineInformation *getLineInformation();
 \end{apient}
 \apidesc{
 This method returns the line map (section \ref{LineInformation}) corresponding to the module. Returns \code{NULL} if

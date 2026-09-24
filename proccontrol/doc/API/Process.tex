@@ -89,7 +89,7 @@ part of the pair is the start address, the second, the end.
 \begin{apient}
 static Process::ptr createProcess(std::string executable,
                                   const std::vector<std::string> &argv,
-                                  const std::vector<std::string> &envp = emptyEnv,
+                                  const std::vector<std::string> &envp = emptyEnvp,
                                   const std::map<int,int> &fds = emptyFDs);
 \end{apient}
 
@@ -454,8 +454,8 @@ It is an error to call this function from a callback.
 }
 
 \begin{apient}
-const ThreadPool &threads();
-const ThreadPool &threads();
+ThreadPool &threads();
+const ThreadPool &threads() const;
 \end{apient}
 
 \apidesc{
@@ -483,7 +483,7 @@ will trigger an event (and thus a user callback) for each library loaded
 
 \begin{apient}
 void *getData() const;
-void setData(void *p);
+void setData(void *p) const;
 \end{apient}
 
 \apidesc{
@@ -670,6 +670,11 @@ ThreadTracking *getThreadTracking();
 LWPTracking *getLWPTracking();
 FollowFork *getFollowFork();
 SignalMask *getSignalMask();
+const LibraryTracking *getLibraryTracking() const;
+const ThreadTracking *getThreadTracking() const;
+const LWPTracking *getLWPTracking() const;
+const FollowFork *getFollowFork() const;
+const SignalMask *getSignalMask() const;
 \end{apient}
 
 \apidesc{

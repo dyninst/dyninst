@@ -37,7 +37,7 @@ Returns the size of a pointer, in bytes, on the given architecture, arch.
 }
 
 \begin{apient}
-MachRegister getPC(Dyninst::Architecture arch);
+static MachRegister getPC(Dyninst::Architecture arch);
 \end{apient}
 
 \apidesc{
@@ -45,7 +45,7 @@ Returns the program counter (PC) for the architecture \code{arch}.
 }
 
 \begin{apient}
-MachRegister getFramePointer(Dyninst::Architecture arch);
+static MachRegister getFramePointer(Dyninst::Architecture arch);
 \end{apient}
 
 \apidesc{
@@ -53,7 +53,7 @@ Returns the frame pointer for the architecture \code{arch}.
 }
 
 \begin{apient}
-MachRegister getStackPointer(Dyninst::Architecture arch);
+static MachRegister getStackPointer(Dyninst::Architecture arch);
 \end{apient}
 
 \apidesc{

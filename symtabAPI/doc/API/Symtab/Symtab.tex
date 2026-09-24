@@ -40,9 +40,9 @@ This method queries information on the type of the object file.
 }
 
 \begin{apient}
-bool isExecutable();
-bool isSharedLibrary();
-bool isExec();
+bool isExecutable() const;
+bool isSharedLibrary() const;
+bool isExec() const;
 \end{apient}
 \apidesc{
 These methods respectively return true if the Symtab's object is an executable, a shared
@@ -265,10 +265,11 @@ and \code{false} if there are no modules. The error value is set to \code{No\_Su
 \begin{apient}
 bool findSymbol(vector <Symbol *> &ret,
                 const string name,
-                Symbol::SymbolType sType,
+                Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
                 NameType nameType = anyName,
                 bool isRegex = false,
-                bool checkCase = false);
+                bool checkCase = false,
+                bool includeUndefined = false);
 \end{apient}
 \apidesc{
 This method finds and returns a vector of symbols with type \code{sType} whose names match the given name. The \code{nameType} parameter determines which names are searched: mangled, pretty, typed, or any. If the \code{isRegex} flag is set a regular expression match is performed with the symbol names. \code{checkCase} is applicable only if \code{isRegex} has been set. This indicates if the case be considered while performing regular expression matching. \code{ret} contains the list of matched symbols if any.
@@ -327,7 +328,7 @@ This method finds all the data regions in the object file. Returns \code{true} w
 }
 
 \begin{apient}
-bool getMappedRegions(std::vector<Region *>&ret);
+bool getMappedRegions(std::vector<Region *>&ret) const;
 \end{apient}
 \apidesc{
 This method finds all the loadable regions in the object file. Returns \code{true} with \code{ret} containing the loadable regions if there is at least one loadable region in the object file or else returns \code{false}.
