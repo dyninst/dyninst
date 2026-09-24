@@ -93,7 +93,7 @@ foreach(test_name ${_all_tests})
 
   set(_targ "symtab_file_properties_isExec_${test_name}")
   # TODO: get __attribute__((section(".interp"))) working
-  if(NOT "${test_name}" MATCHES "sharedlib" AND NOT ${test_name} MATCHES "hasmain")
+  if(NOT "${test_name}" MATCHES "sharedlib" AND NOT "${test_name}" MATCHES "hasmain")
     add_test(NAME ${_targ} COMMAND $<TARGET_FILE:isExec> "${test_file}")
     if(NOT "${test_name}" MATCHES "exectest")
       set_tests_properties(${_targ} PROPERTIES WILL_FAIL TRUE)
@@ -106,7 +106,7 @@ foreach(test_name ${_all_tests})
 
   set(_targ "symtab_file_properties_isExecutable_${test_name}")
   # TODO: get __attribute__((section(".interp"))) working
-  if(NOT "${test_name}" MATCHES "sharedlib" AND NOT ${test_name} MATCHES "hasmain")
+  if(NOT "${test_name}" MATCHES "sharedlib" AND NOT "${test_name}" MATCHES "hasmain")
     add_test(NAME ${_targ} COMMAND $<TARGET_FILE:isExecutable> "${test_file}")
     if("${test_name}" MATCHES "staticlib")
       set_tests_properties(${_targ} PROPERTIES WILL_FAIL TRUE)
