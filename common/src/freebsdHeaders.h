@@ -82,8 +82,6 @@ inline char *P_strdup(const char *S) { return (strdup(S));}
 
 /* BSD */
 
-inline int P_socket (int NAMESPACE, int STYLE, int PROTOCOL) {
-  return (socket(NAMESPACE, STYLE, PROTOCOL));}
 inline int P_socketpair(int namesp, int style, int protocol, int filedes[2]) {
   return (socketpair(namesp, style, protocol, filedes));}
 inline int P_pipe(int fds[2]) { return (pipe(fds)); }

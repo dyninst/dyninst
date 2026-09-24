@@ -117,9 +117,6 @@ inline int P_strcmp (const char *S1, const char *S2) {
 inline char *P_strdup(const char *S) { return (_strdup(S));}
 
 /* BSD */
-inline int P_socket (int NAMESPACE, int STYLE, int PROTOCOL) {
-  return (socket(NAMESPACE, STYLE, PROTOCOL));}
-
 inline int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex,
 		    struct timeval *tm) {
   return (select(wid, rd, wr, ex, tm));}
