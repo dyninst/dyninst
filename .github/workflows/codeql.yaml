@@ -54,6 +54,13 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
           source-root: "src"  # relative to ${GITHUB_WORKSPACE}
 
+      - name: Install python
+        if: matrix.language == 'python'
+        shell: bash
+        run: |
+          apt update -y
+          apt install -y python3
+
       - name: Build Dyninst
         if: matrix.language == 'c-cpp'
         uses: ./src/.github/actions/build
