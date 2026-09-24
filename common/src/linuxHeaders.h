@@ -83,9 +83,6 @@ inline int P_getpagesize() { return getpagesize(); }
 /* ANSI */
 inline void * P_memcpy (void *A1, const void *A2, size_t SIZE)
     { return memcpy( A1, A2, SIZE ); }
-inline const char * P_strchr (const char *P_STRING, int C) {return (strchr(P_STRING, C));}
-inline char * P_strchr (char *P_STRING, int C) {return (strchr(P_STRING, C));}
-
 inline int P_strcmp (const char *S1, const char *S2) {
   return (strcmp(S1, S2));}
 inline char * P_strcpy (char *TO, const char *FROM) {
