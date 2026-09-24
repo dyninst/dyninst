@@ -58,42 +58,47 @@ bool is_signed(Dwarf_Die *die) {
 namespace Dyninst {
 namespace DwarfDyninst {
 
-static dwarf_result upper_bound(Dwarf_Die *die) {
+/*
+ * DWARF5 - Section 2.19 Static and Dynamic Values of Attributes
+ *
+ * The bound and count attributes of a subrange may be a constant, a DWARF
+ * expression, or a reference to a DIE describing the value. Only a constant
+ * can be evaluated statically; the other forms are runtime values, and are
+ * reported as found but with no value.
+ */
+static dwarf_result subrange_attr(Dwarf_Die *die, unsigned int name,
+                                  bool is_signed) {
   Dwarf_Attribute attr;
-  if (dwarf_attr_integrate(die, DW_AT_upper_bound, &attr)) {
-    if (is_signed(die)) {
-      Dwarf_Sword upper;
-      if (dwarf_formsdata(&attr, &upper) != 0)
-        return dwarf_error{};
-      return upper;
-    }
-    Dwarf_Word unsigned_upper;
-    if (dwarf_formudata(&attr, &unsigned_upper) != 0)
-      return dwarf_error{};
-    return unsigned_upper;
+  if (!dwarf_attr_integrate(die, name, &attr)) {
+    // Nothing was found, but there was no error
+    return dwarf_result{};
   }
 
-  // Nothing was found, but there was no error
-  return dwarf_result{};
+  if (is_signed) {
+    Dwarf_Sword value;
+    if (dwarf_formsdata(&attr, &value) == 0)
+      return value;
+  } else {
+    Dwarf_Word value;
+    if (dwarf_formudata(&attr, &value) == 0)
+      return value;
+  }
+
+  // The constant decoders fail the same way for a runtime value and for a
+  // form that is invalid here, so check for the runtime forms explicitly.
+  Dwarf_Block block;
+  Dwarf_Die ref;
+  if (dwarf_formblock(&attr, &block) == 0 || dwarf_formref_die(&attr, &ref))
+    return dwarf_result{};
+  return dwarf_error{};
+}
+
+static dwarf_result upper_bound(Dwarf_Die *die) {
+  return subrange_attr(die, DW_AT_upper_bound, is_signed(die));
 }
 
 static dwarf_result lower_bound(Dwarf_Die *die) {
-  Dwarf_Attribute attr;
-  if (dwarf_attr_integrate(die, DW_AT_lower_bound, &attr)) {
-    if (is_signed(die)) {
-      Dwarf_Sword lower;
-      if (dwarf_formsdata(&attr, &lower) != 0)
-        return dwarf_error{};
-      return lower;
-    }
-    Dwarf_Word unsigned_lower;
-    if (dwarf_formudata(&attr, &unsigned_lower) != 0)
-      return dwarf_error{};
-    return unsigned_lower;
-  }
-
-  // Nothing was found, but there was no error
-  return dwarf_result{};
+  return subrange_attr(die, DW_AT_lower_bound, is_signed(die));
 }
 
 static dwarf_result lower_bound_by_language(Dwarf_Die *die) {
@@ -110,16 +115,7 @@ static dwarf_result lower_bound_by_language(Dwarf_Die *die) {
 }
 
 static dwarf_result length_from_count(Dwarf_Die *die) {
-  Dwarf_Attribute attr;
-  if (dwarf_attr_integrate(die, DW_AT_count, &attr)) {
-    Dwarf_Word count;
-    if (dwarf_formudata(&attr, &count) != 0)
-      return dwarf_error{};
-    return count;
-  }
-
-  // Nothing was found, but there was no error
-  return dwarf_result{};
+  return subrange_attr(die, DW_AT_count, false);
 }
 
 dwarf_bounds dwarf_subrange_bounds(Dwarf_Die *die) {
