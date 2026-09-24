@@ -70,10 +70,6 @@ extern const char *sys_errlist[];
 
 /* POSIX */
 inline pid_t P_getpid () { return (getpid());}
-inline int P_open(const char *FILENAME, int FLAGS, mode_t MODE) {
-    return open(FILENAME, FLAGS, MODE);
-}
-
 
 inline int P_pclose (FILE *STREAM) { return (pclose(STREAM));}
 inline FILE *P_popen (const char *COMMAND, const char *MODE) {
