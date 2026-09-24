@@ -503,6 +503,10 @@ BPatch_function * BPatch_basicBlock::getCallTarget()
 bool BPatch_basicBlock::getInstructions(std::vector<InstructionAPI::Instruction>& insns) {
   using namespace InstructionAPI;
 
+  if(insns.empty()) {
+    return false;
+  }
+
   InstructionDecoder d((const unsigned char*)
                        (iblock->proc()->getPtrToInstruction(getStartAddress())),
                        size(),
