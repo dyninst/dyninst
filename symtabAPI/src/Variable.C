@@ -95,7 +95,13 @@ bool Variable::operator==(const Variable &v) const
 		{
 			return false;
 		}
-	return ((const Aggregate &)(*this)) == ((const Aggregate &)v);
+
+	auto *agg_this = dynamic_cast<const Aggregate*>(this);
+	auto *agg_v = dynamic_cast<const Aggregate*>(&v);
+	if(agg_this && agg_v) {
+	  return *agg_this == *agg_v;
+	}
+	return false;
 }
 
 bool Variable::removeSymbol(Symbol *sym) 
