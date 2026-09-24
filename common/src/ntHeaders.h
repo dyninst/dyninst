@@ -121,10 +121,6 @@ inline int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex,
 		    struct timeval *tm) {
   return (select(wid, rd, wr, ex, tm));}
 
-inline int P_recv(int s, void *buf, size_t len, int flags) {
-   return (recv(s, (char*)buf, len, flags));
-}
-
 inline int P_mkdir(const char *pathname, int) {
 	return _mkdir(pathname);
 }
