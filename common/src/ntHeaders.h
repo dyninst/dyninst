@@ -116,12 +116,7 @@ inline int P_strcmp (const char *S1, const char *S2) {
   return (strcmp(S1, S2));}
 inline char *P_strdup(const char *S) { return (_strdup(S));}
 
-inline unsigned long int P_strtoul(const char *STRING, char **TAILPTR, int BASE) { 
-  return (strtoul(STRING, TAILPTR, BASE));}
-
 /* BSD */
-inline int P_accept (int SOCK, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
-  return (accept(SOCK, ADDR, (int*) LENGTH_PTR));}
 inline int P_bind(int socket, struct sockaddr *addr, size_t len) {
   return (::bind(socket, addr, len));}
 inline int P_connect(int socket, struct sockaddr *addr, size_t len) {
