@@ -78,8 +78,6 @@ extern const char *sys_errlist[];
 inline pid_t P_getpid () { return (getpid());}
 
 
-inline FILE *P_popen (const char *COMMAND, const char *MODE) {
-  return (popen(COMMAND, MODE));}
 inline size_t P_read (int FILEDES, void *BUFFER, size_t SIZE) {
   return (read(FILEDES, BUFFER, SIZE));}
 inline int P_uname(struct utsname *un) { return (uname(un));}
