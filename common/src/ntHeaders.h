@@ -102,8 +102,6 @@ inline int P_getpid () { return (_getpid());}
 inline int P__pclose (FILE *STREAM) { return (_pclose(STREAM));}
 inline FILE *P__popen (const char *COMMAND, const char *MODE) {
   return (_popen(COMMAND, MODE));}
-inline size_t P_write (int FILEDES, const void *BUFFER, size_t SIZE) {
-  return (_write(FILEDES, BUFFER, SIZE));}
 inline int P_chdir(const char *path) { return (_chdir(path)); }
 inline int P_putenv(char *str) { return _putenv(str); }
 
