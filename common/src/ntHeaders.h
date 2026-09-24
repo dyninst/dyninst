@@ -117,8 +117,6 @@ inline int P_strcmp (const char *S1, const char *S2) {
 inline char *P_strdup(const char *S) { return (_strdup(S));}
 
 /* BSD */
-inline int P_getsockname (int SOCKET, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
-  return (getsockname(SOCKET, ADDR, (int*) LENGTH_PTR));}
 inline int P_listen (int socket, unsigned int n) { return (listen(socket, n));}
 inline int P_socket (int NAMESPACE, int STYLE, int PROTOCOL) {
   return (socket(NAMESPACE, STYLE, PROTOCOL));}
