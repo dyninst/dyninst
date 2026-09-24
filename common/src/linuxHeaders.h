@@ -75,8 +75,6 @@ extern const char *sys_errlist[];
 #define SYS_tkill 238
 #endif
 /* POSIX */
-inline int P_execvp (const char *FILENAME, char *const ARGV[]) {
-  return (execvp(FILENAME, ARGV));}
 inline int P_execve (const char* FILENAME,
 		     char* const ARGV[], char* const ENVP[]) {
     return (execve(FILENAME, ARGV, ENVP));
