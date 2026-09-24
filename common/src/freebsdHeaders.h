@@ -69,10 +69,6 @@ extern const char *sys_errlist[];
 */
 
 /* POSIX */
-inline int P_execve (const char* FILENAME,
-		     char* const ARGV[], char* const ENVP[]) {
-    return (execve(FILENAME, ARGV, ENVP));
-}
 inline int P_fcntl (int FILEDES, int COMMAND, int ARG2) {
   return (fcntl(FILEDES, COMMAND, ARG2));}
 int P_copy(const char *from, const char *to);
