@@ -7,20 +7,45 @@
 # stops asking, then stop.
 #
 # After the last pass the log is checked, so that a document which builds but
-# has started warning does not pass silently:
+# has started warning does not pass silently.  Reported are
 #
-#   every LaTeX, LaTeX Font or pdfTeX warning is an error, unless it matches
-#   ALLOW_WARNINGS, a regular expression for the ones a manual is known to
-#   produce; and
+#   LaTeX Warning        \\@latex@warning, the kernel's own
+#   LaTeX Font Warning   \\@font@warning, a shape that had to be substituted
+#   Package X Warning    \\PackageWarning, from any package
+#   Class X Warning      \\ClassWarning
+#   Module X Warning     \\ModuleWarning
+#   pdfTeX warning       from pdfTeX rather than LaTeX
+#   Missing character    a glyph absent from the font, dropped from the output
 #
-#   an overfull box wider than MAX_OVERFULL_PT is an error, that being the
-#   point at which a line stops protruding into the margin and starts running
-#   off the paper.  Narrower boxes are not counted: they are invisible, and
-#   their number moves with any edit that reflows a paragraph.
+# every overfull \hbox wider than MAX_OVERFULL_PT - the point at which a line
+# stops protruding into the margin and starts running off the paper - and every
+# overfull \vbox, whatever its size.
+#
+# Two project options change that, matching what they mean for the C++ build:
+#
+#   DISABLE_SUPPRESSIONS  report everything.  ALLOW_WARNINGS is ignored, and
+#                         every overfull and underfull box is listed however
+#                         small, not just the ones that leave the paper.
+#
+# A box that does leave the paper is tagged [RENDERS OFF PAGE], so it stands
+# out among the many harmless ones that DISABLE_SUPPRESSIONS brings with it.
+#
+#   WARNINGS_AS_ERRORS    fail the target on whatever was reported.  Off, the
+#                         diagnostics are printed and the build carries on, so
+#                         a warning that only appears on some other TeX
+#                         installation does not stop everything else building.
+#
+# A pdflatex failure is always fatal, whichever way those are set.
+#
+# ALLOW_WARNINGS is a regular expression for the warnings a manual is known to
+# produce.  Overfull \hboxes narrower than MAX_OVERFULL_PT are not reported by
+# default: they are invisible, and their number moves with any edit that
+# reflows a paragraph.
 #
 # Driven as: cmake -DPDFLATEX=... -DSOURCE_DIR=... -DOUTPUT_DIR=... -DMAIN=...
 #                  [-DMAX_PASSES=n] [-DALLOW_WARNINGS=regex]
-#                  [-DMAX_OVERFULL_PT=n] -P DyninstRunLaTeX.cmake
+#                  [-DMAX_OVERFULL_PT=n] [-DWARNINGS_AS_ERRORS=bool]
+#                  [-DDISABLE_SUPPRESSIONS=bool] -P DyninstRunLaTeX.cmake
 #
 # Nothing is written outside OUTPUT_DIR: pdflatex reads the document in place
 # from SOURCE_DIR and -output-directory sends every file it creates elsewhere.
@@ -63,54 +88,87 @@ function(_dyninst_latex_check _log)
   if(MAX_OVERFULL_PT STREQUAL "")
     set(MAX_OVERFULL_PT 72.27) # the right margin, in points, at 1in margins
   endif()
+  if(DISABLE_SUPPRESSIONS)
+    set(_allow "") # report the warnings a manual is otherwise allowed
+    set(_box_limit 0) # and every box, not only those off the paper
+  else()
+    set(_allow "${ALLOW_WARNINGS}")
+    set(_box_limit "${MAX_OVERFULL_PT}")
+  endif()
 
   set(_problems "")
 
-  # Read the log as one string and split it by hand: file(STRINGS) would
-  # treat a semicolon in the log as a list separator and mangle the lines.
+  # Match on the log text rather than indexing a list of its lines: a
+  # semicolon in the log is a list separator to CMake and would split a line
+  # in two.  Escaping them keeps foreach safe.
   file(READ "${_log}" _txt)
   string(REPLACE ";" "\\;" _txt "${_txt}")
-  string(REPLACE "\n" ";" _lines "${_txt}")
-  list(LENGTH _lines _n)
+  string(ASCII 10 _nl)
 
-  # A warning's text wraps at the log's line width, so test it together with
-  # the line that follows; matching the first line alone would miss whatever
-  # the wrap pushed onto the second.
-  set(_i 0)
-  while(_i LESS _n)
-    list(GET _lines ${_i} _l)
-    if(_l MATCHES "^LaTeX Warning|^LaTeX Font Warning|pdfTeX warning")
-      math(EXPR _j "${_i} + 1")
-      if(_j LESS _n)
-        list(GET _lines ${_j} _next)
-        set(_full "${_l} ${_next}")
-      else()
-        set(_full "${_l}")
-      endif()
-      if(NOT (ALLOW_WARNINGS AND _full MATCHES "${ALLOW_WARNINGS}"))
-        string(APPEND _problems "\n    ${_full}")
-      endif()
+  # A warning's text wraps at the log's line width, so take the line that
+  # follows as well; and start at the keyword, because pdfTeX prints its
+  # warnings in the middle of the page-progress output.
+  string(REGEX MATCHALL
+         "(LaTeX Warning|LaTeX Font Warning|(Package|Class|Module) [A-Za-z0-9@._-]+ Warning|pdfTeX warning|Missing character)[^${_nl}]*${_nl}[^${_nl}]*"
+         _warnings "${_txt}")
+  foreach(_w ${_warnings})
+    string(REGEX REPLACE "[ \t]*${_nl}[ \t]*" " " _w "${_w}")
+    if(NOT (_allow AND _w MATCHES "${_allow}"))
+      string(APPEND _problems "\n    ${_w}")
     endif()
-    math(EXPR _i "${_i} + 1")
-  endwhile()
+  endforeach()
 
-  if(MAX_OVERFULL_PT GREATER 0)
-    file(STRINGS "${_log}" _boxes REGEX "^Overfull .hbox \\(")
-    foreach(_b ${_boxes})
-      if(_b MATCHES "^Overfull .hbox \\(([0-9.]+)pt")
-        if(CMAKE_MATCH_1 GREATER MAX_OVERFULL_PT)
-          string(APPEND _problems "\n    ${_b}")
-        endif()
-      endif()
-    endforeach()
+  if(_box_limit EQUAL 0)
+    string(REGEX MATCHALL "(Overfull|Underfull) [^${_nl}]*" _boxes "${_txt}")
+  else()
+    string(REGEX MATCHALL "Overfull .[hv]box \\([0-9.]+pt[^${_nl}]*" _boxes "${_txt}")
+  endif()
+  foreach(_b ${_boxes})
+    set(_off "")
+    set(_report FALSE)
+    if(_box_limit EQUAL 0)
+      set(_report TRUE)
+    endif()
+
+    # A box overflowing by more than the margin does not merely reach into it,
+    # it prints past the trim.  Say so: with suppressions off that is the only
+    # reason an overfull \hbox is listed, and with them on it is what
+    # distinguishes the few that matter from the many that do not.  The margin
+    # is the same in both directions at margin=1in, so one threshold serves.
+    if(_b MATCHES "^Overfull .[hv]box \\(([0-9.]+)pt"
+       AND CMAKE_MATCH_1 GREATER MAX_OVERFULL_PT)
+      set(_off " [RENDERS OFF PAGE]")
+      set(_report TRUE)
+    endif()
+
+    # An overfull \vbox is reported however small.  Horizontally the trim is
+    # the only thing a line can run into, so a box that stays within the
+    # margin is invisible; vertically the page number sits \footskip (30pt)
+    # below the text block, so vertical overflow collides with the footer well
+    # before it reaches the paper's edge.  There is no width below which one
+    # is harmless, and they are rare enough to report unconditionally.
+    if(_b MATCHES "^Overfull .vbox")
+      set(_report TRUE)
+    endif()
+
+    if(_report)
+      string(APPEND _problems "\n    ${_b}${_off}")
+    endif()
+  endforeach()
+
+  if(NOT _problems)
+    return()
   endif()
 
-  if(_problems)
-    message(FATAL_ERROR
-            "${MAIN}: the document built but the log is not clean:${_problems}\n"
-            "  full log: ${_log}\n"
-            "  If one of these is expected, add it to ALLOW_WARNINGS for this "
-            "manual in its doc/CMakeLists.txt.")
+  set(_msg "${MAIN}: the document built but the log is not clean:${_problems}\n"
+           "  full log: ${_log}")
+  if(WARNINGS_AS_ERRORS)
+    message(FATAL_ERROR "${_msg}\n"
+            "  Set -DDYNINST_WARNINGS_AS_ERRORS=OFF to report these without "
+            "failing, or add one to ALLOW_WARNINGS in the manual's "
+            "doc/CMakeLists.txt.")
+  else()
+    message(WARNING "${_msg}")
   endif()
 endfunction()
 

@@ -14,6 +14,11 @@
 #        installed by 'install'
 #   OFF  the manuals build only when asked for by name; if pdflatex is
 #        missing the targets still exist and fail with an explanation
+#
+# The log is checked after the build.  DYNINST_WARNINGS_AS_ERRORS decides
+# whether what it reports fails the target or is only printed, and
+# DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS reports everything rather than only
+# what is not already known, exactly as they do for the C++ build.
 
 include_guard(GLOBAL)
 include(GNUInstallDirs)
@@ -113,7 +118,9 @@ function(dyninst_add_latex_document)
       -DSOURCE_DIR=${LTX_SOURCE_DIR} -DOUTPUT_DIR=${LTX_OUTPUT_DIR}
       -DMAIN=${LTX_MAIN} -DMAX_PASSES=${LTX_MAX_PASSES}
       -DALLOW_WARNINGS=${LTX_ALLOW_WARNINGS}
-      -DMAX_OVERFULL_PT=${LTX_MAX_OVERFULL_PT} -P
+      -DMAX_OVERFULL_PT=${LTX_MAX_OVERFULL_PT}
+      -DWARNINGS_AS_ERRORS=${DYNINST_WARNINGS_AS_ERRORS}
+      -DDISABLE_SUPPRESSIONS=${DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS} -P
       ${PROJECT_SOURCE_DIR}/cmake/DyninstRunLaTeX.cmake
     DEPENDS ${LTX_DEPENDS} ${PROJECT_SOURCE_DIR}/cmake/DyninstRunLaTeX.cmake
     COMMENT "Building ${_stem}.pdf"
