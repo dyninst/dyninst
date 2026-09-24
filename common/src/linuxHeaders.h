@@ -65,9 +65,6 @@
 #include "dyntypes.h"
 #include "dyninst_visibility.h"
 
-#ifndef SYS_tkill
-#define SYS_tkill 238
-#endif
 /* POSIX */
 inline pid_t P_getpid () { return (getpid());}
 
