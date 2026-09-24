@@ -1719,21 +1719,19 @@ Offset emitElfStatic::allocateRelocationSection(std::map<Symbol *, std::pair<Off
 						Offset relocOffset, Offset &size,
 						Symtab *target) {
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
-  unsigned relocSize;
+  size_t relocSize{};
   if (addressWidth_ == 8)
     relocSize = sizeof(Elf64_Rela);
   else
     relocSize = sizeof(Elf32_Rel);
 #elif defined(DYNINST_CODEGEN_ARCH_I386)
   // 32-bit only uses REL types
-  unsigned relocSize = sizeof(Elf32_Rel);
+  size_t relocSize = sizeof(Elf32_Rel);
 #else
   size = 0;
-  unsigned relocSize = 0;
+  size_t relocSize = 0;
   return relocOffset;
 #endif
-
-  Offset cur = relocOffset;
 
   Region *rela = NULL;
   if (addressWidth_ == 8)
@@ -1741,11 +1739,11 @@ Offset emitElfStatic::allocateRelocationSection(std::map<Symbol *, std::pair<Off
   else
     target->findRegion(rela, ".rel.plt");
 
-  unsigned relocEntries = entries.size() + (rela ? rela->getRelocations().size() : 0);
-  cur += relocEntries * relocSize;
+  size_t relocEntries = entries.size() + (rela ? rela->getRelocations().size() : 0);
 
-  size = cur - relocOffset;
-  return cur;
+  size = relocEntries * relocSize;
+
+  return relocOffset + size;
 }
 
 Offset emitElfStatic::allocateRelGOTSection(const std::map<Symbol *, std::pair<Offset, Offset> > &entries,
