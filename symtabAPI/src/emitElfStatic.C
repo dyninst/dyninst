@@ -1719,17 +1719,17 @@ Offset emitElfStatic::allocateRelocationSection(std::map<Symbol *, std::pair<Off
 						Offset relocOffset, Offset &size,
 						Symtab *target) {
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
-  unsigned relocSize;
+  size_t relocSize{};
   if (addressWidth_ == 8)
     relocSize = sizeof(Elf64_Rela);
   else
     relocSize = sizeof(Elf32_Rel);
 #elif defined(DYNINST_CODEGEN_ARCH_I386)
   // 32-bit only uses REL types
-  unsigned relocSize = sizeof(Elf32_Rel);
+  size_t relocSize = sizeof(Elf32_Rel);
 #else
   size = 0;
-  unsigned relocSize = 0;
+  size_t relocSize = 0;
   return relocOffset;
 #endif
 
