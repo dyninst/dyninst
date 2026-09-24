@@ -128,7 +128,6 @@ inline std::string P_cplus_demangle( const std::string &symbol, bool includeType
 
 #ifndef BPATCH_LIBRARY
 #if defined(PARADYND)
-//extern const char *sys_errlist[];
 
 extern "C" int snprintf(char *, size_t, const char *, ...);
 #endif
