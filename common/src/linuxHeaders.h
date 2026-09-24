@@ -93,10 +93,6 @@ inline char *P_strdup(const char *S) { return (strdup(S));}
 inline long int P_ptrace(int req, pid_t pid, Dyninst::Address addr, Dyninst::Address data, int = -1) {
 	return (ptrace((enum __ptrace_request)req, pid, addr, data));}
 
-inline int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex,
-		    struct timeval *tm) {
-  return (select(wid, rd, wr, ex, tm));}
-
 inline int P_rexec(char **ahost, u_short inport, char *user,
 		   char *passwd, char *cmd, int *fd2p) {
   return (rexec(ahost, inport, user, passwd, cmd, fd2p));}
