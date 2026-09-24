@@ -89,7 +89,6 @@ extern "C" {
 #define alloca _alloca
 #endif
 
-#define PDSOCKET_ERROR SOCKET_ERROR
 typedef SOCKET PDSOCKET;
 
 /* compatiblity typedefs */
