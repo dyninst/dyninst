@@ -90,8 +90,6 @@ inline char *P_strdup(const char *S) { return (strdup(S));}
 
 /* BSD */
 
-inline int P_strcasecmp(const char *s1, const char *s2) {
-  return (strcasecmp(s1, s2));}
 inline int P_strncasecmp (const char *S1, const char *S2, size_t N) {
   return (strncasecmp(S1, S2,N));}
 /* As endservent() on Linux Platform /usr/include/netdb.h has no return value, 
