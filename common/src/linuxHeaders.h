@@ -78,7 +78,6 @@ extern const char *sys_errlist[];
 inline pid_t P_getpid () { return (getpid());}
 
 
-inline int P_uname(struct utsname *un) { return (uname(un));}
 inline pid_t P_wait(int *status_ptr) { return (wait(status_ptr));}
 inline int P_waitpid(pid_t pid, int *statusp, int options) {
   return (waitpid(pid, statusp, options));}
