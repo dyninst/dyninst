@@ -88,8 +88,6 @@ inline int P_strcmp (const char *S1, const char *S2) {
 inline char *P_strdup(const char *S) DYNINST_MALLOC_ANNOTATION;
 inline char *P_strdup(const char *S) { return (strdup(S));}
 
-inline char * P_strtok (char *NEWP_STRING, const char *DELIMITERS) {
-  return (strtok(NEWP_STRING, DELIMITERS));}
 inline long int P_strtol (const char *P_STRING, char **TAILPTR, int BASE) {
   return (strtol(P_STRING, TAILPTR, BASE));}
 inline unsigned long int P_strtoul(const char *P_STRING, char **TAILPTR, int BASE) { 
