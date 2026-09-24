@@ -72,12 +72,6 @@ extern const char *sys_errlist[];
 inline pid_t P_getpid () { return (getpid());}
 
 inline int P_getpagesize() { return getpagesize(); }
-/* SYSTEM-V shared memory */
-#include <sys/ipc.h>
-#include <sys/shm.h> /* shmid_ds */
-inline int P_shmctl(int shmid, int cmd, struct shmid_ds *buf) {
-   return shmctl(shmid, cmd, buf);
-}
 
 /* ANSI */
 inline void P_exit (int STATUS) { exit(STATUS);}
