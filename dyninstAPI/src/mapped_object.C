@@ -809,7 +809,8 @@ bool mapped_object::getInfHeapList(std::vector<heapDescriptor> &infHeaps) {
         // that sucker
         char *temp_str = (char *)malloc(strlen(foundHeaps[j].first.c_str())+1);
         strcpy(temp_str, foundHeaps[j].first.c_str());
-        char *garbage_str = strtok(temp_str, "_"); // Don't care about beginning
+        char *strtok_save{};
+        char *garbage_str = strtok_r(temp_str, "_", &strtok_save); // Don't care about beginning
         assert(!strcmp("DYNINSTstaticHeap", garbage_str));
         // Name is as is.
         // If address is zero, then skip (error condition)
@@ -822,7 +823,7 @@ bool mapped_object::getInfHeapList(std::vector<heapDescriptor> &infHeaps) {
         // Just to make life difficult, the heap can have an optional
         // trailing letter (k,K,m,M,g,G) which indicates that it's in
         // kilobytes, megabytes, or gigabytes. Why gigs? I was bored.
-        char *heap_size_str = strtok(NULL, "_"); // Second element, null-terminated
+        char *heap_size_str = strtok_r(NULL, "_", &strtok_save); // Second element, null-terminated
         unsigned heap_size = (unsigned) atol(heap_size_str);
         if (heap_size == 0)
             /* Zero size or error, either way this makes no sense for a heap */
@@ -849,7 +850,7 @@ bool mapped_object::getInfHeapList(std::vector<heapDescriptor> &infHeaps) {
 
         // Type needs to be parsed out. Can someone clean this up?
         inferiorHeapType heap_type;
-        char *heap_type_str = strtok(NULL, "_");
+        char *heap_type_str = strtok_r(NULL, "_", &strtok_save);
 
         if (!strcmp(heap_type_str, "anyHeap"))
             heap_type = anyHeap;

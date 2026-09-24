@@ -71,9 +71,13 @@ namespace Dyninst { namespace filesystem {
 
     // If no name is given, use current effective user
     if(username.empty()) {
-      getpwuid_r(geteuid(), &pwd, buf.data(), size, &result);
+      if(getpwuid_r(geteuid(), &pwd, buf.data(), size, &result) != 0) {
+    	  return {};
+      }
     } else {
-      getpwnam_r(username.c_str(), &pwd, buf.data(), size, &result);
+      if(getpwnam_r(username.c_str(), &pwd, buf.data(), size, &result) != 0) {
+    	  return {};
+      }
     }
 
     if(!result) {
