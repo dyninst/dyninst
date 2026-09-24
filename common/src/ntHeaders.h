@@ -101,7 +101,6 @@ typedef unsigned int socklen_t;
 inline int P_getpid () { return (_getpid());}
 
 /* ANSI */
-inline int P_fflush(FILE *stream) { return (fflush(stream));}
 inline char * P_fgets (char *S, int COUNT, FILE *STREAM) {
   return (fgets(S, COUNT, STREAM));}
 inline void * P_malloc (size_t SIZE) { return (malloc(SIZE));}
