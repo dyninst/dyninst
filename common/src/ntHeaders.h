@@ -115,7 +115,6 @@ inline int P_getpagesize() {
 inline int P_strcmp (const char *S1, const char *S2) {
   return (strcmp(S1, S2));}
 inline char *P_strdup(const char *S) { return (_strdup(S));}
-inline size_t P_strlen (const char *S) { return (strlen(S));}
 inline char * P_strncat (char *TO, const char *FROM, size_t SIZE) {
   return (strncat(TO, FROM, SIZE)); }
 inline int P_strncmp (const char *S1, const char *S2, size_t SIZE) {
