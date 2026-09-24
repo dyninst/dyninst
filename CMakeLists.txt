@@ -10,6 +10,11 @@ if(POLICY CMP0144)
   cmake_policy(SET CMP0144 NEW)
 endif()
 
+# Only interpret if() arguments as variables or keywords when unquoted.
+if(POLICY CMP0054)
+  cmake_policy(SET CMP0054 NEW)
+endif()
+
 set(DYNINST_MAJOR_VERSION 13)
 set(DYNINST_MINOR_VERSION 0)
 set(DYNINST_PATCH_VERSION 0)
