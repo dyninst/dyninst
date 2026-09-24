@@ -89,9 +89,6 @@ inline char *P_strdup(const char *S) DYNINST_MALLOC_ANNOTATION;
 inline char *P_strdup(const char *S) { return (strdup(S));}
 
 /* BSD */
-inline int P_getsockopt(int s, int level, int optname, void *optval, int *optlen) {
-   return getsockopt(s, level, optname, (char*)optval, (unsigned int*)optlen);
-}
 inline int P_setsockopt(int s, int level, int optname, void *optval, int optlen) {
    return setsockopt(s, level, optname, (const char*)optval, optlen);
 }
