@@ -1252,6 +1252,14 @@ bool DwarfWalker::parseSubrange() {
    Dwarf_Die e = entry();
    auto subrange = parseSubrange(&e);
 
+   // parseSubrange(&e) can return nullptr when the subrange bounds use dynamic
+   // location expressions (e.g., Fortran arrays with runtime-determined bounds).
+   // Guard against passing nullptr to addOrUpdateType to avoid a SIGSEGV.
+   if (!subrange) {
+       dwarf_printf("(0x%lx) parseSubrange returned nullptr, skipping type registration\n", id());
+       return false;
+   }
+
    dyncompat::shared_ptr<Type> rangeType = tc()->addOrUpdateType(subrange);
    dwarf_printf("(0x%lx) Created subrange type: ID 0x%d, pointer %p (tc %p)\n", id(),
                 rangeType->getID(), (void *)rangeType.get(), (void *)tc());
