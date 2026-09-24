@@ -116,9 +116,6 @@ inline int P_strcmp (const char *S1, const char *S2) {
   return (strcmp(S1, S2));}
 inline char *P_strdup(const char *S) { return (_strdup(S));}
 
-inline const char * P_strrchr (const char *STRING, int C) {return (strrchr(STRING, C));}
-inline char * P_strrchr (char *STRING, int C) {return (strrchr(STRING, C));}
-
 inline const char * P_strstr (const char *HAYSTACK, const char *NEEDLE) {return (strstr(HAYSTACK, NEEDLE));}
 inline char * P_strstr (char *HAYSTACK, const char *NEEDLE) {return (strstr(HAYSTACK, NEEDLE));}
 
