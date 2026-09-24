@@ -82,7 +82,6 @@ inline char *P_strdup(const char *S) { return (strdup(S));}
 
 /* BSD */
 
-inline int P_listen (int socket, unsigned int n) { return (listen(socket, n));}
 inline caddr_t P_mmap(caddr_t addr, size_t len, int prot, int flags,
 		      int fd, off_t off) {
   return (caddr_t)(mmap(addr, len, prot, flags, fd, off));}
