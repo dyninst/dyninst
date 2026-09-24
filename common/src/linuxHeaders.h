@@ -90,10 +90,6 @@ inline char *P_strdup(const char *S) { return (strdup(S));}
 
 /* BSD */
 
-/* As endservent() on Linux Platform /usr/include/netdb.h has no return value, 
-   so P_endservent() should be a void function */
-inline void P_endservent(void) { endservent(); }
-
 inline ssize_t P_recv(int s, void *buf, int len, int flags) {
    return (recv(s, buf, len, flags));
 }
