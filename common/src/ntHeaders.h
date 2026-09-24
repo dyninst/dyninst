@@ -99,8 +99,6 @@ typedef unsigned int socklen_t;
 
 /* POSIX */
 inline int P_getpid () { return (_getpid());}
-inline off_t P_lseek (int FILEDES, off_t OFFSET, int WHENCE) {
-  return (_lseek(FILEDES, OFFSET, WHENCE));}
 inline int P__open(const char *FILENAME, int FLAGS, int MODE) {
   return (_open(FILENAME, FLAGS, MODE));}
 inline int P__pclose (FILE *STREAM) { return (_pclose(STREAM));}
