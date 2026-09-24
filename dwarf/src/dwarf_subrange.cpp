@@ -97,15 +97,15 @@ static dwarf_result lower_bound(Dwarf_Die *die) {
 }
 
 static dwarf_result lower_bound_by_language(Dwarf_Die *die) {
-  int lang = dwarf_srclang(die);
-  if (lang != -1) {
-    Dwarf_Sword lower;
-    if (dwarf_default_lower_bound(lang, &lower) != 0)
-      return dwarf_error{};
+  // DW_AT_language is only on the unit DIE, and dwarf_srclang reads the DIE
+  // it is given.
+  Dwarf_Die cu_die;
+  int lang = dwarf_srclang(dwarf_diecu(die, &cu_die, nullptr, nullptr));
+  Dwarf_Sword lower;
+  if (lang != -1 && dwarf_default_lower_bound(lang, &lower) == 0)
     return lower;
-  }
 
-  // Nothing was found, but there was no error
+  // No language, or one libdw has no default for; the caller decides
   return dwarf_result{};
 }
 
