@@ -89,8 +89,6 @@ extern "C" {
 #define alloca _alloca
 #endif
 
-typedef SOCKET PDSOCKET;
-
 /* compatiblity typedefs */
 typedef int pid_t;
 typedef int key_t;
