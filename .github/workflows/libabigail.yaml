@@ -15,6 +15,7 @@ on:
        - '**.h'
        - '**.C'
        - '**.c'
+       - '**.cpp'
   workflow_dispatch:
 
 concurrency:

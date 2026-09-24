@@ -10,6 +10,7 @@ on:
        - '**.h'
        - '**.C'
        - '**.c'
+       - '**.cpp'
        - '**.cmake'
        - '**CMakeLists.txt'
        - 'tests/*'
