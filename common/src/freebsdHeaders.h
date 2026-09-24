@@ -71,8 +71,6 @@ extern const char *sys_errlist[];
 /* POSIX */
 inline pid_t P_getpid () { return (getpid());}
 
-inline size_t P_read (int FILEDES, void *BUFFER, size_t SIZE) {
-  return (read(FILEDES, BUFFER, SIZE));}
 inline int P_uname(struct utsname *un) { return (uname(un));}
 inline pid_t P_wait(int *status_ptr) { return (wait(status_ptr));}
 inline int P_waitpid(pid_t pid, int *statusp, int options) {
