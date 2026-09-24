@@ -102,9 +102,6 @@ inline int P_getpid () { return (_getpid());}
 
 /* ANSI */
 inline void * P_memcpy (void *A1, const void *A2, size_t SIZE) { return memcpy(A1, A2, SIZE); }
-typedef void (*P_sig_handler)(int);
-inline P_sig_handler P_signal (int SIGNUM, P_sig_handler ACTION) {
-  return (signal(SIGNUM, ACTION));}
 inline char * P_strcat (char *TO, const char *FROM) {
   return (strcat(TO, FROM));}
 
