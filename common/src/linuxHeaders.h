@@ -89,8 +89,6 @@ inline char *P_strdup(const char *S) DYNINST_MALLOC_ANNOTATION;
 inline char *P_strdup(const char *S) { return (strdup(S));}
 
 /* BSD */
-inline int P_connect(int socket, struct sockaddr *addr, socklen_t len) {
-   return (::connect(socket, addr, len));}
 inline struct hostent * P_gethostbyname (const char *NAME) {
   return (gethostbyname(NAME));}
 inline int P_getsockname (int SOCKET, struct sockaddr *ADDR, socklen_t *LENGTH_PTR) {
