@@ -117,8 +117,6 @@ inline int P_strcmp (const char *S1, const char *S2) {
 inline char *P_strdup(const char *S) { return (_strdup(S));}
 
 /* BSD */
-inline struct hostent * P_gethostbyname (const char *NAME) {
-  return (gethostbyname(NAME));}
 inline struct servent * P_getservbyname (const char *NAME, const char *PROTO) {
   return (getservbyname(NAME, PROTO));}
 inline int P_getsockname (int SOCKET, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
