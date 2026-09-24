@@ -117,10 +117,6 @@ inline int P_strcmp (const char *S1, const char *S2) {
 inline char *P_strdup(const char *S) { return (_strdup(S));}
 
 /* BSD */
-inline int P_mkdir(const char *pathname, int) {
-	return _mkdir(pathname);
-}
-
 inline int P_unlink(const char *pathname) {
 	return _unlink(pathname);
 }
