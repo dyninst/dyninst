@@ -80,8 +80,6 @@ inline int P_strcmp (const char *S1, const char *S2) {
   return (strcmp(S1, S2));}
 inline char *P_strdup(const char *S) { return (strdup(S));}
 
-inline double P_strtod (const char *P_STRING, char **TAILPTR) {
-  return (strtod(P_STRING, TAILPTR));}
 inline char * P_strtok (char *NEWP_STRING, const char *DELIMITERS) {
   return (strtok(NEWP_STRING, DELIMITERS));}
 inline long int P_strtol (const char *P_STRING, char **TAILPTR, int BASE) {
