@@ -102,8 +102,6 @@ inline int P_getpid () { return (_getpid());}
 
 /* ANSI */
 inline void * P_memcpy (void *A1, const void *A2, size_t SIZE) { return memcpy(A1, A2, SIZE); }
-inline const char * P_strchr (const char *STRING, int C) {return (strchr(STRING, C));}
-inline char * P_strchr (char *STRING, int C) {return (strchr(STRING, C));}
 inline int P_getpagesize() { 
 	SYSTEM_INFO info;
     static int page_size = 0;
