@@ -62,10 +62,6 @@
 #include <sys/syscall.h>
 
 
-/* Not going to use on Linux Platform - already declared in /usr/include/errno.h
-extern const char *sys_errlist[];
-*/
-
 /* POSIX */
 inline pid_t P_getpid () { return (getpid());}
 
