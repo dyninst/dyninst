@@ -1,20 +1,20 @@
-\subsection{MultiRegister Class}
-\label{sec:MultiRegister}
+\subsection{MultiRegisterAST Class}
+\label{sec:MultiRegisterAST}
 
-A \code{MultiMultiRegister} object represents a ordered collection of registers as a single operand
-As a \code{MultiMultiRegister} is a \code{Expression}, it may contain the physical register\'s contents if
+A \code{MultiRegisterAST} object represents a ordered collection of registers as a single operand
+As a \code{MultiRegisterAST} is a \code{Expression}, it may contain the physical register\'s contents if
 they are known.
 
 
 \begin{apient}
-typedef dyn\_detail::boost::shared\_ptr<MultiRegister> Ptr;
+typedef boost::shared\_ptr<MultiRegisterAST> Ptr;
 \end{apient}
 \apidesc{
-A type definition for a reference-counted pointer to a \code{MultiRegister}.
+A type definition for a reference-counted pointer to a \code{MultiRegisterAST}.
 }
 
 \begin{apient}
-MultiRegister(MachRegister r);
+MultiRegisterAST(MachRegister r, uint32_t num_elements = 1);
 \end{apient}
 \apidesc{
 Construct a register using the provided register object \code{r}. The
@@ -30,36 +30,21 @@ MultiRegisterAST(std::vector<RegisterAST::Ptr> _in);
 bool isUsed(Expression::Ptr findMe) const;
 \end{apient}
 \apidesc{
-\code{isUsed} returns \code{true} if \code{findMe} is a \code{MultiRegister} that represents the same register as this \code{MultiRegister}, and \code{false} otherwise.
+\code{isUsed} returns \code{true} if \code{findMe} is a \code{MultiRegisterAST} that represents the same register as this \code{MultiRegisterAST}, and \code{false} otherwise.
 }
 
 \begin{apient}
 std::string format(formatStyle how = defaultStyle) const;
 \end{apient}
 \apidesc{
-The format method on a \code{MultiRegister} object returns the name associated with its ID.
+The format method on a \code{MultiRegisterAST} object returns the name associated with its ID.
 }
 
 \begin{apient}
-static MultiRegister makePC(Dyninst::Architecture arch);
-\end{apient}
-\apidesc{
-Utility function to get a \code{Register} object that represents the program counter.
-\code{makePC} is provided to support platform-independent control flow analysis.
-}
-
-\begin{apient}
-bool operator<(const MultiRegister & rhs) const;
+bool operator<(const MultiRegisterAST & rhs) const;
 \end{apient}
 \apidesc{
 We define a partial ordering on registers by their register number so that they may be placed
 into sets or other sorted containers.
 }
 
-\begin{apient}
-MachRegister getID() const;
-\end{apient}
-\apidesc{
-The \code{getID} function returns underlying register represented by
-this AST.
-}

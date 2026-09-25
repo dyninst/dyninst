@@ -9,7 +9,7 @@ is an \code{Expression}, it may contain the physical register's contents if they
 are known.
 
 \begin{apient}
-  typedef dyn\_detail::boost::shared\_ptr<TernaryAST> Ptr;
+  typedef boost::shared\_ptr<TernaryAST> Ptr;
 \end{apient}
 \apidesc{ A type definition for a reference-counted pointer to a \code{TernaryAST}. }
 
@@ -33,19 +33,9 @@ are known.
 \apidesc{ The format method on a \code{TernaryAST} object returns the name associated with its ID. }
 
 \begin{apient}
-  static TernaryAST makePC(Dyninst::Architecture arch);
-\end{apient}
-\apidesc{ Utility function to get a \code{Register} object that represents the program counter. \code{makePC}
-is provided to support platform-independent control flow analysis. }
-
-\begin{apient}
   bool operator<(const TernaryAST & rhs) const;
 \end{apient}
 \apidesc{ We define a partial ordering on registers by their register number so that they may be placed into
 sets or other sorted containers. }
 
-\begin{apient}
-  MachRegister getID() const;
-\end{apient}
-\apidesc{ The \code{getID} function returns underlying register represented by this AST. }
 
