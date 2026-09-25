@@ -70,14 +70,46 @@ static bool constant_value(Dwarf_Attribute *attr, bool as_signed,
   return dwarf_formudata(attr, &value) == 0;
 }
 
+// A DWARF expression that is a single constant operation, which is how gcc
+// writes a bound the optimizer proved constant (DW_OP_lit6, DW_OP_const2u).
+static bool constant_expression(Dwarf_Attribute *attr, Dwarf_Word &value) {
+  Dwarf_Op *ops;
+  size_t num_ops;
+  if (dwarf_getlocation(attr, &ops, &num_ops) != 0 || num_ops != 1)
+    return false;
+
+  auto const op = ops[0].atom;
+  if (op >= DW_OP_lit0 && op <= DW_OP_lit31) {
+    value = op - DW_OP_lit0;
+    return true;
+  }
+  switch (op) {
+  case DW_OP_const1u:
+  case DW_OP_const1s:
+  case DW_OP_const2u:
+  case DW_OP_const2s:
+  case DW_OP_const4u:
+  case DW_OP_const4s:
+  case DW_OP_const8u:
+  case DW_OP_const8s:
+  case DW_OP_constu:
+  case DW_OP_consts:
+    value = ops[0].number;
+    return true;
+  default:
+    return false;
+  }
+}
+
 /*
  * DWARF5 - Section 2.19 Static and Dynamic Values of Attributes
  *
  * The bound and count attributes of a subrange may be a constant, a DWARF
  * expression, or a reference to a DIE that describes a constant, describes a
- * variable holding the value, or computes it. A constant, directly or through
- * a reference, is the value; the other cases are runtime values, and are
- * reported as found but with no value.
+ * variable holding the value, or computes it. A constant, directly, through a
+ * reference, or as an expression that is a single constant operation, is the
+ * value; the other cases are runtime values, and are reported as found but
+ * with no value.
  */
 static dwarf_result subrange_attr(Dwarf_Die *die, unsigned int name,
                                   bool as_signed) {
@@ -94,8 +126,11 @@ static dwarf_result subrange_attr(Dwarf_Die *die, unsigned int name,
   // The constant decoders fail the same way for a runtime value and for a
   // form that is invalid here, so check for the runtime forms explicitly.
   Dwarf_Block block;
-  if (dwarf_formblock(&attr, &block) == 0)
+  if (dwarf_formblock(&attr, &block) == 0) {
+    if (constant_expression(&attr, value))
+      return value;
     return dwarf_result{};
+  }
 
   // A reference that can't be resolved, such as one into a supplementary
   // (dwz) file that isn't available, is an error.

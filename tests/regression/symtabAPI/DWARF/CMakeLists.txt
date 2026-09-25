@@ -40,11 +40,15 @@ if(DYNINST_ENABLE_EXTERNAL_BINARY_TESTS)
     set_tests_properties(symtabAPI_${_targ}_${_bin}_test PROPERTIES LABELS "regression")
   endforeach()
 
-  # clang -O1: DW_AT_count references an artificial variable whose
-  # DW_AT_const_value (7) is the element count.
-  add_test(NAME symtabAPI_${_targ}_const_ref_clang_O1_test
-           COMMAND ${_targ} "${_bin_dir}/const_ref_clang_O1" "const_vla:a=0:6")
-  set_tests_properties(symtabAPI_${_targ}_const_ref_clang_O1_test PROPERTIES LABELS "regression")
+  # VLAs whose size is a known constant: clang -O1 gives DW_AT_count as a
+  # reference to a DIE with DW_AT_const_value, gcc -O1 gives DW_AT_upper_bound
+  # as a single constant operation (DW_OP_lit6, DW_OP_const2u).
+  foreach(_bin const_ref_clang_O1 const_ref_gcc_O1)
+    add_test(NAME symtabAPI_${_targ}_${_bin}_test
+             COMMAND ${_targ} "${_bin_dir}/${_bin}" "const_vla:a=0:6"
+                     "const_vla_300:b=0:299")
+    set_tests_properties(symtabAPI_${_targ}_${_bin}_test PROPERTIES LABELS "regression")
+  endforeach()
 
   foreach(_bin fortran_gfortran_O0 fortran_gfortran_dwarf3 fortran_gfortran_relname)
     add_test(NAME symtabAPI_${_targ}_${_bin}_test
