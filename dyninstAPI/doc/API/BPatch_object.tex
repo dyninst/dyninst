@@ -87,3 +87,23 @@ It serves as a container of \code{BPatch\_module} objects.
     functions with mangled names matching name are
   returned instead.]
 }
+
+\begin{apient}
+  BPatchSnippetHandle* insertInitCallback(BPatch_snippet& callback);
+\end{apient}
+
+\apidesc{
+  This function inserts the snippet callback at the entry point of
+  this object's init function
+  (creating a new init function/section if necessary).
+}
+
+\begin{apient}
+  BPatchSnippetHandle* insertFiniCallback(BPatch_snippet& callback);
+\end{apient}
+
+\apidesc{
+  This function inserts the snippet callback at the exit point of
+  this object's fini function
+  (creating a new fini function/section if necessary).
+}

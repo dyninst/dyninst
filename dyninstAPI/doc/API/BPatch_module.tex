@@ -188,26 +188,6 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  BPatchSnippetHandle* insertInitCallback(BPatch_snippet& callback);
-\end{apient}
-
-\apidesc{
-  This function inserts the snippet callback at the entry point of
-  this module's init function
-  (creating a new init function/section if necessary).
-}
-
-\begin{apient}
-  BPatchSnippetHandle* insertFiniCallback(BPatch_snippet& callback);
-\end{apient}
-
-\apidesc{
-  This function inserts the snippet callback at the exit point of
-  this module's fini function
-  (creating a new fini function/section if necessary).
-}
-
-\begin{apient}
   bool isExploratoryModeOn();
 \end{apient}
 
