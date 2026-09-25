@@ -18,7 +18,7 @@ typeStruct *stType = structType->isStructType();
 \end{lstlisting}
 
 \begin{apient}
-string &getName();
+std::string &getName();
 \end{apient}
 \apidesc{
 This method returns the name associated with this type.
@@ -28,7 +28,7 @@ represents the name for the \code{structType} object.
 }
 
 \begin{apient}
-bool setName(string zname);
+bool setName(std::string zname);
 \end{apient}
 \apidesc{
 This method sets the name of this type to name. Returns \code{true} on success and \code{false} on failure.
@@ -157,11 +157,11 @@ If this \code{Type} object represents a \code{Reference} type, then return the o
 This class represents an enumeration type containing a list of constants with values. This class is derived from \code{Type}, so all those member functions are applicable. \code{typeEnum} inherits from the \code{Type} class.
 
 \begin{apient}
-static typeEnum *create(string &name,
-                        vector<pair<string, int> *> &consts,
+static typeEnum *create(std::string &name,
+                        std::vector<std::pair<std::string, int> *> &consts,
                         Symtab *obj = NULL);
-static typeEnum *create(string &name,
-                        vector<string> &constNames,
+static typeEnum *create(std::string &name,
+                        std::vector<std::string> &constNames,
                         Symtab *obj);
 \end{apient}
 \apidesc{
@@ -170,7 +170,7 @@ The newly created type is added to the \code{Symtab} object \code{obj}. If \code
 }
 
 \begin{apient}
-bool addConstant(const string &constname,
+bool addConstant(const std::string &constname,
                  int value);
 \end{apient}
 \apidesc{
@@ -205,9 +205,9 @@ This class represents a function type, containing a list of parameters and a ret
 
 
 \begin{apient}
-static typeFunction *create(string &name,
+static typeFunction *create(std::string &name,
                             Type *retType,
-                            vector<Type *> &paramTypes,
+                            std::vector<Type *> &paramTypes,
                             Symtab *obj = NULL);
 \end{apient}
 \apidesc{
@@ -245,14 +245,14 @@ This method sets the return type of the function type to \code{rtype}. Returns \
 }
 
 \begin{apient}
-bool setName(string &name);
+bool setName(std::string &name);
 \end{apient}
 \apidesc{
 This method sets the new name of the function type to \code{name}. Returns \code{true} if it succeeds, else returns \code{false}.
 }
 
 \begin{apient}
-vector< Type *> &getParams() const;
+std::vector< Type *> &getParams() const;
 \end{apient}
 \apidesc{
 This method returns the vector containing the individual parameters represented by their types in order. Returns \code{NULL} if there are no parameters to the function type.
@@ -265,7 +265,7 @@ member functions of class \code{Type} are applicable. \code{typeScalar} inherits
 class.
 
 \begin{apient}
-static typeScalar *create(string &name, int size, Symtab *obj = NULL);
+static typeScalar *create(std::string &name, int size, Symtab *obj = NULL);
 \end{apient}
 \apidesc{
 This factory method creates a new scalar type. The \code{name} field is used to specify
@@ -306,7 +306,7 @@ A handle for identifying the visibility of a certain \code{Field} in a container
 }
 
 \begin{apient}
-Field(string &name,
+Field(std::string &name,
       Type *type,
       visibility_t vis = visUnknown);
 \end{apient}
@@ -315,7 +315,7 @@ This constructor creates a new field with name \code{name}, type \code{type} and
 }
 
 \begin{apient}
-const string &getName();
+const std::string &getName();
 \end{apient}
 \apidesc{
 This method returns the name associated with the field in the container.
@@ -349,7 +349,7 @@ This class represents a container type. It is one of the three categories of typ
 
 
 \begin{apient}
-vector<Field *> *getComponents();
+std::vector<Field *> *getComponents();
 \end{apient}
 \apidesc{
 This method returns the list of all fields present in the container.
@@ -401,8 +401,8 @@ applicable.
 
 
 \begin{apient}
-static typeStruct *create(string &name,
-                          vector<pair<string, Type *>*> &flds,
+static typeStruct *create(std::string &name,
+                          std::vector<std::pair<std::string, Type *>*> &flds,
                           Symtab *obj = NULL);
 \end{apient}
 \apidesc{
@@ -411,8 +411,8 @@ The newly created type is added to the \code{Symtab} object \code{obj}. If \code
 }
 
 \begin{apient}
-static typeStruct *create(string &name,
-                          vector<Field *> &fields,
+static typeStruct *create(std::string &name,
+                          std::vector<Field *> &fields,
                           Symtab *obj = NULL);
 \end{apient}
 \apidesc{
@@ -434,8 +434,8 @@ This class represents a union type, a special case of the container type. The fi
 
 
 \begin{apient}
-static typeUnion *create(string &name,
-                         vector<pair<string, Type *>*> &flds,
+static typeUnion *create(std::string &name,
+                         std::vector<std::pair<std::string, Type *>*> &flds,
                          Symtab *obj = NULL);
 \end{apient}
 \apidesc{
@@ -444,8 +444,8 @@ The newly created type is added to the \code{Symtab} object \code{obj}. If \code
 }
 
 \begin{apient}
-static typeUnion *create(string &name,
-                         vector<Field *> &fields,
+static typeUnion *create(std::string &name,
+                         std::vector<Field *> &fields,
                          Symtab *obj = NULL);
 \end{apient}
 \apidesc{
@@ -467,7 +467,7 @@ This class represents a common block type in fortran, a special case of the cont
 
 
 \begin{apient}
-vector<CBlocks *> *getCBlocks();
+std::vector<CBlocks *> *getCBlocks();
 \end{apient}
 \apidesc{
 This method returns the common block objects for the type.
@@ -480,7 +480,7 @@ The methods of the \code{CBlock} can be used to access information about the mem
 This class represents a common block in Fortran. Multiple functions can share a common block.
 
 \begin{apient}
-bool getComponents(vector<Field *> *vars);
+bool getComponents(std::vector<Field *> *vars);
 \end{apient}
 \apidesc{
 This method returns the vector containing the individual variables of the common block.
@@ -488,7 +488,7 @@ Returns \code{true} if there is at least one variable, else returns \code{false}
 }
 
 \begin{apient}
-bool getFunctions(vector<Symbol *> *funcs);
+bool getFunctions(std::vector<Symbol *> *funcs);
 \end{apient}
 \apidesc{
 This method returns the functions that can see this common block with the set of variables described in \code{getComponents} method above.
@@ -513,10 +513,10 @@ This class represents a pointer type, a special case of the derived type. The ba
 
 
 \begin{apient}
-static typePointer *create(string &name,
+static typePointer *create(std::string &name,
                            Type *ptr,
                            Symtab *obj = NULL);
-static typePointer *create(string &name,
+static typePointer *create(std::string &name,
                            Type *ptr,
                            int size,
                            Symtab *obj = NULL);
@@ -547,7 +547,7 @@ This class represents a \code{typedef} type, a special case of the derived type.
 
 
 \begin{apient}
-static typeTypedef *create(string &name,
+static typeTypedef *create(std::string &name,
                            Type *ptr,
                            Symtab *obj = NULL);
 \end{apient}
@@ -570,7 +570,7 @@ This class represents a reference type, a special case of the derived type. The 
 
 
 \begin{apient}
-static typeRef *create(string &name,
+static typeRef *create(std::string &name,
                        Type *ptr,
                        Symtab * obj = NULL);
 \end{apient}
@@ -612,7 +612,7 @@ This class represents a sub-range type. As a subclass of class \code{rangedType}
 
 
 \begin{apient}
-static typeSubrange *create(string &name,
+static typeSubrange *create(std::string &name,
                             int size,
                             int low,
                             int hi,
@@ -636,7 +636,7 @@ This method returns \code{true} if this sub range type is compatible with the gi
 This class represents an \code{Array} type. As a subclass of class \code{rangedType}, all methods in \code{rangedType} are applicable.
 
 \begin{apient}
-static typeArray *create(string &name,
+static typeArray *create(std::string &name,
                          Type *type,
                          int low,
                          int hi,

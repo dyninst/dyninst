@@ -35,7 +35,7 @@ The method changes the offset of the function to \code{offset}. Returns \code{tr
 }
 
 \begin{apient}
-bool addMangledName(string name,
+bool addMangledName(std::string name,
                     bool isPrimary);
 \end{apient}
 \apidesc{
@@ -44,7 +44,7 @@ This method returns \code{true} on success and \code{false} on failure.
 }
 
 \begin{apient}
-bool addPrettyName(string name,
+bool addPrettyName(std::string name,
                    bool isPrimary);
 \end{apient}
 \apidesc{
@@ -53,7 +53,7 @@ This method returns \code{true} on success and \code{false} on failure.
 }
 
 \begin{apient}
-bool addTypedName(string name,
+bool addTypedName(std::string name,
                   bool isPrimary);
 \end{apient}
 \apidesc{
@@ -62,7 +62,7 @@ This method returns \code{true} on success and \code{false} on failure.
 }
 
 \begin{apient}
-bool getLocalVariables(vector<localVar *> &vars);
+bool getLocalVariables(std::vector<localVar *> &vars);
 \end{apient}
 \apidesc{
 This method returns the local variables in the function. \code{vars} contains the list of variables found.
@@ -78,7 +78,7 @@ This method returns a list of frame pointer offsets (abstract top of the stack) 
 }
 
 \begin{apient}
-bool getParams(vector<localVar *> &params);
+bool getParams(std::vector<localVar *> &params);
 \end{apient}
 \apidesc{
 This method returns the parameters to the function. \code{params} contains the list of parameters.
@@ -87,8 +87,8 @@ error code set to \code{NO\_DEBUG\_INFO} accordingly. Returns \code{true} on suc
 }
 
 \begin{apient}
-bool findLocalVariable(vector<localVar *> &vars,
-                       string name);
+bool findLocalVariable(std::vector<localVar *> &vars,
+                       std::string name);
 \end{apient}
 \apidesc{
 This method returns a list of local variables within a function that have name \code{name}. \code{vars} contains the list of variables found.

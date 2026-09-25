@@ -186,7 +186,7 @@ The PatchFunction class is a wrapper of ParseAPI's Function class (has-a), which
 represents a function.
 
 \begin{apient}
-const string &name();
+const std::string &name();
 \end{apient}
 
 
@@ -278,12 +278,12 @@ PatchLoop* findLoop(const char *name);
 \apidesc{Return the loop with the given nesting name. See class \code{PatchLoopTreeNode} for more details about how loop nesting names are assigned.}
 
 \begin{apient}
-bool getLoops(vector<PatchLoop*> &loops);
+bool getLoops(std::vector<PatchLoop*> &loops);
 \end{apient}
 \apidesc{Fill \code{loops} with all the loops in the function}
 
 \begin{apient}
-bool getOuterLoops(vector<PatchLoop*> &loops);
+bool getOuterLoops(std::vector<PatchLoop*> &loops);
 \end{apient}
 \apidesc{Fill \code{loops} with all the outermost loops in the function}
 
@@ -298,12 +298,12 @@ PatchBlock* getImmediateDominator(PatchBlock *A);
 \apidesc{Return the immediate dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate dominator.}
 
 \begin{apient}
-void getImmediateDominates(PatchBlock *A, set<PatchBlock*> &imm);
+void getImmediateDominates(PatchBlock *A, std::set<PatchBlock*> &imm);
 \end{apient}
 \apidesc{Fill \code{imm} with all the blocks immediate dominated by block \code{A}}
 
 \begin{apient}
-void getAllDominates(PatchBlock *A, set<PatchBlock*> &dom);
+void getAllDominates(PatchBlock *A, std::set<PatchBlock*> &dom);
 \end{apient}
 \apidesc{Fill \code{dom} with all the blocks dominated by block \code{A}}
 
@@ -319,12 +319,12 @@ PatchBlock* getImmediatePostDominator(PatchBlock *A);
 \apidesc{Return the immediate post-dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate post-dominator.}
 
 \begin{apient}
-void getImmediatePostDominates(PatchBlock *A, set<PatchBlock*> &imm);
+void getImmediatePostDominates(PatchBlock *A, std::set<PatchBlock*> &imm);
 \end{apient}
 \apidesc{Fill \code{imm} with all the blocks immediate post-dominated by block \code{A}}
 
 \begin{apient}
-void getAllPostDominates(PatchBlock *A, set<PatchBlock*> &dom);
+void getAllPostDominates(PatchBlock *A, std::set<PatchBlock*> &dom);
 \end{apient}
 \apidesc{Fill \code{dom} with all the blocks post-dominated by block \code{A}}
 
@@ -611,37 +611,37 @@ bool containsAddressInclusive(Address addr);
 \apidesc{Returns true if the given address is within the range of this loop's basic blocks or its children.}
 
 \begin{apient}
-int getLoopEntries(vector<PatchBlock*>& entries);
+int getLoopEntries(std::vector<PatchBlock*>& entries);
 \end{apient}
 \apidesc{Fills \code{entries} with the set of entry basic blocks of the loop. Return the number of the entries that this loop has}
 
 
 \begin{apient}
-int getBackEdges(vector<PatchEdge*> &edges);
+int getBackEdges(std::vector<PatchEdge*> &edges);
 \end{apient}
 \apidesc{Sets \code{edges} to the set of back edges in this loop.
 It returns the number of back edges that are in this loop.
 }
 
 \begin{apient}
-bool getContainedLoops(vector<PatchLoop*> &loops);
+bool getContainedLoops(std::vector<PatchLoop*> &loops);
 \end{apient}
 \apidesc{Returns a vector of loops that are nested under this loop.}
 
 \begin{apient}
-bool getOuterLoops(vector<PatchLoop*> &loops);
+bool getOuterLoops(std::vector<PatchLoop*> &loops);
 \end{apient}
 \apidesc{Returns a vector of loops that are directly nested under this loop.}
 
 
 \begin{apient}
-bool getLoopBasicBlocks(vector<PatchBlock*> &blocks);
+bool getLoopBasicBlocks(std::vector<PatchBlock*> &blocks);
 \end{apient}
 \apidesc{Fills \code{blocks} with all basic blocks in the loop}
 
 
 \begin{apient}
-bool getLoopBasicBlocksExclusive(vector<PatchBlock*> &blocks);
+bool getLoopBasicBlocksExclusive(std::vector<PatchBlock*> &blocks);
 \end{apient}
 \apidesc{Fills \code{blocks} with all basic blocks in this loop, excluding the blocks of its sub loops.}
 
@@ -739,7 +739,7 @@ unsigned int numCallees();
 \apidesc{Returns the number of callees contained in this loop's body.}
 
 \begin{apient}
-bool getCallees(vector<PatchFunction *> &v);
+bool getCallees(std::vector<PatchFunction *> &v);
 \end{apient}
 \apidesc{Fills \code{v} with a vector of the functions called inside this loop.}
 

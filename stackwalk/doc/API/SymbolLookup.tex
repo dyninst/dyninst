@@ -22,7 +22,7 @@ SymbolLookup(std::string exec_path = "");
 
 \begin{apient}
 virtual bool lookupAtAddr(Address addr,
-                          string &out_name,
+                          std::string &out_name,
                           void* &out_value) = 0;
 \end{apient}
 \apidesc{

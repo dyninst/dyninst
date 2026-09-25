@@ -64,7 +64,7 @@ struct NewEdgeToParse {
     EdgeTypeEnum type;
 };
 
-bool parseNewEdges( vector<NewEdgeToParse> & worklist );
+bool parseNewEdges( std::vector<NewEdgeToParse> & worklist );
 \end{apient}
 \apidesc{Parses a set of newly created edges specified in the worklist supplied
 that were not included when the function was originally parsed.

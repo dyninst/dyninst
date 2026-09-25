@@ -22,7 +22,7 @@ function:
     };
 
 
-    vector<Block*> work;
+    std::vector<Block*> work;
     Intraproc epred; // ignore calls, returns
 
     work.push_back(func->entry()); // assuming `func' is a Function*

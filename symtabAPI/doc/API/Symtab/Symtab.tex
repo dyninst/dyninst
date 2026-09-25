@@ -120,7 +120,7 @@ address space:
 
 \begin{apient}
 static bool openFile(Symtab *&obj,
-                     string filename);
+                     std::string filename);
 \end{apient}
 \apidesc{
     Creates a new \code{Symtab} object for an object file on disk. This object serves as a handle to the parsed object file. \code{filename} represents the name of the \code{Object} file to be parsed. The \code{Symtab} object is returned in \code{obj} if the parsing succeeds.
@@ -142,7 +142,7 @@ be called to get more error details.
 }
 
 \begin{apient}
-static Symtab *findOpenSymtab(string name);
+static Symtab *findOpenSymtab(std::string name);
 \end{apient}
 \apidesc{Find a previously opened \code{Symtab} that matches the provided name.}
 
@@ -180,7 +180,7 @@ The default module will be returned if and only if it is the only module present
 }
 
 \begin{apient}
-bool getAllModules(vector<module *> &ret);
+bool getAllModules(std::vector<module *> &ret);
 \end{apient}
 \apidesc{
 This method returns all modules in the object file. Returns \code{true} on success and
@@ -223,7 +223,7 @@ Returns \code{true} on success and \code{false} on failure. The error value is s
 }
 
 \begin{apient}
-bool getAllFunctions(vector<Function *> &ret);
+bool getAllFunctions(std::vector<Function *> &ret);
 \end{apient}
 \apidesc{
 This method returns all functions in the object file. Returns \code{true} on success
@@ -255,7 +255,7 @@ Returns \code{true} if it finds variables that match the given name, otherwise r
 }
 
 \begin{apient}
-bool getAllVariables(vector<Variable *> &ret);
+bool getAllVariables(std::vector<Variable *> &ret);
 \end{apient}
 \apidesc{
 This method returns all variables in the object file. Returns \code{true} on success
@@ -263,8 +263,8 @@ and \code{false} if there are no modules. The error value is set to \code{No\_Su
 }
 
 \begin{apient}
-bool findSymbol(vector <Symbol *> &ret,
-                const string name,
+bool findSymbol(std::vector <Symbol *> &ret,
+                const std::string name,
                 Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
                 NameType nameType = anyName,
                 bool isRegex = false,
@@ -279,13 +279,13 @@ Returns \code{true} if it finds symbols with the given attributes. or else retur
 }
 
 \begin{apient}
-const vector<Symbol *> *findSymbolByOffset(Offset offset);
+const std::vector<Symbol *> *findSymbolByOffset(Offset offset);
 \end{apient}
 \apidesc{Return a pointer to a vector of \code{Symbol}s with the specified offset. The pointer belongs to \code{Symtab} and should not be modified or freed.
 }
 
 \begin{apient}
-bool getAllSymbols(vector<Symbol *> &ret);
+bool getAllSymbols(std::vector<Symbol *> &ret);
 \end{apient}
 \apidesc{
 This method returns all symbols.
@@ -294,7 +294,7 @@ set to \code{No\_Such\_Symbol}.
 }
 
 \begin{apient}
-bool getAllSymbolsByType(vector<Symbol *> &ret,
+bool getAllSymbolsByType(std::vector<Symbol *> &ret,
                          Symbol::SymbolType sType);
 \end{apient}
 \apidesc{
@@ -350,7 +350,7 @@ This method finds all the new regions added to the object file. Returns \code{tr
 
 \begin{apient}
 bool findRegion(Region *&reg,
-                string sname);
+                std::string sname);
 \end{apient}
 \apidesc{
 Find a region (ELF section) wih name \code{sname} in the binary. Returns \code{true} if found, with \code{reg} set to the region pointer. Otherwise returns \code{false} with \code{reg} set to \code{NULL}.
@@ -383,14 +383,14 @@ Find the region (ELF section) whose virtual address range contains \code{offset}
 \subsubsection{Insertion and modification}
 
 \begin{apient}
-bool emit(string file);
+bool emit(std::string file);
 \end{apient}
 \apidesc{
 	Creates a new file using the specified name that contains all changes made by the user.
 }
 
 \begin{apient}
-bool addLibraryPrereq(string lib);
+bool addLibraryPrereq(std::string lib);
 \end{apient}
 \apidesc{
 Add a library dependence to the file such that when the file is loaded, the library will be loaded as well. Cannot be used for static binaries.
@@ -478,7 +478,7 @@ Offset getFreeOffset(unsigned size);
 \subsubsection{Catch and Exception block lookup}
 
 \begin{apient}
-bool getAllExceptions(vector<ExceptionBlock *> &exceptions);
+bool getAllExceptions(std::vector<ExceptionBlock *> &exceptions);
 \end{apient}
 \apidesc{
 This method retrieves all the exception blocks in the \code{Object} file.
@@ -539,8 +539,8 @@ Returns \code{true} if it succeeds or else returns \code{false}.
 \subsubsection{Line number information}
 
 \begin{apient}
-bool getAddressRanges(vector<pair<Offset, Offset> > & ranges,
-                      string lineSource,
+bool getAddressRanges(std::vector<std::pair<Offset, Offset> > & ranges,
+                      std::string lineSource,
                       unsigned int LineNo);
 \end{apient}
 \apidesc{
@@ -549,7 +549,7 @@ Return \code{true} if at least one address range corresponding to the line numbe
 }
 
 \begin{apient}
-bool getSourceLines(vector<LineNoTuple> &lines,
+bool getSourceLines(std::vector<LineNoTuple> &lines,
                     Offset addressInRange);
 \end{apient}
 \apidesc{
@@ -568,7 +568,7 @@ Forces SymtabAPI to perform type parsing instead of delaying it to when needed.
 
 \begin{apient}
 bool findType(Type *&type,
-              string name);
+              std::string name);
 \end{apient}
 \apidesc{
 Performs a look up among all the built-in types, standard types and user-defined types and returns a handle to the found type with name \code{name}.
@@ -597,8 +597,8 @@ Returns all the built-in types defined in the binary.
 }
 
 \begin{apient}
-bool findLocalVariable(vector<localVar *> &vars,
-                       string name);
+bool findLocalVariable(std::vector<localVar *> &vars,
+                       std::string name);
 \end{apient}
 \apidesc{
 The method returns a list of local variables named name within the object file.

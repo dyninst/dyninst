@@ -74,7 +74,7 @@ that connects two basic blocks.
 MySnippet::ptr snippet = MySnippet::create(new MySnippet);
 
 Patcher patcher(mgr);
-for (vector<Point*>::iterator iter = pts.begin();
+for (std::vector<Point*>::iterator iter = pts.begin();
      iter != pts.end(); ++iter) {
   Point* pt = *iter;
   patcher.add(PushBackCommand::create(pt, snippet));

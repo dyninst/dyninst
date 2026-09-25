@@ -22,7 +22,7 @@ print the call stack of the currently running thread.
 
 \begin{lstlisting}
 std::vector<Frame> stackwalk;
-string s;
+std::string s;
 
 Walker *walker = Walker::newWalker();
 walker->walkStack(stackwalk);

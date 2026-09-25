@@ -35,7 +35,7 @@ The following code example shows how to get loop information using ParseAPI once
 \begin{lstlisting}
 void GetLoopInFunc(Function *f) {
     // Get all loops in the function
-    vector<Loop*> loops;
+    std::vector<Loop*> loops;
     f->getLoops(loops);
 
     // Iterate over all loops
@@ -43,15 +43,15 @@ void GetLoopInFunc(Function *f) {
         Loop *loop = *lit;
 
         // Get all the entry blocks of the loop
-	vector<Block*> entries;
+	std::vector<Block*> entries;
 	loop->getLoopEntries(entries);
 
         // Get all the blocks in the loop
-        vector<Block*> blocks;
+        std::vector<Block*> blocks;
 	loop->getLoopBasicBlocks(blocks);
 
 	// Get all the back edges in the loop
-	vector<Edge*> backEdges;
+	std::vector<Edge*> backEdges;
 	loop->getBackEdges(backEdges);
     }
 }

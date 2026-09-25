@@ -3,7 +3,7 @@ This is used only on ELF platforms. This class represents an archive. This class
 
 \begin{apient}
 static bool openArchive(Archive *&img,
-                        string name);
+                        std::string name);
 \end{apient}
 \apidesc{
 This factory method creates a new \code{Archive} object for an archive file on disk. This object serves as a handle to the parsed archive file. \code{name} represents the name of the archive to be parsed. The \code{Archive} object is returned in \code{img} if the parsing succeeds.
@@ -25,7 +25,7 @@ to \code{Not\_An\_Archive}. This returns \code{true} if the archive is parsed wi
 
 \begin{apient}
 bool getMember(Symtab *&img,
-               string member_name);
+               std::string member_name);
 \end{apient}
 \apidesc{
 This method returns the member object handle if the member exists in the archive. \code{img} corresponds to the object handle for the member.
@@ -42,14 +42,14 @@ This method returns \code{false} if the member with name \code{member\_name} doe
 }
 
 \begin{apient}
-bool getAllMembers(vector <Symtab *> &members);
+bool getAllMembers(std::vector <Symtab *> &members);
 \end{apient}
 \apidesc{
 This method returns all the member object handles in the archive. Returns \code{true} on success with \code{members} containing the \code{Symtab} Objects for all the members in the archive.
 }
 
 \begin{apient}
-bool isMemberInArchive(string member_name);
+bool isMemberInArchive(std::string member_name);
 \end{apient}
 \apidesc{
 This method returns \code{true} if the member with name \code{member\_name} exists in the archive or else returns \code{false}.
@@ -57,7 +57,7 @@ This method returns \code{true} if the member with name \code{member\_name} exis
 
 \begin{apient}
 bool findMemberWithDefinition(Symtab *&obj,
-                              string name);
+                              std::string name);
 \end{apient}
 \apidesc{
 This method retrieves the member in an archive which contains the definition to a symbol with mangled name \code{name}.

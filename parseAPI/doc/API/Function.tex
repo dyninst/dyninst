@@ -70,7 +70,7 @@ getReturnType & Type * & Type representing the return type of the function. \\
 
 \begin{apient}
 Function(Address addr,
-         string name,
+         std::string name,
          CodeObject * obj,
          CodeRegion * region,
          InstructionSource * isource);
@@ -89,12 +89,12 @@ Loop* findLoop(const char *name) const;
 \apidesc{Return the loop with the given nesting name. See class \code{LoopTreeNode} for more details about how loop nesting names are assigned.}
 
 \begin{apient}
-bool getLoops(vector<Loop*> &loops) const;
+bool getLoops(std::vector<Loop*> &loops) const;
 \end{apient}
 \apidesc{Fill \code{loops} with all the loops in the function}
 
 \begin{apient}
-bool getOuterLoops(vector<Loop*> &loops) const;
+bool getOuterLoops(std::vector<Loop*> &loops) const;
 \end{apient}
 \apidesc{Fill \code{loops} with all the outermost loops in the function}
 
@@ -109,12 +109,12 @@ Block* getImmediateDominator(Block *A) const;
 \apidesc{Return the immediate dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate dominator.}
 
 \begin{apient}
-void getImmediateDominates(Block *A, set<Block*> &imm) const;
+void getImmediateDominates(Block *A, std::set<Block*> &imm) const;
 \end{apient}
 \apidesc{Fill \code{imm} with all the blocks immediate dominated by block \code{A}}
 
 \begin{apient}
-void getAllDominates(Block *A, set<Block*> &dom) const;
+void getAllDominates(Block *A, std::set<Block*> &dom) const;
 \end{apient}
 \apidesc{Fill \code{dom} with all the blocks dominated by block \code{A}}
 
@@ -130,12 +130,12 @@ Block* getImmediatePostDominator(Block *A) const;
 \apidesc{Return the immediate post-dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate post-dominator.}
 
 \begin{apient}
-void getImmediatePostDominates(Block *A, set<Block*> &imm) const;
+void getImmediatePostDominates(Block *A, std::set<Block*> &imm) const;
 \end{apient}
 \apidesc{Fill \code{imm} with all the blocks immediate post-dominated by block \code{A}}
 
 \begin{apient}
-void getAllPostDominates(Block *A, set<Block*> &dom) const;
+void getAllPostDominates(Block *A, std::set<Block*> &dom) const;
 \end{apient}
 \apidesc{Fill \code{dom} with all the blocks post-dominated by block \code{A}}
 

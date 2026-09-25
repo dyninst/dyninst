@@ -68,7 +68,7 @@ unsigned int numCallees();
 \apidesc{Returns the number of callees contained in this loop's body.}
 
 \begin{apient}
-bool getCallees(vector<Function *> &v);
+bool getCallees(std::vector<Function *> &v);
 \end{apient}
 \apidesc{Fills \code{v} with a vector of the functions called inside this loop.}
 

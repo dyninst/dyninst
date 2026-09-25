@@ -17,7 +17,7 @@ getRegion & Region * & Region that contains this variable. \\
 \end{tabularx}
 
 \begin{apient}
-bool getSymbols(vector<Symbol *> &syms) const;
+bool getSymbols(std::vector<Symbol *> &syms) const;
 \end{apient}
 \apidesc{
 This method returns the vector of \code{Symbol}s that refer to the variable.
@@ -45,7 +45,7 @@ The method changes the offset of the variable. Returns \code{true} if it succeed
 }
 
 \begin{apient}
-bool addMangledName(string name,
+bool addMangledName(std::string name,
                     bool isPrimary);
 \end{apient}
 \apidesc{
@@ -54,7 +54,7 @@ This method returns \code{true} on success and \code{false} on failure.
 }
 
 \begin{apient}
-bool addPrettyName(string name,
+bool addPrettyName(std::string name,
                    bool isPrimary);
 \end{apient}
 \apidesc{
@@ -63,7 +63,7 @@ This method returns \code{true} on success and \code{false} on failure.
 }
 
 \begin{apient}
-bool addTypedName(string name,
+bool addTypedName(std::string name,
                   bool isPrimary);
 \end{apient}
 \apidesc{

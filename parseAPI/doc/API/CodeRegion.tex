@@ -6,7 +6,7 @@ The CodeRegion interface is an accounting structure used to divide CodeSources i
 
 \begin{apient}
 void names(Address addr,
-           vector<std::string> & names);
+           std::vector<std::string> & names);
 \end{apient}
 \apidesc{Fills the provided vector with any names associated with the function at a given address in the region, e.g. symbol names in an ELF or PE binary.}
 

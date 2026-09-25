@@ -328,7 +328,7 @@ new function, where the old function is replaced by the new function.
 }
 
 \begin{apient}
-bool wrapFunction(PatchFunction* oldfunc, PatchFunction* newfunc, string name);
+bool wrapFunction(PatchFunction* oldfunc, PatchFunction* newfunc, std::string name);
 \end{apient}
 
 
@@ -422,8 +422,8 @@ It returns true on success; otherwise, it returns false.
 
 
 \begin{apient}
-typedef map<PatchBlock*,        // B  : A call block
-            map<PatchFunction*, // F_c: Function context
+typedef std::map<PatchBlock*,        // B  : A call block
+            std::map<PatchFunction*, // F_c: Function context
                 PatchFunction*> // F  : The function to be replaced
            > CallModMap;
 \end{apient}
