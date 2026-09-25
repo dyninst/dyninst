@@ -98,7 +98,7 @@ If this \code{Type} object represents an \code{Function} type, then return the o
 }
 
 \begin{apient}
-typeRange *getSubrangeType();
+typeSubrange *getSubrangeType();
 \end{apient}
 \apidesc{
 If this \code{Type} object represents a \code{Subrange} type, then return the object casting the \code{Type} object to \code{typeSubrange} otherwise return \code{NULL}.
@@ -245,7 +245,7 @@ This method sets the return type of the function type to \code{rtype}. Returns \
 }
 
 \begin{apient}
-bool setName(std::string &name);
+bool setName(std::string name);
 \end{apient}
 \apidesc{
 This method sets the new name of the function type to \code{name}. Returns \code{true} if it succeeds, else returns \code{false}.
@@ -276,7 +276,7 @@ it will be available for further queries.
 }
 
 \begin{apient}
-bool isSigned();
+bool isSigned() const;
 \end{apient}
 \apidesc{
 This method returns \code{true} if the scalar type is signed or else returns \code{false}.

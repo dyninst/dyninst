@@ -204,7 +204,7 @@ Returns the address of the first instruction in this function.
 }
 
 \begin{apient}
-ParseAPI::Function *function();
+ParseAPI::Function *function() const;
 \end{apient}
 
 
@@ -405,7 +405,7 @@ This function outputs Instructions that are in this block to \emph{insns}.
 }
 
 \begin{apient}
-InstructionAPI::Instruction::Ptr getInsn(Address a) const;
+InstructionAPI::Instruction getInsn(Address a) const;
 \end{apient}
 
 
@@ -426,7 +426,7 @@ for debugging purpose.
 }
 
 \begin{apient}
-bool containsCall();
+bool containsCall() const;
 \end{apient}
 
 
@@ -450,16 +450,6 @@ PatchFunction* getCallee();
 \apidesc{
 Returns the callee function, if this PatchBlock contains a function call;
 otherwise, NULL is returned.
-}
-
-\begin{apient}
-PatchFunction *function() const;
-\end{apient}
-
-\apidesc{
-Returns a PatchFunction that contains this PatchBlock. If there are multiple
-PatchFunctions containing this PatchBlock, then a random one of them is
-returned.
 }
 
 \begin{apient}

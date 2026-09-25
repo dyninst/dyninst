@@ -41,12 +41,12 @@ struct Hint {
     Hint(Addr, CodeRegion *, std::string);
 };
 
-std::vector< Hint > const& hints();
+std::vector< Hint > const& hints() const;
 \end{apient}
 \apidesc{Returns a vector of the currently defined function entry hints.}
 
 \begin{apient}
-std::vector<CodeRegion *> const& regions();
+std::vector<CodeRegion *> const& regions() const;
 \end{apient}
 \apidesc{Returns a read-only vector of code regions within the binary represented by this code source.}
 
@@ -57,6 +57,6 @@ int findRegions(Address addr,
 \apidesc{Finds all CodeRegion objects that overlap the provided address. Some code sources (e.g. archive files) may have several regions with overlapping address ranges; others (e.g. ELF binaries) do not.}
 
 \begin{apient}
-bool regionsOverlap();
+bool regionsOverlap() const;
 \end{apient}
 \apidesc{Indicates whether the CodeSource contains overlapping regions.}

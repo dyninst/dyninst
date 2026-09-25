@@ -54,7 +54,7 @@ If this method succeeds, it returns a non-zero address; otherwise, it returns 0.
 }
 
 \begin{apient}
-Address realloc(PatchObject* obj, Address orig, size_t size);
+bool realloc(PatchObject* obj, Address orig, size_t size);
 \end{apient}
 
 
@@ -366,7 +366,7 @@ It returns true on success; otherwise, it returns false.
 }
 
 \begin{apient}
-FuncModMap& funcWrapMap();
+FuncWrapMap& funcWrapMap();
 \end{apient}
 
 

@@ -63,10 +63,3 @@ MachRegister getID() const;
 The \code{getID} function returns underlying register represented by
 this AST.
 }
-
-\begin{apient}
-static MultiRegister::Ptr promote(const Expression::Ptr reg);
-\end{apient}
-\apidesc{
-Utility function to hide aliasing complexity on platforms (IA-32) that allow addressing part or all of a register
-}

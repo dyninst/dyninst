@@ -62,7 +62,7 @@ Architecture getArch();
 \apidesc{The architecture of the instruction source. See the Dyninst manual for details on architecture differences.}
 
 \begin{apient}
-bool isAligned(const Address);
+bool isAligned(const Address) const;
 \end{apient}
 \apidesc{For fixed-width instruction architectures, must return \code{true} if the address is a valid instruction boundary and \code{false} otherwise; otherwise returns \code{true}. This method has a default implementation that should be sufficient.}
 

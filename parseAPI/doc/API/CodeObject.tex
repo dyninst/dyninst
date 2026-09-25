@@ -147,12 +147,12 @@ Block * findNextBlock(CodeRegion * cr,
 \apidesc{Find the next reachable basic block starting at address \code{entry}. Returns \code{null} if no such block exists.}
 
 \begin{apient}
-CodeSource * cs();
+CodeSource * cs() const;
 \end{apient}
 \apidesc{Return a reference to the underlying CodeSource.}
 
 \begin{apient}
-CFGFactory * fact();
+CFGFactory * fact() const;
 \end{apient}
 \apidesc{Return a reference to the CFG object factory.}
 
