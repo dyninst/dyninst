@@ -41,9 +41,9 @@
 #include "dataflowAPI/h/liveness.h"
 #include "dataflowAPI/h/ABI.h"
 #include <boost/bind/bind.hpp>
-#include <deque>
-#include <iterator>
-#include <unordered_map>
+#include <functional>
+#include <map>
+#include <set>
 #include "instructionAPI/h/syscalls.h"
 #include "instructionAPI/h/interrupts.h"
 
@@ -250,39 +250,39 @@ void LivenessAnalyzer::analyze(Function *func) {
 
     // Step 2: propagate the block summaries to a fixpoint. Liveness is a
     // backward analysis, so a change to IN(b) requires revisiting only b's
-    // predecessors. Seeding in descending address order visits most
-    // successors first, because fall-through edges always ascend.
+    // predecessors. Pending blocks are visited highest address first, which
+    // visits most successors first because fall-through edges always ascend.
     //
-    // Maps each block of this function to whether it is on the worklist.
-    std::unordered_map<Block*, bool> onWorklist;
-    std::deque<Block*> worklist;
-    for (auto rit = std::reverse_iterator<Function::blocklist::iterator>(blocks.end());
-         rit != std::reverse_iterator<Function::blocklist::iterator>(blocks.begin()); ++rit) {
-        worklist.push_back(*rit);
-        onWorklist[*rit] = true;
+    // This function's blocks by start address. A predecessor not found here
+    // belongs to another function and is not updated.
+    std::map<Address, Block*> blocksByAddr;
+    std::set<Address, std::greater<Address>> worklist;
+    for (Block *block : blocks) {
+        blocksByAddr.emplace(block->start(), block);
+        worklist.insert(block->start());
     }
 
     Intraproc epred;
     while (!worklist.empty()) {
-        Block *block = worklist.front();
-        worklist.pop_front();
-        onWorklist[block] = false;
+        Block *block = blocksByAddr.at(*worklist.begin());
+        worklist.erase(worklist.begin());
         if (!updateBlockLivenessInfo(block, regsDefined)) continue;
 
-        boost::lock_guard<Block> g(*block);
-        for (Edge *e : block->sources()) {
+        Block::edgelist sources;
+        block->copy_sources(sources);
+        for (Edge *e : sources) {
             // Skip edges that getLivenessOut does not read IN(block) through:
             // those rejected by Intraproc, and CATCH edges, which
             // processEdgeLiveness ignores. This filter must never be stricter
             // than getLivenessOut's, or a predecessor would miss the change.
             if (!epred(e) || e->type() == CATCH) continue;
-            // Skip a predecessor outside this function: it may have no
-            // summary from step 1. Skip one already queued: its pending visit
-            // reads the current IN(block).
-            auto it = onWorklist.find(e->src());
-            if (it == onWorklist.end() || it->second) continue;
-            it->second = true;
-            worklist.push_back(e->src());
+            // Skip a predecessor outside this function: it may have no summary
+            // from step 1. Comparing the block, not only its address, also
+            // rejects a block of another code region at the same address.
+            auto it = blocksByAddr.find(e->src()->start());
+            if (it == blocksByAddr.end() || it->second != e->src()) continue;
+            // No-op when the predecessor is already pending
+            worklist.insert(it->first);
         }
     }
 
