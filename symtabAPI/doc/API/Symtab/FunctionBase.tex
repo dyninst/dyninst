@@ -15,20 +15,6 @@ getName & std::string & Returns primary name of the function (first mangled name
 
 
 \begin{apient}
-bool setSize(unsigned size);
-\end{apient}
-\apidesc{
-This function changes the size of the function to \code{size}. Returns \code{true} if it succeeds.
-}
-
-\begin{apient}
-bool setOffset(Offset offset);
-\end{apient}
-\apidesc{
-The method changes the offset of the function to \code{offset}. Returns \code{true} if it succeeds.
-}
-
-\begin{apient}
 bool addMangledName(std::string name,
                     bool isPrimary,
                     bool isDebug = false);
@@ -45,16 +31,6 @@ bool addPrettyName(std::string name,
 \end{apient}
 \apidesc{
 This method adds a pretty name \code{name} to the function. If \code{isPrimary} is \code{true} then it becomes the default name for the function.
-This method returns \code{true} on success and \code{false} on failure.
-}
-
-\begin{apient}
-bool addTypedName(std::string name,
-                  bool isPrimary,
-                  bool isDebug = false);
-\end{apient}
-\apidesc{
-This method adds a typed name \code{name} to the function. If \code{isPrimary} is \code{true} then it becomes the default name for the function.
 This method returns \code{true} on success and \code{false} on failure.
 }
 
