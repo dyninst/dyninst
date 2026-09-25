@@ -59,7 +59,8 @@ This method returns \code{true} on success and \code{false} on failure.
 
 \begin{apient}
 bool addPrettyName(std::string name,
-                   bool isPrimary);
+                   bool isPrimary,
+                   bool isDebug = false);
 \end{apient}
 \apidesc{
 This method adds a pretty name \code{name} to the function. If \code{isPrimary} is \code{true} then it becomes the default name for the function.
@@ -68,7 +69,8 @@ This method returns \code{true} on success and \code{false} on failure.
 
 \begin{apient}
 bool addTypedName(std::string name,
-                  bool isPrimary);
+                  bool isPrimary,
+                  bool isDebug = false);
 \end{apient}
 \apidesc{
 This method adds a typed name \code{name} to the function. If \code{isPrimary} is \code{true} then it becomes the default name for the function.

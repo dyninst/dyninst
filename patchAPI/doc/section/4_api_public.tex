@@ -136,8 +136,8 @@ Outputs all instances of PatchBlock in this object to the STL inserter
 }
 
 \begin{apient}
-PatchEdge *getEdge(ParseAPI::Edge* edge, PatchBlock* src, PatchBlock* trg,
-                   bool create = true);
+PatchEdge *getEdge(ParseAPI::Edge* edge, PatchBlock* src = NULL,
+                   PatchBlock* trg = NULL, bool create = true);
 \end{apient}
 
 
