@@ -58,39 +58,56 @@ bool is_signed(Dwarf_Die *die) {
 namespace Dyninst {
 namespace DwarfDyninst {
 
+static bool constant_value(Dwarf_Attribute *attr, bool as_signed,
+                           Dwarf_Word &value) {
+  if (as_signed) {
+    Dwarf_Sword signed_value;
+    if (dwarf_formsdata(attr, &signed_value) != 0)
+      return false;
+    value = signed_value;
+    return true;
+  }
+  return dwarf_formudata(attr, &value) == 0;
+}
+
 /*
  * DWARF5 - Section 2.19 Static and Dynamic Values of Attributes
  *
  * The bound and count attributes of a subrange may be a constant, a DWARF
- * expression, or a reference to a DIE describing the value. Only a constant
- * can be evaluated statically; the other forms are runtime values, and are
+ * expression, or a reference to a DIE that describes a constant, describes a
+ * variable holding the value, or computes it. A constant, directly or through
+ * a reference, is the value; the other cases are runtime values, and are
  * reported as found but with no value.
  */
 static dwarf_result subrange_attr(Dwarf_Die *die, unsigned int name,
-                                  bool is_signed) {
+                                  bool as_signed) {
   Dwarf_Attribute attr;
   if (!dwarf_attr_integrate(die, name, &attr)) {
     // Nothing was found, but there was no error
     return dwarf_result{};
   }
 
-  if (is_signed) {
-    Dwarf_Sword value;
-    if (dwarf_formsdata(&attr, &value) == 0)
-      return value;
-  } else {
-    Dwarf_Word value;
-    if (dwarf_formudata(&attr, &value) == 0)
-      return value;
-  }
+  Dwarf_Word value;
+  if (constant_value(&attr, as_signed, value))
+    return value;
 
   // The constant decoders fail the same way for a runtime value and for a
   // form that is invalid here, so check for the runtime forms explicitly.
   Dwarf_Block block;
-  Dwarf_Die ref;
-  if (dwarf_formblock(&attr, &block) == 0 || dwarf_formref_die(&attr, &ref))
+  if (dwarf_formblock(&attr, &block) == 0)
     return dwarf_result{};
-  return dwarf_error{};
+
+  // A reference that can't be resolved, such as one into a supplementary
+  // (dwz) file that isn't available, is an error.
+  Dwarf_Die ref;
+  if (!dwarf_formref_die(&attr, &ref))
+    return dwarf_error{};
+
+  Dwarf_Attribute ref_value;
+  if (dwarf_attr_integrate(&ref, DW_AT_const_value, &ref_value) &&
+      constant_value(&ref_value, is_signed(&ref), value))
+    return value;
+  return dwarf_result{};
 }
 
 static dwarf_result upper_bound(Dwarf_Die *die) {
