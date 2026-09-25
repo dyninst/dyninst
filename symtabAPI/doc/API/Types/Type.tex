@@ -179,10 +179,12 @@ Returns \code{true} on success and \code{false} on failure.
 }
 
 \begin{apient}
-std::vector<std::pair<std::string, int> > &getConstants();
+dyn_c_vector<std::pair<std::string, int> > &getConstants();
 \end{apient}
 \apidesc{
 This method returns the vector containing the enum constants represented by a (name, value) pair of the constant.
+\code{dyn\_c\_vector} is a oneTBB concurrent vector
+{\raggedright\url{https://www.intel.com/content/www/us/en/docs/onetbb/developer-guide-api-reference/2021-9/concurrent-vector.html}.\par}
 }
 
 \begin{apient}

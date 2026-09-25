@@ -41,9 +41,11 @@ struct Hint {
     Hint(Addr, CodeRegion *, std::string);
 };
 
-std::vector< Hint > const& hints() const;
+dyn_c_vector<Hint> const& hints() const;
 \end{apient}
-\apidesc{Returns a vector of the currently defined function entry hints.}
+\apidesc{Returns a vector of the currently defined function entry hints.
+\code{dyn\_c\_vector} is a oneTBB concurrent vector
+{\raggedright\url{https://www.intel.com/content/www/us/en/docs/onetbb/developer-guide-api-reference/2021-9/concurrent-vector.html}.\par}}
 
 \begin{apient}
 std::vector<CodeRegion *> const& regions() const;
