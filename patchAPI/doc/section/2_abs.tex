@@ -14,11 +14,11 @@ interface is used to customize different aspects in the binary code patching.
 PatchAPI provides a set of default plugins for first party code patching, which
 is easy to extend to meet different requirements in practice.
 
-Figure \ref{fig:object-ownership} shows the ownership hierarchy for PatchAPI's classes.
+Figure~\ref{fig:object-ownership} shows the ownership hierarchy for PatchAPI's classes.
 Ownership is a ``contains'' relationship. If one class owns another, then
 instances of the owner class maintain exactly one or possibly more than one
 instances of the other, which depends on whether the relationship is a ``1:1''
-or a ``1:n'' relationship. In Figure \ref{fig:object-ownership}, for example, each PatchMgr
+or a ``1:n'' relationship. In Figure~\ref{fig:object-ownership}, for example, each PatchMgr
 instance contains exactly one instance of a AddrSpace object, while a PatchMgr
 instance may contains more than one instances of a Point object.
 
@@ -114,7 +114,7 @@ requests should succeed or all should fail. In our framework, the
 \textbf{Command} abstraction represents an instrumentation request or a logical
 step in the code patching process. We accumulate a list of \textbf{Commands},
 and execute them one by one. If one \textbf{Command} fails, we undo all
-preceding finished \textbf{Commands}. Figure \ref{fig:inheritance-hierarchy} illustrates the
+preceding finished \textbf{Commands}. Figure~\ref{fig:inheritance-hierarchy} illustrates the
 inheritance hierarchy for related classes. There is a default implementation of
 instrumentation engine in PatchAPI for 1st party code patching.
 

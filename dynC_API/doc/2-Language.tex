@@ -14,7 +14,7 @@ Domain & Description\\
 \hline
 \code{inf} & The inferior process (the program being instrumented). Allows access to functions of the mutatee and it's loaded libraries.\\
 \hline
-\code{dyninst} & Dyninst utility functions. Allows access to context information as well as the \code{break()} function. See Appendix \ref{sec:dyninstdomain}.\\
+\code{dyninst} & Dyninst utility functions. Allows access to context information as well as the \code{break()} function. See Appendix~\ref{sec:dyninstdomain}.\\
 \hline
 \code{local} & A mutatee variable local to function in which the snippet is inserted. \\
 \hline
@@ -204,8 +204,7 @@ to a type-specific zero-value. Scalar variables are set to 0, and c-strings are
 set to empty, null-terminated strings (i.e. \code{""}).
 
 If a variable is declared with the \code{static} keyword, then the
-initialization is performed as if in a first-only block (see section
-\ref{sec:firstOnly}). Thus, a variable is initialized only the first time that
+initialization is performed as if in a first-only block (see Section~\ref{sec:firstOnly}). Thus, a variable is initialized only the first time that
 snippet is executed, and subsequent executions of the variable initialization
 are ignored.
 
@@ -276,7 +275,7 @@ DynC supported data types are restricted by those supported by Dyninst: \code{in
 \subsubsection{Pointers}
 Pointers are dereferenced with the prefix \code{*<variable>} and the address of
 variable is specified by \code{\&<variable>}.
-For example, in reference to the previous example from section \ref{dataTypes}, the statement \code{*s} would evaluate to the character \code{h}.
+For example, in reference to the previous example from Section~\ref{dataTypes}, the statement \code{*s} would evaluate to the character \code{h}.
 
 \subsubsection{Arrays}
 Arrays in DynC behave much the same way they do in C.

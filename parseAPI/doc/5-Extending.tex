@@ -8,13 +8,13 @@ support various analysis applications, and by adding additional binary code
 sources that are unsupported by the default SymtabAPI-based code source. For
 example, a code source that represents a program image in memory could be
 implemented by fulfilling the CodeSource and InstructionSource interfaces
-described in Section \ref{sec:codesource} and below. Implementations that
+described in Section~\ref{sec:codesource} and below. Implementations that
 extend the CFG structures need only provide a custom allocation factory in
 order for these objects to be allocated during parsing.
 
 \subsection{Instruction and Code Sources}
 
-A CodeSource, as described above, exports its own and the InstructionSource interface for access to binary code and other details. In addition to implementing the virtual methods in the CodeSource base class (Section \ref{sec:codesource}), the methods in the pure-virtual InstructionSource class must be implemented:
+A CodeSource, as described above, exports its own and the InstructionSource interface for access to binary code and other details. In addition to implementing the virtual methods in the CodeSource base class (Section~\ref{sec:codesource}), the methods in the pure-virtual InstructionSource class must be implemented:
 
 \begin{apient}
 bool isValidAddress(const Address);

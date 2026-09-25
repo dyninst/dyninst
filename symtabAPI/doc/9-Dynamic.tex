@@ -1,6 +1,6 @@
 \section{API Reference - Dynamic Components}
 
-Unlike the static components discussed in Section \ref{sec:symtabAPI}, which operate on files,
+Unlike the static components discussed in Section~\ref{sec:symtabAPI}, which operate on files,
 SymtabAPI's dynamic components operate on a process. The dynamic components currently consist of the Dynamic Address Translation system, which translates between absolute addresses in a running process and static SymtabAPI objects.
 
 \subsection{Class AddressLookup}
@@ -10,7 +10,7 @@ The \code{AddressLookup} class provides a mapping interface for determining the 
 The \code{AddressLookup} class examines a process and finds its dynamic libraries and executables and each one's load address. This information can be used to map between SymtabAPI objects and absolute addresses. Each \code{AddressLookup} instance is associated with one process. An \code{AddressLookup} object can be created to work with the currently running process or a different process on the same system.
 
 On the Linux platform the \code{AddressLookup} class needs to read from the process' address space to determine its shared objects and load addresses. By default, \code{AddressLookup} will attach to another process using a debugger interface to read the necessary information, or simply use \code{memcpy} if reading from the current process. The default behavior can be changed by implementing a new ProcessReader class and passing an instance of it to the
-create\code{AddressLookup} factor constructors. The ProcessReader class is discussed in more detail in Section \ref{subsec:ProcessReader}.
+create\code{AddressLookup} factor constructors. The ProcessReader class is discussed in more detail in Section~\ref{subsec:ProcessReader}.
 
 When an \code{AddressLookup} object is created for a running process it takes a snapshot of the process' currently loaded libraries and their load addresses. This snapshot is used to answer queries into the \code{AddressLookup} object, and is not automatically updated when the process loads or unloads libraries. The refresh function can be used to updated an \code{AddressLookup} object's view of its process.
 
