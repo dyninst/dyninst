@@ -65,7 +65,7 @@ struct NewEdgeToParse {
     EdgeTypeEnum type;
 };
 
-bool parseNewEdges( std::vector<NewEdgeToParse> & worklist );
+bool parseNewEdges(std::vector<NewEdgeToParse> & worklist);
 \end{apient}
 \apidesc{Parses a set of newly created edges specified in the worklist supplied
 that were not included when the function was originally parsed.
@@ -121,7 +121,7 @@ int findFuncs(CodeRegion* cr,
               Address end,
               std::set<Function*> & funcs);
 \end{apient}
-\apidesc{Finds all functions overlapping the range \code{[start,end)} in the code region, adding each to \code{funcs}. The number of results of this stabbing query are returned.}
+\apidesc{Finds all functions overlapping the range \code{[start, end)} in the code region, adding each to \code{funcs}. The number of results of this stabbing query are returned.}
 
 \begin{apient}
 const funclist& funcs();

@@ -90,7 +90,7 @@ part of the pair is the start address, the second, the end.
 static Process::ptr createProcess(std::string executable,
                                   const std::vector<std::string> &argv,
                                   const std::vector<std::string> &envp = emptyEnvp,
-                                  const std::map<int,int> &fds = emptyFDs);
+                                  const std::map<int, int> &fds = emptyFDs);
 \end{apient}
 
 \apidesc{
@@ -109,7 +109,7 @@ getLastError returns details on the error.
 }
 
 \begin{apient}
-static Process::ptr attachProcess(Dyninst::PID pid,  std::string executable = "");
+static Process::ptr attachProcess(Dyninst::PID pid, std::string executable = "");
 \end{apient}
 
 \apidesc{

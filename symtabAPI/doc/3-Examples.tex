@@ -87,7 +87,7 @@ typeScalar* intType = lookupType->getScalarType();
 std::vector<std::pair<std::string, Type *> >fields;
 
 //create a new array type(int type2[10])
-typeArray* intArray = typeArray::create("intArray",intType,0,9, obj);
+typeArray* intArray = typeArray::create("intArray", intType, 0, 9, obj);
 
 //types of the structure fields
 fields.push_back(std::pair<std::string, Type *>("field1", intType));

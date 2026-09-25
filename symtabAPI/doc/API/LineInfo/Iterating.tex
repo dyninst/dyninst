@@ -18,7 +18,7 @@ for(auto* m : findModulesByName("foo")) {
 
   //Iterate over the line information
   LineInformation::const_iterator iter;
-  for( iter = info->begin(); iter != info->end(); iter++)
+  for(iter = info->begin(); iter != info->end(); iter++)
   {
   // First component represents the address range for the line
   const std::pair<Offset, Offset> addrRange = iter->first;

@@ -58,7 +58,7 @@ pass a \code{BPatch\_thread} object when a
   );
 
   typedef void (*BPatchCodeOverwriteEndCallback)(
-    BPatch_Vector<std::pair<Dyninst::Address,int>> &deadBlocks,
+    BPatch_Vector<std::pair<Dyninst::Address, int>> &deadBlocks,
     BPatch_Vector<BPatch_function*> &owFuncs,
     BPatch_Vector<BPatch_function*> &modFuncs,
     BPatch_Vector<BPatch_function*> &newFuncs

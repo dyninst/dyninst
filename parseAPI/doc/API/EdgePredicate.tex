@@ -64,7 +64,7 @@ with equivalent code using filter iterators as follows:
   }
   // NEW
   for_each(make_filter_iterator(epred, targets.begin(), targets.end()),
-           make_filter_iterator(epred, targets.end(), targets,end()),
+           make_filter_iterator(epred, targets.end(), targets.end()),
            loop_body_as_function);
   // NEW (C++11)
   for(auto i = make_filter_iterator(epred, targets.begin(), targets.end());
