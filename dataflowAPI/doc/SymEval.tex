@@ -75,11 +75,10 @@ ROSEOperation& RoseAST::val() const;
 We now describe data structure \code{Variable}, \code{Constant}, and
 \code{ROSEOperation}.
 
-\begin{apient}
-struct Variable;
-\end{apient}
-\apidesc{A \code{Variable} represents an abstract region at a particular
-address.}
+\subsection{Class Variable}
+
+A \code{Variable} represents an abstract region at a particular
+address.
 
 \begin{apient}
 Variable::Variable();
@@ -106,10 +105,9 @@ Address Variable::addr;
 \end{apient}
 \apidesc{The abstraction region and the address of this Variable.}
 
-\begin{apient}
-struct Constant;
-\end{apient}
-\apidesc{A \code{Constant} object represents a constant value in code.}
+\subsection{Class Constant}
+
+A \code{Constant} object represents a constant value in code.
 
 \begin{apient}
 Constant::Constant();
@@ -136,9 +134,7 @@ size_t Constant::size;
 \end{apient}
 \apidesc{The numerical value and bit size of this value.}
 
-\begin{apient}
-struct ROSEOperation;
-\end{apient}
+\subsection{Class ROSEOperation}
 
 \code{ROSEOperation} defines the following operations and we represent the
 semantics of all instructions with these operations.
