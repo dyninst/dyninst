@@ -142,7 +142,8 @@ virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib) = 0;
 }
 
 \begin{apient}
-virtual bool getLibraries(std::vector<LibAddrPair> &libs) = 0;
+virtual bool getLibraries(std::vector<LibAddrPair> &libs,
+                          bool allow_refresh = true) = 0;
 \end{apient}
 \apidesc{
 	This method returns all DSOs that are loaded into the process' address space
