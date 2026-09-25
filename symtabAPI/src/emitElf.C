@@ -196,12 +196,18 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
                         if (symbol->getVersionHidden()) index += 0x8000;
                         versionSymTable.push_back(index);
                     } else {
-                        unsigned short index = curVersionNum;
+                        // The library's own SONAME version is the base definition,
+                        // which must use VER_NDX_GLOBAL rather than a sequential index
+                        const char *soname = object->getSoname();
+                        bool isBase = (soname && (*vers)[0] == soname);
+                        unsigned short verndx = isBase ? VER_NDX_GLOBAL
+                                                       : (unsigned short) curVersionNum;
+                        unsigned short index = verndx;
                         if (symbol->getVersionHidden()) index += 0x8000;
                         versionSymTable.push_back(index);
 
-                        verdefEntries[(*vers)[0]] = curVersionNum;
-                        curVersionNum++;
+                        verdefEntries[(*vers)[0]] = verndx;
+                        if (!isBase) curVersionNum++;
                     }
                 }
                 // add all versions to the verdef entry
@@ -2274,6 +2280,18 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
                                                unsigned &verdefSecSize, unsigned &dynSymbolNamesLength,
                                                std::vector<std::string> &dynStrs) {
 
+    // A shared object that defines versions must have a BASE definition: its
+    // SONAME at VER_NDX_GLOBAL, flagged VER_FLG_BASE. The versions collected from
+    // symbols lack it when no symbol carries the SONAME version (e.g. libc).
+    const char *soname = object->getSoname();
+    if (soname && !verdefEntries.empty() &&
+        verdefEntries.find(soname) == verdefEntries.end()) {
+        verdefEntries[soname] = VER_NDX_GLOBAL;
+        verdauxEntries[VER_NDX_GLOBAL].push_back(soname);
+        if (versionNames.find(soname) == versionNames.end())
+            versionNames[soname] = 0;
+    }
+
     //Add all names to the new .dynstr section
     for (auto &versionName : versionNames) {
         versionName.second = dynSymbolNamesLength;
@@ -2370,7 +2388,7 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
     for (const auto &verdefEntry : verdefEntries) {
         Elf_Verdef *verdef = reinterpret_cast<Elf_Verdef *>(verdefSecData + curpos);
         verdef->vd_version = 1;
-        verdef->vd_flags = 0;
+        verdef->vd_flags = (soname && verdefEntry.first == soname) ? VER_FLG_BASE : 0;
         verdef->vd_ndx = verdefEntry.second;
         verdef->vd_cnt = verdauxEntries[verdefEntry.second].size();
         verdef->vd_hash = elfHash(verdefEntry.first);
