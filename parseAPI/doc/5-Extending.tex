@@ -144,6 +144,5 @@ list and invoke their destructors.
 void free_func(Function * f);
 void free_block(Block * b);
 void free_edge(Edge * e);
-void free_all();
 \end{apient}
 \apidesc{CFG objects should be freed using these functions, rather than delete, to avoid leaking memory.}

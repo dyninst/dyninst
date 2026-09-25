@@ -87,17 +87,6 @@ return invalid registers upon error.
 }
 
 \begin{apient}
-MachRegisterVal getSubRegVal(MachRegister subreg,  MachRegisterVal orig);
-\end{apient}
-
-\apidesc{
-Given a value for this register, orig, and a smaller aliased register, subreg,
-then this function returns the value of the aliased register. For example, if
-this function were called on x86::eax with subreg as x86::al and an orig value
-of 0x11223344, then it would return 0x44.
-}
-
-\begin{apient}
 const char *name() const;
 \end{apient}
 

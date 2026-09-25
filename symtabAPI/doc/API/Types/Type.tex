@@ -466,14 +466,6 @@ This method returns \code{true} if the union type is compatible with the given t
 This class represents a common block type in fortran, a special case of the container type. The variables of the common block represent the fields in this case. As a subclass of class \code{fieldListType}, all methods in \code{fieldListType} are applicable. \code{typeCommon} inherits from the \code{Type} class.
 
 
-\begin{apient}
-std::vector<CBlocks *> *getCBlocks();
-\end{apient}
-\apidesc{
-This method returns the common block objects for the type.
-The methods of the \code{CBlock} can be used to access information about the members of a common block. The vector returned by this function contains one instance of \code{CBlock} for each unique definition of the common block.
-}
-
 \subsubsection{Class CBlock}
 \mbox{ }\\
 

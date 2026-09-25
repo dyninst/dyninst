@@ -178,18 +178,6 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  char *getUniqueString(char *buffer, int length);
-\end{apient}
-
-\apidesc{
-  Performs a lookup and returns a unique string for this image.
-  Returns a string the can be compared (via strcmp) to
-  indicate if two images refer to the same underlying object file
-  (i.e., executable or library). The contents of the
-  string are implementation specific and defined to have no semantic meaning.
-}
-
-\begin{apient}
   bool getVariables(std::vector<BPatch_variableExpr *> &vars);
 \end{apient}
 
@@ -227,14 +215,6 @@ objects that it cannot match to a source file.
   This function returns true if the mutator's analysis mode sets to
   the defensive mode or the
   exploratory mode.
-}
-
-\begin{apient}
-  bool isMutatee();
-\end{apient}
-
-\apidesc{
-  This function returns true if the module is the mutatee.
 }
 
 \begin{apient}
