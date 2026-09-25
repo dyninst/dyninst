@@ -14,8 +14,10 @@ on:
         - master
      paths:
        - '**.h'
+       - '**.hpp'
        - '**.C'
        - '**.c'
+       - '**.cpp'
        - '**.cmake'
        - '**CMakeLists.txt'
        - 'tests/*'
