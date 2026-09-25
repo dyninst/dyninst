@@ -216,7 +216,7 @@ Commands will succeed, or all will fail.
 
 
 \begin{apient}
-typedef std::list<CommandPtr> CommandList;
+typedef std::list<Command*> CommandList;
 
 CommandList to_do_;
 CommandList done_;
@@ -242,7 +242,7 @@ order.
 }
 
 \begin{apient}
-void add(CommandPtr command);
+void add(Command* command);
 \end{apient}
 
 
@@ -280,7 +280,7 @@ implementation of the instrumentation engine.
 }
 
 \begin{apient}
-static InstrumenterPtr create(AddrSpacePtr as);
+static Instrumenter* create(AddrSpace* as);
 \end{apient}
 
 \apidesc{
@@ -447,7 +447,7 @@ Returns the CallModMap for function call replacement / removal.
 }
 
 \begin{apient}
-AddrSpacePtr as() const;
+AddrSpace* as() const;
 \end{apient}
 
 
@@ -591,7 +591,7 @@ a snippet Instance.
 
 
 \begin{apient}
-static Ptr create(InstancePtr instance);
+static RemoveSnippetCommand* create(InstancePtr instance);
 \end{apient}
 
 \apidesc{
@@ -608,7 +608,8 @@ function call.
 
 
 \begin{apient}
-static Ptr create(PatchMgrPtr mgr, PatchBlock* call_block, PatchFunction* context = NULL);
+static RemoveCallCommand* create(PatchMgrPtr mgr, PatchBlock* call_block,
+                                 PatchFunction* context = NULL);
 \end{apient}
 
 
@@ -631,8 +632,9 @@ function call with another function.
 
 
 \begin{apient}
-static Ptr create(PatchMgrPtr mgr, PatchBlock* call_block,
-                  PatchFunction* new_callee, PatchFunction* context);
+static ReplaceCallCommand* create(PatchMgrPtr mgr, PatchBlock* call_block,
+                                  PatchFunction* new_callee,
+                                  PatchFunction* context);
 \end{apient}
 
 \apidesc{
@@ -653,7 +655,8 @@ an old function with the new one.
 
 
 \begin{apient}
-static Ptr create(PatchMgrPtr mgr, PatchFunction* old_func, PatchFunction* new_func);
+static ReplaceFuncCommand* create(PatchMgrPtr mgr, PatchFunction* old_func,
+                                  PatchFunction* new_func);
 \end{apient}
 
 \apidesc{

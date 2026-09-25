@@ -16,7 +16,8 @@ typedef std::set<Function *, Function::less> funclist;
 CodeObject(CodeSource * cs,
            CFGFactory * fact = NULL,
            ParseCallback * cb = NULL,
-           bool defensiveMode = false);
+           bool defensiveMode = false,
+           bool ignoreParse = false);
 \end{apient}
 \apidesc{Constructs a new CodeObject from the provided CodeSource and
 optional object factory and callback handlers. Any parsing hints provided

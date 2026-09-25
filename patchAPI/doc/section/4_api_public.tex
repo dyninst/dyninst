@@ -1088,8 +1088,8 @@ pointing to the end of the container (past the last element).
 }
 
 \begin{apient}
-InstancePtr pushBack(SnippetPtr);
-InstancePtr pushFront(SnippetPtr);
+InstancePtr pushBack(SnippetPtr, SnippetType type = SnippetType::REGULAR);
+InstancePtr pushFront(SnippetPtr, SnippetType type = SnippetType::REGULAR);
 \end{apient}
 
 
@@ -1170,7 +1170,7 @@ invoked at this point, it returns NULL.
 }
 
 \begin{apient}
-const PatchObject* obj() const;
+PatchObject* obj() const;
 \end{apient}
 
 
