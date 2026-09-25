@@ -3,7 +3,7 @@ of this class at a time. This class is used to perform functions and obtain info
 is not specific to a particular thread or image.
 
 \begin{apient}
-std::vector<BPatch_process*> *getProcesses();
+std::vector<BPatch_process*>* getProcesses();
 \end{apient}
 
 \apidesc{
@@ -290,9 +290,9 @@ element of the array is low, and the last is high. The standard rules of type co
 }
 
 \begin{apient}
-BPatch_type* createEnum(const char* name, std::vector<char *> &elementNames,
-                        std::vector<int> &elementIds);
-BPatch_type* createEnum(const char* name, std::vector<char *> &elementNames);
+BPatch_type* createEnum(const char* name, std::vector<char*>& elementNames,
+                        std::vector<int>& elementIds);
+BPatch_type* createEnum(const char* name, std::vector<char*>& elementNames);
 \end{apient}
 
 \apidesc{
@@ -316,8 +316,8 @@ type is compatible with other scalars with the same name and size.
 }
 
 \begin{apient}
-BPatch_type* createStruct(const char* name, std::vector<char *> &fieldNames,
-                          std::vector<BPatch_type *> &fieldTypes);
+BPatch_type* createStruct(const char* name, std::vector<char*>& fieldNames,
+                          std::vector<BPatch_type*>& fieldTypes);
 \end{apient}
 
 \apidesc{
@@ -348,8 +348,8 @@ sizeof(void*) on the target platform where the muta\-tee is running.
 }
 
 \begin{apient}
-BPatch_type* createUnion(const char* name, std::vector<char *> &fieldNames,
-                         std::vector<BPatch_type *> &fieldTypes);
+BPatch_type* createUnion(const char* name, std::vector<char*>& fieldNames,
+                         std::vector<BPatch_type*>& fieldTypes);
 \end{apient}
 
 \apidesc{

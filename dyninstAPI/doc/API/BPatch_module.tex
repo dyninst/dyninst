@@ -8,8 +8,8 @@ objects that it cannot match to a source file.
 \code{BPatch\_image} member function \code{getModules}.
 
 \begin{apient}
-  std::vector<BPatch_function*> *findFunction(const char* name,
-                                              std::vector<BPatch_function*> &funcs,
+  std::vector<BPatch_function*>* findFunction(const char* name,
+                                              std::vector<BPatch_function*>& funcs,
                                               bool notify_on_failure = true,
                                               bool regex_case_sensitive = true,
                                               bool incUninstrumentable = false,
@@ -28,8 +28,8 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  BPatch_Vector<BPatch_function *> *findFunctionByAddress(void* addr,
-                                                          BPatch_Vector<BPatch_function *> &funcs,
+  BPatch_Vector<BPatch_function*>* findFunctionByAddress(void* addr,
+                                                          BPatch_Vector<BPatch_function*>& funcs,
                                                           bool notify_on_failure = true,
                                                           bool incUninstrumentable = false);
 \end{apient}
@@ -67,7 +67,7 @@ objects that it cannot match to a source file.
 
 \begin{apient}
   bool getAddressRanges(const char* fileName, unsigned int lineNo,
-                        std::vector<std::pair<unsigned long, unsigned long>> &ranges);
+                        std::vector<std::pair<unsigned long, unsigned long>>& ranges);
 \end{apient}
 
 \apidesc{
@@ -109,7 +109,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  std::vector<BPatch_function *> *getProcedures(bool incUninstrumentable = false);
+  std::vector<BPatch_function*>* getProcedures(bool incUninstrumentable = false);
 \end{apient}
 
 \apidesc{
@@ -155,7 +155,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  bool getSourceLines(unsigned long addr, std::vector<BPatch_statement> &lines);
+  bool getSourceLines(unsigned long addr, std::vector<BPatch_statement>& lines);
 \end{apient}
 
 \apidesc{
@@ -178,7 +178,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  bool getVariables(std::vector<BPatch_variableExpr *> &vars);
+  bool getVariables(std::vector<BPatch_variableExpr*>& vars);
 \end{apient}
 
 \apidesc{

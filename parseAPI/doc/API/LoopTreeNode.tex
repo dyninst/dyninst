@@ -48,7 +48,7 @@ Loop* loop;
 \apidesc{The Loop instance it points to.}
 
 \begin{apient}
-std::vector<LoopTreeNode *> children;
+std::vector<LoopTreeNode*> children;
 \end{apient}
 \apidesc{The LoopTreeNode instances nested within this loop.}
 
@@ -68,7 +68,7 @@ unsigned int numCallees();
 \apidesc{Returns the number of callees contained in this loop's body.}
 
 \begin{apient}
-bool getCallees(std::vector<Function *> &v);
+bool getCallees(std::vector<Function*>& v);
 \end{apient}
 \apidesc{Fills \code{v} with a vector of the functions called inside this loop.}
 

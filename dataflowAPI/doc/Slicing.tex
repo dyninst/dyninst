@@ -165,7 +165,7 @@ calls, the slicer will NOT call this function at an indirect call site. }
 %depreciated and exists for backward compatibility.}
 
 \begin{apient}
-std::vector<ParseAPI::Function *>
+std::vector<ParseAPI::Function*>
           followCallBackward(ParseAPI::Block* caller,
                              CallStack_t& cs,
                              AbsRegion argument);
@@ -203,7 +203,7 @@ always return \code{true}.}
 
 \begin{apient}
 bool addNodeCallback(AssignmentPtr assign,
-                             std::set<ParseAPI::Edge*> &visited);
+                             std::set<ParseAPI::Edge*>& visited);
 \end{apient}
 \apidesc{In backward slicing, this function is called when the slicer adds a new node to the slice.
 The newly added assignment \code{assign} and the set of control flow edges

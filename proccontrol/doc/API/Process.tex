@@ -88,9 +88,9 @@ part of the pair is the start address, the second, the end.
 
 \begin{apient}
 static Process::ptr createProcess(std::string executable,
-                                  const std::vector<std::string> &argv,
-                                  const std::vector<std::string> &envp = emptyEnvp,
-                                  const std::map<int, int> &fds = emptyFDs);
+                                  const std::vector<std::string>& argv,
+                                  const std::vector<std::string>& envp = emptyEnvp,
+                                  const std::map<int, int>& fds = emptyFDs);
 \end{apient}
 
 \apidesc{
@@ -652,7 +652,7 @@ It is an error to call this function from a callback.
 }
 
 \begin{apient}
-bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
+bool getPostedIRPCs(std::vector<IRPC::ptr>& rpcs) const;
 \end{apient}
 
 \apidesc{

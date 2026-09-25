@@ -27,8 +27,8 @@ The StackAnalysis interface is used to determine the possible stack heights of a
 
 \begin{apient}
 StackAnalysis(ParseAPI::Function* f,
-              const std::map<Address, Address> &crm,
-              const std::map<Address, TransferSet> &fs);
+              const std::map<Address, Address>& crm,
+              const std::map<Address, TransferSet>& fs);
 \end{apient}
 \apidesc{
 	Constructs a StackAnalysis object for function \code{f} with interprocedural analysis activated. A call resolution map is passed in \code{crm} mapping addresses of call sites to the resolved inter-module target address of the call.  Generally the call resolution map is created with DyninstAPI where PLT resolution is done.  Function summaries are passed in \code{fs} which maps function entry addresses to summaries.  The function summaries are then used at all call sites to those functions.
@@ -53,7 +53,7 @@ StackAnalysis(ParseAPI::Function* f,
 \begin{apient}
 void findDefinedHeights(ParseAPI::Block* b,
                         Address addr,
-                        std::vector<std::pair<Absloc, StackAnalysis::Height>> &heights);
+                        std::vector<std::pair<Absloc, StackAnalysis::Height>>& heights);
 \end{apient}
 \apidesc{
 	Writes to the vector \code{heights} all defined <abstract location, stack height> pairs before execution of the instruction with address \code{addr} contained in basic block \code{b}. Note that abstract locations with stack heights of TOP (i.e. they do not point to the stack) are not written to \code{heights}.  The address \code{addr} must be contained in block \code{b}, and block \code{b} must be contained in the function used to create this StackAnalysis object.

@@ -70,7 +70,7 @@ you wish to save that output in a file without having to re-run the program.
     // fd = open(argv[2], O_WRONLY{\textbar}O_CREAT, 0666);
 
     // (1) Find the open function
-    std::vector<BPatch_function *> openFuncs;
+    std::vector<BPatch_function*> openFuncs;
     appImage->findFunction("open", openFuncs);
 
     if (openFuncs.size() == 0) {
@@ -79,7 +79,7 @@ you wish to save that output in a file without having to re-run the program.
     }
 
     // (2) Allocate a vector of snippets for the parameters to open
-    std::vector<BPatch_snippet *> openArgs;
+    std::vector<BPatch_snippet*> openArgs;
 
     // (3) Create a string constant expression from argv[3]
     BPatch_constExpr fileNameExpr(fileName);
@@ -137,7 +137,7 @@ you wish to save that output in a file without having to re-run the program.
   bool interceptAndCloneWrite(BPatch_process* app, BPatch_image* appImage,
                               BPatch_variableExpr* fdVar) {
     // (1) Locate the write call
-    std::vector<BPatch_function *> writeFuncs;
+    std::vector<BPatch_function*> writeFuncs;
     appImage->findFunction("write", writeFuncs);
     if (writeFuncs.size() == 0) {
       fprintf(stderr, "ERROR: Unable to find function for write()\n");
@@ -149,7 +149,7 @@ you wish to save that output in a file without having to re-run the program.
     // parameter: buffer
     // parameter: buffer size
     // Declare a vector to hold these.
-    std::vector<BPatch_snippet *> writeArgs = {
+    std::vector<BPatch_snippet*> writeArgs = {
       // The file descriptor
       writeArgs.push_back(fdVar)
     };
@@ -168,7 +168,7 @@ you wish to save that output in a file without having to re-run the program.
     // (3) Identify the BPatch_point for the entry of write. We're
     // instrumenting the function with itself; normally the findPoint
     // call would operate off a different function than the snippet.
-    std::vector<BPatch_point *> *points;
+    std::vector<BPatch_point*>* points;
     points = writeFuncs[0]->findPoint(BPatch_entry);
     if ((*points).size() == 0) {
       return false;
@@ -200,14 +200,14 @@ you wish to save that output in a file without having to re-run the program.
     // The code to be generated is:
     // close(fd);
     // (2) Find close
-    std::vector<BPatch_function *> closeFuncs;
+    std::vector<BPatch_function*> closeFuncs;
     appImage->findFunction("close", closeFuncs);
     if (closeFuncs.size() == 0) {
       fprintf(stderr, "ERROR: Unable to find function for close()\n");
       return;
     }
     // (3) Allocate a vector of snippets for the parameters to open
-    std::vector<BPatch_snippet *> closeArgs;
+    std::vector<BPatch_snippet*> closeArgs;
 
     // (4) Add the fd snippet - fdVar is global since we can't
     // get it via the callback
@@ -248,7 +248,7 @@ you wish to save that output in a file without having to re-run the program.
 
     // Read the program's image and get an associated image object
     BPatch_image* appImage = app->getImage();
-    std::vector<BPatch_function *> writeFuncs;
+    std::vector<BPatch_function*> writeFuncs;
     fprintf(stderr, "Opening file \%s for write...\n", argv[2]);
     int fileDescriptor = openFileForWrite(app, appImage, argv[2]);
     if (fileDescriptor == -1) {

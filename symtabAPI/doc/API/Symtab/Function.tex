@@ -21,7 +21,7 @@ getReturnType & Type * & Type representing the return type of the function. \\
 \end{tabularx}
 
 \begin{apient}
-bool getSymbols(std::vector<Symbol *> &syms) const;
+bool getSymbols(std::vector<Symbol*>& syms) const;
 \end{apient}
 \apidesc{
 This method returns the vector of \code{Symbol}s that refer to the function.
@@ -73,7 +73,7 @@ This method returns \code{true} on success and \code{false} on failure.
 }
 
 \begin{apient}
-bool getLocalVariables(std::vector<localVar *> &vars);
+bool getLocalVariables(std::vector<localVar*>& vars);
 \end{apient}
 \apidesc{
 This method returns the local variables in the function. \code{vars} contains the list of variables found.
@@ -82,14 +82,14 @@ error code set to \code{NO\_DEBUG\_INFO} accordingly. Otherwise it returns \code
 }
 
 \begin{apient}
-std::vector<VariableLocation> &getFramePtr();
+std::vector<VariableLocation>& getFramePtr();
 \end{apient}
 \apidesc{
 This method returns a list of frame pointer offsets (abstract top of the stack) for the function. See the \code{VariableLocation} class description for more information.
 }
 
 \begin{apient}
-bool getParams(std::vector<localVar *> &params);
+bool getParams(std::vector<localVar*>& params);
 \end{apient}
 \apidesc{
 This method returns the parameters to the function. \code{params} contains the list of parameters.
@@ -98,7 +98,7 @@ error code set to \code{NO\_DEBUG\_INFO} accordingly. Returns \code{true} on suc
 }
 
 \begin{apient}
-bool findLocalVariable(std::vector<localVar *> &vars,
+bool findLocalVariable(std::vector<localVar*>& vars,
                        std::string name);
 \end{apient}
 \apidesc{

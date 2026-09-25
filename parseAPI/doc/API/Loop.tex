@@ -36,31 +36,31 @@ int getLoopEntries(std::vector<Block*>& entries);
 
 
 \begin{apient}
-int getBackEdges(std::vector<Edge*> &edges);
+int getBackEdges(std::vector<Edge*>& edges);
 \end{apient}
 \apidesc{Sets \code{edges} to the set of back edges in this loop.
 It returns the number of back edges that are in this loop.
 }
 
 \begin{apient}
-bool getContainedLoops(std::vector<Loop*> &loops);
+bool getContainedLoops(std::vector<Loop*>& loops);
 \end{apient}
 \apidesc{Returns a vector of loops that are nested under this loop.}
 
 \begin{apient}
-bool getOuterLoops(std::vector<Loop*> &loops);
+bool getOuterLoops(std::vector<Loop*>& loops);
 \end{apient}
 \apidesc{Returns a vector of loops that are directly nested under this loop.}
 
 
 \begin{apient}
-bool getLoopBasicBlocks(std::vector<Block*> &blocks);
+bool getLoopBasicBlocks(std::vector<Block*>& blocks);
 \end{apient}
 \apidesc{Fills \code{blocks} with all basic blocks in the loop}
 
 
 \begin{apient}
-bool getLoopBasicBlocksExclusive(std::vector<Block*> &blocks);
+bool getLoopBasicBlocksExclusive(std::vector<Block*>& blocks);
 \end{apient}
 \apidesc{Fills \code{blocks} with all basic blocks in this loop, excluding the blocks of its sub loops.}
 

@@ -33,7 +33,7 @@ static Walker* newWalker(Dyninst::PID pid);
 static Walker* newWalker(Dyninst::PID pid, std::string executable);
 static Walker* newWalker(Dyninst::ProcControlAPI::Process::ptr proc);
 static Walker* newWalker(std::string executable,
-                         const std::vector<std::string> &argv);
+                         const std::vector<std::string>& argv);
 static Walker* newWalker(ProcessState* proc,
                          StepperGroup* steppergroup = NULL,
                          SymbolLookup* lookup = NULL);
@@ -65,10 +65,10 @@ is no longer needed.
 }
 
 \begin{apient}
-static bool newWalker(const std::vector<Dyninst::PID> &pids,
-                      std::vector<Walker *> &walkers_out);
-static bool newWalker(const std::vector<Dyninst::PID> &pids,
-                      std::vector<Walker *> &walkers_out,
+static bool newWalker(const std::vector<Dyninst::PID>& pids,
+                      std::vector<Walker*>& walkers_out);
+static bool newWalker(const std::vector<Dyninst::PID>& pids,
+                      std::vector<Walker*>& walkers_out,
                       std::string executable);
 \end{apient}
 \apidesc{
@@ -77,7 +77,7 @@ third-party stackwalks. As above, the first variant takes a list of PIDs and att
 processes; the second variant also specifies the executable binary.}
 
 \begin{apient}
-bool walkStack(std::vector<Frame> &stackwalk,
+bool walkStack(std::vector<Frame>& stackwalk,
                Dyninst::THR_ID thread = NULL_THR_ID);
 \end{apient}
 \apidesc{
@@ -101,7 +101,7 @@ bool walkStack(std::vector<Frame> &stackwalk,
 }
 
 \begin{apient}
-bool walkStackFromFrame(std::vector<Frame> &stackwalk, const Frame& frame);
+bool walkStackFromFrame(std::vector<Frame>& stackwalk, const Frame& frame);
 \end{apient}
 \apidesc{
     This method walks a call stack starting from the given stack frame,
@@ -140,7 +140,7 @@ bool getInitialFrame(Frame& frame, Dyninst::THR_ID thread = NULL_THR_ID);
 }
 
 \begin{apient}
-bool getAvailableThreads(std::vector<Dyninst::THR_ID> &threads) const;
+bool getAvailableThreads(std::vector<Dyninst::THR_ID>& threads) const;
 \end{apient}
 \apidesc{
     This method returns a vector of threads in the target process upon which

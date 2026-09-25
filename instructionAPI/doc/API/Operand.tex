@@ -28,7 +28,7 @@ Operand(Expression::Ptr val, bool read, bool written);
 }
 
 \begin{apient}
-void getReadSet(std::set<RegisterAST::Ptr> & regsRead) const;
+void getReadSet(std::set<RegisterAST::Ptr>& regsRead) const;
 \end{apient}
 \apidesc{
 Get the registers read by this operand. The registers read are inserted into
@@ -36,7 +36,7 @@ Get the registers read by this operand. The registers read are inserted into
 }
 
 \begin{apient}
-void getWriteSet(std::set<RegisterAST::Ptr> & regsWritten) const;
+void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
 \end{apient}
 \apidesc{
 Get the registers written by this operand. The registers written are inserted into
@@ -86,7 +86,7 @@ bool writesMemory() const;
 }
 
 \begin{apient}
-void addEffectiveReadAddresses(std::set<Expression::Ptr> & memAccessors) const;
+void addEffectiveReadAddresses(std::set<Expression::Ptr>& memAccessors) const;
 \end{apient}
 \apidesc{
     If \code{Operand} is a memory read operand, insert the \code{ExpressionPtr}
@@ -94,7 +94,7 @@ void addEffectiveReadAddresses(std::set<Expression::Ptr> & memAccessors) const;
 }
 
 \begin{apient}
-void addEffectiveWriteAddresses(std::set<Expression::Ptr> & memAccessors) const;
+void addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const;
 \end{apient}
 \apidesc{
     If \code{Operand} is a memory write operand, insert the \code{ExpressionPtr}

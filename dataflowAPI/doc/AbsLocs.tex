@@ -216,7 +216,7 @@ void convertAll(InstructionAPI::Expression::Ptr expr,
                 Address addr,
                 ParseAPI::Function* func,
                 ParseAPI::Block* block,
-                std::vector<AbsRegion> &regions);
+                std::vector<AbsRegion>& regions);
 \end{apient}
 \apidesc{Create all abstract regions used in \code{expr} and return them in
 \code{regions}. All registers appear in \code{expr} will have a separate
@@ -232,8 +232,8 @@ void convertAll(const InstructionAPI::Instruction& insn,
                 Address addr,
                 ParseAPI::Function* func,
                 ParseAPI::Block* block,
-                std::vector<AbsRegion> &used,
-                std::vector<AbsRegion> &defined);
+                std::vector<AbsRegion>& used,
+                std::vector<AbsRegion>& defined);
 \end{apient}
 \apidesc{Create abstract regions appearing in instruction \code{insn}. Input
 abstract regions of this instructions are returned in \code{used} and output

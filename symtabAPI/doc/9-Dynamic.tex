@@ -40,7 +40,7 @@ typedef struct {
 \end{apient}
 
 \begin{apient}
-static AddressLookup* createAddressLookup(const std::vector<LoadedLibrary> &ll);
+static AddressLookup* createAddressLookup(const std::vector<LoadedLibrary>& ll);
 \end{apient}
 \apidesc{
 This factory constructor creates a new \code{AddressLookup} associated with a previously collected list of libraries from a process. The list of libraries can initially be collected with the \code{getLoadAddresses} function. The list can then be used with this function to re-create the \code{AddressLookup} object, even if the original process no longer exists. This can be useful for off-line address lookups, where only the load addresses are collected while the process exists and then all address translation is done after the process has terminated.
@@ -48,7 +48,7 @@ This function returns the new \code{AddressLookup} object on success and \code{N
 }
 
 \begin{apient}
-bool getLoadAddresses(std::vector<LoadedLibrary> &ll);
+bool getLoadAddresses(std::vector<LoadedLibrary>& ll);
 \end{apient}
 \apidesc{
 This function returns a vector of LoadedLibrary objects that can be used by the
@@ -117,7 +117,7 @@ As above, but returns a \code{LoadedLibrary} data structure instead of a Symtab.
 
 
 \begin{apient}
-bool getAllSymtabs(std::vector<Symtab *> &tabs);
+bool getAllSymtabs(std::vector<Symtab*>& tabs);
 \end{apient}
 \apidesc{
 This function returns all \code{Symtab} objects that are contained in the process represented by this \code{AddressLookup} object. This will include the process's executable and all shared objects loaded by this process.

@@ -44,7 +44,7 @@
   int binaryAnalysis(BPatch_addressSpace* app) {
     BPatch_image* appImage = app->getImage();
     int insns_access_memory = 0;
-    std::vector<BPatch_function *> functions;
+    std::vector<BPatch_function*> functions;
     appImage->findFunction("InterestingProcedure", functions);
     if (functions.size() == 0) {
       fprintf(stderr, "No function InterestingProcedure\n");
@@ -54,7 +54,7 @@
               "More than one InterestingProcedure; using the first one\n");
     }
     BPatch_flowGraph* fg = functions[0]->getCFG();
-    std::set<BPatch_basicBlock *> blocks;
+    std::set<BPatch_basicBlock*> blocks;
     fg->getAllBasicBlocks(blocks);
     for (auto block_iter = blocks.begin(); block_iter != blocks.end();
          ++block_iter) {

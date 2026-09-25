@@ -44,14 +44,14 @@ typedef enum {
 \end{apient}
 
 \begin{apient}
-std::vector<Function *> getAllFunctions() const;
+std::vector<Function*> getAllFunctions() const;
 \end{apient}
 \apidesc{
 Returns all functions located within the PC address ranges covered by this module.
 }
 
 \begin{apient}
-bool findVariablesByOffset(std::vector<Variable *> &ret,
+bool findVariablesByOffset(std::vector<Variable*>& ret,
                            const Offset offset);
 \end{apient}
 \apidesc{
@@ -62,7 +62,7 @@ The error value is set to \code{No\_Such\_Variable}.
 }
 
 \begin{apient}
-bool findVariablesByName(std::vector<Variable *> &ret,
+bool findVariablesByName(std::vector<Variable*>& ret,
                          const std::string& name,
                          NameType nameType = anyName,
                          bool isRegex = false,
@@ -75,7 +75,7 @@ Returns \code{true} if it finds variables that match the given name, otherwise r
 }
 
 \begin{apient}
-bool getAllSymbols(std::vector<Symbol *> &ret);
+bool getAllSymbols(std::vector<Symbol*>& ret);
 \end{apient}
 \apidesc{
 This method returns all symbols.
@@ -84,7 +84,7 @@ set to \code{No\_Such\_Symbol}.
 }
 
 \begin{apient}
-bool getAllSymbolsByType(std::vector<Symbol *> &ret,
+bool getAllSymbolsByType(std::vector<Symbol*>& ret,
                          Symbol::SymbolType sType);
 \end{apient}
 \apidesc{
@@ -96,7 +96,7 @@ The error value is set to \code{No\_Such\_Symbol}.}
 
 
 \begin{apient}
-bool getAddressRanges(std::vector<AddressRange> &ranges,
+bool getAddressRanges(std::vector<AddressRange>& ranges,
                       const std::string& lineSource, unsigned int lineNo);
 \end{apient}
 \apidesc{
@@ -105,7 +105,7 @@ Return \code{true} if at least one address range corresponding to the line numbe
 }
 
 \begin{apient}
-bool getSourceLines(std::vector<Statement *> &lines,
+bool getSourceLines(std::vector<Statement*>& lines,
                     Offset addressInRange);
 \end{apient}
 \apidesc{
@@ -121,7 +121,7 @@ This method returns the line map (Section~\ref{LineInformation}) corresponding t
 there is no line information existing for the module.}
 
 \begin{apient}
-bool getStatements(std::vector<Statement *> &statements);
+bool getStatements(std::vector<Statement*>& statements);
 \end{apient}
 \apidesc{
 Returns all line information  (Section~\ref{Statement}) available for the module.
@@ -140,7 +140,7 @@ This method searches all the built-in types, standard types and user-defined typ
 }
 
 \begin{apient}
-bool findLocalVariable(std::vector<localVar *> &vars,
+bool findLocalVariable(std::vector<localVar*>& vars,
                        const std::string& name);
 \end{apient}
 \apidesc{

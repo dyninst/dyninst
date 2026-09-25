@@ -62,7 +62,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  static ProcessSet::ptr newProcessSet(const std::set<Process::const_ptr> &procs);
+  static ProcessSet::ptr newProcessSet(const std::set<Process::const_ptr>& procs);
 \end{apient}
 
 \apidesc{
@@ -79,7 +79,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  static ProcessSet::ptr createProcessSet(std::vector<CreateInfo> &cinfo);
+  static ProcessSet::ptr createProcessSet(std::vector<CreateInfo>& cinfo);
 \end{apient}
 
 \apidesc{
@@ -97,7 +97,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  static ProcessSet::ptr attachProcessSet(std::vector<AttachInfo> &ainfo);
+  static ProcessSet::ptr attachProcessSet(std::vector<AttachInfo>& ainfo);
 \end{apient}
 
 \apidesc{
@@ -230,7 +230,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  void getErrorSubsets(std::map<ProcControlAPI::err_t, ProcessSet::ptr> &err_sets) const;
+  void getErrorSubsets(std::map<ProcControlAPI::err_t, ProcessSet::ptr>& err_sets) const;
 \end{apient}
 
 \apidesc{
@@ -465,7 +465,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 
 \begin{apient}
   bool readMemory(AddressSet::ptr addrs,
-                  std::multimap<Process::ptr, void *> &result,
+                  std::multimap<Process::ptr, void*>& result,
                   size_t size) const;
 \end{apient}
 
@@ -486,7 +486,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 
 \begin{apient}
   bool readMemory(AddressSet::ptr addrs,
-                  std::map<void *, ProcessSet::ptr> &result,
+                  std::map<void *, ProcessSet::ptr>& result,
                   size_t size);
 \end{apient}
 
@@ -507,7 +507,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool readMemory(std::multimap<Process::const_ptr, read_t> &addr) const;
+  bool readMemory(std::multimap<Process::const_ptr, read_t>& addr) const;
 \end{apient}
 
 \apidesc{
@@ -535,7 +535,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool writeMemory(std::multimap<Process::const_ptr, write_t> &addrs) const;
+  bool writeMemory(std::multimap<Process::const_ptr, write_t>& addrs) const;
 \end{apient}
 
 \apidesc{
@@ -578,7 +578,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool postIRPC(const std::multimap<Process::const_ptr, IRPC::ptr> &rpcs) const;
+  bool postIRPC(const std::multimap<Process::const_ptr, IRPC::ptr>& rpcs) const;
 \end{apient}
 
 \apidesc{
@@ -591,7 +591,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool postIRPC(IRPC::ptr irpc, std::multimap<Process::ptr, IRPC::ptr> *result = NULL) const;
+  bool postIRPC(IRPC::ptr irpc, std::multimap<Process::ptr, IRPC::ptr>* result = NULL) const;
 \end{apient}
 
 \apidesc{
@@ -607,7 +607,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 \begin{apient}
   bool postIRPC(IRPC::ptr irpc,
                 AddressSet::ptr addrs,
-                std::multimap<Process::ptr, IRPC::ptr> *result = NULL) const;
+                std::multimap<Process::ptr, IRPC::ptr>* result = NULL) const;
 \end{apient}
 
 \apidesc{

@@ -175,7 +175,7 @@ Returns \code{true} on success and \code{false} on failure.
 }
 
 \begin{apient}
-dyn_c_vector<std::pair<std::string, int> > &getConstants();
+dyn_c_vector<std::pair<std::string, int> >& getConstants();
 \end{apient}
 \apidesc{
 This method returns the vector containing the enum constants represented by a (name, value) pair of the constant.
@@ -205,7 +205,7 @@ This class represents a function type, containing a list of parameters and a ret
 \begin{apient}
 static typeFunction* create(std::string& name,
                             Type* retType,
-                            std::vector<Type *> &paramTypes,
+                            std::vector<Type*>& paramTypes,
                             Symtab* obj = NULL);
 \end{apient}
 \apidesc{
@@ -250,7 +250,7 @@ This method sets the new name of the function type to \code{name}. Returns \code
 }
 
 \begin{apient}
-dyn_c_vector<boost::shared_ptr<Type>> &getParams();
+dyn_c_vector<boost::shared_ptr<Type>>& getParams();
 \end{apient}
 \apidesc{
 This method returns the vector containing the individual parameters represented by their types in order. Returns \code{NULL} if there are no parameters to the function type.
@@ -347,7 +347,7 @@ This class represents a container type. It is one of the three categories of typ
 
 
 \begin{apient}
-dyn_c_vector<Field *> *getComponents() const;
+dyn_c_vector<Field*>* getComponents() const;
 \end{apient}
 \apidesc{
 This method returns the list of all fields present in the container.
@@ -400,7 +400,7 @@ applicable.
 
 \begin{apient}
 static typeStruct* create(std::string& name,
-                          std::vector<std::pair<std::string, Type *>*> &flds,
+                          std::vector<std::pair<std::string, Type*>*>& flds,
                           Symtab* obj = NULL);
 \end{apient}
 \apidesc{
@@ -410,7 +410,7 @@ The newly created type is added to the \code{Symtab} object \code{obj}. If \code
 
 \begin{apient}
 static typeStruct* create(std::string& name,
-                          std::vector<Field *> &fields,
+                          std::vector<Field*>& fields,
                           Symtab* obj = NULL);
 \end{apient}
 \apidesc{
@@ -433,7 +433,7 @@ This class represents a union type, a special case of the container type. The fi
 
 \begin{apient}
 static typeUnion* create(std::string& name,
-                         std::vector<std::pair<std::string, Type *>*> &flds,
+                         std::vector<std::pair<std::string, Type*>*>& flds,
                          Symtab* obj = NULL);
 \end{apient}
 \apidesc{
@@ -443,7 +443,7 @@ The newly created type is added to the \code{Symtab} object \code{obj}. If \code
 
 \begin{apient}
 static typeUnion* create(std::string& name,
-                         std::vector<Field *> &fields,
+                         std::vector<Field*>& fields,
                          Symtab* obj = NULL);
 \end{apient}
 \apidesc{
@@ -470,7 +470,7 @@ This class represents a common block type in fortran, a special case of the cont
 This class represents a common block in Fortran. Multiple functions can share a common block.
 
 \begin{apient}
-dyn_c_vector<Field *> *getComponents();
+dyn_c_vector<Field*>* getComponents();
 \end{apient}
 \apidesc{
 This method returns the vector containing the individual variables of the common block,
@@ -478,7 +478,7 @@ or \code{NULL} if there are none.
 }
 
 \begin{apient}
-dyn_c_vector<Symbol *> *getFunctions();
+dyn_c_vector<Symbol*>* getFunctions();
 \end{apient}
 \apidesc{
 This method returns the functions that can see this common block with the set of variables described in \code{getComponents} method above,

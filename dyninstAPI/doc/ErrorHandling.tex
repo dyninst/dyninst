@@ -35,8 +35,8 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchCodeDiscoveryCallback)(
-    BPatch_Vector<BPatch_function*> &newFuncs,
-    BPatch_Vector<BPatch_function*> &modFuncs
+    BPatch_Vector<BPatch_function*>& newFuncs,
+    BPatch_Vector<BPatch_function*>& modFuncs
   );
 
   bool registerCodeDiscoveryCallback(BPatchCodeDiscoveryCallback cb);
@@ -54,14 +54,14 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchCodeOverwriteBeginCallback)(
-    BPatch_Vector<BPatch_basicBlock*> &overwriteLoopBlocks
+    BPatch_Vector<BPatch_basicBlock*>& overwriteLoopBlocks
   );
 
   typedef void (*BPatchCodeOverwriteEndCallback)(
-    BPatch_Vector<std::pair<Dyninst::Address, int>> &deadBlocks,
-    BPatch_Vector<BPatch_function*> &owFuncs,
-    BPatch_Vector<BPatch_function*> &modFuncs,
-    BPatch_Vector<BPatch_function*> &newFuncs
+    BPatch_Vector<std::pair<Dyninst::Address, int>>& deadBlocks,
+    BPatch_Vector<BPatch_function*>& owFuncs,
+    BPatch_Vector<BPatch_function*>& modFuncs,
+    BPatch_Vector<BPatch_function*>& newFuncs
   );
 
   bool registerCodeOverwriteCallbacks(BPatchCodeOverwriteBeginCallback cbBegin,
@@ -281,12 +281,12 @@ pass a \code{BPatch\_thread} object when a
   typedef void (*BPatchSignalHandlerCallback)(
     BPatch_point* at_point,
     long signum,
-    std::vector<Dyninst::Address> *handlers
+    std::vector<Dyninst::Address>* handlers
   );
 \end{apient}
 
 \begin{apient}
-  bool registerSignalHandlerCallback(BPatchSignalHandlerCallback cb, std::set<long> &signal_numbers);
+  bool registerSignalHandlerCallback(BPatchSignalHandlerCallback cb, std::set<long>& signal_numbers);
 \end{apient}
 
 \apidesc{

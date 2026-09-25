@@ -8,10 +8,10 @@ given function.
   std::string getDemangledName();
   std::string getMangledName();
   std::string getTypedName();
-  bool getNames(std::vector<std::string> &names);
-  bool getDemangledNames(std::vector<std::string> &names);
-  bool getMangledNames(std::vector<std::string> &names);
-  bool getTypedNames(std::vector<std::string> &names);
+  bool getNames(std::vector<std::string>& names);
+  bool getDemangledNames(std::vector<std::string>& names);
+  bool getMangledNames(std::vector<std::string>& names);
+  bool getTypedNames(std::vector<std::string>& names);
 \end{apient}
 
 \apidesc{
@@ -33,7 +33,7 @@ given function.
 }
 
 \begin{apient}
-  std::vector<BPatch_localVar *> *getParams();
+  std::vector<BPatch_localVar*>* getParams();
 \end{apient}
 
 \apidesc{
@@ -62,7 +62,7 @@ given function.
 }
 
 \begin{apient}
-  std::vector<BPatch_localVar *> *getVars();
+  std::vector<BPatch_localVar*>* getVars();
 \end{apient}
 
 \apidesc{
@@ -135,7 +135,7 @@ given function.
 \apidesc{}
 
 \begin{apient}
-  std::vector<BPatch_point *> *findPoint(const BPatch_procedureLocation loc);
+  std::vector<BPatch_point*>* findPoint(const BPatch_procedureLocation loc);
 \end{apient}
 
 \apidesc{
@@ -160,7 +160,7 @@ given function.
 \apidesc{}
 
 \begin{apient}
-  std::vector<BPatch_point *> *findPoint(const std::set<BPatch_opCode> &ops);
+  std::vector<BPatch_point*>* findPoint(const std::set<BPatch_opCode>& ops);
 \end{apient}
 
 \apidesc{
@@ -188,8 +188,8 @@ given function.
 }
 
 \begin{apient}
-  std::vector<BPatch_variableExpr *> *findVariable(const char* name);
-  bool findVariable(const char* name, std::vector<BPatch_variableExpr> &vars);
+  std::vector<BPatch_variableExpr*>* findVariable(const char* name);
+  bool findVariable(const char* name, std::vector<BPatch_variableExpr>& vars);
 \end{apient}
 
 \apidesc{
@@ -228,7 +228,7 @@ given function.
 }
 
 \begin{apient}
-  bool findOverlapping(std::vector<BPatch_function *> &funcs);
+  bool findOverlapping(std::vector<BPatch_function*>& funcs);
 \end{apient}
 
 \apidesc{
@@ -240,7 +240,7 @@ given function.
 }
 
 \begin{apient}
-  bool addMods(std::set<StackMod *> mods);
+  bool addMods(std::set<StackMod*> mods);
 \end{apient}
 
 \apidesc{

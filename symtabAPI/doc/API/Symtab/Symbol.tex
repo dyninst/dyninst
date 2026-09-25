@@ -123,7 +123,7 @@ This method retrieves the file name in which this symbol is present. Returns \co
 }
 
 \begin{apient}
-bool getVersions(std::vector<std::string> *&vers) const;
+bool getVersions(std::vector<std::string>*& vers) const;
 \end{apient}
 \apidesc{
 This method retrieves all the version names for this symbol. Returns \code{false} if the symbol does not have any version information present.
@@ -151,5 +151,5 @@ bool setPtrOffset(Offset ptr);
 bool setLocalTOC(Offset toc);
 bool setVersionNum(unsigned num);
 bool setVersionFileName(std::string fileName);
-bool setVersions(std::vector<std::string> &vers);
+bool setVersions(std::vector<std::string>& vers);
 \end{apient}

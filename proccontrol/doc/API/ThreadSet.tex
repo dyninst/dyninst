@@ -56,7 +56,7 @@ in threadp.
 }
 
 \begin{apient}
-static ThreadSet::ptr newThreadSet(const std::set<Thread::const_ptr> &thrds);
+static ThreadSet::ptr newThreadSet(const std::set<Thread::const_ptr>& thrds);
 \end{apient}
 
 \apidesc{
@@ -174,7 +174,7 @@ last ThreadSet operation.
 }
 
 \begin{apient}
-void getErrorSubsets(std::map<ProcControlAPI::err_t, ThreadSet::ptr> &err) const;
+void getErrorSubsets(std::map<ProcControlAPI::err_t, ThreadSet::ptr>& err) const;
 \end{apient}
 
 \apidesc{
@@ -350,7 +350,7 @@ otherwise.
 
 \begin{apient}
 bool getRegister(Dyninst::MachRegister reg,
-                 std::map<Thread::ptr, Dyninst::MachRegisterVal> &res) const;
+                 std::map<Thread::ptr, Dyninst::MachRegisterVal>& res) const;
 \end{apient}
 
 \apidesc{
@@ -363,7 +363,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 
 \begin{apient}
 bool getRegister(Dyninst::MachRegister reg,
-                 std::map<Dyninst::MachRegisterVal, ThreadSet::ptr> &res) const;
+                 std::map<Dyninst::MachRegisterVal, ThreadSet::ptr>& res) const;
 \end{apient}
 
 \apidesc{
@@ -377,7 +377,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 
 \begin{apient}
 bool setRegister(Dyninst::MachRegister reg,
-                 const std::map<ThreadSet::const_ptr, Dyninst::MachRegisterVal> &vals) const;
+                 const std::map<ThreadSet::const_ptr, Dyninst::MachRegisterVal>& vals) const;
 \end{apient}
 
 \apidesc{
@@ -400,7 +400,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 }
 
 \begin{apient}
-bool getAllRegisters(std::map<Thread::ptr, RegisterPool> &results) const;
+bool getAllRegisters(std::map<Thread::ptr, RegisterPool>& results) const;
 \end{apient}
 
 \apidesc{
@@ -412,7 +412,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 }
 
 \begin{apient}
-bool setAllRegisters(const std::map<Thread::const_ptr, RegisterPool> &val) const;
+bool setAllRegisters(const std::map<Thread::const_ptr, RegisterPool>& val) const;
 \end{apient}
 
 \apidesc{
@@ -426,7 +426,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 }
 
 \begin{apient}
-bool postIRPC(const std::multimap<Thread::const_ptr, IRPC::ptr> &rpcs) const;
+bool postIRPC(const std::multimap<Thread::const_ptr, IRPC::ptr>& rpcs) const;
 \end{apient}
 
 \apidesc{
@@ -437,7 +437,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 }
 
 \begin{apient}
-bool postIRPC(IRPC::ptr irpc, std::multimap<Thread::ptr, IRPC::ptr> *result = NULL) const;
+bool postIRPC(IRPC::ptr irpc, std::multimap<Thread::ptr, IRPC::ptr>* result = NULL) const;
 \end{apient}
 
 \apidesc{

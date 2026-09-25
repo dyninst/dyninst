@@ -173,7 +173,7 @@ The default module will be returned if and only if it is the only module present
 }
 
 \begin{apient}
-bool getAllModules(std::vector<Module *> &ret);
+bool getAllModules(std::vector<Module*>& ret);
 \end{apient}
 \apidesc{
 This method returns all modules in the object file. Returns \code{true} on success and
@@ -193,7 +193,7 @@ success and \code{false} if there is no matching function. The error value is se
 }
 
 \begin{apient}
-bool findFunctionsByName(std::vector<Function *> &ret,
+bool findFunctionsByName(std::vector<Function*>& ret,
                          const std::string& name,
                          NameType nameType = anyName,
                          bool isRegex = false,
@@ -216,7 +216,7 @@ Returns \code{true} on success and \code{false} on failure. The error value is s
 }
 
 \begin{apient}
-bool getAllFunctions(std::vector<Function *> &ret);
+bool getAllFunctions(std::vector<Function*>& ret);
 \end{apient}
 \apidesc{
 This method returns all functions in the object file. Returns \code{true} on success
@@ -224,7 +224,7 @@ and \code{false} if there are no modules. The error value is set to \code{No\_Su
 }
 
 \begin{apient}
-bool findVariablesByOffset(std::vector<Variable *> &ret,
+bool findVariablesByOffset(std::vector<Variable*>& ret,
                            const Offset offset);
 \end{apient}
 \apidesc{
@@ -235,7 +235,7 @@ The error value is set to \code{No\_Such\_Variable}.
 }
 
 \begin{apient}
-bool findVariablesByName(std::vector<Variable *> &ret,
+bool findVariablesByName(std::vector<Variable*>& ret,
                          const std::string& name,
                          NameType nameType = anyName,
                          bool isRegex = false,
@@ -248,7 +248,7 @@ Returns \code{true} if it finds variables that match the given name, otherwise r
 }
 
 \begin{apient}
-bool getAllVariables(std::vector<Variable *> &ret);
+bool getAllVariables(std::vector<Variable*>& ret);
 \end{apient}
 \apidesc{
 This method returns all variables in the object file. Returns \code{true} on success
@@ -256,7 +256,7 @@ and \code{false} if there are no modules. The error value is set to \code{No\_Su
 }
 
 \begin{apient}
-bool findSymbol(std::vector <Symbol *> &ret,
+bool findSymbol(std::vector <Symbol*>& ret,
                 const std::string& name,
                 Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
                 NameType nameType = anyName,
@@ -272,13 +272,13 @@ Returns \code{true} if it finds symbols with the given attributes. or else retur
 }
 
 \begin{apient}
-std::vector<Symbol *> findSymbolByOffset(Offset offset);
+std::vector<Symbol*> findSymbolByOffset(Offset offset);
 \end{apient}
 \apidesc{Return a pointer to a vector of \code{Symbol}s with the specified offset. The pointer belongs to \code{Symtab} and should not be modified or freed.
 }
 
 \begin{apient}
-bool getAllSymbols(std::vector<Symbol *> &ret);
+bool getAllSymbols(std::vector<Symbol*>& ret);
 \end{apient}
 \apidesc{
 This method returns all symbols.
@@ -287,7 +287,7 @@ set to \code{No\_Such\_Symbol}.
 }
 
 \begin{apient}
-bool getAllSymbolsByType(std::vector<Symbol *> &ret,
+bool getAllSymbolsByType(std::vector<Symbol*>& ret,
                          Symbol::SymbolType sType);
 \end{apient}
 \apidesc{
@@ -297,7 +297,7 @@ The error value is set to \code{No\_Such\_Symbol}.
 }
 
 \begin{apient}
-bool getAllUndefinedSymbols(std::vector<Symbol *> &ret);
+bool getAllUndefinedSymbols(std::vector<Symbol*>& ret);
 \end{apient}
 \apidesc{
 This method returns all symbols that reference symbols in other files (e.g., external functions or variables).
@@ -307,35 +307,35 @@ error set to \code{No\_Such\_Symbol}.}
 \subsubsection{Region lookup}
 
 \begin{apient}
-bool getCodeRegions(std::vector<Region *>&ret);
+bool getCodeRegions(std::vector<Region*>& ret);
 \end{apient}
 \apidesc{
 This method finds all the code regions in the object file. Returns \code{true} with \code{ret} containing the code regions if there is at least one code region in the object file or else returns \code{false}.
 }
 
 \begin{apient}
-bool getDataRegions(std::vector<Region *>&ret);
+bool getDataRegions(std::vector<Region*>& ret);
 \end{apient}
 \apidesc{
 This method finds all the data regions in the object file. Returns \code{true} with \code{ret} containing the data regions if there is at least one data region in the object file or else returns \code{false}.
 }
 
 \begin{apient}
-bool getMappedRegions(std::vector<Region *>&ret) const;
+bool getMappedRegions(std::vector<Region*>& ret) const;
 \end{apient}
 \apidesc{
 This method finds all the loadable regions in the object file. Returns \code{true} with \code{ret} containing the loadable regions if there is at least one loadable region in the object file or else returns \code{false}.
 }
 
 \begin{apient}
-bool getAllRegions(std::vector<Region *>&ret);
+bool getAllRegions(std::vector<Region*>& ret);
 \end{apient}
 \apidesc{
 This method retrieves all the regions in the object file. Returns \code{true} with \code{ret} containing the regions.
 }
 
 \begin{apient}
-bool getAllNewRegions(std::vector<Region *>&ret);
+bool getAllNewRegions(std::vector<Region*>& ret);
 \end{apient}
 \apidesc{
 This method finds all the new regions added to the object file. Returns \code{true} with \code{ret} containing the regions if there is at least one new region that is added to the object file or else returns \code{false}.
@@ -471,7 +471,7 @@ Offset getFreeOffset(unsigned size);
 \subsubsection{Catch and Exception block lookup}
 
 \begin{apient}
-bool getAllExceptions(std::vector<ExceptionBlock *> &exceptions);
+bool getAllExceptions(std::vector<ExceptionBlock*>& exceptions);
 \end{apient}
 \apidesc{
 This method retrieves all the exception blocks in the \code{Object} file.
@@ -523,7 +523,7 @@ Returns \code{true} if it succeeds or else returns \code{false}.
 \subsubsection{Line number information}
 
 \begin{apient}
-bool getAddressRanges(std::vector<AddressRange> &ranges,
+bool getAddressRanges(std::vector<AddressRange>& ranges,
                       const std::string& lineSource,
                       unsigned int LineNo);
 \end{apient}
@@ -536,7 +536,7 @@ Return \code{true} if at least one address range corresponding to the line numbe
 }
 
 \begin{apient}
-bool getSourceLines(std::vector<LineNoTuple> &lines,
+bool getSourceLines(std::vector<LineNoTuple>& lines,
                     Offset addressInRange);
 \end{apient}
 \apidesc{
@@ -570,21 +570,21 @@ Adds a new type \code{type} to symtabAPI. Return \code{true} on success.
 }
 
 \begin{apient}
-static std::vector<Type *> * getAllstdTypes();
+static std::vector<Type*>* getAllstdTypes();
 \end{apient}
 \apidesc{
 Returns all the standard types that normally occur in a program.
 }
 
 \begin{apient}
-static std::vector<Type *> * getAllbuiltInTypes();
+static std::vector<Type*>* getAllbuiltInTypes();
 \end{apient}
 \apidesc{
 Returns all the built-in types defined in the binary.
 }
 
 \begin{apient}
-bool findLocalVariable(std::vector<localVar *> &vars,
+bool findLocalVariable(std::vector<localVar*>& vars,
                        const std::string& name);
 \end{apient}
 \apidesc{

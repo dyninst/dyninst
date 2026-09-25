@@ -21,7 +21,7 @@ which are then combined and inserted into the mutatee.
 \noindent Look up \code{printf}:
 
 \begin{lstlisting}
-  std::vector<BPatch_function *> *printf_func;
+  std::vector<BPatch_function*>* printf_func;
   appImage->findFunction("printf", printf_func);
   BPatch_function* BPF_printf = printf_func[0];
 \end{lstlisting}
@@ -36,8 +36,8 @@ which are then combined and inserted into the mutatee.
 
 Create snippet vectors:
 \begin{lstlisting}
-     std::vector<BPatch_snippet *> entrySnippetVect;
-     std::vector<BPatch_snippet *> exitSnippetVect;
+     std::vector<BPatch_snippet*> entrySnippetVect;
+     std::vector<BPatch_snippet*> exitSnippetVect;
 \end{lstlisting}
 
 Create the \code{intCounter} global variable:
@@ -53,7 +53,7 @@ Get the name of the function:
 
 Build the entry \code{printf}:
 \begin{lstlisting}
-     std::vector<BPatch_snippet *> entryArgs;
+     std::vector<BPatch_snippet*> entryArgs;
      entryArgs.push_back(entryPattern);
      entryArgs.push_back(funcName);
      entryArgs.push_back(intCounter);
@@ -61,7 +61,7 @@ Build the entry \code{printf}:
 
 Build the exit \code{printf}:
 \begin{lstlisting}
-     std::vector<BPatch_snippet *> exitArgs;
+     std::vector<BPatch_snippet*> exitArgs;
      exitArgs.push_back(exitPattern);
      exitArgs.push_back(funcName);
 \end{lstlisting}
@@ -181,8 +181,8 @@ BPatch_snippet* exitSnippet =
 /*** Finish Snippet ***/
 
 // find all entry and exit points
-std::vector<BPatch_point *> * entry_points = (*functions)[0]->findPoint(BPatch_entry);
-std::vector<BPatch_point *> * exit_points = (*functions)[0]->findPoint(BPatch_exit);
+std::vector<BPatch_point*>* entry_points = (*functions)[0]->findPoint(BPatch_entry);
+std::vector<BPatch_point*>* exit_points = (*functions)[0]->findPoint(BPatch_exit);
 
 for(unsigned int i = 1; i < functions->size(); i++){
   entry_points->push_back((*(*functions)[i]->findPoint(BPatch_entry))[0]);

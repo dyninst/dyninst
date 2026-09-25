@@ -11,7 +11,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool getSourceLines(unsigned long addr, std::vector<BPatch_statement> &lines);
+  bool getSourceLines(unsigned long addr, std::vector<BPatch_statement>& lines);
 \end{apient}
 
 \apidesc{
@@ -28,7 +28,7 @@ between the two subclasses.
 
 \begin{apient}
   bool getAddressRanges(const char* fileName, unsigned int lineNo,
-                        std::vector<std::pair<unsigned long, unsigned long>> &ranges);
+                        std::vector<std::pair<unsigned long, unsigned long>>& ranges);
 \end{apient}
 
 \apidesc{
@@ -90,7 +90,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool getRegisters(std::vector<BPatch_register> &regs);
+  bool getRegisters(std::vector<BPatch_register>& regs);
 \end{apient}
 
 \apidesc{
@@ -102,7 +102,7 @@ between the two subclasses.
                                      BPatch_callWhen when,
                                      BPatch_snippetOrder order = BPatch_firstSnippet);
   BPatchSnippetHandle* insertSnippet(const BPatch_snippet& expr,
-                                     const std::vector<BPatch_point *> &points,
+                                     const std::vector<BPatch_point*>& points,
                                      BPatch_callWhen when,
                                      BPatch_snippetOrder order = BPatch_firstSnippet);
 \end{apient}
@@ -264,7 +264,7 @@ between the two subclasses.
         BPatch_function* malloc = appImage->findFunction(...);
         BPatch_function* fastMalloc = appImage->findFunction(...);
         Symtab* symtab = SymtabAPI::convert(fastMalloc->getModule());
-        std::vector<Symbol *> syms;
+        std::vector<Symbol*> syms;
         symtab->findSymbol(syms, "origMalloc",
           Symbol::ST_UNKNOWN, // Don't specify type
           mangledName,        // Look for raw symbol name

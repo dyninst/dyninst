@@ -26,8 +26,8 @@ Once the object file is parsed successfully and the handle is obtained, symbol l
 \begin{lstlisting}
 using namespace Dyninst;
 using namespace SymtabAPI;
-std::vector <Symbol *> syms;
-std::vector <Function *> funcs;
+std::vector <Symbol*> syms;
+std::vector <Function*> funcs;
 
 // search for a function with demangled (pretty) name "bar".
 if (obj->findFunctionsByName(funcs, "bar")) {
@@ -84,14 +84,14 @@ obj->findType(lookupType, "int");
 typeScalar* intType = lookupType->getScalarType();
 
 // container to hold names and types of the new structure type
-std::vector<std::pair<std::string, Type *> >fields;
+std::vector<std::pair<std::string, Type*> >fields;
 
 //create a new array type(int type2[10])
 typeArray* intArray = typeArray::create("intArray", intType, 0, 9, obj);
 
 //types of the structure fields
-fields.push_back(std::pair<std::string, Type *>("field1", intType));
-fields.push_back(std::pair<std::string, Type *>("field2", intArray));
+fields.push_back(std::pair<std::string, Type*>("field1", intType));
+fields.push_back(std::pair<std::string, Type*>("field2", intArray));
 
 //create the structure type
 typeStruct* struct1 = typeStruct::create("struct1", fields, obj);
@@ -119,11 +119,11 @@ using namespace SymtabAPI;
 
 // Obj represents a handle to a parsed object file using symtabAPI
 // Get the Symbol object representing function bar
-std::vector<Symbol *> syms;
+std::vector<Symbol*> syms;
 obj->findSymbol(syms, "bar", Symbol::ST_FUNCTION);
 
 // Find the local var foo within function bar
-std::vector<localVar *> *vars = syms[0]->findLocalVarible("foo");
+std::vector<localVar*>* vars = syms[0]->findLocalVarible("foo");
 \end{lstlisting}
 
 The rest of this document describes the class hierarchy and the API in detail.

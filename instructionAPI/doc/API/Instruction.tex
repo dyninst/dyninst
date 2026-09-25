@@ -126,7 +126,7 @@ modified to update the overflow and carry flags.
 }
 
 \begin{apient}
-void getOperands(std::vector<Operand> & operands) const;
+void getOperands(std::vector<Operand>& operands) const;
 \end{apient}
 \apidesc{
 DEPRECATED
@@ -174,7 +174,7 @@ instruction.
 }
 
 \begin{apient}
-void getWriteSet(std::set<RegisterAST::Ptr> & regsWritten) const;
+void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
 \end{apient}
 \apidesc{
   Inserts into \code{regsWritten} all registers written by the instruction.
@@ -188,7 +188,7 @@ void getWriteSet(std::set<RegisterAST::Ptr> & regsWritten) const;
 }
 
 \begin{apient}
-void getReadSet(std::set<RegisterAST::Ptr> & regsRead) const;
+void getReadSet(std::set<RegisterAST::Ptr>& regsRead) const;
 \end{apient}
 \apidesc{
   Inserts into \code{regsRead} all registers read by the instruction.
@@ -248,7 +248,7 @@ bool writesMemory() const;
 }
 
 \begin{apient}
-void getMemoryReadOperands(std::set<Expression::Ptr> & memAccessors) const;
+void getMemoryReadOperands(std::set<Expression::Ptr>& memAccessors) const;
 \end{apient}
 \apidesc{
     Addresses read by this instruction are inserted into \code{memAccessors}.
@@ -266,7 +266,7 @@ void getMemoryReadOperands(std::set<Expression::Ptr> & memAccessors) const;
 }
 
 \begin{apient}
-void getMemoryWriteOperands(std::set<Expression::Ptr> & memAccessors) const;
+void getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const;
 \end{apient}
 \apidesc{
     Addresses written by this instruction are inserted into \code{memAccessors}.

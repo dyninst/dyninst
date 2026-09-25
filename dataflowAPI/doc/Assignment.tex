@@ -14,8 +14,8 @@ typedef boost::shared_ptr<Assignment> Ptr;
 \apidesc{Shared pointer for Assignment class.}
 
 \begin{apient}
-const std::vector<AbsRegion> &inputs() const;
-std::vector<AbsRegion> &inputs();
+const std::vector<AbsRegion>& inputs() const;
+std::vector<AbsRegion>& inputs();
 \end{apient}
 \apidesc{Return the input abstract regions.}
 
@@ -73,7 +73,7 @@ void convert(const InstructionAPI::Instruction& insn,
              const Address& addr,
              ParseAPI::Function* func,
              ParseAPI::Block* blk,
-             std::vector<Assignment::Ptr> &assign);
+             std::vector<Assignment::Ptr>& assign);
 \end{apient}
 \apidesc{Convert instruction \code{insn} to assignments and return these
 assignments in \code{assign}. The user also needs to provide the context of

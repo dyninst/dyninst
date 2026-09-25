@@ -60,7 +60,7 @@ virtual bool readMem(void* dest, Address source, size_t size) = 0;
 }
 
 \begin{apient}
-virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads) = 0;
+virtual bool getThreadIds(std::vector<Dyninst::THR_ID>& threads) = 0;
 \end{apient}
 \apidesc{
     This method returns a list of threads whose call stacks can be walked in the
@@ -142,7 +142,7 @@ virtual bool getLibraryAtAddr(Address addr, LibAddrPair& lib) = 0;
 }
 
 \begin{apient}
-virtual bool getLibraries(std::vector<LibAddrPair> &libs,
+virtual bool getLibraries(std::vector<LibAddrPair>& libs,
                           bool allow_refresh = true) = 0;
 \end{apient}
 \apidesc{

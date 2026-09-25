@@ -37,7 +37,7 @@ It serves as a container of \code{BPatch\_module} objects.
 }
 
 \begin{apient}
-  void regions(std::vector<Region> &regions);
+  void regions(std::vector<Region>& regions);
 \end{apient}
 
 \apidesc{
@@ -46,7 +46,7 @@ It serves as a container of \code{BPatch\_module} objects.
 }
 
 \begin{apient}
-  void modules(std::vector<BPatch_module *> &modules);
+  void modules(std::vector<BPatch_module*>& modules);
 \end{apient}
 
 \apidesc{
@@ -54,7 +54,7 @@ It serves as a container of \code{BPatch\_module} objects.
 }
 
 \begin{apient}
-  bool findPoints(Dyninst::Address addr, std::vector<BPatch_point *> &points);
+  bool findPoints(Dyninst::Address addr, std::vector<BPatch_point*>& points);
 \end{apient}
 
 \apidesc{
@@ -66,7 +66,7 @@ It serves as a container of \code{BPatch\_module} objects.
 
 \begin{apient}
   std::vector<BPatch_function*> *
-  findFunction(std::string name, std::vector<BPatch_function*> &funcs,
+  findFunction(std::string name, std::vector<BPatch_function*>& funcs,
                bool notify_on_failure = true, bool regex_case_sensitive = true,
                bool incUninstrumentable = false);
 \end{apient}

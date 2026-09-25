@@ -80,7 +80,7 @@ Address _table_of_contents;
 independant references. If such a structure exists, its address should be filled in.}
 
 \begin{apient}
-std::vector<CodeRegion *> _regions;
+std::vector<CodeRegion*> _regions;
 Dyninst::IBSTree<CodeRegion> _region_tree;
 \end{apient}
 \apidesc{One or more contiguous regions of code or data in the binary object must be registered with the base class. Keeping these structures in sync is the responsibility of the implementing class.}
