@@ -8,6 +8,7 @@ on:
         - master
      paths:
        - '**.h'
+       - '**.hpp'
        - '**.C'
        - '**.c'
        - '**.cpp'
