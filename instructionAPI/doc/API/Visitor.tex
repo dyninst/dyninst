@@ -26,8 +26,7 @@ repeated here for reference:
 \begin{apient}
 class Visitor {
   public:
-    Visitor() {}
-    ~Visitor() {}
+    virtual ~Visitor() = default;
     virtual void visit(BinaryFunction* b) = 0;
     virtual void visit(Immediate* i) = 0;
     virtual void visit(RegisterAST* r) = 0;
