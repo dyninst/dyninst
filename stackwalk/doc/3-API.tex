@@ -202,7 +202,7 @@ Given an address \code{addr} in the target process, returns \code{true} and sets
 addr. Given an address outside the target process, returns \code{false}.
 }
 \begin{apient}
-   virtual bool getLibraries(std::vector<LibAddrPair>& libs, bool allow\_refresh = true) = 0;
+   virtual bool getLibraries(std::vector<LibAddrPair>& libs, bool allow_refresh = true) = 0;
 \end{apient}
 \apidesc{
 Fills \code{libs} with the libraries loaded in the target process. If \code{allow\_refresh} is true, this method will attempt to ensure

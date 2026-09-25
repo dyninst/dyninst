@@ -241,7 +241,7 @@ you wish to save that output in a file without having to re-run the program.
 
     // Attach to the program - we can attach with just a pid; the
     // program name is no longer necessary
-    fprintf(stderr, "Attaching to process \%d...\n", pid);
+    fprintf(stderr, "Attaching to process %d...\n", pid);
     BPatch_process* app = bpatch.processAttach(NULL, pid);
     if (!app)
       return -1;
@@ -249,15 +249,15 @@ you wish to save that output in a file without having to re-run the program.
     // Read the program's image and get an associated image object
     BPatch_image* appImage = app->getImage();
     std::vector<BPatch_function*> writeFuncs;
-    fprintf(stderr, "Opening file \%s for write...\n", argv[2]);
+    fprintf(stderr, "Opening file %s for write...\n", argv[2]);
     int fileDescriptor = openFileForWrite(app, appImage, argv[2]);
     if (fileDescriptor == -1) {
-      fprintf(stderr, "ERROR: opening file \%s for write failed\n", argv[2]);
+      fprintf(stderr, "ERROR: opening file %s for write failed\n", argv[2]);
       exit(1);
     }
 
     fprintf(stderr,
-            "Writing returned file descriptor \%d into"
+            "Writing returned file descriptor %d into"
             "mutatee...\n",
             fileDescriptor);
 
