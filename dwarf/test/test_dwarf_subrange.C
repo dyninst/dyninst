@@ -87,37 +87,17 @@ protected:
       close(fd);
   }
 
-  // The two DW_TAG_subrange_type children are siblings, in the order they
-  // appear in fixtures/subrange_bounds.s: exprloc bound first, then udata.
-  Dwarf_Die firstSubrangeChild() {
-    Dwarf_Die child;
-    EXPECT_EQ(dwarf_child(&cu_die, &child), 0);
-    return child;
-  }
-
-  Dwarf_Die secondSubrangeChild() {
-    Dwarf_Die child = firstSubrangeChild();
-    Dwarf_Die sibling;
-    EXPECT_EQ(dwarf_siblingof(&child, &sibling), 0);
-    return sibling;
-  }
-
-  // Third child: subrange_type with DW_AT_count == 5 and no explicit bounds.
-  Dwarf_Die thirdSubrangeChild() {
-    Dwarf_Die child = secondSubrangeChild();
-    Dwarf_Die sibling;
-    EXPECT_EQ(dwarf_siblingof(&child, &sibling), 0);
-    return sibling;
-  }
-
-  // Fifth child: subrange_type with a signed (DW_FORM_sdata) upper bound.
-  // The fourth child is the DW_TAG_base_type reference target, skipped here.
-  Dwarf_Die fifthSubrangeChild() {
-    Dwarf_Die child = thirdSubrangeChild();
-    Dwarf_Die sibling;
-    EXPECT_EQ(dwarf_siblingof(&child, &sibling), 0); // 3rd -> 4th (base_type)
-    EXPECT_EQ(dwarf_siblingof(&sibling, &sibling), 0); // 4th -> 5th
-    return sibling;
+  // Populates *out with the CU's n-th child DIE (1-based; see the fixture
+  // layout in fixtures/subrange_bounds.s). Returns false on libdw traversal
+  // failure so callers can ASSERT_TRUE() instead of using a partial Dwarf_Die.
+  bool nthSubrangeChild(int n, Dwarf_Die *out) {
+    if (dwarf_child(&cu_die, out) != 0)
+      return false;
+    for (int i = 1; i < n; ++i) {
+      if (dwarf_siblingof(out, out) != 0)
+        return false;
+    }
+    return true;
   }
 
   int fd = -1;
@@ -126,7 +106,8 @@ protected:
 };
 
 TEST_F(SubrangeBoundsFixture, ExprlocUpperBoundIsUnknownNotError) {
-  Dwarf_Die subrange = firstSubrangeChild();
+  Dwarf_Die subrange;
+  ASSERT_TRUE(nthSubrangeChild(1, &subrange));
 
   dwarf_bounds bounds = dwarf_subrange_bounds(&subrange);
 
@@ -141,7 +122,8 @@ TEST_F(SubrangeBoundsFixture, ExprlocUpperBoundIsUnknownNotError) {
 }
 
 TEST_F(SubrangeBoundsFixture, UdataUpperBoundStillDecodesNormally) {
-  Dwarf_Die subrange = secondSubrangeChild();
+  Dwarf_Die subrange;
+  ASSERT_TRUE(nthSubrangeChild(2, &subrange));
 
   dwarf_bounds bounds = dwarf_subrange_bounds(&subrange);
 
@@ -153,7 +135,8 @@ TEST_F(SubrangeBoundsFixture, UdataUpperBoundStillDecodesNormally) {
 }
 
 TEST_F(SubrangeBoundsFixture, CountAttributeComputesUpperBound) {
-  Dwarf_Die subrange = thirdSubrangeChild();
+  Dwarf_Die subrange;
+  ASSERT_TRUE(nthSubrangeChild(3, &subrange));
 
   dwarf_bounds bounds = dwarf_subrange_bounds(&subrange);
 
@@ -165,7 +148,8 @@ TEST_F(SubrangeBoundsFixture, CountAttributeComputesUpperBound) {
 }
 
 TEST_F(SubrangeBoundsFixture, SignedUpperBoundDecodesNegativeValue) {
-  Dwarf_Die subrange = fifthSubrangeChild();
+  Dwarf_Die subrange;
+  ASSERT_TRUE(nthSubrangeChild(5, &subrange));
 
   dwarf_bounds bounds = dwarf_subrange_bounds(&subrange);
 

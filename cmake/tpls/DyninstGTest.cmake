@@ -4,8 +4,8 @@
 #
 #   ----------------------------------------
 #
-# Provides GTest::gtest / GTest::gtest_main for use by
-# `dyninst_add_unit_test` and any test CMakeLists.txt.
+# Provides GTest::gtest / GTest::gtest_main for use by any test
+# CMakeLists.txt in this project.
 #
 # Discovery order:
 #   1. Reuse a GTest::gtest target already configured by a parent
