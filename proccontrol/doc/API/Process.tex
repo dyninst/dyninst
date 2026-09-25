@@ -537,7 +537,7 @@ error a subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool writeMemory(Dyninst::Address addr, void *buffer, size_t size) const;
+bool writeMemory(Dyninst::Address addr, const void *buffer, size_t size) const;
 \end{apient}
 
 \apidesc{

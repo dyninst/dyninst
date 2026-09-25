@@ -66,7 +66,7 @@ It serves as a container of \code{BPatch\_module} objects.
 
 \begin{apient}
   std::vector<BPatch_function*> *
-  findFunction(const char *name, std::vector<BPatch_function*> &funcs,
+  findFunction(std::string name, std::vector<BPatch_function*> &funcs,
                bool notify_on_failure = true, bool regex_case_sensitive = true,
                bool incUninstrumentable = false);
 \end{apient}

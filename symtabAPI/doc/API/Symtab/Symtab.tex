@@ -142,7 +142,7 @@ be called to get more error details.
 }
 
 \begin{apient}
-static Symtab *findOpenSymtab(std::string name);
+static Symtab *findOpenSymtab(const std::string &name);
 \end{apient}
 \apidesc{Find a previously opened \code{Symtab} that matches the provided name.}
 
@@ -279,7 +279,7 @@ Returns \code{true} if it finds symbols with the given attributes. or else retur
 }
 
 \begin{apient}
-const std::vector<Symbol *> *findSymbolByOffset(Offset offset);
+std::vector<Symbol *> findSymbolByOffset(Offset offset);
 \end{apient}
 \apidesc{Return a pointer to a vector of \code{Symbol}s with the specified offset. The pointer belongs to \code{Symtab} and should not be modified or freed.
 }
@@ -383,21 +383,21 @@ Find the region (ELF section) whose virtual address range contains \code{offset}
 \subsubsection{Insertion and modification}
 
 \begin{apient}
-bool emit(std::string file);
+bool emit(const std::string &file);
 \end{apient}
 \apidesc{
 	Creates a new file using the specified name that contains all changes made by the user.
 }
 
 \begin{apient}
-bool addLibraryPrereq(std::string lib);
+bool addLibraryPrereq(const std::string &lib);
 \end{apient}
 \apidesc{
 Add a library dependence to the file such that when the file is loaded, the library will be loaded as well. Cannot be used for static binaries.
 }
 
 \begin{apient}
-Function *createFunction(std::string name,
+Function *createFunction(const std::string &name,
                          Offset offset,
                          size_t size,
                          Module *mod = NULL);
@@ -407,7 +407,7 @@ This method creates a \code{Function} and updates all necessary data structures 
 }
 
 \begin{apient}
-Variable *createVariable(std::string name,
+Variable *createVariable(const std::string &name,
                          Offset offset,
                          size_t size,
                          Module *mod = NULL);
@@ -458,7 +458,7 @@ func is not owned by the \code{Symtab}.}
 bool addRegion(Offset vaddr,
                void *data,
                unsigned int dataSize,
-               std::string name,
+               const std::string &name,
                Region::RegionType rType_,
                bool loadable = false,
                unsigned long memAlign = sizeof(unsigned),
@@ -540,7 +540,7 @@ Returns \code{true} if it succeeds or else returns \code{false}.
 
 \begin{apient}
 bool getAddressRanges(std::vector<std::pair<Offset, Offset> > & ranges,
-                      std::string lineSource,
+                      const std::string &lineSource,
                       unsigned int LineNo);
 \end{apient}
 \apidesc{
@@ -598,7 +598,7 @@ Returns all the built-in types defined in the binary.
 
 \begin{apient}
 bool findLocalVariable(std::vector<localVar *> &vars,
-                       std::string name);
+                       const std::string &name);
 \end{apient}
 \apidesc{
 The method returns a list of local variables named name within the object file.

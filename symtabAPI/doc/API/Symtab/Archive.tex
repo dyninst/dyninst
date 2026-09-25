@@ -25,7 +25,7 @@ to \code{Not\_An\_Archive}. This returns \code{true} if the archive is parsed wi
 
 \begin{apient}
 bool getMember(Symtab *&img,
-               std::string member_name);
+               const std::string &member_name);
 \end{apient}
 \apidesc{
 This method returns the member object handle if the member exists in the archive. \code{img} corresponds to the object handle for the member.
@@ -49,7 +49,7 @@ This method returns all the member object handles in the archive. Returns \code{
 }
 
 \begin{apient}
-bool isMemberInArchive(std::string member_name);
+bool isMemberInArchive(const std::string &member_name);
 \end{apient}
 \apidesc{
 This method returns \code{true} if the member with name \code{member\_name} exists in the archive or else returns \code{false}.
@@ -57,7 +57,7 @@ This method returns \code{true} if the member with name \code{member\_name} exis
 
 \begin{apient}
 bool findMemberWithDefinition(Symtab *&obj,
-                              std::string name);
+                              const std::string &name);
 \end{apient}
 \apidesc{
 This method retrieves the member in an archive which contains the definition to a symbol with mangled name \code{name}.

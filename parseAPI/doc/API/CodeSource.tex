@@ -29,7 +29,7 @@ Address loadAddress();
 \apidesc{If the binary file type supplies non-zero base or load addresses (e.g. Windows PE), implementations should override these functions.}
 
 \begin{apient}
-std::map< Address, std::string > & linkage();
+const std::map<Address, std::string> &linkage() const;
 \end{apient}
 \apidesc{Returns a reference to the external linkage map, which may or may not be filled in for a particular CodeSource implementation.}
 

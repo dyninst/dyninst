@@ -186,7 +186,7 @@ This method returns the vector containing the enum constants represented by a (n
 }
 
 \begin{apient}
-bool setName(const char* name);
+bool setName(std::string name);
 \end{apient}
 \apidesc{
 This method sets the new name of the enum type to \code{name}.
@@ -315,7 +315,7 @@ This constructor creates a new field with name \code{name}, type \code{type} and
 }
 
 \begin{apient}
-const std::string &getName();
+std::string &getName();
 \end{apient}
 \apidesc{
 This method returns the name associated with the field in the container.

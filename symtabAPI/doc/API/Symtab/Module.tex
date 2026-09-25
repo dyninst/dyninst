@@ -97,7 +97,7 @@ The error value is set to \code{No\_Such\_Symbol}.}
 
 \begin{apient}
 bool getAddressRanges(std::vector<std::pair<unsigned long, unsigned long> > & ranges,
-                      std::string lineSource, unsigned int lineNo);
+                      const std::string &lineSource, unsigned int lineNo);
 \end{apient}
 \apidesc{
 This method returns the address ranges in \code{ranges} corresponding to the line with line number \code{lineNo} in the source file \code{lineSource}. Searches only this module for the given source.
@@ -141,7 +141,7 @@ This method searches all the built-in types, standard types and user-defined typ
 
 \begin{apient}
 bool findLocalVariable(std::vector<localVar *> &vars,
-                       std::string name);
+                       const std::string &name);
 \end{apient}
 \apidesc{
 The method returns a list of local variables within the module with name \code{name}.

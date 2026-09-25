@@ -26,7 +26,8 @@ AbsRegion &out();
 \apidesc{Return the output abstract region.}
 
 \begin{apient}
-InstructionAPI::Instruction::Ptr insn() const;
+InstructionAPI::Instruction &insn();
+const InstructionAPI::Instruction &insn() const;
 \end{apient}
 \apidesc{Return the instruction that contains this assignment.}
 

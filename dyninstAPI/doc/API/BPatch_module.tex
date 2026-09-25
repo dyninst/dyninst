@@ -66,7 +66,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  bool getAddressRanges(char *fileName, unsigned int lineNo,
+  bool getAddressRanges(const char *fileName, unsigned int lineNo,
                         std::vector<std::pair<unsigned long, unsigned long>> &ranges);
 \end{apient}
 
