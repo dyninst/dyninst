@@ -59,6 +59,11 @@ if(DYNINST_ENABLE_ZYDIS)
   include(DyninstZydis)
 endif()
 
+if(DYNINST_BUILD_TESTING)
+  include(DyninstGTest)
+  enable_testing()
+endif()
+
 add_subdirectory(common)
 add_subdirectory(elf)
 add_subdirectory(dwarf)
