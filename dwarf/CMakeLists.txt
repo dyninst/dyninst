@@ -36,3 +36,7 @@ dyninst_library(
   INTERNAL_LIBRARY
 )
 # cmake-format: on
+
+if(DYNINST_BUILD_TESTING)
+  add_subdirectory(test)
+endif()

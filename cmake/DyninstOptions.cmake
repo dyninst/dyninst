@@ -68,3 +68,12 @@ set(DYNINST_CODEGEN_ARCH
     CACHE STRING
           "Override default host architecture detection for cross-architecture support")
 mark_as_advanced(DYNINST_CODEGEN_ARCH)
+
+# This is intended for use by developers to facilitate
+# unit testing of internal libraries that don't export
+# all of their interfaces.
+option(DYNINST_EXPORT_ALL "Export all symbols" OFF)
+mark_as_advanced(DYNINST_EXPORT_ALL)
+
+option(DYNINST_BUILD_TESTING "Build unit tests (requires GTest; fetched if not found)"
+       OFF)
