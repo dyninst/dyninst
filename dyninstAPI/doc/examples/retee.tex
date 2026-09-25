@@ -59,13 +59,13 @@ you wish to save that output in a file without having to re-run the program.
 
   // We need to use a callback, and so the things that callback requires
   // are made global - this includes the file descriptor snippet (see below)
-  BPatch_variableExpr *fdVar = NULL;
+  BPatch_variableExpr* fdVar = NULL;
 
   // Before we add instrumentation, we need to open the file for
   // writing. We can do this with a oneTimeCode - a piece of code run at
   // a particular time, rather than at a particular location.
-  int openFileForWrite(BPatch_process *app, BPatch_image *appImage,
-                       char *fileName) {
+  int openFileForWrite(BPatch_process* app, BPatch_image* appImage,
+                       char* fileName) {
     // The code to be generated is:
     // fd = open(argv[2], O_WRONLY{\textbar}O_CREAT, 0666);
 
@@ -100,7 +100,7 @@ you wish to save that output in a file without having to re-run the program.
     // (7) The oneTimeCode returns whatever the return result from
     // the BPatch_snippet is. In this case, the return result of
     // open -> the file descriptor.
-    void *openFD = app->oneTimeCode(openCall);
+    void* openFD = app->oneTimeCode(openCall);
 
     // oneTimeCode returns a void *, and we want an int file handle
     return (int)(long)openFD;
@@ -114,11 +114,11 @@ you wish to save that output in a file without having to re-run the program.
   // allocated the variable before the oneTimeCode and augmented the
   // snippet to do the assignment. We could also write the file
   // descriptor as a constant into any inserted instrumentation.
-  BPatch_variableExpr *writeFileDescIntoMutatee(BPatch_process *app,
-                                                BPatch_image *appImage,
+  BPatch_variableExpr* writeFileDescIntoMutatee(BPatch_process* app,
+                                                BPatch_image* appImage,
                                                 int fileDescriptor) {
     // (1) Allocate a variable in the mutatee of size (and type) int
-    BPatch_variableExpr *fdVar = app->malloc(*appImage->findType("int"));
+    BPatch_variableExpr* fdVar = app->malloc(*appImage->findType("int"));
     if (fdVar == NULL)
       return NULL;
 
@@ -134,8 +134,8 @@ you wish to save that output in a file without having to re-run the program.
   // We now have an open file descriptor in the mutatee. We want to
   // instrument write to intercept and copy the output. That happens
   // here.
-  bool interceptAndCloneWrite(BPatch_process *app, BPatch_image *appImage,
-                              BPatch_variableExpr *fdVar) {
+  bool interceptAndCloneWrite(BPatch_process* app, BPatch_image* appImage,
+                              BPatch_variableExpr* fdVar) {
     // (1) Locate the write call
     std::vector<BPatch_function *> writeFuncs;
     appImage->findFunction("write", writeFuncs);
@@ -192,11 +192,11 @@ you wish to save that output in a file without having to re-run the program.
   //
   // Note that the callback gives us a thread, and we want a process - but
   // each thread has an up pointer.
-  void closeFile(BPatch_thread *thread, BPatch_exitType) {
+  void closeFile(BPatch_thread* thread, BPatch_exitType) {
     fprintf(stderr, "Exit callback called for process...\n");
     // (1) Get the BPatch_process and BPatch_images
-    BPatch_process *app = thread->getProcess();
-    BPatch_image *appImage = app->getImage();
+    BPatch_process* app = thread->getProcess();
+    BPatch_image* appImage = app->getImage();
     // The code to be generated is:
     // close(fd);
     // (2) Find close
@@ -231,7 +231,7 @@ you wish to save that output in a file without having to re-run the program.
   // 2) Open a file descriptor
   // 3) Instrument write
   // 4) Continue the process and wait for it to terminate
-  int main(int argc, char *argv[]) {
+  int main(int argc, char* argv[]) {
     int pid;
     if (argc != 3) {
       usage();
@@ -242,12 +242,12 @@ you wish to save that output in a file without having to re-run the program.
     // Attach to the program - we can attach with just a pid; the
     // program name is no longer necessary
     fprintf(stderr, "Attaching to process \%d...\n", pid);
-    BPatch_process *app = bpatch.processAttach(NULL, pid);
+    BPatch_process* app = bpatch.processAttach(NULL, pid);
     if (!app)
       return -1;
 
     // Read the program's image and get an associated image object
-    BPatch_image *appImage = app->getImage();
+    BPatch_image* appImage = app->getImage();
     std::vector<BPatch_function *> writeFuncs;
     fprintf(stderr, "Opening file \%s for write...\n", argv[2]);
     int fileDescriptor = openFileForWrite(app, appImage, argv[2]);

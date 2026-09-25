@@ -224,8 +224,8 @@ code).
    myAddressSpace->malloc(myImage->getType("int"), "globalIntN");
 
    // file1 and file2 are FILE *, entryPoint and exitPoint are BPatch_point
-   BPatch_snippet *snippet1 = dynC::createSnippet(file1, &entryPoint, "mySnippet1");
-   BPatch_snippet *snippet2 = dynC::createSnippet(file2, &exitPoint, "mySnippet2");
+   BPatch_snippet* snippet1 = dynC::createSnippet(file1, &entryPoint, "mySnippet1");
+   BPatch_snippet* snippet2 = dynC::createSnippet(file2, &exitPoint, "mySnippet2");
 
    assert(snippet1);
    assert(snippet2);
@@ -269,7 +269,7 @@ DynC supported data types are restricted by those supported by Dyninst: \code{in
 \noindent Example:
 \begin{lstlisting}
    int i = 12;
-   char *s = "hello";
+   char* s = "hello";
 \end{lstlisting}
 
 \subsubsection{Pointers}
@@ -283,7 +283,7 @@ Arrays in DynC behave much the same way they do in C.
 \noindent Example:
 \begin{lstlisting}
    int array[3] = {1, 2, 3};
-   char *names[] = {"Mark", "Phil", "Deb", "Tracy"};
+   char* names[] = {"Mark", "Phil", "Deb", "Tracy"};
    names[2] = "Gwen" // change Deb to Gwen
    inf`printf("The seventh element of mutArray is %d.\n", global`mutArray[6]); //Mutatee array
    if(inf`strcmp(*names, "Mark") == 0){} // This will evaluate to true.

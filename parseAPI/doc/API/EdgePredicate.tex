@@ -29,10 +29,10 @@ function:
 
     // do_stuff is a functor taking a Block* as its argument
     while(!work.empty()) {
-        Block * b = work.back();
+        Block* b = work.back();
         work.pop_back();
 
-        Block::edgelist & targets = block->targets();
+        Block::edgelist& targets = block->targets();
         // Do stuff for each out edge
         std::for_each(make_filter_iterator(targets.begin(), epred),
                       make_filter_iterator(targets.end(), epred),

@@ -38,11 +38,11 @@ basic block.
 \subsubsection{Point Finding} \label{sec:example-point-finding}
 
 \begin{lstlisting}[caption=Example of point finding]
-PatchFunction *func = ...;
-PatchBlock *block = ...;
-PatchEdge *edge = ...;
+PatchFunction* func = ...;
+PatchBlock* block = ...;
+PatchEdge* edge = ...;
 
-PatchMgr *mgr = ...;
+PatchMgr* mgr = ...;
 
 std::vector<Point*> pts;
 mgr->findPoints(Scope(func),
@@ -122,7 +122,7 @@ space, and then \emph{write} the code snippet into this buffer.
 \begin{lstlisting}[caption=Example of implementing snippet plugin]
 class MySnippet : public Snippet {
   public:
-    virtual bool generate(Point *pt, Buffer &buf) {
+    virtual bool generate(Point* pt, Buffer& buf) {
       // Generate and store binary code in the Buffer buf
       return true;
     }
@@ -143,7 +143,7 @@ class MyFunction : public PatchFunction {
 class MyCFGMaker : public CFGMaker {
   public:
     ...
-    virtual PatchFunction* makeFunction(ParseAPI::Function *f, PatchObject* o) {
+    virtual PatchFunction* makeFunction(ParseAPI::Function* f, PatchObject* o) {
       return new MyFunction(f, o);
     }
     ...
@@ -158,13 +158,13 @@ be used for CFG parsing.
 \begin{lstlisting}[caption=Example of point making]
 class MyPoint : public Point {
   public:
-    MyPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f);
+    MyPoint(Point::Type t, PatchMgrPtr m, PatchFunction* f);
     ...
 };
 
 class MyPointMaker: public PointMaker {
   protected:
-    virtual Point *mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f) {
+    virtual Point* mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction* f) {
       return new MyPoint(t, m, f);
     }
 };

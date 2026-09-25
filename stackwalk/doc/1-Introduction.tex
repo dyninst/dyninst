@@ -24,7 +24,7 @@ print the call stack of the currently running thread.
 std::vector<Frame> stackwalk;
 std::string s;
 
-Walker *walker = Walker::newWalker();
+Walker* walker = Walker::newWalker();
 walker->walkStack(stackwalk);
 for (unsigned i=0; i<stackwalk.size(); i++) {
 		stackwalk[i].getName(s);
@@ -38,7 +38,7 @@ a call stack in another process (known as a third party stackwalk). To change
 the above example to perform a third party stackwalk, we would only need to pass
 a process identifier to newWalker, e.g:
 \begin{lstlisting}
-Walker *walker = Walker::newWalker(pid);
+Walker* walker = Walker::newWalker(pid);
 \end{lstlisting}
 
 Our other design goal with StackwalkerAPI is to make it easy-to-extend. The

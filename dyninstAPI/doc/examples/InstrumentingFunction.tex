@@ -17,9 +17,9 @@
   enum accessType_t { create, attach, open };
 
   // Attach, create, or open a file for rewriting
-  BPatch_addressSpace *startInstrumenting(accessType_t accessType,
-                                          const char *name, int pid,
-                                          const char *argv[]) {
+  BPatch_addressSpace* startInstrumenting(accessType_t accessType,
+                                          const char* name, int pid,
+                                          const char* argv[]) {
     switch (accessType) {
     case create: {
       auto handle = bpatch.processCreate(name, argv);
@@ -47,10 +47,10 @@
   }
 
   // Find a point at which to insert instrumentation
-  std::vector<BPatch_point *> *findPoint(BPatch_addressSpace *app,
-                                         const char *name,
+  std::vector<BPatch_point *> *findPoint(BPatch_addressSpace* app,
+                                         const char* name,
                                          BPatch_procedureLocation loc) {
-    BPatch_image *appImage = app->getImage();
+    BPatch_image* appImage = app->getImage();
 
     // Scan for functions named "name"
     std::vector<BPatch_function *> functions;
@@ -69,13 +69,13 @@
   }
 
   // Create and insert an increment snippet
-  bool createAndInsertSnippet(BPatch_addressSpace *app,
+  bool createAndInsertSnippet(BPatch_addressSpace* app,
                               std::vector<BPatch_point *> *points) {
-    BPatch_image *appImage = app->getImage();
+    BPatch_image* appImage = app->getImage();
 
     // Create an increment snippet
-    BPatch_type *type = appImage->findType("int");
-    BPatch_variableExpr *counter = app->malloc(*type, "myCounter");
+    BPatch_type* type = appImage->findType("int");
+    BPatch_variableExpr* counter = app->malloc(*type, "myCounter");
     BPatch_arithExpr addOne(
         BPatch_assign, *counter,
         BPatch_arithExpr(BPatch_plus, *counter, BPatch_constExpr(1)));
@@ -88,16 +88,16 @@
     return true;
   }
   // Create and insert a printf snippet
-  bool createAndInsertSnippet2(BPatch_addressSpace *app,
+  bool createAndInsertSnippet2(BPatch_addressSpace* app,
                                std::vector<BPatch_point *> *points) {
-    BPatch_image *appImage = app->getImage();
+    BPatch_image* appImage = app->getImage();
 
     // Create the printf function call snippet
     std::vector<BPatch_snippet *> printfArgs;
-    BPatch_snippet *fmt =
+    BPatch_snippet* fmt =
         new BPatch_constExpr("InterestingProcedure called %d times\n");
     printfArgs.push_back(fmt);
-    BPatch_variableExpr *var = appImage->findVariable("myCounter");
+    BPatch_variableExpr* var = appImage->findVariable("myCounter");
     if (!var) {
       fprintf(stderr, "Could not find 'myCounter' variable\n");
       return false;
@@ -122,9 +122,9 @@
     }
     return true;
   }
-  void finishInstrumenting(BPatch_addressSpace *app, const char *newName) {
-    BPatch_process *appProc = dynamic_cast<BPatch_process *>(app);
-    BPatch_binaryEdit *appBin = dynamic_cast<BPatch_binaryEdit *>(app);
+  void finishInstrumenting(BPatch_addressSpace* app, const char* newName) {
+    BPatch_process* appProc = dynamic_cast<BPatch_process *>(app);
+    BPatch_binaryEdit* appBin = dynamic_cast<BPatch_binaryEdit *>(app);
     if (appProc) {
       if (!appProc->continueExecution()) {
         fprintf(stderr, "continueExecution failed\n");
@@ -141,20 +141,20 @@
 
   int main() {
     // Set up information about the program to be instrumented
-    const char *progName = "InterestingProgram";
+    const char* progName = "InterestingProgram";
     int progPID = 42;
-    const char *progArgv[] = {"InterestingProgram", "- h", NULL};
+    const char* progArgv[] = {"InterestingProgram", "- h", NULL};
     accessType_t mode = create;
 
     // Create/attach/open a binary
-    BPatch_addressSpace *app =
+    BPatch_addressSpace* app =
         startInstrumenting(mode, progName, progPID, progArgv);
     if (!app) {
       fprintf(stderr, "startInstrumenting failed\n");
       return EXIT_FAILURE;
     }
     // Find the entry point for function InterestingProcedure
-    const char *interestingFuncName = "InterestingProcedure";
+    const char* interestingFuncName = "InterestingProcedure";
     std::vector<BPatch_point *> *entryPoint =
         findPoint(app, interestingFuncName, BPatch_entry);
     if (!entryPoint || entryPoint->size() == 0) {
@@ -178,7 +178,7 @@
       return EXIT_FAILURE;
     }
     // Finish instrumentation
-    const char *progName2 = "InterestingProgram - rewritten ";
+    const char* progName2 = "InterestingProgram - rewritten ";
     finishInstrumenting(app, progName2);
   }
 

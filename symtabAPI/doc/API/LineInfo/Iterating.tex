@@ -8,13 +8,13 @@ using namespace SymtabAPI;
 
 //Obj represents a handle to a parsed object file using symtabAPI
 //Module handle for the module
-Module *mod;
+Module* mod;
 
 //Find the module \lq foo\rq within the object.
-for(auto *m : findModulesByName("foo")) {
+for(auto* m : findModulesByName("foo")) {
 
   // Get the Line Information for module foo.
-  LineInformation *info = m->getLineInformation();
+  LineInformation* info = m->getLineInformation();
 
   //Iterate over the line information
   LineInformation::const_iterator iter;

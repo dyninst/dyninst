@@ -23,7 +23,7 @@ which are then combined and inserted into the mutatee.
 \begin{lstlisting}
   std::vector<BPatch_function *> *printf_func;
   appImage->findFunction("printf", printf_func);
-  BPatch_function *BPF_printf = printf_func[0];
+  BPatch_function* BPF_printf = printf_func[0];
 \end{lstlisting}
 
 \noindent Create each \code{printf} pattern:
@@ -140,15 +140,15 @@ A function tracer is much easier to build in DynC API, especially if reading dyn
 
 \noindent First open files:
 \begin{lstlisting}
-  FILE *entryFile = fopen("myEntryDynC.txt", "r");
-  FILE *exitFile = fopen("myExitDynC.txt", "r");
+  FILE* entryFile = fopen("myEntryDynC.txt", "r");
+  FILE* exitFile = fopen("myExitDynC.txt", "r");
 \end{lstlisting}
 
 \noindent Next call DynC API with each function's entry and exit points:
 \begin{lstlisting}
-  BPatch_snippet *entrySnippet =
+  BPatch_snippet* entrySnippet =
        dynC_API::createSnippet(entryFile, entryPoint, "entrySnippet");
-  BPatch_snippet *exitSnippet =
+  BPatch_snippet* exitSnippet =
        dynC_API::createSnippet(exitFile, exitPoint, "exitSnippet");
 \end{lstlisting}
 
@@ -168,7 +168,7 @@ entryString << "inf`printf(\"Entering %s, which has been called %d times.\\n\"";
 entryString << ",dyninst`function_name, intCounter);";
 
 // call to DynC API
-BPatch_snippet *entrySnippet =
+BPatch_snippet* entrySnippet =
        dynC_API::createSnippet(entryString.str().c_str(), entryPoint, "entrySnippet");
 
 // build exitString
@@ -176,7 +176,7 @@ std::stringstream exitString;
 exitString << "inf`printf(\"Exiting %s.\\n\", dyninst`function_name);";
 
 // call to DynC API
-BPatch_snippet *exitSnippet =
+BPatch_snippet* exitSnippet =
        dynC_API::createSnippet(exitString.str().c_str(), app, "exitSnippet");
 /*** Finish Snippet ***/
 
@@ -206,7 +206,7 @@ appProc->continueExecution();
 \subsection{Calling DynC API}
 All DynC functions reside in the \code{dynC\_API} namespace. The primary DynC API function is:
 \begin{lstlisting}
-   BPatch_Snippet *createSnippet(<dynC code>, <location>, char * name);
+   BPatch_Snippet* createSnippet(<dynC code>, <location>, char* name);
 \end{lstlisting}
 where \code{<dynC code>} can be either a constant c-style string or a file
 descriptor and \code{<location>} can take the form of a \code{BPatch\_point} or
@@ -225,9 +225,9 @@ snippet name is not specified, the default name \code{Snippet\_[<\#>]} is used.
 \hline
 \code{std::string str} & A C++ string containing dynC code.\\
 \hline
-\code{const char *s} & A null terminated string containing dynC code\\
+\code{const char* s} & A null terminated string containing dynC code\\
 \hline
-\code{FILE *f} & A standard C file descriptor. Facilitates reading dynC code from file.\\
+\code{FILE* f} & A standard C file descriptor. Facilitates reading dynC code from file.\\
 \hline
 
 \end{tabular}

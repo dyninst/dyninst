@@ -19,7 +19,7 @@ follow code snippet that uses StackwalkerAPI to collect a stack walk every five
 seconds.
 
 \begin{lstlisting}
-Walker *walker = Walker::newWalker(pid);
+Walker* walker = Walker::newWalker(pid);
 std::vector<Frame> swalk;
 for (;;) {
 		walker->walkStack(swalk);
@@ -58,8 +58,8 @@ found in Section~\ref{subsubsec:procdebug}. See the UNIX man pages for more info
 error handling and includes that should be present when using \code{select}.
 
 \begin{lstlisting}
-Walker *walker = Walker::newWalker(pid);
-ProcDebug *debugger = (ProcDebug *) walker->getProcessState();
+Walker* walker = Walker::newWalker(pid);
+ProcDebug* debugger = (ProcDebug *) walker->getProcessState();
 std::vector<Frame> swalk;
 for (;;) {
     walker->walkStack(swalk);
@@ -97,7 +97,7 @@ inherits from the \code{ProcessState} interface. The easiest way to get at a
 \code{ProcDebug} interface:
 
 \begin{lstlisting}
-ProcDebug *debugger;
+ProcDebug* debugger;
 debugger = dynamic_cast<ProcDebug*>(walker->getProcessState());
 if (debugger != NULL) {
     //3rd party

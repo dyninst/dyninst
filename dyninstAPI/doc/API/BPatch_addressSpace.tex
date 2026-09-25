@@ -233,9 +233,9 @@ between the two subclasses.
 }
 
   \begin{lstlisting}
-        void *origMalloc(unsigned long size);
+        void* origMalloc(unsigned long size);
 
-        void *fastMalloc(unsigned long size) {
+        void* fastMalloc(unsigned long size) {
           if (size == 1024) {
             unsigned long ret = fastPool;
             fastPool += 1024;
@@ -261,9 +261,9 @@ between the two subclasses.
         using namespace Dyninst;
         using namespace SymtabAPI;
 
-        BPatch_function *malloc = appImage->findFunction(...);
-        BPatch_function *fastMalloc = appImage->findFunction(...);
-        Symtab *symtab = SymtabAPI::convert(fastMalloc->getModule());
+        BPatch_function* malloc = appImage->findFunction(...);
+        BPatch_function* fastMalloc = appImage->findFunction(...);
+        Symtab* symtab = SymtabAPI::convert(fastMalloc->getModule());
         std::vector<Symbol *> syms;
         symtab->findSymbol(syms, "origMalloc",
           Symbol::ST_UNKNOWN, // Don't specify type
