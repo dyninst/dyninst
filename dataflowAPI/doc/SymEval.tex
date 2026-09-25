@@ -213,12 +213,12 @@ for ASTs.
 \begin{apient}
 typedef boost::shared_ptr<AST> ASTVisitor::ASTPtr;
 
-virtual ASTVisitor::ASTPtr ASTVisitor::visit(AST *);
-virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::BottomAST *);
-virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::ConstantAST *);
-virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::VariableAST *);
-virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::RoseAST *);
-virtual ASTVisitor::ASTPtr ASTVisitor::visit(StackAST *);
+ASTVisitor::ASTPtr ASTVisitor::visit(AST *);
+ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::BottomAST *);
+ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::ConstantAST *);
+ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::VariableAST *);
+ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::RoseAST *);
+ASTVisitor::ASTPtr ASTVisitor::visit(StackAST *);
 \end{apient}
 \apidesc{Callback functions for visiting each type of AST node. The default
 behavior is to return the input parameter.}

@@ -91,7 +91,7 @@ equal. \code{RegisterAST}s are equal if they represent the same register.
 }
 
 \begin{apient}
-virtual bool isUsed(Expression::Ptr findMe) const;
+bool isUsed(Expression::Ptr findMe) const;
 \end{apient}
 \apidesc{
     Search for an arbitrary subexpression, \code{findMe}, as a subtree of
@@ -101,7 +101,7 @@ virtual bool isUsed(Expression::Ptr findMe) const;
 }
 
 \begin{apient}
-virtual std::string format(formatStyle how = defaultStyle) const;
+std::string format(formatStyle how = defaultStyle) const;
 \end{apient}
 \apidesc{
     The \code{format} interface returns the contents of an \code{Expression}
@@ -157,7 +157,7 @@ bool bind(Expression * expr, const Result & value);
 }
 
 \begin{apient}
-virtual void apply(Visitor *);
+void apply(Visitor *);
 \end{apient}
 \apidesc{
     \code{apply} applies a \code{Visitor} to this \code{Expression}. Visitors

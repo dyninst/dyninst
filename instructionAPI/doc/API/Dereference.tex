@@ -46,7 +46,7 @@ Returns the expression for the address being dereferenced.
 }
 
 \begin{apient}
-virtual bool isUsed(Expression::Ptr findMe) const;
+bool isUsed(Expression::Ptr findMe) const;
 \end{apient}
 \apidesc{
 An \code{Expression} is used by a \code{Dereference} if it is equivalent to the \code{Dereference} or it is used by

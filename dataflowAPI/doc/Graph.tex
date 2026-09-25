@@ -13,17 +13,17 @@ typedef boost::shared_ptr<Graph> Ptr;
 \apidesc{Shared pointer for Graph}
 
 \begin{apient}
-virtual void entryNodes(NodeIterator &begin, NodeIterator &end);
+void entryNodes(NodeIterator &begin, NodeIterator &end);
 \end{apient}
 \apidesc{The entry nodes (nodes without any incoming edges) of the graph.}
 
 \begin{apient}
-virtual void exitNodes(NodeIterator &begin, NodeIterator &end);
+void exitNodes(NodeIterator &begin, NodeIterator &end);
 \end{apient}
 \apidesc{The exit nodes (nodes without any outgoing edges) of the graph.}
 
 \begin{apient}
-virtual void allNodes(NodeIterator &begin, NodeIterator &end);
+void allNodes(NodeIterator &begin, NodeIterator &end);
 \end{apient}
 \apidesc{Iterate all nodes in the graph.}
 
@@ -44,14 +44,14 @@ void insertPair(NodePtr source, NodePtr target, EdgePtr edge = EdgePtr());
 \code{source} to \code{target}.}
 
 \begin{apient}
-virtual void insertEntryNode(NodePtr entry);
-virtual void insertExitNode(NodePtr exit);
+void insertEntryNode(NodePtr entry);
+void insertExitNode(NodePtr exit);
 \end{apient}
 \apidesc{Insert a node as an entry/exit node}
 
 \begin{apient}
-virtual void markAsEntryNode(NodePtr entry);
-virtual void markAsExitNode(NodePtr exit);
+void markAsEntryNode(NodePtr entry);
+void markAsExitNode(NodePtr exit);
 \end{apient}
 \apidesc{Mark a node that has been added to this graph as an entry/exit node.}
 
@@ -114,7 +114,7 @@ void deleteOutEdge(EdgeIterator e);
 \apidesc{Delete an incoming/outgoing edge.}
 
 \begin{apient}
-virtual Address addr() const;
+Address addr() const;
 \end{apient}
 \apidesc{Return the address of this node.}
 

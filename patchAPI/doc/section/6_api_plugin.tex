@@ -22,7 +22,7 @@ patching - 1st party, 3rd party, or binary rewriting.
 
 
 \begin{apient}
-virtual bool write(PatchObject* obj, Address to, Address from, size_t size);
+bool write(PatchObject* obj, Address to, Address from, size_t size);
 \end{apient}
 
 
@@ -38,7 +38,7 @@ If the write operation succeeds, this method returns true; otherwise, false.
 }
 
 \begin{apient}
-virtual Address malloc(PatchObject* obj, size_t size, Address near);
+Address malloc(PatchObject* obj, size_t size, Address near);
 \end{apient}
 
 
@@ -54,7 +54,7 @@ If this method succeeds, it returns a non-zero address; otherwise, it returns 0.
 }
 
 \begin{apient}
-virtual Address realloc(PatchObject* obj, Address orig, size_t size);
+Address realloc(PatchObject* obj, Address orig, size_t size);
 \end{apient}
 
 
@@ -69,7 +69,7 @@ If this method succeeds, it returns a non-zero address; otherwise, it returns 0.
 }
 
 \begin{apient}
-virtual bool free(PatchObject* obj, Address orig);
+bool free(PatchObject* obj, Address orig);
 \end{apient}
 
 
@@ -82,7 +82,7 @@ If this method succeeds, it returns true; otherwise, it returns false.
 }
 
 \begin{apient}
-virtual bool loadObject(PatchObject* obj);
+bool loadObject(PatchObject* obj);
 \end{apient}
 
 
@@ -143,7 +143,7 @@ Creates an object of the Snippet.
 }
 
 \begin{apient}
-virtual bool generate(Point *pt, Buffer &buf);
+bool generate(Point *pt, Buffer &buf);
 \end{apient}
 
 
@@ -187,7 +187,7 @@ Undoes the operation of this Command.
 }
 
 \begin{apient}
-virtual bool commit();
+bool commit();
 \end{apient}
 
 
@@ -230,8 +230,8 @@ executed.
 }
 
 \begin{apient}
-virtual bool run();
-virtual bool undo();
+bool run();
+bool undo();
 \end{apient}
 
 \apidesc{
@@ -289,7 +289,7 @@ that is going to be instrumented.
 }
 
 \begin{apient}
-virtual bool replaceFunction(PatchFunction* oldfunc, PatchFunction* newfunc);
+bool replaceFunction(PatchFunction* oldfunc, PatchFunction* newfunc);
 \end{apient}
 
 
@@ -300,7 +300,7 @@ It returns true on success; otherwise, it returns false.
 }
 
 \begin{apient}
-virtual bool revertReplacedFunction(PatchFunction* oldfunc);
+bool revertReplacedFunction(PatchFunction* oldfunc);
 \end{apient}
 
 \apidesc{
@@ -319,7 +319,7 @@ PatchFunction.
 }
 
 \begin{apient}
-virtual FuncModMap& funcRepMap();
+FuncModMap& funcRepMap();
 \end{apient}
 
 \apidesc{
@@ -328,7 +328,7 @@ new function, where the old function is replaced by the new function.
 }
 
 \begin{apient}
-virtual bool wrapFunction(PatchFunction* oldfunc, PatchFunction* newfunc, string name);
+bool wrapFunction(PatchFunction* oldfunc, PatchFunction* newfunc, string name);
 \end{apient}
 
 
@@ -356,7 +356,7 @@ indirect calls (function pointers).
 }
 
 \begin{apient}
-virtual bool revertWrappedFunction(PatchFunction* oldfunc);
+bool revertWrappedFunction(PatchFunction* oldfunc);
 \end{apient}
 
 \apidesc{
@@ -366,7 +366,7 @@ It returns true on success; otherwise, it returns false.
 }
 
 \begin{apient}
-virtual FuncModMap& funcWrapMap();
+FuncModMap& funcWrapMap();
 \end{apient}
 
 
@@ -477,7 +477,7 @@ The constructor of Patcher takes input the relevant PatchMgr \emph{mgr}.
 }
 
 \begin{apient}
-virtual bool run();
+bool run();
 \end{apient}
 
 
@@ -500,13 +500,13 @@ structures.
 
 
 \begin{apient}
-virtual PatchFunction* makeFunction(ParseAPI::Function* func, PatchObject* obj);
-virtual PatchFunction* copyFunction(PatchFunction* func, PatchObject* obj);
-virtual PatchBlock* makeBlock(ParseAPI::Block* blk, PatchObject* obj);
-virtual PatchBlock* copyBlock(PatchBlock* blk, PatchObject* obj);
-virtual PatchEdge* makeEdge(ParseAPI::Edge* edge, PatchBlock* src,
+PatchFunction* makeFunction(ParseAPI::Function* func, PatchObject* obj);
+PatchFunction* copyFunction(PatchFunction* func, PatchObject* obj);
+PatchBlock* makeBlock(ParseAPI::Block* blk, PatchObject* obj);
+PatchBlock* copyBlock(PatchBlock* blk, PatchObject* obj);
+PatchEdge* makeEdge(ParseAPI::Edge* edge, PatchBlock* src,
                             PatchBlock* trg, PatchObject* obj);
-virtual PatchEdge* copyEdge(PatchEdge* edge, PatchObject* obj);
+PatchEdge* copyEdge(PatchEdge* edge, PatchObject* obj);
 \end{apient}
 
 \apidesc{
@@ -535,12 +535,12 @@ The constructor takes input the relevant PatchMgr \emph{mgr}.
 }
 
 \begin{apient}
-virtual Point *mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f);
-virtual Point *mkFuncSitePoint(Point::Type t, PatchMgrPtr m, PatchFunction *f, PatchBlock *b);
-virtual Point *mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock *b, PatchFunction *context);
-virtual Point *mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, Address a,
+Point *mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f);
+Point *mkFuncSitePoint(Point::Type t, PatchMgrPtr m, PatchFunction *f, PatchBlock *b);
+Point *mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock *b, PatchFunction *context);
+Point *mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, Address a,
                            InstructionAPI::Instruction::Ptr i, PatchFunction *context);
-virtual Point *mkEdgePoint(Point::Type t, PatchMgrPtr m, PatchEdge *e, PatchFunction *context);
+Point *mkEdgePoint(Point::Type t, PatchMgrPtr m, PatchEdge *e, PatchFunction *context);
 \end{apient}
 
 \apidesc{

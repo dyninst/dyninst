@@ -22,7 +22,7 @@ with \code{walker}.
 }
 
 \begin{apient}
-virtual bool addStepper(FrameStepper *stepper);
+bool addStepper(FrameStepper *stepper);
 \end{apient}
 \apidesc{
     This method adds a new \code{FrameStepper} to this \code{StepperGroup}. The
@@ -42,7 +42,7 @@ end) = 0;
   [\code{start}, \code{end}).}
 
 \begin{apient}
-virtual void registerStepper(FrameStepper *stepper);
+void registerStepper(FrameStepper *stepper);
 \end{apient}
 
 \apidesc{Add the specified \code{FrameStepper} to the list of known
@@ -80,7 +80,7 @@ virtual bool findStepperForAddr(Address addr, FrameStepper* &out,
 typedef std::pair<std::string, Address> LibAddrPair;
 typedef enum { library_load, library_unload } lib_change_t;
 
-virtual void newLibraryNotification(LibAddrPair *libaddr, lib_change_t
+void newLibraryNotification(LibAddrPair *libaddr, lib_change_t
 change);
 \end{apient}
 \apidesc{Called by the StackwalkerAPI when a new library is loaded.}

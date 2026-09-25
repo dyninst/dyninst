@@ -44,12 +44,12 @@ bool equals(AST::Ptr rhs);
 nodes are in the same type and are equal according to the \code{==} operator of that type.}
 
 \begin{apient}
-virtual unsigned numChildren() const;
+unsigned numChildren() const;
 \end{apient}
 \apidesc{Return the number of children of this node.}
 
 \begin{apient}
-virtual AST::Ptr child(unsigned i) const;
+AST::Ptr child(unsigned i) const;
 \end{apient}
 \apidesc{Return the \code{i}th child.}
 
@@ -65,17 +65,17 @@ static AST::Ptr substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b);
 Return a new AST after the substitution.}
 
 \begin{apient}
-virtual AST::ID AST::getID() const;
+AST::ID AST::getID() const;
 \end{apient}
 \apidesc{Return the class type ID of this node.}
 
 \begin{apient}
-virtual Ptr accept(ASTVisitor *v);
+Ptr accept(ASTVisitor *v);
 \end{apient}
 \apidesc{Apply visitor \code{v} to this node. Note that this method will not
 automatically apply the visitor to its children.}
 
 \begin{apient}
-virtual void AST::setChild(int i, AST::Ptr c);
+void AST::setChild(int i, AST::Ptr c);
 \end{apient}
 \apidesc{Set the \code{i}th child of this node to \code{c}.}

@@ -125,12 +125,12 @@ void setSearchForControlFlowDep(bool cfd);
 to \code{cfd}.}
 
 \begin{apient}
-virtual bool widenAtPoint(AssignmentPtr) { return false; };
+bool widenAtPoint(AssignmentPtr) { return false; };
 \end{apient}
 \apidesc{The default behavior is to return \code{false}.}
 
 \begin{apient}
-virtual bool endAtPoint(AssignmentPtr);
+bool endAtPoint(AssignmentPtr);
 \end{apient}
 \apidesc{In backward slicing, after we find a match for an assignment, we pass
 it to this function. This function should return \code{true} if the user does
@@ -142,7 +142,7 @@ not want to continue searching for this assignment. Otherwise, it should return
 typedef std::pair<ParseAPI::Function *, int> StackDepth_t;
 typedef std::stack<StackDepth_t> CallStack_t;
 
-virtual bool followCall(ParseAPI::Function * callee,
+bool followCall(ParseAPI::Function * callee,
                         CallStack_t & cs,
                         AbsRegion argument);
 \end{apient}
@@ -165,7 +165,7 @@ calls, the slicer will NOT call this function at an indirect call site. }
 %depreciated and exists for backward compatibility.}
 
 \begin{apient}
-virtual std::vector<ParseAPI::Function *>
+std::vector<ParseAPI::Function *>
           followCallBackward(ParseAPI::Block * caller,
                              CallStack_t & cs,
                              AbsRegion argument);
@@ -192,7 +192,7 @@ returning an empty vector.}
 %depreciated and exists for backward compatibility. }
 
 \begin{apient}
-virtual bool addPredecessor(AbsRegion reg);
+bool addPredecessor(AbsRegion reg);
 \end{apient}
 \apidesc{In backward slicing, after we match an assignment at a location, the
 matched AbsRegion \code{reg} is
@@ -202,7 +202,7 @@ function should return \code{true}. The default behavior of this function is to
 always return \code{true}.}
 
 \begin{apient}
-virtual bool addNodeCallback(AssignmentPtr assign,
+bool addNodeCallback(AssignmentPtr assign,
                              std::set<ParseAPI::Edge*> &visited);
 \end{apient}
 \apidesc{In backward slicing, this function is called when the slicer adds a new node to the slice.

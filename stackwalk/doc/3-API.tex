@@ -209,13 +209,13 @@ Fills \code{libs} with the libraries loaded in the target process. If \code{allo
 that this list is freshly updated via inspection of the process; if it is false, it will return a cached list.
 }
 \begin{apient}
-   virtual bool getLibc(LibAddrPair &lc);
+   bool getLibc(LibAddrPair &lc);
 \end{apient}
 \apidesc{
 Convenience function to find the name and base address of the standard C runtime, if present.
 }
 \begin{apient}
-   virtual bool getLibthread(LibAddrPair &lt);
+   bool getLibthread(LibAddrPair &lt);
 \end{apient}
 \apidesc{
 Convenience function to find the name and base address of the standard thread library, if present (e.g. pthreads).

@@ -27,7 +27,7 @@ repeated here for reference:
 class Visitor {
   public:
     Visitor() {}
-    virtual ~Visitor() {}
+    ~Visitor() {}
     virtual void visit(BinaryFunction* b) = 0;
     virtual void visit(Immediate* i) = 0;
     virtual void visit(RegisterAST* r) = 0;
@@ -36,7 +36,7 @@ class Visitor {
 };
 \end{apient}
 
-A user provides implementations of the four \code{visit} methods. When
+A user provides implementations of the five \code{visit} methods. When
 applied to an \code{Expression} (via the \code{Expression::apply}
 method) the InstructionAPI will perform a post-order traversal of the
 tree, calling the appropriate \code{visit} method at each node.

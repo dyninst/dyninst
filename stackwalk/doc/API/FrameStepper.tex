@@ -92,7 +92,7 @@ and the stack walk should be aborted.
 }
 
 \begin{apient}
-virtual void registerStepperGroup(StepperGroup *steppergroup);
+void registerStepperGroup(StepperGroup *steppergroup);
 \end{apient}
 \apidesc{
 This method is used to notify a \code{FrameStepper} when StackwalkerAPI adds it to a
@@ -124,13 +124,13 @@ FrameStepper(Walker *w);
   instances.}
 
 \begin{apient}
-virtual ProcessState *getProcessState();
+ProcessState *getProcessState();
 \end{apient}
 \apidesc{Return the \code{ProcessState} used by the
   \code{FrameStepper}. Can be overridden if the user desires.}
 
 \begin{apient}
-virtual Walker *getWalker();
+Walker *getWalker();
 \end{apient}
 
 \apidesc{Return the \code{Walker} associated with the
@@ -140,7 +140,7 @@ virtual Walker *getWalker();
 typedef std::pair<std::string, Address> LibAddrPair;
 typedef enum { library_load, library_unload } lib_change_t;
 
-virtual void newLibraryNotification(LibAddrPair *libAddr,
+void newLibraryNotification(LibAddrPair *libAddr,
                                     lib_change_t change);
 \end{apient}
 

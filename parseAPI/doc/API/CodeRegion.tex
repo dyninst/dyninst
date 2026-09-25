@@ -11,7 +11,7 @@ void names(Address addr,
 \apidesc{Fills the provided vector with any names associated with the function at a given address in the region, e.g. symbol names in an ELF or PE binary.}
 
 \begin{apient}
-virtual bool findCatchBlock(Address addr,
+bool findCatchBlock(Address addr,
                             Address & catchStart);
 \end{apient}
 \apidesc{Finds the exception handler associated with an address, if one exists. This routine is only implemented for binary code sources that support structured exception handling, such as the SymtabAPI-based SymtabCodeSource provided as part of the ParseAPI.}
@@ -32,6 +32,6 @@ bool contains(Address addr) const;
 \apidesc{Returns \code{true} if $\mbox{\code{addr}} \in [\mbox{\code{low()}},\mbox{\code{high()}})$, \code{false} otherwise.}
 
 \begin{apient}
-virtual bool wasUserAdded() const;
+bool wasUserAdded() const;
 \end{apient}
 \apidesc{Return \code{true} if this region was added by the user, \code{false} otherwise.}
