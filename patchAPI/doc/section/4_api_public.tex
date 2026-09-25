@@ -394,7 +394,7 @@ Returns the number of functions that contain this block.
 }
 
 \begin{apient}
-typedef std::map<Address, InstructionAPI::Instruction::Ptr> Insns;
+typedef std::map<Address, InstructionAPI::Instruction> Insns;
 
 void getInsns(Insns &insns) const;
 \end{apient}
@@ -412,7 +412,7 @@ InstructionAPI::Instruction getInsn(Address a) const;
 \apidesc{
 Returns an Instruction that has the address \emph{a} as its starting address. If no
 any instruction can be found in this block with the starting address \emph{a}, it
-returns InstructionAPI::Instruction::Ptr().
+returns InstructionAPI::Instruction().
 }
 
 \begin{apient}
@@ -1021,7 +1021,7 @@ struct Location {
    static Location Instruction(PatchBlock *b, Address a);
    static Location InstructionInstance(PatchFunction *f, PatchBlock *b, Address a);
    static Location InstructionInstance(PatchFunction *f, PatchBlock *b, Address a,
-                                       InstructionAPI::Instruction::Ptr i,
+                                       InstructionAPI::Instruction i,
                                        bool trusted = false);
    static Location EntrySite(PatchFunction *f, PatchBlock *b, bool trusted = false);
    static Location CallSite(PatchFunction *f, PatchBlock *b);
@@ -1179,7 +1179,7 @@ Returns the PatchObject where the Point resides.
 }
 
 \begin{apient}
-const InstructionAPI::Instruction::Ptr insn() const;
+const InstructionAPI::Instruction &insn() const;
 \end{apient}
 
 

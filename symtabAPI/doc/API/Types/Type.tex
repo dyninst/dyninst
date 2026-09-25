@@ -254,7 +254,7 @@ This method sets the new name of the function type to \code{name}. Returns \code
 }
 
 \begin{apient}
-std::vector< Type *> &getParams() const;
+dyn_c_vector<boost::shared_ptr<Type>> &getParams();
 \end{apient}
 \apidesc{
 This method returns the vector containing the individual parameters represented by their types in order. Returns \code{NULL} if there are no parameters to the function type.
@@ -351,7 +351,7 @@ This class represents a container type. It is one of the three categories of typ
 
 
 \begin{apient}
-std::vector<Field *> *getComponents();
+dyn_c_vector<Field *> *getComponents() const;
 \end{apient}
 \apidesc{
 This method returns the list of all fields present in the container.
@@ -474,19 +474,19 @@ This class represents a common block type in fortran, a special case of the cont
 This class represents a common block in Fortran. Multiple functions can share a common block.
 
 \begin{apient}
-bool getComponents(std::vector<Field *> *vars);
+dyn_c_vector<Field *> *getComponents();
 \end{apient}
 \apidesc{
-This method returns the vector containing the individual variables of the common block.
-Returns \code{true} if there is at least one variable, else returns \code{false}.
+This method returns the vector containing the individual variables of the common block,
+or \code{NULL} if there are none.
 }
 
 \begin{apient}
-bool getFunctions(std::vector<Symbol *> *funcs);
+dyn_c_vector<Symbol *> *getFunctions();
 \end{apient}
 \apidesc{
-This method returns the functions that can see this common block with the set of variables described in \code{getComponents} method above.
-Returns \code{true} if there is at least one function, else returns \code{false}.
+This method returns the functions that can see this common block with the set of variables described in \code{getComponents} method above,
+or \code{NULL} if there are none.
 }
 
 \subsection{Class derivedType}
@@ -608,9 +608,9 @@ This class represents a sub-range type. As a subclass of class \code{rangedType}
 \begin{apient}
 static typeSubrange *create(std::string &name,
                             int size,
-                            int low,
-                            int hi,
-                            symtab *obj = NULL);
+                            long low,
+                            long hi,
+                            Symtab *obj = NULL);
 \end{apient}
 \apidesc{
 This factory method creates a new sub-range type. The name of the type is \code{name}, and the size is \code{size}. The lower bound of the type is represented by \code{low}, and the upper bound is represented by \code{high}.

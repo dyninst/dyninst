@@ -69,7 +69,7 @@ different offset. When \code{stack} is \code{false}, the stack is treated as a
 single memory region.}
 
 \begin{apient}
-void convert(InstructionAPI::Instruction::Ptr insn,
+void convert(const InstructionAPI::Instruction &insn,
              const Address &addr,
              ParseAPI::Function *func,
              ParseAPI::Block *blk,

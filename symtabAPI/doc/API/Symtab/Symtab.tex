@@ -173,7 +173,7 @@ The default module will be returned if and only if it is the only module present
 }
 
 \begin{apient}
-bool getAllModules(std::vector<module *> &ret);
+bool getAllModules(std::vector<Module *> &ret);
 \end{apient}
 \apidesc{
 This method returns all modules in the object file. Returns \code{true} on success and
@@ -194,7 +194,7 @@ success and \code{false} if there is no matching function. The error value is se
 
 \begin{apient}
 bool findFunctionsByName(std::vector<Function *> &ret,
-                         const std::string name,
+                         const std::string &name,
                          NameType nameType = anyName,
                          bool isRegex = false,
                          bool checkCase = true);
@@ -236,7 +236,7 @@ The error value is set to \code{No\_Such\_Variable}.
 
 \begin{apient}
 bool findVariablesByName(std::vector<Variable *> &ret,
-                         const std::string name,
+                         const std::string &name,
                          NameType nameType = anyName,
                          bool isRegex = false,
                          bool checkCase = true);
@@ -257,7 +257,7 @@ and \code{false} if there are no modules. The error value is set to \code{No\_Su
 
 \begin{apient}
 bool findSymbol(std::vector <Symbol *> &ret,
-                const std::string name,
+                const std::string &name,
                 Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
                 NameType nameType = anyName,
                 bool isRegex = false,
@@ -376,7 +376,7 @@ Find the region (ELF section) whose virtual address range contains \code{offset}
 \subsubsection{Insertion and modification}
 
 \begin{apient}
-bool emit(const std::string &file);
+bool emit(const std::string &file, unsigned flag = 0);
 \end{apient}
 \apidesc{
 	Creates a new file using the specified name that contains all changes made by the user.
@@ -523,11 +523,14 @@ Returns \code{true} if it succeeds or else returns \code{false}.
 \subsubsection{Line number information}
 
 \begin{apient}
-bool getAddressRanges(std::vector<std::pair<Offset, Offset> > & ranges,
+bool getAddressRanges(std::vector<AddressRange> &ranges,
                       const std::string &lineSource,
                       unsigned int LineNo);
 \end{apient}
 \apidesc{
+\code{AddressRange} is a \code{std::pair<Offset, Offset>} giving the low and
+high bounds of a range.
+
 This method returns the address ranges in \code{ranges} corresponding to the line with line number \code{lineNo} in the source file \code{lineSource}. Searches all modules for the given source.
 Return \code{true} if at least one address range corresponding to the line number was found and returns \code{false} if none found.
 }

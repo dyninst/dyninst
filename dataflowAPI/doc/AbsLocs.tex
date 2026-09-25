@@ -228,7 +228,7 @@ If PC appears in this expression, we assume the expression is
 at address \code{addr} and replace PC with a constant value \code{addr}.}
 
 \begin{apient}
-void convertAll(InstructionAPI::Instruction::Ptr insn,
+void convertAll(const InstructionAPI::Instruction &insn,
                 Address addr,
                 ParseAPI::Function *func,
                 ParseAPI::Block *block,

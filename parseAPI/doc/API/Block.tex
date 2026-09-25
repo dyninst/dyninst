@@ -73,7 +73,7 @@ void getFuncs(OutputIterator result);
 \end{lstlisting}
 
 \begin{apient}
-typedef std::map<Offset, InstructionAPI::Instruction::Ptr> Insns;
+typedef std::map<Offset, InstructionAPI::Instruction> Insns;
 
 void getInsns(Insns &insns) const;
 \end{apient}
@@ -84,6 +84,6 @@ void getInsns(Insns &insns) const;
 InstructionAPI::Instruction getInsn(Offset o) const;
 \end{apient}
 \apidesc{Returns the instruction starting at offset \code{o} within
-  the block. Returns \code{InstructionAPI::Instruction::Ptr()} if
+  the block. Returns \code{InstructionAPI::Instruction()} if
   \code{o} is outside the block, or if an instruction does not begin
   at \code{o}.}

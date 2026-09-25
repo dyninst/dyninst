@@ -50,7 +50,8 @@ The method changes the offset of the function to \code{offset}. Returns \code{tr
 
 \begin{apient}
 bool addMangledName(std::string name,
-                    bool isPrimary);
+                    bool isPrimary,
+                    bool isDebug = false);
 \end{apient}
 \apidesc{
 This method adds a mangled name \code{name} to the function. If \code{isPrimary} is \code{true} then it becomes the default name for the function.
