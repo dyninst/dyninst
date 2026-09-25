@@ -23,7 +23,7 @@ given function.
 }
 
 \begin{apient}
-  bool getAddressRange(Dyninst::Address &start, Dyninst::Address &end);
+  bool getAddressRange(Dyninst::Address& start, Dyninst::Address& end);
 \end{apient}
 
 \apidesc{
@@ -45,7 +45,7 @@ given function.
 }
 
 \begin{apient}
-  BPatch_type *getReturnType();
+  BPatch_type* getReturnType();
 \end{apient}
 
 \apidesc{
@@ -53,7 +53,7 @@ given function.
 }
 
 \begin{apient}
-  BPatch_variableExpr *getFunctionRef();
+  BPatch_variableExpr* getFunctionRef();
 \end{apient}
 
 \apidesc{
@@ -96,7 +96,7 @@ given function.
 }
 
 \begin{apient}
-  BPatch_module *getModule();
+  BPatch_module* getModule();
 \end{apient}
 
 \apidesc{
@@ -108,7 +108,7 @@ given function.
 }
 
 \begin{apient}
-  char *getModuleName(char *name, int maxLen);
+  char* getModuleName(char* name, int maxLen);
 \end{apient}
 
 \apidesc{
@@ -177,7 +177,7 @@ given function.
 }
 
 \begin{apient}
-  BPatch_localVar *findLocalVar(const char *name);
+  BPatch_localVar* findLocalVar(const char* name);
 \end{apient}
 
 \apidesc{
@@ -188,8 +188,8 @@ given function.
 }
 
 \begin{apient}
-  std::vector<BPatch_variableExpr *> *findVariable(const char *name);
-  bool findVariable(const char *name, std::vector<BPatch_variableExpr> &vars);
+  std::vector<BPatch_variableExpr *> *findVariable(const char* name);
+  bool findVariable(const char* name, std::vector<BPatch_variableExpr> &vars);
 \end{apient}
 
 \apidesc{
@@ -200,7 +200,7 @@ given function.
 }
 
 \begin{apient}
-  BPatch_localVar *findLocalParam(const char *name);
+  BPatch_localVar* findLocalParam(const char* name);
 \end{apient}
 
 \apidesc{
@@ -210,7 +210,7 @@ given function.
 }
 
 \begin{apient}
-  void *getBaseAddr();
+  void* getBaseAddr();
 \end{apient}
 
 \apidesc{
@@ -218,7 +218,7 @@ given function.
 }
 
 \begin{apient}
-  BPatch_flowGraph *getCFG();
+  BPatch_flowGraph* getCFG();
 \end{apient}
 
 \apidesc{

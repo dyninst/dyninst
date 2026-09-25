@@ -13,7 +13,7 @@ A new \code{ProcessState} class can be created by inheriting from this class and
 implementing the necessary methods.
 
 \begin{apient}
-static ProcessState *getProcessStateByPid(Dyninst::PID pid);
+static ProcessState* getProcessStateByPid(Dyninst::PID pid);
 \end{apient}
 \apidesc{Given a \code{PID}, return the corresponding
   \code{ProcessState} object.}
@@ -37,7 +37,7 @@ process.}
 \begin{apient}
 virtual bool getRegValue(Dyninst::MachRegister reg,
                          Dyninst::THR_ID thread,
-                         Dyninst::MachRegisterVal &val) = 0;
+                         Dyninst::MachRegisterVal& val) = 0;
 \end{apient}
 \apidesc{
     This method takes a register name as input, \code{reg}, and returns the
@@ -47,7 +47,7 @@ virtual bool getRegValue(Dyninst::MachRegister reg,
 }
 
 \begin{apient}
-virtual bool readMem(void *dest, Address source, size_t size) = 0;
+virtual bool readMem(void* dest, Address source, size_t size) = 0;
 \end{apient}
 \apidesc{
     This method reads memory from the target process. Parameter \code{dest} should
@@ -76,7 +76,7 @@ virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads) = 0;
     This method returns \code{true} on success and \code{false} on error.  }
 
 \begin{apient}
-virtual bool getDefaultThread(Dyninst::THR_ID &default_tid) = 0;
+virtual bool getDefaultThread(Dyninst::THR_ID& default_tid) = 0;
 \end{apient}
 \apidesc{
 	This method returns the thread representing the initial process in the
@@ -95,7 +95,7 @@ Dyninst::PID getProcessId();
 }
 
 \begin{apient}
-Walker *getWalker() const;
+Walker* getWalker() const;
 \end{apient}
 \apidesc{Return the \code{Walker} associated with the current process
   state. }
@@ -131,7 +131,7 @@ typedef std::pair<std::string, Dyninst::Address> LibAddrPair;
 }
 
 \begin{apient}
-virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib) = 0;
+virtual bool getLibraryAtAddr(Address addr, LibAddrPair& lib) = 0;
 \end{apient}
 \apidesc{
     This method returns a DSO, using the \code{lib} output parameter, that is

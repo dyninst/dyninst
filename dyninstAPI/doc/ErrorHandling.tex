@@ -14,8 +14,8 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchAsyncThreadEventCallback)(
-    BPatch_process *proc,
-    BPatch_thread *thread
+    BPatch_process* proc,
+    BPatch_thread* thread
   );
 
   bool registerThreadEventCallback(BPatch_asyncEventType type,
@@ -89,8 +89,8 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchDynamicCallSiteCallback)(
-    BPatch_point*at_point,
-    BPatch_function *called_function
+    BPatch_point* at_point,
+    BPatch_function* called_function
   );
 
   bool registerDynamicCallCallback(BPatchDynamicCallSiteCallback cb);
@@ -111,8 +111,8 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchDynLibraryCallback)(
-    BPatch_thread *thr,
-    BPatch_object *obj,
+    BPatch_thread* thr,
+    BPatch_object* obj,
     bool loaded
   );
 
@@ -140,7 +140,7 @@ pass a \code{BPatch\_thread} object when a
   typedef void (*BPatchErrorCallback)(
     BPatchErrorLevel severity,
     int number,
-    const char * const *params
+    const char* const* params
   );
 \end{apient}
 
@@ -168,7 +168,7 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchExecCallback)(
-    BPatch_thread *thr
+    BPatch_thread* thr
   );
 \end{apient}
 
@@ -196,7 +196,7 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchExitCallback)(
-    BPatch_thread *proc,
+    BPatch_thread* proc,
     BPatch_exitType exit_type
   );
 \end{apient}
@@ -221,8 +221,8 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchForkCallback)(
-    BPatch_thread *parent,
-    BPatch_thread *child
+    BPatch_thread* parent,
+    BPatch_thread* child
   );
 \end{apient}
 
@@ -257,9 +257,9 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchOneTimeCodeCallback)(
-    BPatch_thread *thr,
-    void *userData,
-    void *returnValue
+    BPatch_thread* thr,
+    void* userData,
+    void* returnValue
   );
 \end{apient}
 
@@ -279,7 +279,7 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchSignalHandlerCallback)(
-    BPatch_point *at_point,
+    BPatch_point* at_point,
     long signum,
     std::vector<Dyninst::Address> *handlers
   );
@@ -319,8 +319,8 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchStopThreadCallback)(
-    BPatch_point *at_point,
-    void *returnValue
+    BPatch_point* at_point,
+    void* returnValue
   );
 \end{apient}
 
@@ -344,8 +344,8 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchUserEventCallback)(
-    BPatch_process *proc,
-    void *buf,
+    BPatch_process* proc,
+    void* buf,
     unsigned int bufsize
   );
 \end{apient}

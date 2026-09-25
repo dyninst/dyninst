@@ -43,7 +43,7 @@ no children. \code{loop\_1} has two child LoopTreeNode objects, named
 \code{loop\_1.2}, respectively representing the \code{y} and \code{z} loops.
 
 \begin{apient}
-Loop *loop;
+Loop* loop;
 \end{apient}
 \apidesc{The Loop instance it points to.}
 
@@ -53,12 +53,12 @@ std::vector<LoopTreeNode *> children;
 \apidesc{The LoopTreeNode instances nested within this loop.}
 
 \begin{apient}
-const char * name();
+const char* name();
 \end{apient}
 \apidesc{Returns the hierarchical name of this loop.}
 
 \begin{apient}
-const char * getCalleeName(unsigned int i);
+const char* getCalleeName(unsigned int i);
 \end{apient}
 \apidesc{Returns the function name of the ith callee.}
 
@@ -74,7 +74,7 @@ bool getCallees(std::vector<Function *> &v);
 
 
 \begin{apient}
-Loop * findLoop(const char *name);
+Loop* findLoop(const char* name);
 \end{apient}
 \apidesc{Looks up a loop by the hierarchical name}
 

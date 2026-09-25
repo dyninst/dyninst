@@ -60,7 +60,7 @@ of the loop. Neither block 1 nor block 2 domiantes block 3.
   Fill the given vector with a list of the loops nested within this loop.
 }
 \begin{apient}
-  BPatch_flowGraph *getFlowGraph();
+  BPatch_flowGraph* getFlowGraph();
 \end{apient}
 
 \apidesc{
@@ -99,14 +99,14 @@ of the loop. Neither block 1 nor block 2 domiantes block 3.
   loop is one of its ancestors in the tree of loops).
 }
 \begin{apient}
-  bool hasBlock(BPatch_basicBlock *b);
+  bool hasBlock(BPatch_basicBlock* b);
 \end{apient}
 
 \apidesc{
   Return true if this loop or any of its sub-loops contain b, false otherwise.
 }
 \begin{apient}
-  bool hasBlockExclusive(BPatch_basicBlock *b);
+  bool hasBlockExclusive(BPatch_basicBlock* b);
 \end{apient}
 
 \apidesc{

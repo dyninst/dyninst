@@ -37,7 +37,7 @@ typedef std::vector<AST::Ptr> Children;
 \apidesc{The container type for the children of this AST.}
 
 \begin{apient}
-bool operator==(const AST &rhs) const;
+bool operator==(const AST& rhs) const;
 bool equals(AST::Ptr rhs);
 \end{apient}
 \apidesc{Check whether two AST nodes are equal. Return \code{true} when two
@@ -70,7 +70,7 @@ AST::ID AST::getID() const;
 \apidesc{Return the class type ID of this node.}
 
 \begin{apient}
-Ptr accept(ASTVisitor *v);
+Ptr accept(ASTVisitor* v);
 \end{apient}
 \apidesc{Apply visitor \code{v} to this node. Note that this method will not
 automatically apply the visitor to its children.}

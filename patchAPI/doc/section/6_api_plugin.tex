@@ -143,7 +143,7 @@ Creates an object of the Snippet.
 }
 
 \begin{apient}
-bool generate(Point *pt, Buffer &buf);
+bool generate(Point* pt, Buffer& buf);
 \end{apient}
 
 
@@ -376,8 +376,8 @@ wrapper PatchFunction.
 }
 
 \begin{apient}
-bool modifyCall(PatchBlock *callBlock, PatchFunction *newCallee,
-                PatchFunction *context = NULL);
+bool modifyCall(PatchBlock* callBlock, PatchFunction* newCallee,
+                PatchFunction* context = NULL);
 \end{apient}
 
 
@@ -393,7 +393,7 @@ It returns true on success; otherwise, it returns false.
 }
 
 \begin{apient}
-bool revertModifiedCall(PatchBlock *callBlock, PatchFunction *context = NULL);
+bool revertModifiedCall(PatchBlock* callBlock, PatchFunction* context = NULL);
 \end{apient}
 
 
@@ -407,7 +407,7 @@ It returns true on success; otherwise, it returns false.
 }
 
 \begin{apient}
-bool removeCall(PatchBlock *callBlock, PatchFunction *context = NULL);
+bool removeCall(PatchBlock* callBlock, PatchFunction* context = NULL);
 \end{apient}
 
 
@@ -535,12 +535,12 @@ The constructor takes input the relevant PatchMgr \emph{mgr}.
 }
 
 \begin{apient}
-Point *mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f);
-Point *mkFuncSitePoint(Point::Type t, PatchMgrPtr m, PatchFunction *f, PatchBlock *b);
-Point *mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock *b, PatchFunction *context);
-Point *mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, Address a,
-                           InstructionAPI::Instruction i, PatchFunction *context);
-Point *mkEdgePoint(Point::Type t, PatchMgrPtr m, PatchEdge *e, PatchFunction *context);
+Point* mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction* f);
+Point* mkFuncSitePoint(Point::Type t, PatchMgrPtr m, PatchFunction* f, PatchBlock* b);
+Point* mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock* b, PatchFunction* context);
+Point* mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, Address a,
+                           InstructionAPI::Instruction i, PatchFunction* context);
+Point* mkEdgePoint(Point::Type t, PatchMgrPtr m, PatchEdge* e, PatchFunction* context);
 \end{apient}
 
 \apidesc{
@@ -566,8 +566,8 @@ list.
 
 
 \begin{apient}
-static PushFrontCommand *create(Point* pt, SnippetPtr snip);
-static PushBackCommand *create(Point* pt, SnippetPtr snip);
+static PushFrontCommand* create(Point* pt, SnippetPtr snip);
+static PushBackCommand* create(Point* pt, SnippetPtr snip);
 \end{apient}
 
 \apidesc{

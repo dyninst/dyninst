@@ -45,7 +45,7 @@ execution that is running in a process.
 }
 
 \begin{apient}
-  BPatch_function *getInitialFunc();
+  BPatch_function* getInitialFunc();
 \end{apient}
 
 \apidesc{
@@ -80,7 +80,7 @@ execution that is running in a process.
 }
 
 \begin{apient}
-  BPatch_process *getProcess();
+  BPatch_process* getProcess();
 \end{apient}
 
 \apidesc{
@@ -88,7 +88,7 @@ execution that is running in a process.
 }
 
 \begin{apient}
-  void *oneTimeCode(const BPatch_snippet &expr, bool *err = NULL);
+  void* oneTimeCode(const BPatch_snippet& expr, bool* err = NULL);
 \end{apient}
 
 \apidesc{
@@ -102,7 +102,7 @@ execution that is running in a process.
 }
 
 \begin{apient}
-  bool oneTimeCodeAsync(const BPatch_snippet  &expr, void *userData = NULL,
+  bool oneTimeCodeAsync(const BPatch_snippet& expr, void* userData = NULL,
                         BPatchOneTimeCodeCallback cb = NULL);
 \end{apient}
 

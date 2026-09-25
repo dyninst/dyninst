@@ -19,14 +19,14 @@ The StackAnalysis interface is used to determine the possible stack heights of a
 \end{tabular}
 
 \begin{apient}
-	StackAnalysis(ParseAPI::Function *f);
+	StackAnalysis(ParseAPI::Function* f);
 \end{apient}
 \apidesc{
 	Constructs a StackAnalysis object for function \code{f}.
 }
 
 \begin{apient}
-StackAnalysis(ParseAPI::Function *f,
+StackAnalysis(ParseAPI::Function* f,
               const std::map<Address, Address> &crm,
               const std::map<Address, TransferSet> &fs);
 \end{apient}
@@ -35,15 +35,15 @@ StackAnalysis(ParseAPI::Function *f,
 }
 
 \begin{apient}
-	StackAnalysis::Height find(ParseAPI::Block *b, Address addr, Absloc loc);
+	StackAnalysis::Height find(ParseAPI::Block* b, Address addr, Absloc loc);
 \end{apient}
 \apidesc{
 	Returns the stack height of abstract location \code{loc} before execution of the instruction with address \code{addr} contained in basic block \code{b}.  The address \code{addr} must be contained in block \code{b}, and block \code{b} must be contained in the function used to create this StackAnalysis object.
 }
 
 \begin{apient}
-	StackAnalysis::Height findSP(ParseAPI::Block *b, Address addr);
-	StackAnalysis::Height findFP(ParseAPI::Block *b, Address addr);
+	StackAnalysis::Height findSP(ParseAPI::Block* b, Address addr);
+	StackAnalysis::Height findFP(ParseAPI::Block* b, Address addr);
 \end{apient}
 \apidesc{
 	Returns the stack height of the stack pointer and frame pointer, respectively, before execution of the instruction with address \code{addr} contained in basic block \code{b}.  The address \code{addr} must be contained in block \code{b}, and block \code{b} must be contained in the function used to create this StackAnalysis object.
@@ -51,7 +51,7 @@ StackAnalysis(ParseAPI::Function *f,
 
 
 \begin{apient}
-void findDefinedHeights(ParseAPI::Block *b,
+void findDefinedHeights(ParseAPI::Block* b,
                         Address addr,
                         std::vector<std::pair<Absloc, StackAnalysis::Height>> &heights);
 \end{apient}
@@ -68,7 +68,7 @@ void findDefinedHeights(ParseAPI::Block *b,
 }
 
 \begin{apient}
-	bool getFunctionSummary(TransferSet &summary);
+	bool getFunctionSummary(TransferSet& summary);
 \end{apient}
 \apidesc{
 	Returns in \code{summary} a summary for the function associated with this StackAnalysis object.  Function summaries can then be passed to the constructors for other StackAnalysis objects to enable interprocedural analysis.  Returns true on success.
@@ -115,23 +115,23 @@ Height();
 }
 
 \begin{apient}
-bool operator<(const Height &rhs) const;
-bool operator>(const Height &rhs) const;
-bool operator<=(const Height &rhs) const;
-bool operator>=(const Height &rhs) const;
-bool operator==(const Height &rhs) const;
-bool operator!=(const Height &rhs) const;
+bool operator<(const Height& rhs) const;
+bool operator>(const Height& rhs) const;
+bool operator<=(const Height& rhs) const;
+bool operator>=(const Height& rhs) const;
+bool operator==(const Height& rhs) const;
+bool operator!=(const Height& rhs) const;
 \end{apient}
 \apidesc{
 	Comparison operators for Height objects.  Compares based on the integral stack height treating TOP as MAX\_HEIGHT and BOTTOM as MIN\_HEIGHT.
 }
 
 \begin{apient}
-Height &operator+=(const Height &rhs);
-Height &operator+=(const signed long &rhs);
-const Height operator+(const Height &rhs) const;
-const Height operator+(const signed long &rhs) const;
-const Height operator-(const Height &rhs) const;
+Height &operator+=(const Height& rhs);
+Height &operator+=(const signed long& rhs);
+const Height operator+(const Height& rhs) const;
+const Height operator+(const signed long& rhs) const;
+const Height operator-(const Height& rhs) const;
 \end{apient}
 \apidesc{
 	Returns the result of basic arithmetic on Height objects according to the following rules, where \emph{x} and \emph{y} are integral stack heights and \emph{S} represents any stack height:

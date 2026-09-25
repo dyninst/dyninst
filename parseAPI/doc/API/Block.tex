@@ -28,8 +28,8 @@ containingFuncs & int & Number of Functions that contain this block. \\
 \end{tabularx}
 
 \begin{apient}
-Block(CodeObject * o,
-      CodeRegion * r,
+Block(CodeObject* o,
+      CodeRegion* r,
       Address start,
       Function* f = NULL);
 \end{apient}
@@ -38,8 +38,8 @@ Optionally, one can specify the function that will parse the block.
 This constructor is used by the ParseAPI parser, which will update its end address during parsing.}
 
 \begin{apient}
-Block(CodeObject * o,
-      CodeRegion * r,
+Block(CodeObject* o,
+      CodeRegion* r,
       Address start,
       Address end,
       Address last,
@@ -52,7 +52,7 @@ This constructor allows external parsers to construct their own blocks.}
 
 \begin{apient}
 bool consistent(Address addr,
-                Address & prev_insn);
+                Address& prev_insn);
 \end{apient}
 \apidesc{Check whether address \code{addr} is \emph{consistent} with this basic block. An address is consistent if it is the boundary between two instructions in the block. As long as \code{addr} is within the range of the block, \code{prev\_insn} will contain the address of the previous instruction boundary before \code{addr}, regardless of whether \code{addr} is consistent or not.}
 
@@ -75,7 +75,7 @@ void getFuncs(OutputIterator result);
 \begin{apient}
 typedef std::map<Offset, InstructionAPI::Instruction> Insns;
 
-void getInsns(Insns &insns) const;
+void getInsns(Insns& insns) const;
 \end{apient}
 \apidesc{Disassembles the block and stores the result in
   \code{Insns}.}

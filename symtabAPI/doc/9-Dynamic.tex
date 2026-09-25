@@ -15,7 +15,7 @@ create\code{AddressLookup} factor constructors. The ProcessReader class is discu
 When an \code{AddressLookup} object is created for a running process it takes a snapshot of the process' currently loaded libraries and their load addresses. This snapshot is used to answer queries into the \code{AddressLookup} object, and is not automatically updated when the process loads or unloads libraries. The refresh function can be used to updated an \code{AddressLookup} object's view of its process.
 
 \begin{apient}
-static AddressLookup *createAddressLookup(ProcessReader *reader = NULL);
+static AddressLookup* createAddressLookup(ProcessReader* reader = NULL);
 \end{apient}
 \apidesc{
 This factory constructor creates a new \code{AddressLookup} object associated with the process that called this function. The returned \code{AddressLookup} object should be cleaned with the delete operator when it is no longer needed.
@@ -24,8 +24,8 @@ This function returns the new \code{AddressLookup} object on success and \code{N
 }
 
 \begin{apient}
-static AddressLookup *createAddressLookup(PID pid,
-                                          ProcessReader *reader = NULL);
+static AddressLookup* createAddressLookup(PID pid,
+                                          ProcessReader* reader = NULL);
 \end{apient}
 \apidesc{
 This factory constructor creates a new \code{AddressLookup} object associated with the process referred to by \code{pid}. The returned \code{AddressLookup} object should be cleaned with the delete operator when it is no longer needed. If the \code{reader} parameter is non-NULL on Linux then the new \code{AddressLookup} object will use it to read from the target process. This function returns the new \code{AddressLookup} object on success and \code{NULL} on error.
@@ -40,7 +40,7 @@ typedef struct {
 \end{apient}
 
 \begin{apient}
-static AddressLookup *createAddressLookup(const std::vector<LoadedLibrary> &ll);
+static AddressLookup* createAddressLookup(const std::vector<LoadedLibrary> &ll);
 \end{apient}
 \apidesc{
 This factory constructor creates a new \code{AddressLookup} associated with a previously collected list of libraries from a process. The list of libraries can initially be collected with the \code{getLoadAddresses} function. The list can then be used with this function to re-create the \code{AddressLookup} object, even if the original process no longer exists. This can be useful for off-line address lookups, where only the load addresses are collected while the process exists and then all address translation is done after the process has terminated.
@@ -66,9 +66,9 @@ This function returns \code{true} on success and \code{false} on error.
 }
 
 \begin{apient}
-bool getAddress(Symtab *tab,
-                Symbol *sym,
-                Address &addr);
+bool getAddress(Symtab* tab,
+                Symbol* sym,
+                Address& addr);
 \end{apient}
 \apidesc{
 Given a \code{Symtab} object, \code{tab}, and a symbol, \code{sym}, this function returns the address, \code{addr}, where the symbol can be found in the process associated with this \code{AddressLookup}.
@@ -76,9 +76,9 @@ This function returns \code{true} if it was able to successfully lookup the addr
 }
 
 \begin{apient}
-bool getAddress(Symtab *tab,
+bool getAddress(Symtab* tab,
                 Offset off,
-                Address &addr);
+                Address& addr);
 \end{apient}
 \apidesc{
 Given a \code{Symtab} object, \code{tab}, and an offset into that object, \code{off}, this function returns the address, \code{addr}, of that location in the process associated with this \code{AddressLookup}.
@@ -99,7 +99,7 @@ This function returns \code{true} if it was able to find a symbol and \code{fals
 \begin{apient}
 bool getOffset(Address addr,
                Symtab* &tab,
-               Offset &off);
+               Offset& off);
 \end{apient}
 \apidesc{
 Given an address, \code{addr}, this function returns the \code{Symtab} object, \code{tab}, and an offset into \code{tab}, \code{off}, that reside at that address.
@@ -108,8 +108,8 @@ This function returns \code{true} on success and \code{false} otherwise.
 
 \begin{apient}
 bool getOffset(Address addr,
-               LoadedLibrary &lib,
-               Offset &off);
+               LoadedLibrary& lib,
+               Offset& off);
 \end{apient}
 \apidesc{
 As above, but returns a \code{LoadedLibrary} data structure instead of a Symtab.
@@ -125,8 +125,8 @@ This function returns \code{true} on success and \code{false} otherwise.
 }
 
 \begin{apient}
-bool getLoadAddress(Symtab *sym,
-                    Address &load_address);
+bool getLoadAddress(Symtab* sym,
+                    Address& load_address);
 \end{apient}
 \apidesc{
 Given a \code{Symtab} object, \code{sym}, that resides in the process associated with this \code{AddressLookup}, this function returns \code{sym}'s load address.
@@ -135,8 +135,8 @@ This function returns \code{true} on success and \code{false} otherwise.
 }
 
 \begin{apient}
-bool getDataLoadAddress(Symtab *sym,
-                        Address &load_addr);
+bool getDataLoadAddress(Symtab* sym,
+                        Address& load_addr);
 \end{apient}
 \apidesc{
 Given a Symtab object, \code{sym}, this function returns the load address of its data section. This function returns \code{true} on success and \code{false} otherwise.}
@@ -159,7 +159,7 @@ This constructor for a \code{ProcessReader} should be called by any child class 
 
 \begin{apient}
 virtual bool ReadMem(Address traced,
-                     void *inSelf,
+                     void* inSelf,
                      unsigned size) = 0;
 \end{apient}
 \apidesc{
@@ -169,7 +169,7 @@ This function must return \code{true} on success and \code{false} on error.
 
 \begin{apient}
 virtual bool GetReg(MachRegister reg,
-                    MachRegisterVal &val) = 0;
+                    MachRegisterVal& val) = 0;
 \end{apient}
 \apidesc{
 This function reads from the register specified by \code{reg} and places the result in \code{val}. It must return \code{true} on success and \code{false} on failure.

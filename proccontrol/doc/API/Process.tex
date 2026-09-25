@@ -454,8 +454,8 @@ It is an error to call this function from a callback.
 }
 
 \begin{apient}
-ThreadPool &threads();
-const ThreadPool &threads() const;
+ThreadPool& threads();
+const ThreadPool& threads() const;
 \end{apient}
 
 \apidesc{
@@ -463,8 +463,8 @@ Returns the \code{ThreadPool} of the process.
 }
 
 \begin{apient}
-const LibraryPool &libraries() const;
-LibraryPool &libraries();
+const LibraryPool& libraries() const;
+LibraryPool& libraries();
 \end{apient}
 
 \apidesc{
@@ -482,8 +482,8 @@ will trigger an event (and thus a user callback) for each library loaded
 }
 
 \begin{apient}
-void *getData() const;
-void setData(void *p) const;
+void* getData() const;
+void setData(void* p) const;
 \end{apient}
 
 \apidesc{
@@ -537,7 +537,7 @@ error a subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool writeMemory(Dyninst::Address addr, const void *buffer, size_t size) const;
+bool writeMemory(Dyninst::Address addr, const void* buffer, size_t size) const;
 \end{apient}
 
 \apidesc{
@@ -552,7 +552,7 @@ subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-bool readMemory(void *buffer, Dyninst::Address addr, size_t size) const;
+bool readMemory(void* buffer, Dyninst::Address addr, size_t size) const;
 \end{apient}
 
 \apidesc{
@@ -665,16 +665,16 @@ subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
-LibraryTracking *getLibraryTracking();
-ThreadTracking *getThreadTracking();
-LWPTracking *getLWPTracking();
-FollowFork *getFollowFork();
-SignalMask *getSignalMask();
-const LibraryTracking *getLibraryTracking() const;
-const ThreadTracking *getThreadTracking() const;
-const LWPTracking *getLWPTracking() const;
-const FollowFork *getFollowFork() const;
-const SignalMask *getSignalMask() const;
+LibraryTracking* getLibraryTracking();
+ThreadTracking* getThreadTracking();
+LWPTracking* getLWPTracking();
+FollowFork* getFollowFork();
+SignalMask* getSignalMask();
+const LibraryTracking* getLibraryTracking() const;
+const ThreadTracking* getThreadTracking() const;
+const LWPTracking* getLWPTracking() const;
+const FollowFork* getFollowFork() const;
+const SignalMask* getSignalMask() const;
 \end{apient}
 
 \apidesc{

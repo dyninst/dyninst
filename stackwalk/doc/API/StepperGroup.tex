@@ -14,7 +14,7 @@ interface. Users who want to customize the \code{StepperGroup} should inherit fr
 class and re-implement any of the below virtual functions.
 
 \begin{apient}
-StepperGroup(Walker *walker);
+StepperGroup(Walker* walker);
 \end{apient}
 \apidesc{
     This factory constructor creates a new \code{StepperGroup} object associated
@@ -22,7 +22,7 @@ with \code{walker}.
 }
 
 \begin{apient}
-bool addStepper(FrameStepper *stepper, Address start, Address end);
+bool addStepper(FrameStepper* stepper, Address start, Address end);
 \end{apient}
 \apidesc{
     This method adds a new \code{FrameStepper} to this \code{StepperGroup}. The
@@ -34,7 +34,7 @@ bool addStepper(FrameStepper *stepper, Address start, Address end);
 }
 
 \begin{apient}
-virtual bool addStepper(FrameStepper *stepper, Address start, Address
+virtual bool addStepper(FrameStepper* stepper, Address start, Address
 end) = 0;
 \end{apient}
 \apidesc{Add the specified \code{FrameStepper} to the list of known
@@ -42,7 +42,7 @@ end) = 0;
   [\code{start}, \code{end}).}
 
 \begin{apient}
-void registerStepper(FrameStepper *stepper);
+void registerStepper(FrameStepper* stepper);
 \end{apient}
 
 \apidesc{Add the specified \code{FrameStepper} to the list of known
@@ -50,7 +50,7 @@ void registerStepper(FrameStepper *stepper);
 
 \begin{apient}
 virtual bool findStepperForAddr(Address addr, FrameStepper* &out,
-                                const FrameStepper *last_tried = NULL) = 0;
+                                const FrameStepper* last_tried = NULL) = 0;
 \end{apient}
 \apidesc{
     Given an address that points into a function (or function-like object),
@@ -80,13 +80,13 @@ virtual bool findStepperForAddr(Address addr, FrameStepper* &out,
 typedef std::pair<std::string, Address> LibAddrPair;
 typedef enum { library_load, library_unload } lib_change_t;
 
-void newLibraryNotification(LibAddrPair *libaddr, lib_change_t
+void newLibraryNotification(LibAddrPair* libaddr, lib_change_t
 change);
 \end{apient}
 \apidesc{Called by the StackwalkerAPI when a new library is loaded.}
 
 \begin{apient}
-Walker *getWalker() const;
+Walker* getWalker() const;
 \end{apient}
 \apidesc{
 	This method returns the Walker object that associated with this StepperGroup.

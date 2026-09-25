@@ -2,7 +2,7 @@
 This class represents an entire line map for a module. This contains mappings from a line number within a source to the address ranges.
 
 \begin{apient}
-bool getAddressRanges(const char * lineSource,
+bool getAddressRanges(const char* lineSource,
                       unsigned int LineNo,
                       std::vector<AddressRange> & ranges);
 \end{apient}
@@ -23,7 +23,7 @@ Return \code{true} if at least one tuple corresponding to the offset was found a
 }
 
 \begin{apient}
-bool addLine(const std::string & lineSource,
+bool addLine(const std::string& lineSource,
              unsigned int lineNo,
              unsigned int lineOffset,
              Offset lowInclusiveAddr,

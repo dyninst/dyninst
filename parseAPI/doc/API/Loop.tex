@@ -65,22 +65,22 @@ bool getLoopBasicBlocksExclusive(std::vector<Block*> &blocks);
 \apidesc{Fills \code{blocks} with all basic blocks in this loop, excluding the blocks of its sub loops.}
 
 \begin{apient}
-bool hasBlock(Block *b);
+bool hasBlock(Block* b);
 \end{apient}
 \apidesc{Returns \code{true} if this loop contains basic block \code{b}.}
 
 \begin{apient}
-bool hasBlockExclusive(Block *b);
+bool hasBlockExclusive(Block* b);
 \end{apient}
 \apidesc{Returns \code{true} if this loop contains basic block \code{b} and \code{b} is not in its sub loops.}
 
 \begin{apient}
-bool hasAncestor(Loop *loop);
+bool hasAncestor(Loop* loop);
 \end{apient}
 \apidesc{Returns true if this loop is a descendant of the given loop.}
 
 \begin{apient}
-const Function *getFunction();
+const Function* getFunction();
 \end{apient}
 \apidesc{Returns the function that this loop is in.}
 

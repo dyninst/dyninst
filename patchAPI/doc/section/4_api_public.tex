@@ -33,7 +33,7 @@ represents an individual binary code object, such as an executable or a library.
 
 \begin{apient}
 static PatchObject* create(ParseAPI::CodeObject* co, Address base,
-                           CFGMaker* cm = NULL, PatchCallback *cb = NULL);
+                           CFGMaker* cm = NULL, PatchCallback* cb = NULL);
 \end{apient}
 
 
@@ -50,7 +50,7 @@ PatchCallback.
 
 \begin{apient}
 static PatchObject* clone(PatchObject* par_obj, Address base,
-                          CFGMaker* cm = NULL, PatchCallback *cb = NULL);
+                          CFGMaker* cm = NULL, PatchCallback* cb = NULL);
 \end{apient}
 
 
@@ -75,7 +75,7 @@ Returns the base address where this object is loaded in memory.
 }
 
 \begin{apient}
-PatchFunction *getFunc(ParseAPI::Function *func, bool create = true);
+PatchFunction* getFunc(ParseAPI::Function* func, bool create = true);
 \end{apient}
 
 
@@ -106,7 +106,7 @@ Outputs all instances of PatchFunction in this PatchObject to the STL inserter
 }
 
 \begin{apient}
-PatchBlock *getBlock(ParseAPI::Block* blk, bool create = true);
+PatchBlock* getBlock(ParseAPI::Block* blk, bool create = true);
 \end{apient}
 
 
@@ -136,7 +136,7 @@ Outputs all instances of PatchBlock in this object to the STL inserter
 }
 
 \begin{apient}
-PatchEdge *getEdge(ParseAPI::Edge* edge, PatchBlock* src = NULL,
+PatchEdge* getEdge(ParseAPI::Edge* edge, PatchBlock* src = NULL,
                    PatchBlock* trg = NULL, bool create = true);
 \end{apient}
 
@@ -169,7 +169,7 @@ Outputs all instances of PatchEdge in this object to the STL inserter
 }
 
 \begin{apient}
-PatchCallback *cb() const;
+PatchCallback* cb() const;
 \end{apient}
 
 
@@ -186,7 +186,7 @@ The PatchFunction class is a wrapper of ParseAPI's Function class (has-a), which
 represents a function.
 
 \begin{apient}
-const std::string &name();
+const std::string& name();
 \end{apient}
 
 
@@ -204,7 +204,7 @@ Returns the address of the first instruction in this function.
 }
 
 \begin{apient}
-ParseAPI::Function *function() const;
+ParseAPI::Function* function() const;
 \end{apient}
 
 
@@ -224,7 +224,7 @@ Returns the PatchObject associated with this PatchFunction.
 \begin{apient}
 typedef std::set<PatchBlock *> PatchFunction::Blockset;
 
-const Blockset &blocks();
+const Blockset& blocks();
 \end{apient}
 
 
@@ -233,7 +233,7 @@ Returns a set of all PatchBlocks in this PatchFunction.
 }
 
 \begin{apient}
-PatchBlock *entry();
+PatchBlock* entry();
 \end{apient}
 
 
@@ -242,7 +242,7 @@ Returns the entry block of this PatchFunction.
 }
 
 \begin{apient}
-const Blockset &exitBlocks();
+const Blockset& exitBlocks();
 \end{apient}
 
 
@@ -251,7 +251,7 @@ Returns a set of exit blocks of this PatchFunction.
 }
 
 \begin{apient}
-const Blockset &callBlocks();
+const Blockset& callBlocks();
 \end{apient}
 
 
@@ -260,7 +260,7 @@ Returns a set of all call blocks of this PatchFunction.
 }
 
 \begin{apient}
-PatchCallback *cb() const;
+PatchCallback* cb() const;
 \end{apient}
 
 \apidesc{
@@ -273,7 +273,7 @@ PatchLoopTreeNode* getLoopTree();
 \apidesc{Return the nesting tree of the loops in the function. See class \code{PatchLoopTreeNode} for more details}
 
 \begin{apient}
-PatchLoop* findLoop(const char *name);
+PatchLoop* findLoop(const char* name);
 \end{apient}
 \apidesc{Return the loop with the given nesting name. See class \code{PatchLoopTreeNode} for more details about how loop nesting names are assigned.}
 
@@ -288,43 +288,43 @@ bool getOuterLoops(std::vector<PatchLoop*> &loops);
 \apidesc{Fill \code{loops} with all the outermost loops in the function}
 
 \begin{apient}
-bool dominates(PatchBlock* A, PatchBlock *B);
+bool dominates(PatchBlock* A, PatchBlock* B);
 \end{apient}
 \apidesc{Return true if block \code{A} dominates block \code{B}}
 
 \begin{apient}
-PatchBlock* getImmediateDominator(PatchBlock *A);
+PatchBlock* getImmediateDominator(PatchBlock* A);
 \end{apient}
 \apidesc{Return the immediate dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate dominator.}
 
 \begin{apient}
-void getImmediateDominates(PatchBlock *A, std::set<PatchBlock*> &imm);
+void getImmediateDominates(PatchBlock* A, std::set<PatchBlock*> &imm);
 \end{apient}
 \apidesc{Fill \code{imm} with all the blocks immediate dominated by block \code{A}}
 
 \begin{apient}
-void getAllDominates(PatchBlock *A, std::set<PatchBlock*> &dom);
+void getAllDominates(PatchBlock* A, std::set<PatchBlock*> &dom);
 \end{apient}
 \apidesc{Fill \code{dom} with all the blocks dominated by block \code{A}}
 
 
 \begin{apient}
-bool postDominates(PatchBlock* A, PatchBlock *B);
+bool postDominates(PatchBlock* A, PatchBlock* B);
 \end{apient}
 \apidesc{Return true if block \code{A} post-dominates block \code{B}}
 
 \begin{apient}
-PatchBlock* getImmediatePostDominator(PatchBlock *A);
+PatchBlock* getImmediatePostDominator(PatchBlock* A);
 \end{apient}
 \apidesc{Return the immediate post-dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate post-dominator.}
 
 \begin{apient}
-void getImmediatePostDominates(PatchBlock *A, std::set<PatchBlock*> &imm);
+void getImmediatePostDominates(PatchBlock* A, std::set<PatchBlock*> &imm);
 \end{apient}
 \apidesc{Fill \code{imm} with all the blocks immediate post-dominated by block \code{A}}
 
 \begin{apient}
-void getAllPostDominates(PatchBlock *A, std::set<PatchBlock*> &dom);
+void getAllPostDominates(PatchBlock* A, std::set<PatchBlock*> &dom);
 \end{apient}
 \apidesc{Fill \code{dom} with all the blocks post-dominated by block \code{A}}
 
@@ -396,7 +396,7 @@ Returns the number of functions that contain this block.
 \begin{apient}
 typedef std::map<Address, InstructionAPI::Instruction> Insns;
 
-void getInsns(Insns &insns) const;
+void getInsns(Insns& insns) const;
 \end{apient}
 
 
@@ -453,7 +453,7 @@ otherwise, NULL is returned.
 }
 
 \begin{apient}
-ParseAPI::Block *block() const;
+ParseAPI::Block* block() const;
 \end{apient}
 
 
@@ -472,7 +472,7 @@ Returns the PatchObject that contains this block.
 \begin{apient}
 typedef std::vector<PatchEdge*> PatchBlock::edgelist;
 
-const edgelist &sources();
+const edgelist& sources();
 \end{apient}
 
 \apidesc{
@@ -481,7 +481,7 @@ the returned edges.
 }
 
 \begin{apient}
-const edgelist &targets();
+const edgelist& targets();
 \end{apient}
 
 \apidesc{
@@ -499,7 +499,7 @@ Outputs all functions containing this PatchBlock to the STL inserter \emph{resul
 }
 
 \begin{apient}
-PatchCallback *cb() const;
+PatchCallback* cb() const;
 \end{apient}
 
 \apidesc{
@@ -517,7 +517,7 @@ instruction that joins the basic blocks to each other.
 
 
 \begin{apient}
-ParseAPI::Edge *edge() const;
+ParseAPI::Edge* edge() const;
 \end{apient}
 
 \apidesc{
@@ -525,7 +525,7 @@ Returns a ParseAPI::Edge associated with this PatchEdge.
 }
 
 \begin{apient}
-PatchBlock *src();
+PatchBlock* src();
 \end{apient}
 
 \apidesc{
@@ -533,7 +533,7 @@ Returns the source PatchBlock.
 }
 
 \begin{apient}
-PatchBlock *trg();
+PatchBlock* trg();
 \end{apient}
 
 \apidesc{
@@ -568,7 +568,7 @@ calls, returns, direct branches under certain circumstances).
 }
 
 \begin{apient}
-PatchCallback *cb() const;
+PatchCallback* cb() const;
 \end{apient}
 
 \apidesc{
@@ -636,22 +636,22 @@ bool getLoopBasicBlocksExclusive(std::vector<PatchBlock*> &blocks);
 \apidesc{Fills \code{blocks} with all basic blocks in this loop, excluding the blocks of its sub loops.}
 
 \begin{apient}
-bool hasBlock(PatchBlock *b);
+bool hasBlock(PatchBlock* b);
 \end{apient}
 \apidesc{Returns \code{true} if this loop contains basic block \code{b}.}
 
 \begin{apient}
-bool hasBlockExclusive(PatchBlock *b);
+bool hasBlockExclusive(PatchBlock* b);
 \end{apient}
 \apidesc{Returns \code{true} if this loop contains basic block \code{b} and \code{b} is not in its sub loops.}
 
 \begin{apient}
-bool hasAncestor(PatchLoop *loop);
+bool hasAncestor(PatchLoop* loop);
 \end{apient}
 \apidesc{Returns true if this loop is a descendant of the given loop.}
 
 \begin{apient}
-PatchFunction * getFunction();
+PatchFunction* getFunction();
 \end{apient}
 \apidesc{Returns the function that this loop is in.}
 
@@ -704,7 +704,7 @@ no children. \code{loop\_1} has two child PatchLoopTreeNode objects, named
 \code{loop\_1.2}, respectively representing the \code{y} and \code{z} loops.
 
 \begin{apient}
-PatchLoop *loop;
+PatchLoop* loop;
 \end{apient}
 \apidesc{The PatchLoop instance it points to.}
 
@@ -714,12 +714,12 @@ std::vector<PatchLoopTreeNode *> children;
 \apidesc{The PatchLoopTreeNode instances nested within this loop.}
 
 \begin{apient}
-const char * name();
+const char* name();
 \end{apient}
 \apidesc{Returns the hierarchical name of this loop.}
 
 \begin{apient}
-const char * getCalleeName(unsigned int i);
+const char* getCalleeName(unsigned int i);
 \end{apient}
 \apidesc{Returns the function name of the ith callee.}
 
@@ -735,7 +735,7 @@ bool getCallees(std::vector<PatchFunction *> &v);
 
 
 \begin{apient}
-PatchLoop * findLoop(const char *name);
+PatchLoop* findLoop(const char* name);
 \end{apient}
 \apidesc{Looks up a loop by the hierarchical name}
 
@@ -772,7 +772,7 @@ object.
 }
 
 \begin{apient}
-Point *findPoint(Location loc, Point::Type type, bool create = true);
+Point* findPoint(Location loc, Point::Type type, bool create = true);
 \end{apient}
 
 \apidesc{
@@ -889,9 +889,9 @@ inserter \emph{outputIter}; otherwise, this Point will be discarded.
 
 \begin{apient}
 struct Scope {
-  Scope(PatchBlock *b);
-  Scope(PatchFunction *f, PatchBlock *b);
-  Scope(PatchFunction *f);
+  Scope(PatchBlock* b);
+  Scope(PatchFunction* f, PatchBlock* b);
+  Scope(PatchFunction* f);
 };
 \end{apient}
 
@@ -985,7 +985,7 @@ returned.
 }
 
 \begin{apient}
-void destroy(Point *point);
+void destroy(Point* point);
 \end{apient}
 
 \apidesc{
@@ -1013,19 +1013,19 @@ instances. Therefore, the Point class has methods similar to those in STL.
 
 \begin{apient}
 struct Location {
-   static Location Function(PatchFunction *f);
-   static Location Block(PatchBlock *b);
-   static Location BlockInstance(PatchFunction *f, PatchBlock *b, bool trusted = false);
-   static Location Edge(PatchEdge *e);
-   static Location EdgeInstance(PatchFunction *f, PatchEdge *e);
-   static Location Instruction(PatchBlock *b, Address a);
-   static Location InstructionInstance(PatchFunction *f, PatchBlock *b, Address a);
-   static Location InstructionInstance(PatchFunction *f, PatchBlock *b, Address a,
+   static Location Function(PatchFunction* f);
+   static Location Block(PatchBlock* b);
+   static Location BlockInstance(PatchFunction* f, PatchBlock* b, bool trusted = false);
+   static Location Edge(PatchEdge* e);
+   static Location EdgeInstance(PatchFunction* f, PatchEdge* e);
+   static Location Instruction(PatchBlock* b, Address a);
+   static Location InstructionInstance(PatchFunction* f, PatchBlock* b, Address a);
+   static Location InstructionInstance(PatchFunction* f, PatchBlock* b, Address a,
                                        InstructionAPI::Instruction i,
                                        bool trusted = false);
-   static Location EntrySite(PatchFunction *f, PatchBlock *b, bool trusted = false);
-   static Location CallSite(PatchFunction *f, PatchBlock *b);
-   static Location ExitSite(PatchFunction *f, PatchBlock *b);
+   static Location EntrySite(PatchFunction* f, PatchBlock* b, bool trusted = false);
+   static Location CallSite(PatchFunction* f, PatchBlock* b);
+   static Location ExitSite(PatchFunction* f, PatchBlock* b);
 };
 \end{apient}
 
@@ -1179,7 +1179,7 @@ Returns the PatchObject where the Point resides.
 }
 
 \begin{apient}
-const InstructionAPI::Instruction &insn() const;
+const InstructionAPI::Instruction& insn() const;
 \end{apient}
 
 
@@ -1215,7 +1215,7 @@ Returns the Edge where the Point resides.
 }
 
 \begin{apient}
-PatchCallback *cb() const;
+PatchCallback* cb() const;
 \end{apient}
 
 
@@ -1332,7 +1332,7 @@ respectively. All the above methods will be called after the objects
 are created. }
 
 \begin{apient}
-void split_block_cb(PatchBlock *first, PatchBlock *second);
+void split_block_cb(PatchBlock* first, PatchBlock* second);
 \end{apient}
 
 
@@ -1369,8 +1369,8 @@ the event triggers.
 }
 
 \begin{apient}
-void create_cb(Point *pt);
-void destroy_cb(Point *pt);
+void create_cb(Point* pt);
+void destroy_cb(Point* pt);
 \end{apient}
 
 
@@ -1381,7 +1381,7 @@ which will be called before the point \emph{pt} is deleted.
 }
 
 \begin{apient}
-void change_cb(Point *pt, PatchBlock *first, PatchBlock *second);
+void change_cb(Point* pt, PatchBlock* first, PatchBlock* second);
 \end{apient}
 
 

@@ -71,9 +71,9 @@ getReturnType & Type * & Type representing the return type of the function. \\
 \begin{apient}
 Function(Address addr,
          std::string name,
-         CodeObject * obj,
-         CodeRegion * region,
-         InstructionSource * isource);
+         CodeObject* obj,
+         CodeRegion* region,
+         InstructionSource* isource);
 \end{apient}
 \apidesc{Creates a function at \code{addr} in the code region specified.
 Insructions for this function are given in \code{isource}.}
@@ -84,7 +84,7 @@ LoopTreeNode* getLoopTree() const;
 \apidesc{Return the nesting tree of the loops in the function. See class \code{LoopTreeNode} for more details}
 
 \begin{apient}
-Loop* findLoop(const char *name) const;
+Loop* findLoop(const char* name) const;
 \end{apient}
 \apidesc{Return the loop with the given nesting name. See class \code{LoopTreeNode} for more details about how loop nesting names are assigned.}
 
@@ -99,43 +99,43 @@ bool getOuterLoops(std::vector<Loop*> &loops) const;
 \apidesc{Fill \code{loops} with all the outermost loops in the function}
 
 \begin{apient}
-bool dominates(Block* A, Block *B) const;
+bool dominates(Block* A, Block* B) const;
 \end{apient}
 \apidesc{Return true if block \code{A} dominates block \code{B}}
 
 \begin{apient}
-Block* getImmediateDominator(Block *A) const;
+Block* getImmediateDominator(Block* A) const;
 \end{apient}
 \apidesc{Return the immediate dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate dominator.}
 
 \begin{apient}
-void getImmediateDominates(Block *A, std::set<Block*> &imm) const;
+void getImmediateDominates(Block* A, std::set<Block*> &imm) const;
 \end{apient}
 \apidesc{Fill \code{imm} with all the blocks immediate dominated by block \code{A}}
 
 \begin{apient}
-void getAllDominates(Block *A, std::set<Block*> &dom) const;
+void getAllDominates(Block* A, std::set<Block*> &dom) const;
 \end{apient}
 \apidesc{Fill \code{dom} with all the blocks dominated by block \code{A}}
 
 
 \begin{apient}
-bool postDominates(Block* A, Block *B) const;
+bool postDominates(Block* A, Block* B) const;
 \end{apient}
 \apidesc{Return true if block \code{A} post-dominates block \code{B}}
 
 \begin{apient}
-Block* getImmediatePostDominator(Block *A) const;
+Block* getImmediatePostDominator(Block* A) const;
 \end{apient}
 \apidesc{Return the immediate post-dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate post-dominator.}
 
 \begin{apient}
-void getImmediatePostDominates(Block *A, std::set<Block*> &imm) const;
+void getImmediatePostDominates(Block* A, std::set<Block*> &imm) const;
 \end{apient}
 \apidesc{Fill \code{imm} with all the blocks immediate post-dominated by block \code{A}}
 
 \begin{apient}
-void getAllPostDominates(Block *A, std::set<Block*> &dom) const;
+void getAllPostDominates(Block* A, std::set<Block*> &dom) const;
 \end{apient}
 \apidesc{Fill \code{dom} with all the blocks post-dominated by block \code{A}}
 
@@ -148,7 +148,7 @@ std::vector<FuncExtent *> const& extents();
 \apidesc{Returns a list of contiguous extents of binary code within the function.}
 
 \begin{apient}
-void setEntryBlock(Block * new_entry);
+void setEntryBlock(Block* new_entry);
 \end{apient}
 \apidesc{Set the entry block for this function to \code{new\_entry}.}
 
@@ -158,8 +158,8 @@ void set_retstatus(FuncReturnStatus rs);
 \apidesc{Set the return status for the function to \code{rs}.}
 
 \begin{apient}
-bool contains(Block *b);
-bool contains(Block *b) const;
+bool contains(Block* b);
+bool contains(Block* b) const;
 \end{apient}
 \apidesc{Return true if this function contains the given block \code{b};
 otherwise false.}

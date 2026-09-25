@@ -19,36 +19,36 @@ getCallStack member function of \code{BPatch\_thread} returns a vector of
 }
 
 \begin{apient}
-  void *getFP();
+  void* getFP();
 \end{apient}
 
 \apidesc{
   Return the frame pointer for the stack frame.
 }
 \begin{apient}
-  void *getPC();
+  void* getPC();
 \end{apient}
 
 \apidesc{
   Returns the program counter associated with the stack frame.
 }
 \begin{apient}
-  BPatch_function *findFunction();
+  BPatch_function* findFunction();
 \end{apient}
 
 \apidesc{
   Returns the function associated with the stack frame.
 }
 \begin{apient}
-  BPatch_thread *getThread();
+  BPatch_thread* getThread();
 \end{apient}
 
 \apidesc{
   Returns the thread associated with the stack frame.
 }
 \begin{apient}
-  BPatch_point *getPoint();
-  BPatch_point *findPoint();
+  BPatch_point* getPoint();
+  BPatch_point* findPoint();
 \end{apient}
 
 \apidesc{

@@ -14,7 +14,7 @@ typedef std::map<Assignment::Ptr, AST::Ptr, AssignmentPtrValueComp> Result_t;
 Each assignment in the slice has a corresponding AST.}
 
 \begin{apient}
-static std::pair<AST::Ptr, bool> expand(const Assignment::Ptr &assignment,
+static std::pair<AST::Ptr, bool> expand(const Assignment::Ptr& assignment,
                                         bool applyVisitors = true);
 \end{apient}
 \apidesc{This interface expands a single assignment given by \code{assignment}
@@ -24,7 +24,7 @@ succeeded or not. \code{applyVisitors} specifies whether or not to perform stack
 analysis to precisely track stack variables.}
 
 \begin{apient}
-static bool expand(Result_t &res,
+static bool expand(Result_t& res,
                    std::set<InstructionPtr> &failedInsns,
 		   bool applyVisitors = true);
 \end{apient}
@@ -50,7 +50,7 @@ SUCCESS & success \\
 \end{center}
 
 \begin{apient}
-static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res);
+static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t& res);
 \end{apient}
 \apidesc{This interface expands a slice and returns an AST for each assignment in
 the slice. This function will perform substitution of ASTs.}
@@ -69,7 +69,7 @@ them.
 \begin{apient}
 Variable& VariableAST::val() const;
 Constant& ConstantAST::val() const;
-ROSEOperation & RoseAST::val() const;
+ROSEOperation& RoseAST::val() const;
 \end{apient}
 
 We now describe data structure \code{Variable}, \code{Constant}, and
@@ -89,8 +89,8 @@ Variable::Variable(AbsRegion r, Address a);
 \apidesc{The constructors of class Variable.}
 
 \begin{apient}
-bool Variable::operator==(const Variable &rhs) const;
-bool Variable::operator<(const Variable &rhs) const;
+bool Variable::operator==(const Variable& rhs) const;
+bool Variable::operator<(const Variable& rhs) const;
 \end{apient}
 \apidesc{Two Variable objects are equal when their AbsRegion are equal and their
 addresses are equal.}
@@ -119,8 +119,8 @@ Constant::Constant(uint64_t v, size_t s);
 \apidesc{Construct Constant objects.}
 
 \begin{apient}
-bool Constant::operator==(const Constant &rhs) const;
-bool Constant::operator<(const Constant &rhs) const;
+bool Constant::operator==(const Constant& rhs) const;
+bool Constant::operator<(const Constant& rhs) const;
 \end{apient}
 \apidesc{Comparison operators for Constant objects. Comparison is based on the
 value and size.}
@@ -190,7 +190,7 @@ ROSEOperation::ROSEOperation(Op o, size_t s);
 \apidesc{Constructors for ROSEOperation}
 
 \begin{apient}
-bool ROSEOperation::operator==(const ROSEOperation &rhs) const;
+bool ROSEOperation::operator==(const ROSEOperation& rhs) const;
 \end{apient}
 \apidesc{Equal operator}
 

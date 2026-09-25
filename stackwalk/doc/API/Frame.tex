@@ -18,10 +18,10 @@ return addresses on the stack when it relocates code. The RA, SP, and FP may be
 found in a register or in a memory address on a call stack.
 
 \begin{apient}
-static Frame *newFrame(Dyninst::MachRegisterVal ra,
+static Frame* newFrame(Dyninst::MachRegisterVal ra,
                        Dyninst::MachRegisterVal sp,
                        Dyninst::MachRegisterVal fp,
-                       Walker *walker);
+                       Walker* walker);
 \end{apient}
 \apidesc{
     This method creates a new \code{Frame} object and sets the mandatory data
@@ -164,7 +164,7 @@ void setFPLocation(location_t newval);
 }
 
 \begin{apient}
-bool getName(std::string &str) const;
+bool getName(std::string& str) const;
 \end{apient}
 \apidesc{
 This method returns a stack frame's symbolic name. Most stack frames are created
@@ -197,7 +197,7 @@ This method returns \code{true} on success and \code{false} on error.
 }
 
 \begin{apient}
-  Walker *getWalker() const;
+  Walker* getWalker() const;
 \end{apient}
 
 \apidesc{This method returns the \code{Walker} object that constructed
@@ -220,7 +220,7 @@ FrameStepper* getStepper() const;
 }
 
 \begin{apient}
-bool getLibOffset(std::string &lib, Dyninst::Offset &offset, void* &symtab) const;
+bool getLibOffset(std::string& lib, Dyninst::Offset& offset, void* &symtab) const;
 \end{apient}
 \apidesc{
 This method returns the DSO (a library or executable) and an offset into that

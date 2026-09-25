@@ -8,7 +8,7 @@ objects that it cannot match to a source file.
 \code{BPatch\_image} member function \code{getModules}.
 
 \begin{apient}
-  std::vector<BPatch_function*> *findFunction(const char *name,
+  std::vector<BPatch_function*> *findFunction(const char* name,
                                               std::vector<BPatch_function*> &funcs,
                                               bool notify_on_failure = true,
                                               bool regex_case_sensitive = true,
@@ -28,7 +28,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  BPatch_Vector<BPatch_function *> *findFunctionByAddress(void *addr,
+  BPatch_Vector<BPatch_function *> *findFunctionByAddress(void* addr,
                                                           BPatch_Vector<BPatch_function *> &funcs,
                                                           bool notify_on_failure = true,
                                                           bool incUninstrumentable = false);
@@ -43,7 +43,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  BPatch_function *findFunctionByEntry(Dyninst::Address addr);
+  BPatch_function* findFunctionByEntry(Dyninst::Address addr);
 \end{apient}
 
 \apidesc{
@@ -51,7 +51,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  BPatch_function *findFunctionByMangled(const char *mangled_name,
+  BPatch_function* findFunctionByMangled(const char* mangled_name,
                                          bool incUninstrumentable = false);
 \end{apient}
 
@@ -66,7 +66,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  bool getAddressRanges(const char *fileName, unsigned int lineNo,
+  bool getAddressRanges(const char* fileName, unsigned int lineNo,
                         std::vector<std::pair<unsigned long, unsigned long>> &ranges);
 \end{apient}
 
@@ -100,7 +100,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  void *getBaseAddr();
+  void* getBaseAddr();
 \end{apient}
 
 \apidesc{
@@ -117,7 +117,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  char *getFullName(char *buffer, int length);
+  char* getFullName(char* buffer, int length);
 \end{apient}
 
 \apidesc{
@@ -135,7 +135,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  char *getName(char *buffer, int len);
+  char* getName(char* buffer, int len);
 \end{apient}
 
 \apidesc{

@@ -80,7 +80,7 @@ typedef boost::shared_ptr<Expression> Ptr;
 }
 
 \begin{apient}
-bool operator==(const Expression &rhs) const;
+bool operator==(const Expression& rhs) const;
 \end{apient}
 \apidesc{
 Compare two AST nodes for equality.
@@ -109,7 +109,7 @@ std::string format(formatStyle how = defaultStyle) const;
 }
 
 \begin{apient}
-const Result & eval() const;
+const Result& eval() const;
 \end{apient}
 \apidesc{
     If the \code{Expression} can be evaluated, returns a \code{Result}
@@ -117,7 +117,7 @@ const Result & eval() const;
 }
 
 \begin{apient}
-void setValue(const Result &knownValue);
+void setValue(const Result& knownValue);
 \end{apient}
 \apidesc{
     Sets the result of \code{eval} for this \code{Expression} to
@@ -142,7 +142,7 @@ int size() const;
 }
 
 \begin{apient}
-bool bind(Expression * expr, const Result & value);
+bool bind(Expression* expr, const Result& value);
 \end{apient}
 \apidesc{
     \code{bind} searches for all instances of the Expression \code{expr} within

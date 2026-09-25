@@ -13,17 +13,17 @@ typedef boost::shared_ptr<Graph> Ptr;
 \apidesc{Shared pointer for Graph}
 
 \begin{apient}
-void entryNodes(NodeIterator &begin, NodeIterator &end);
+void entryNodes(NodeIterator& begin, NodeIterator& end);
 \end{apient}
 \apidesc{The entry nodes (nodes without any incoming edges) of the graph.}
 
 \begin{apient}
-void exitNodes(NodeIterator &begin, NodeIterator &end);
+void exitNodes(NodeIterator& begin, NodeIterator& end);
 \end{apient}
 \apidesc{The exit nodes (nodes without any outgoing edges) of the graph.}
 
 \begin{apient}
-void allNodes(NodeIterator &begin, NodeIterator &end);
+void allNodes(NodeIterator& begin, NodeIterator& end);
 \end{apient}
 \apidesc{Iterate all nodes in the graph.}
 
@@ -89,14 +89,14 @@ typedef boost::shared_ptr<Node> Ptr;
 \apidesc{Shared pointer for Node}
 
 \begin{apient}
-void ins(EdgeIterator &begin, EdgeIterator &end);
-void outs(EdgeIterator &begin, EdgeIterator &end);
+void ins(EdgeIterator& begin, EdgeIterator& end);
+void outs(EdgeIterator& begin, EdgeIterator& end);
 \end{apient}
 \apidesc{Iterate over incoming/outgoing edges of this node.}
 
 \begin{apient}
-void ins(NodeIterator &begin, NodeIterator &end);
-void outs(NodeIterator &begin, NodeIterator &end);
+void ins(NodeIterator& begin, NodeIterator& end);
+void outs(NodeIterator& begin, NodeIterator& end);
 \end{apient}
 \apidesc{Iterate over adjacent nodes connected with incoming/outgoing edges of
 this node.}

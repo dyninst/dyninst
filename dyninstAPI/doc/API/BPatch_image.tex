@@ -23,7 +23,7 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  BPatch_process *getProcess();
+  BPatch_process* getProcess();
 \end{apient}
 
 \apidesc{
@@ -31,7 +31,7 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  char *getProgramFileName(char *name, unsigned int len);
+  char* getProgramFileName(char* name, unsigned int len);
 \end{apient}
 
 \apidesc{
@@ -89,7 +89,7 @@ function \code{getImage}.
 
 \begin{apient}
   std::vector<BPatch_function*> *
-  findFunction(const char *name, std::vector<BPatch_function*> &funcs,
+  findFunction(const char* name, std::vector<BPatch_function*> &funcs,
                bool showError = true, bool regex_case_sensitive = true,
                bool incUninstrumentable = false);
 \end{apient}
@@ -115,13 +115,13 @@ function \code{getImage}.
 
 \begin{apient}
   typedef bool (*BPatchFunctionNameSieve)(
-    const char *name,
+    const char* name,
     void* sieve_data
   );
 
   std::vector<BPatch_function*>*
   findFunction(std::vector<BPatch_function*> &funcs, BPatchFunctionNameSieve bpsieve,
-               void *sieve_data = NULL, int showError = 0,
+               void* sieve_data = NULL, int showError = 0,
                bool incUninstrumentable = false);
 \end{apient}
 
@@ -158,8 +158,8 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  BPatch_variableExpr *findVariable(const char *name, bool showError = true);
-  BPatch_variableExpr *findVariable(BPatch_point &scope, const char *name);
+  BPatch_variableExpr* findVariable(const char* name, bool showError = true);
+  BPatch_variableExpr* findVariable(BPatch_point& scope, const char* name);
 \end{apient}
 
 \apidesc{
@@ -176,7 +176,7 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  BPatch_type *findType(const char *name);
+  BPatch_type* findType(const char* name);
 \end{apient}
 
 \apidesc{
@@ -187,7 +187,7 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  BPatch_module *findModule(const char *name, bool substring_match = false);
+  BPatch_module* findModule(const char* name, bool substring_match = false);
 \end{apient}
 
 \apidesc{
@@ -209,7 +209,7 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  bool getAddressRanges(const char *fileName, unsigned int lineNo,
+  bool getAddressRanges(const char* fileName, unsigned int lineNo,
                         std::vector<std::pair< unsigned long, unsigned long>> &ranges );
 \end{apient}
 

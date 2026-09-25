@@ -112,7 +112,7 @@ address space:
 \subsubsection{File opening/parsing}
 
 \begin{apient}
-static bool openFile(Symtab *&obj,
+static bool openFile(Symtab*& obj,
                      std::string filename);
 \end{apient}
 \apidesc{
@@ -121,8 +121,8 @@ Returns \code{true} if the file is parsed without an error, else returns \code{f
 }
 
 \begin{apient}
-static bool openFile(Symtab *&obj,
-                     char *mem_image,
+static bool openFile(Symtab*& obj,
+                     char* mem_image,
                      size_t size,
                      std::string name);
 \end{apient}
@@ -135,7 +135,7 @@ be called to get more error details.
 }
 
 \begin{apient}
-static Symtab *findOpenSymtab(const std::string &name);
+static Symtab* findOpenSymtab(const std::string& name);
 \end{apient}
 \apidesc{Find a previously opened \code{Symtab} that matches the provided name.}
 
@@ -143,7 +143,7 @@ static Symtab *findOpenSymtab(const std::string &name);
 \subsubsection{Module lookup}
 
 \begin{apient}
-Module *getDefaultModule() const;
+Module* getDefaultModule() const;
 \end{apient}
 \apidesc{
 Returns the default module, a collection of all functions, variables, and symbols that do not have an explicit module specified.
@@ -183,7 +183,7 @@ This method returns all modules in the object file. Returns \code{true} on succe
 \subsubsection{Function, Variable, and Symbol lookup}
 
 \begin{apient}
-bool findFuncByEntryOffset(Function *&ret,
+bool findFuncByEntryOffset(Function*& ret,
                            const Offset offset);
 \end{apient}
 \apidesc{
@@ -194,7 +194,7 @@ success and \code{false} if there is no matching function. The error value is se
 
 \begin{apient}
 bool findFunctionsByName(std::vector<Function *> &ret,
-                         const std::string &name,
+                         const std::string& name,
                          NameType nameType = anyName,
                          bool isRegex = false,
                          bool checkCase = true);
@@ -207,7 +207,7 @@ Returns \code{true} if it finds functions that match the given name, otherwise r
 
 \begin{apient}
 bool getContainingFunction(Offset offset,
-                           Function *&ret);
+                           Function*& ret);
 \end{apient}
 \apidesc{
 This method returns the function, if any, that contains the provided \code{offset}.
@@ -236,7 +236,7 @@ The error value is set to \code{No\_Such\_Variable}.
 
 \begin{apient}
 bool findVariablesByName(std::vector<Variable *> &ret,
-                         const std::string &name,
+                         const std::string& name,
                          NameType nameType = anyName,
                          bool isRegex = false,
                          bool checkCase = true);
@@ -257,7 +257,7 @@ and \code{false} if there are no modules. The error value is set to \code{No\_Su
 
 \begin{apient}
 bool findSymbol(std::vector <Symbol *> &ret,
-                const std::string &name,
+                const std::string& name,
                 Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
                 NameType nameType = anyName,
                 bool isRegex = false,
@@ -342,7 +342,7 @@ This method finds all the new regions added to the object file. Returns \code{tr
 }
 
 \begin{apient}
-bool findRegion(Region *&reg,
+bool findRegion(Region*& reg,
                 std::string sname);
 \end{apient}
 \apidesc{
@@ -350,7 +350,7 @@ Find a region (ELF section) wih name \code{sname} in the binary. Returns \code{t
 }
 
 \begin{apient}
-bool findRegion(Region *&reg,
+bool findRegion(Region*& reg,
                 const Offset addr,
                 const unsigned long size);
 \end{apient}
@@ -359,7 +359,7 @@ Find a region (ELF section) with a memory offset of \code{addr} and memory size 
 }
 
 \begin{apient}
-bool findRegionByEntry(Region *&reg,
+bool findRegionByEntry(Region*& reg,
                        const Offset soff);
 \end{apient}
 \apidesc{
@@ -367,7 +367,7 @@ Find a region (ELF section) with a memory offset of \code{addr}.  Returns \code{
 }
 
 \begin{apient}
-Region *findEnclosingRegion(const Offset offset);
+Region* findEnclosingRegion(const Offset offset);
 \end{apient}
 \apidesc{
 Find the region (ELF section) whose virtual address range contains \code{offset}. Returns the region if found; otherwise returns \code{NULL}.
@@ -376,41 +376,41 @@ Find the region (ELF section) whose virtual address range contains \code{offset}
 \subsubsection{Insertion and modification}
 
 \begin{apient}
-bool emit(const std::string &file, unsigned flag = 0);
+bool emit(const std::string& file, unsigned flag = 0);
 \end{apient}
 \apidesc{
 	Creates a new file using the specified name that contains all changes made by the user.
 }
 
 \begin{apient}
-bool addLibraryPrereq(const std::string &lib);
+bool addLibraryPrereq(const std::string& lib);
 \end{apient}
 \apidesc{
 Add a library dependence to the file such that when the file is loaded, the library will be loaded as well. Cannot be used for static binaries.
 }
 
 \begin{apient}
-Function *createFunction(const std::string &name,
+Function* createFunction(const std::string& name,
                          Offset offset,
                          size_t size,
-                         Module *mod = NULL);
+                         Module* mod = NULL);
 \end{apient}
 \apidesc{
 This method creates a \code{Function} and updates all necessary data structures (including creating Symbols, if necessary). The function has the provided mangled name, offset, and size, and is added to the Module \code{mod}. Symbols representing the function are added to the static and dynamic symbol tables. Returns the pointer to the new \code{Function} on success or \code{NULL} on failure.
 }
 
 \begin{apient}
-Variable *createVariable(const std::string &name,
+Variable* createVariable(const std::string& name,
                          Offset offset,
                          size_t size,
-                         Module *mod = NULL);
+                         Module* mod = NULL);
 \end{apient}
 \apidesc{
 This method creates a \code{Variable} and updates all necessary data structures (including creating Symbols, if necessary). The variable has the provided mangled name, offset, and size, and is added to the Module \code{mod}. Symbols representing the variable are added to the static and dynamic symbol tables. Returns the pointer to the new \code{Variable} on success or \code{NULL} on failure.
 }
 
 \begin{apient}
-bool addSymbol(Symbol *newsym);
+bool addSymbol(Symbol* newsym);
 \end{apient}
 \apidesc{
 This method adds a new symbol \code{newsym} to all of the internal data structures. The primary name of the \code{newsym} must be a mangled name. Returns \code{true} on success and \code{false} on failure. A new copy of \code{newsym} is not made. \code{newsym} must not be deallocated after adding it to symtabAPI.
@@ -418,29 +418,29 @@ We suggest using \code{createFunction} or \code{createVariable} when possible.
 }
 
 \begin{apient}
-bool addSymbol(Symbol *newsym,
-               Symbol *referringSymbol);
+bool addSymbol(Symbol* newsym,
+               Symbol* referringSymbol);
 \end{apient}
 \apidesc{
 This method adds a new dynamic symbol \code{newsym} which refers to \code{referringSymbol} to all of the internal data structures. \code{newsym} must represent a dynamic symbol. The primary name of the newsym must be a mangled name. All the required version names are allocated automatically. Also if the \code{referringSymbol} belongs to a shared library which is not currently a dependency, the shared library is added to the list of dependencies implicitly. Returns \code{true} on success and \code{false} on failure. A new copy of \code{newsym} is not made. \code{newsym} must not be deallocated after adding it to symtabAPI.
 }
 
 \begin{apient}
-bool deleteFunction(Function *func);
+bool deleteFunction(Function* func);
 \end{apient}
 \apidesc{
 This method deletes the \code{Function} \code{func} from all of symtab's data structures. It will not be available for further queries. Return \code{true} on success and \code{false} if \code{func} is not owned by the \code{Symtab}.
 }
 
 \begin{apient}
-bool deleteVariable(Variable *var);
+bool deleteVariable(Variable* var);
 \end{apient}
 \apidesc{
 This method deletes the variable \code{var} from all of symtab's data structures. It will not be available for further queries. Return \code{true} on success and \code{false} if \code{var} is not owned by the \code{Symtab}.
 }
 
 \begin{apient}
-bool deleteSymbol(Symbol *sym);
+bool deleteSymbol(Symbol* sym);
 \end{apient}
 \apidesc{
 This method deletes the symbol \code{sym} from all of symtab's data structures. It
@@ -449,9 +449,9 @@ func is not owned by the \code{Symtab}.}
 
 \begin{apient}
 bool addRegion(Offset vaddr,
-               void *data,
+               void* data,
                unsigned int dataSize,
-               const std::string &name,
+               const std::string& name,
                Region::RegionType rType_,
                bool loadable = false,
                unsigned long memAlign = sizeof(unsigned),
@@ -479,7 +479,7 @@ Returns \code{false} if there are no exception blocks else returns \code{true} w
 }
 
 \begin{apient}
-bool findException(ExceptionBlock &excp,
+bool findException(ExceptionBlock& excp,
                    Offset addr);
 \end{apient}
 \apidesc{
@@ -488,7 +488,7 @@ Returns \code{false} if there is no exception block at the given offset else ret
 }
 
 \begin{apient}
-bool findCatchBlock(ExceptionBlock &excp,
+bool findCatchBlock(ExceptionBlock& excp,
                     Offset addr,
                     unsigned size = 0);
 \end{apient}
@@ -524,7 +524,7 @@ Returns \code{true} if it succeeds or else returns \code{false}.
 
 \begin{apient}
 bool getAddressRanges(std::vector<AddressRange> &ranges,
-                      const std::string &lineSource,
+                      const std::string& lineSource,
                       unsigned int LineNo);
 \end{apient}
 \apidesc{
@@ -554,7 +554,7 @@ Forces SymtabAPI to perform type parsing instead of delaying it to when needed.
 }
 
 \begin{apient}
-bool findType(Type *&type,
+bool findType(Type*& type,
               std::string name);
 \end{apient}
 \apidesc{
@@ -563,7 +563,7 @@ Returns \code{true} if a type is found with type containing the handle to the ty
 }
 
 \begin{apient}
-bool addType(Type * type);
+bool addType(Type* type);
 \end{apient}
 \apidesc{
 Adds a new type \code{type} to symtabAPI. Return \code{true} on success.
@@ -585,7 +585,7 @@ Returns all the built-in types defined in the binary.
 
 \begin{apient}
 bool findLocalVariable(std::vector<localVar *> &vars,
-                       const std::string &name);
+                       const std::string& name);
 \end{apient}
 \apidesc{
 The method returns a list of local variables named name within the object file.
@@ -593,7 +593,7 @@ Returns \code{true} with \code{vars} containing a list of \code{localVar} object
 }
 
 \begin{apient}
-bool findVariableType(Type *&type,
+bool findVariableType(Type*& type,
                       std::string name);
 \end{apient}
 \apidesc{

@@ -87,8 +87,8 @@ DYNINST_EXPORT Symbol(const std::string& name,
                      SymbolLinkage linkage,
                      SymbolVisibility visibility,
                      Offset offset,
-                     Module *module = NULL,
-                     Region *region = NULL,
+                     Module* module = NULL,
+                     Region* region = NULL,
                      unsigned size = 0,
                      bool dynamic = false,
                      bool absolute = false,
@@ -116,7 +116,7 @@ Symbol creation interface:
 }
 
 \begin{apient}
-bool getVersionFileName(std::string &fileName) const;
+bool getVersionFileName(std::string& fileName) const;
 \end{apient}
 \apidesc{
 This method retrieves the file name in which this symbol is present. Returns \code{false} if this symbol does not have any version information present otherwise returns \code{true}.
@@ -138,13 +138,13 @@ bool setSize(unsigned size);
 bool setOffset(Offset newOffset);
 bool setMangledName(std::string name);
 bool setSymbolType(SymbolType sType);
-bool setModule(Module *module);
-bool setRegion(Region *region);
+bool setModule(Module* module);
+bool setRegion(Region* region);
 bool setDynamic(bool dyn);
 bool setAbsolute(bool absolute);
 bool setCommonStorage(bool common);
-bool setFunction(Function *func);
-bool setVariable(Variable *var);
+bool setFunction(Function* func);
+bool setVariable(Variable* var);
 bool setIndex(int index);
 bool setStrIndex(int index);
 bool setPtrOffset(Offset ptr);

@@ -36,7 +36,7 @@ typedef enum {
 \end{apient}
 
 \begin{apient}
-virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out) = 0;
+virtual gcframe_ret_t getCallerFrame(const Frame& in, Frame& out) = 0;
 \end{apient}
 \apidesc{
 This method walks through a single stack frame and generates a Frame object that
@@ -92,7 +92,7 @@ and the stack walk should be aborted.
 }
 
 \begin{apient}
-void registerStepperGroup(StepperGroup *steppergroup);
+void registerStepperGroup(StepperGroup* steppergroup);
 \end{apient}
 \apidesc{
 This method is used to notify a \code{FrameStepper} when StackwalkerAPI adds it to a
@@ -118,19 +118,19 @@ which they are used is undefined.
 }
 
 \begin{apient}
-FrameStepper(Walker *w);
+FrameStepper(Walker* w);
 \end{apient}
 \apidesc{Constructor definition for all \code{FrameStepper}
   instances.}
 
 \begin{apient}
-ProcessState *getProcessState();
+ProcessState* getProcessState();
 \end{apient}
 \apidesc{Return the \code{ProcessState} used by the
   \code{FrameStepper}. Can be overridden if the user desires.}
 
 \begin{apient}
-Walker *getWalker();
+Walker* getWalker();
 \end{apient}
 
 \apidesc{Return the \code{Walker} associated with the
@@ -140,7 +140,7 @@ Walker *getWalker();
 typedef std::pair<std::string, Address> LibAddrPair;
 typedef enum { library_load, library_unload } lib_change_t;
 
-void newLibraryNotification(LibAddrPair *libAddr,
+void newLibraryNotification(LibAddrPair* libAddr,
                                     lib_change_t change);
 \end{apient}
 
@@ -149,7 +149,7 @@ process; it should be implemented if the \code{FrameStepper} requires
 such information.}
 
 \begin{apient}
-virtual const char *getName() const = 0;
+virtual const char* getName() const = 0;
 \end{apient}
 
 \apidesc{Returns a name for the \code{FrameStepper}; must be

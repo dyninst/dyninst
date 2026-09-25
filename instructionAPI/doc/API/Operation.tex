@@ -49,7 +49,7 @@ Operation + ExpressionPtrs -> Instruction + Operands
 
 
 \begin{apient}
-const Operation::registerSet & implicitReads();
+const Operation::registerSet& implicitReads();
 \end{apient}
 \apidesc{
 Returns the set of registers implicitly read (i.e. those not included in the
@@ -58,7 +58,7 @@ anyway).
 }
 
 \begin{apient}
-const Operation::registerSet & implicitWrites();
+const Operation::registerSet& implicitWrites();
 \end{apient}
 \apidesc{
 Returns the set of registers implicitly written (i.e. those not included in the
@@ -108,14 +108,14 @@ bool isWritten(Expression::Ptr candidate);
 }
 
 \begin{apient}
-const Operation::VCSet & getImplicitMemReads();
+const Operation::VCSet& getImplicitMemReads();
 \end{apient}
 \apidesc{
 Returns the set of memory locations implicitly read.
 }
 
 \begin{apient}
-const Operation::VCSet & getImplicitMemWrites();
+const Operation::VCSet& getImplicitMemWrites();
 \end{apient}
 \apidesc{
 Returns the set of memory locations implicitly write.

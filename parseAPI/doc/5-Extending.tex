@@ -96,32 +96,32 @@ std::vector<Hint> _hints;
 Users who which to incorporate the ParseAPI into large projects may need to store additional information about CFG objects like Functions, Blocks, and Edges. The simplest way to associate the ParseAPI-level CFG representation with higher-level implementation is to extend the CFG classes provided as part of the ParseAPI. Because the parser itself does not know how to construct such extended types, implementors must provide an implementation of the CFGFactory that is specialized for their CFG classes. The CFGFactory exports the following simple interface:
 
 \begin{apient}
-Function * mkfunc(Address addr,
+Function* mkfunc(Address addr,
                           FuncSource src,
                           std::string name,
-                          CodeObject * obj,
-                          CodeRegion * region,
-                          Dyninst::InstructionSource * isrc);
+                          CodeObject* obj,
+                          CodeRegion* region,
+                          Dyninst::InstructionSource* isrc);
 \end{apient}
 \apidesc{Returns an object derived from Function as though the provided parameters had been passed to the Function constructor. The ParseAPI parser will never invoke \code{mkfunc()} twice with identical \code{addr}, and \code{region} parameters---that is, Functions are guaranteed to be unique by address within a region.}
 
 \begin{apient}
-Block * mkblock(Function * func,
-                        CodeRegion * region,
+Block* mkblock(Function* func,
+                        CodeRegion* region,
                         Address addr);
 \end{apient}
 \apidesc{Returns an object derived from Block as though the provided parameters had been passed to the Block constructor. The parser will never invoke \code{mkblock()} with identical \code{addr} and \code{region} parameters.}
 
 \begin{apient}
-Edge * mkedge(Block * src,
-                      Block * trg,
+Edge* mkedge(Block* src,
+                      Block* trg,
                       EdgeTypeEnum type);
 \end{apient}
 \apidesc{Returns an object derived from Edge as though the provided parameters had been passed to the Edge constructor. The parser \emph{may} invoke \code{mkedge()} multiple times with identical parameters.}
 
 \begin{apient}
-Block * mksink(CodeObject *obj,
-                       CodeRegion *r);
+Block* mksink(CodeObject* obj,
+                       CodeRegion* r);
 \end{apient}
 \apidesc{Returns a ``sink'' block derived from Block to which all unresolvable control flow instructions will be linked. Implementors may return a unique sink block per CodeObject or a single global sink.}
 
@@ -141,8 +141,8 @@ release; the default routines simply remove the objects from the allocation
 list and invoke their destructors.
 
 \begin{apient}
-void free_func(Function * f);
-void free_block(Block * b);
-void free_edge(Edge * e);
+void free_func(Function* f);
+void free_block(Block* b);
+void free_edge(Edge* e);
 \end{apient}
 \apidesc{CFG objects should be freed using these functions, rather than delete, to avoid leaking memory.}

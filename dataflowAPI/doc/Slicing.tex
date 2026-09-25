@@ -19,8 +19,8 @@ to provide customized stopping criteria for the slicer.
 
 \begin{apient}
 Slicer(AssignmentPtr a,
-       ParseAPI::Block *block,
-       ParseAPI::Function *func,
+       ParseAPI::Block* block,
+       ParseAPI::Function* func,
        bool cache = true,
        bool stackAnalysis = true);
 \end{apient}
@@ -32,8 +32,8 @@ cache the results of conversions from instructions to assignments.
 distinguish stack variables.}
 
 \begin{apient}
-GraphPtr forwardSlice(Predicates &predicates);
-GraphPtr backwardSlice(Predicates &predicates);
+GraphPtr forwardSlice(Predicates& predicates);
+GraphPtr backwardSlice(Predicates& predicates);
 \end{apient}
 \apidesc{Perform forward or backward slicing and use \code{predicates} to
 control the stopping criteria and return the slicing results as a graph}
@@ -50,8 +50,8 @@ class SliceNode : public Node
 typedef boost::shared_ptr<SliceNode> Ptr;
 
 static SliceNode::Ptr SliceNode::create(AssignmentPtr ptr,
-                                        ParseAPI::Block *block,
-                                        ParseAPI::Function *func);
+                                        ParseAPI::Block* block,
+                                        ParseAPI::Function* func);
 \end{apient}
 \apidesc{Create a slice node, which represents assignment \code{ptr} in basic
 block \code{block} and function \code{func}.}
@@ -82,13 +82,13 @@ typedef boost::shared_ptr<SliceEdge> Ptr;
 
 static SliceEdge::Ptr create(SliceNode::Ptr source,
                              SliceNode::Ptr target,
-                             AbsRegion const&data);
+                             AbsRegion const& data);
 \end{apient}
 \apidesc{Create a slice edge from \code{source} to \code{target} and the edge
 presents a dependency about abstract region \code{data}.}
 
 \begin{apient}
-const AbsRegion &data() const;
+const AbsRegion& data() const;
 \end{apient}
 \apidesc{Get the data annotated on this edge.}
 
@@ -142,8 +142,8 @@ not want to continue searching for this assignment. Otherwise, it should return
 typedef std::pair<ParseAPI::Function *, int> StackDepth_t;
 typedef std::stack<StackDepth_t> CallStack_t;
 
-bool followCall(ParseAPI::Function * callee,
-                        CallStack_t & cs,
+bool followCall(ParseAPI::Function* callee,
+                        CallStack_t& cs,
                         AbsRegion argument);
 \end{apient}
 \apidesc{This predicate function is called when the slicer reaches a direct call site.
@@ -166,8 +166,8 @@ calls, the slicer will NOT call this function at an indirect call site. }
 
 \begin{apient}
 std::vector<ParseAPI::Function *>
-          followCallBackward(ParseAPI::Block * caller,
-                             CallStack_t & cs,
+          followCallBackward(ParseAPI::Block* caller,
+                             CallStack_t& cs,
                              AbsRegion argument);
 \end{apient}
 \apidesc{This predicate function is called when the slicer reaches the entry of

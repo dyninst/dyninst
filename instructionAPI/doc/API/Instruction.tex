@@ -63,7 +63,7 @@ enum InsnCategory {
 \begin{apient}
 Instruction(Operation::Ptr what,
              size_t size,
-             const unsigned char * raw,
+             const unsigned char* raw,
              Dyninst::Architecture arch);
 \end{apient}
 \apidesc{ \code{what} is the opcode of the instruction, \code{size}
@@ -85,7 +85,7 @@ Instruction(Operation::Ptr what,
 }
 
 \begin{apient}
-const Operation & getOperation() const;
+const Operation& getOperation() const;
 \end{apient}
 \apidesc{
     Returns the \code{Operation} used by the \code{Instruction}. See
@@ -93,7 +93,7 @@ const Operation & getOperation() const;
 }
 
 \begin{apient}
-std::vector<Operand> const &getAllOperands() const;
+std::vector<Operand> const& getAllOperands() const;
 \end{apient}
 \apidesc{
 Returns the operands in the order that they were decoded.
@@ -166,7 +166,7 @@ Returns the size of the corresponding machine instruction, in bytes.
 }
 
 \begin{apient}
-const void * ptr() const;
+const void* ptr() const;
 \end{apient}
 \apidesc{
 Returns a pointer to the raw byte representation of the corresponding machine
