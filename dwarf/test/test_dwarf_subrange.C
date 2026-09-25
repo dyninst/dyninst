@@ -36,9 +36,16 @@
 //
 // FIXTURE_OBJECT_PATH (see test/CMakeLists.txt) points at an object file
 // assembled from fixtures/subrange_bounds.s, which contains a hand-crafted
-// DWARF4 compile unit with two DW_TAG_subrange_type children:
-//   - one with DW_AT_upper_bound as DW_FORM_exprloc (the dynamic-bound case)
-//   - one with DW_AT_upper_bound as DW_FORM_udata == 9 (the ordinary case)
+// DWARF4 compile unit with these DW_TAG_subrange_type children, in order:
+//   1. DW_AT_upper_bound as DW_FORM_exprloc (the dynamic-bound case)
+//   2. DW_AT_upper_bound as DW_FORM_udata == 9 (the ordinary case)
+//   3. DW_AT_count == 5, no DW_AT_upper_bound/DW_AT_lower_bound (the
+//      count-arithmetic fallback)
+//   4. DW_AT_type -> a DW_TAG_base_type with DW_AT_encoding == DW_ATE_signed,
+//      and DW_AT_upper_bound as DW_FORM_sdata == -1 (the signed decode path)
+// A DW_TAG_base_type sibling sits between (3) and (4); it exists only as the
+// DW_AT_type reference target for (4) and is skipped over via
+// dwarf_siblingof().
 
 #include "dwarf_subrange.h"
 
@@ -95,6 +102,24 @@ protected:
     return sibling;
   }
 
+  // Third child: subrange_type with DW_AT_count == 5 and no explicit bounds.
+  Dwarf_Die thirdSubrangeChild() {
+    Dwarf_Die child = secondSubrangeChild();
+    Dwarf_Die sibling;
+    EXPECT_EQ(dwarf_siblingof(&child, &sibling), 0);
+    return sibling;
+  }
+
+  // Fifth child: subrange_type with a signed (DW_FORM_sdata) upper bound.
+  // The fourth child is the DW_TAG_base_type reference target, skipped here.
+  Dwarf_Die fifthSubrangeChild() {
+    Dwarf_Die child = thirdSubrangeChild();
+    Dwarf_Die sibling;
+    EXPECT_EQ(dwarf_siblingof(&child, &sibling), 0); // 3rd -> 4th (base_type)
+    EXPECT_EQ(dwarf_siblingof(&sibling, &sibling), 0); // 4th -> 5th
+    return sibling;
+  }
+
   int fd = -1;
   Dwarf *dbg = nullptr;
   Dwarf_Die cu_die{};
@@ -125,6 +150,32 @@ TEST_F(SubrangeBoundsFixture, UdataUpperBoundStillDecodesNormally) {
   ASSERT_TRUE(static_cast<bool>(bounds.upper));
   ASSERT_TRUE(bounds.upper.value.has_value());
   EXPECT_EQ(bounds.upper.value.get(), 9u);
+}
+
+TEST_F(SubrangeBoundsFixture, CountAttributeComputesUpperBound) {
+  Dwarf_Die subrange = thirdSubrangeChild();
+
+  dwarf_bounds bounds = dwarf_subrange_bounds(&subrange);
+
+  // No DW_AT_upper_bound/DW_AT_lower_bound is present, only DW_AT_count == 5.
+  // With the implicit lower bound of 0, upper == lower + count - 1 == 4.
+  ASSERT_TRUE(static_cast<bool>(bounds.upper));
+  ASSERT_TRUE(bounds.upper.value.has_value());
+  EXPECT_EQ(bounds.upper.value.get(), 4u);
+}
+
+TEST_F(SubrangeBoundsFixture, SignedUpperBoundDecodesNegativeValue) {
+  Dwarf_Die subrange = fifthSubrangeChild();
+
+  dwarf_bounds bounds = dwarf_subrange_bounds(&subrange);
+
+  // DW_AT_type refers to a DW_TAG_base_type with DW_AT_encoding ==
+  // DW_ATE_signed, and DW_AT_upper_bound is DW_FORM_sdata == -1. This
+  // exercises is_signed() and the dwarf_formsdata() decode branch instead of
+  // the unsigned dwarf_formudata() path used by the other tests.
+  ASSERT_TRUE(static_cast<bool>(bounds.upper));
+  ASSERT_TRUE(bounds.upper.value.has_value());
+  EXPECT_EQ(static_cast<Dwarf_Sword>(bounds.upper.value.get()), -1);
 }
 
 } // namespace
