@@ -18,6 +18,11 @@ using namespace ParseAPI;
 
 int main(int argc, char* argv[])
 {
+  if (argc != 2)  {
+    fprintf(stderr, "Usage: %s <binary path>\n", argv[0]);
+    return -1;
+  }
+
   map<Address, bool> seen;
   vector<Function*> funcs;
   SymtabCodeSource* sts;

@@ -30,7 +30,7 @@ int main(int argc, char** argv)
 
   SymtabCodeSource* sts;
   CodeObject* co;
-  Instruction::Ptr instr;
+  Instruction instr;
   SymtabAPI::Symtab* symTab;
   std::string binaryPathStr(binaryPath);
   bool isParsable = SymtabAPI::Symtab::openFile(symTab, binaryPathStr);
@@ -52,11 +52,11 @@ int main(int argc, char** argv)
     return -1;
   }
   auto fit = all.begin();
-  Function* f = *fit;
+  Function* firstFunc = *fit;
   // create an Instruction decoder which will convert the binary opcodes to strings
-  InstructionDecoder decoder(f->isrc()->getPtrToInstruction(f->addr()),
+  InstructionDecoder decoder(firstFunc->isrc()->getPtrToInstruction(firstFunc->addr()),
                              InstructionDecoder::maxInstructionLength,
-                             f->region()->getArch());
+                             firstFunc->region()->getArch());
   for (; fit != all.end(); ++fit)  {
     Function* f = *fit;
     // get address of entry point for current function
@@ -75,11 +75,12 @@ int main(int argc, char** argv)
       // decode current instruction
       instr = decoder.decode((unsigned char*)f->isrc()->getPtrToInstruction(crtAddr));
       cout << "\n" << hex << crtAddr;
-      cout << ": \"" << instr->format() << "\"";
+      cout << ": \"" << instr.format() << "\"";
       // go to the address of the next instruction
-      crtAddr += instr->size();
+      crtAddr += instr.size();
       instr_count++;
     }
+    cout << "\nInstruction count: " << dec << instr_count << "\n";
   }
   return 0;
 }

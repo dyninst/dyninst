@@ -31,6 +31,11 @@ public:
     foundReg = true;
   }
 
+  virtual void visit(MultiRegisterAST*)
+  {
+    isNop = false;
+  }
+
   virtual void visit(Dereference*)
   {
     isNop = false;

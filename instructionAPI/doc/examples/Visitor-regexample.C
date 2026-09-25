@@ -13,16 +13,17 @@ class PrintVisitor : public Visitor {
 public:
   PrintVisitor() {}
   ~PrintVisitor() {}
-  virtual void visit(BinaryFunction* b) {}
-  virtual void visit(Immediate* i) {}
+  virtual void visit(BinaryFunction*) {}
+  virtual void visit(Immediate*) {}
   virtual void visit(RegisterAST* r)
   {
     cout << "\tVisiting register " << r->getID().name() << endl;
   }
-  virtual void visit(Dereference* d) {}
+  virtual void visit(MultiRegisterAST*) {}
+  virtual void visit(Dereference*) {}
 };
 
-void printRegisters(Instruction::Ptr insn)
+void printRegisters(const Instruction& insn)
 {
   PrintVisitor pv;
   auto operands = insn.getAllOperands();
