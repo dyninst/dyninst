@@ -76,7 +76,7 @@ SymtabAPI gives the ability to query type information present in the object file
 using namespace Dyninst;
 using namespace SymtabAPI;
 
-// Find a handle to the integer type; obj represents a handle to a parsed object file
+// Find a handle to the integer type; obj is a handle to a parsed object file
 Type* lookupType;
 obj->findType(lookupType, "int");
 

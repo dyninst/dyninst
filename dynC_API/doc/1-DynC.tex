@@ -169,7 +169,9 @@ entryString << ",dyninst`function_name, intCounter);";
 
 // call to DynC API
 BPatch_snippet* entrySnippet =
-      dynC_API::createSnippet(entryString.str().c_str(), entryPoint, "entrySnippet");
+      dynC_API::createSnippet(entryString.str().c_str(),
+                              entryPoint,
+                              "entrySnippet");
 
 // build exitString
 std::stringstream exitString;
@@ -181,8 +183,10 @@ BPatch_snippet* exitSnippet =
 /*** Finish Snippet ***/
 
 // find all entry and exit points
-std::vector<BPatch_point*>* entry_points = (*functions)[0]->findPoint(BPatch_entry);
-std::vector<BPatch_point*>* exit_points = (*functions)[0]->findPoint(BPatch_exit);
+std::vector<BPatch_point*>* entry_points
+      = (*functions)[0]->findPoint(BPatch_entry);
+std::vector<BPatch_point*>* exit_points
+      = (*functions)[0]->findPoint(BPatch_exit);
 
 for (unsigned int i = 1; i < functions->size(); i++){
   entry_points->push_back((*(*functions)[i]->findPoint(BPatch_entry))[0]);

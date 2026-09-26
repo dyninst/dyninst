@@ -115,7 +115,8 @@ int main()
   accessType_t mode = create;
 
   // Create/attach/open a binary
-  BPatch_addressSpace* app = startInstrumenting(mode, progName, progPID, progArgv);
+  BPatch_addressSpace* app = startInstrumenting(mode, progName, progPID,
+                                                progArgv);
   if (!app)  {
     fprintf(stderr, "startInstrumenting failed\n");
     exit(1);

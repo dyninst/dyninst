@@ -29,5 +29,6 @@ void LivenessAnalysis(Function* f, Block* b)
     printf("Cannot look up live registers at block exit\n");
   }
 
-  printf("rbx is live or not at the block exit: %d\n", liveExit.test(la.getIndex(x86_64::rbx)));
+  printf("rbx is live or not at the block exit: %d\n",
+         liveExit.test(la.getIndex(x86_64::rbx)));
 }

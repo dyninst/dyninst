@@ -49,7 +49,8 @@ Address ExpandSlice(GraphPtr slice, Assignment::Ptr pcAssign)
   // We get AST representing the jump target
   AST::Ptr pcExp = symRet[pcAssign];
 
-  // We analyze the AST to see if it can actually be resolved by constant propagation
+  // We analyze the AST to see if it can actually be resolved by
+  // constant propagation
   ConstVisitor cv;
   pcExp->accept(&cv);
   if (cv.resolved) return cv.target;

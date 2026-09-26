@@ -53,16 +53,19 @@ int main(int argc, char** argv)
   }
   auto fit = all.begin();
   Function* firstFunc = *fit;
-  // create an Instruction decoder which will convert the binary opcodes to strings
-  InstructionDecoder decoder(firstFunc->isrc()->getPtrToInstruction(firstFunc->addr()),
-                             InstructionDecoder::maxInstructionLength,
-                             firstFunc->region()->getArch());
+  // create an Instruction decoder which will convert the binary opcodes to
+  // strings
+  InstructionDecoder decoder(
+        firstFunc->isrc()->getPtrToInstruction(firstFunc->addr()),
+        InstructionDecoder::maxInstructionLength,
+        firstFunc->region()->getArch());
   for (; fit != all.end(); ++fit)  {
     Function* f = *fit;
     // get address of entry point for current function
     Address crtAddr = f->addr();
     int instr_count = 0;
-    instr = decoder.decode((unsigned char*)f->isrc()->getPtrToInstruction(crtAddr));
+    auto funcAddr{(unsigned char*)f->isrc()->getPtrToInstruction(crtAddr)};
+    instr = decoder.decode(funcAddr);
     auto fbl = f->blocks().end();
     fbl--;
     Block* b = *fbl;
@@ -73,7 +76,8 @@ int main(int argc, char** argv)
     cout << "\n\n\"" << f->name() << "\" :";
     while (crtAddr < lastAddr)  {
       // decode current instruction
-      instr = decoder.decode((unsigned char*)f->isrc()->getPtrToInstruction(crtAddr));
+      auto curAddr{(unsigned char*)f->isrc()->getPtrToInstruction(crtAddr)};
+      instr = decoder.decode(curAddr);
       cout << "\n" << hex << crtAddr;
       cout << ": \"" << instr.format() << "\"";
       // go to the address of the next instruction

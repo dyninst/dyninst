@@ -34,8 +34,8 @@ void AnalyzeJumpTarget(Function* f, Block* b)
   Instruction insn = b->getInsn(b->last());
 
   // Convert the instruction to assignments
-  // The first parameter means to cache the conversion results.
-  // The second parameter means whether to use stack analysis to anlyze stack accesses.
+  // The first parameter means to cache the conversion results.  The second
+  // parameter means whether to use stack analysis to anlyze stack accesses.
   AssignmentConverter ac(true, false);
   vector<Assignment::Ptr> assignments;
   ac.convert(insn, b->last(), f, b, assignments);
