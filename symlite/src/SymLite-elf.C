@@ -246,6 +246,37 @@ Symbol_t SymElf::getContainingSymbol(Dyninst::Offset offset)
 #endif
 }
 
+std::string SymElf::getSOName()
+{
+   if (!elf)
+      return std::string();
+
+   for (unsigned i = 0; i < elf->e_shnum(); i++) {
+      Elf_X_Shdr &shdr = elf->get_shdr(i);
+      if (!shdr.isValid() || shdr.sh_type() != SHT_DYNAMIC)
+         continue;
+
+      Elf_X_Dyn dyns = shdr.get_data().get_dyn();
+      if (!dyns.isValid())
+         continue;
+
+      // sh_link of a SHT_DYNAMIC section names the string table its entries index into
+      Elf_X_Shdr &strshdr = elf->get_shdr(shdr.sh_link());
+      if (!strshdr.isValid())
+         continue;
+      const char *strs = strshdr.get_data().get_string();
+      if (!strs)
+         continue;
+
+      for (unsigned j = 0; j < dyns.count(); j++) {
+         if (dyns.d_tag(j) == DT_SONAME)
+            return std::string(&strs[dyns.d_ptr(j)]);
+      }
+   }
+
+   return std::string();
+}
+
 std::string SymElf::getInterpreterName()
 {
    for (unsigned i=0; i < elf->e_phnum(); i++)

@@ -44,8 +44,7 @@
 #include "common/h/SymReader.h"
 #include "int_event.h"
 #include "Mailbox.h"
-
-#include "boost/filesystem.hpp"
+#include "common/src/dyninst_filesystem.h"
 
 using namespace std;
 
@@ -946,10 +945,52 @@ td_thragent_t *thread_db_process::getThreadDBAgent() {
     return threadAgent;
 }
 
-static string stripLibraryName(const char *libname)
+/*
+ * The canonical path of a loaded object, or the link-map name if it cannot be resolved.
+ *
+ * The symbol reader factory caches by path and AddressTranslate canonicalises before
+ * opening, so a raw link-map name misses that cache and parses the file again -- the two
+ * spellings differ wherever a library directory is a symlink.
+ * Dyninst::filesystem::canonicalize() yields an empty string on failure, which is not
+ * openable.
+ */
+static std::string canonicalPath(const std::string &name)
 {
-   boost::filesystem::path p(libname);
-   return p.filename().string();
+   std::string canonical = Dyninst::filesystem::canonicalize(name);
+   return canonical.empty() ? name : canonical;
+}
+
+/*
+ * The DT_SONAME a loaded object declares, or an empty string if it declares none.
+ * Memoised per link-map name: reading it parses the file.
+ */
+const std::string &thread_db_process::getLibSOName(int_library *lib)
+{
+   const std::string &name = lib->getName();
+
+   auto cached = soname_cache.find(name);
+   if (cached != soname_cache.end())
+      return cached->second;
+
+   std::string soname;
+   SymReader *reader = getSymReader()->openSymbolReader(canonicalPath(name));
+   if (reader) {
+      soname = reader->getSOName();
+      /*
+       * Do NOT close this reader.  DwarfFrameParser keeps a process-global cache
+       * (dwarf/src/dwarfFrameParser.C) keyed on an object's raw Dwarf and Elf handles,
+       * holds them without owning them, and never evicts.  Releasing the last reference to
+       * a library destroys its Symtab and ends those handles while that cache still points
+       * at them.
+       * The link-map walk in common/src/addrtranslate-sysv.C and the openSymbolReader()
+       * below both leave their readers open for the same reason.
+       */
+   } else {
+      pthrd_printf("Failed to open symbol reader for %s while reading its SONAME\n",
+                   name.c_str());
+   }
+
+   return soname_cache.insert(std::make_pair(name, soname)).first->second;
 }
 
 ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symName,
@@ -968,13 +1009,39 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
     {
        // FreeBSD implementation doesn't set objName
        const char *name_c = objName ? objName : getThreadLibName(symName);
-       std::string name = stripLibraryName(name_c);
+       std::string name = Dyninst::filesystem::extract_filename(name_c);
 
-       for (set<int_library *>::iterator i = memory()->libs.begin(); i != memory()->libs.end(); i++) {
-          int_library *l = *i;
-          if (stripLibraryName(l->getName().c_str()) ==  name) {
-             lib = l;
+       /*
+        * libthread_db asks for objects by SONAME (LIBPTHREAD_SO is "libpthread.so.0"),
+        * whereas the names we hold come from the link map, i.e. the path the loader
+        * actually opened.  Usually the loader reached the file through its SONAME-named
+        * symlink and the two agree, so compare the file name first: that costs nothing
+        * and answers the common case.
+        */
+       for (int_library *candidate : memory()->libs) {
+          if (Dyninst::filesystem::extract_filename(candidate->getName()) == name) {
+             lib = candidate;
              break;
+          }
+       }
+
+       /*
+        * They do not always agree.  glibc-hwcaps resolves libpthread.so.0 to a file
+        * named for the glibc version under a microarchitecture directory (on a RHEL8
+        * POWER9 box, /lib64/glibc-hwcaps/power9/libpthread-2.28.so), and an ld.so.cache
+        * or audit library can redirect a dependency just as well.  The SONAME is a
+        * property of the file rather than of the path, so fall back to the name the
+        * object actually declares.  Without this the agent is never created, no thread
+        * events are ever delivered, and the failure is silent.
+        */
+       if (!lib && !name.empty()) {
+          for (int_library *candidate : memory()->libs) {
+             if (getLibSOName(candidate) == name) {
+                pthrd_printf("Matched requested object %s to %s by SONAME\n",
+                             name.c_str(), candidate->getName().c_str());
+                lib = candidate;
+                break;
+             }
           }
        }
     }
@@ -984,7 +1051,7 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
        return PS_ERR;
     }
 
-    objSymReader = getSymReader()->openSymbolReader(lib->getName());
+    objSymReader = getSymReader()->openSymbolReader(canonicalPath(lib->getName()));
     if( NULL == objSymReader ) {
         perr_printf("Failed to open symbol reader for %s\n",
                     lib->getName().c_str());
