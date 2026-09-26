@@ -1,3 +1,4 @@
 # Builds parseAPI.pdf into this directory's counterpart in the build tree.
 # The work is in cmake/DyninstDocs.cmake.
 dyninst_add_manual(parseAPI)
+dyninst_validate_listings(parseAPI SOURCES code_sample.C example.C)

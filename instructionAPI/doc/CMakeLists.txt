@@ -8,3 +8,6 @@
 # let this allowance go.
 dyninst_add_manual(
   instructionAPI ALLOW_WARNINGS "multiple pdfs with page group included in a single page")
+dyninst_validate_listings(
+  instructionAPI SOURCES examples/Visitor-regexample.C
+                         examples/Visitor-noop-check.C)

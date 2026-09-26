@@ -194,3 +194,97 @@ function(dyninst_add_manual _module)
     MAX_OVERFULL_PT "${M_MAX_OVERFULL_PT}"
     INSTALL_DESTINATION "${DYNINST_DOCS_INSTALL_DIR}")
 endfunction()
+
+# ---------------------------------------------------------------------------
+# dyninst_validate_listings(<module> SOURCES <file>... [USES <target>...])
+#
+# Compiles the sources a manual typesets with \lstinputlisting, so an example
+# that stops matching the API it documents fails the manual's own build rather
+# than the reader's first attempt.  <module>.pdf gains the check as a
+# dependency; DYNINST_DOCS_VALIDATE_LISTINGS turns it off.
+#
+# USES names the library targets whose headers the examples include; it
+# defaults to <module>.  Their usage requirements are borrowed rather than
+# linked, because target_link_libraries would make the check depend on the
+# library being *built* and "make docs" would compile all of Dyninst to
+# typeset a manual.
+#
+# Borrowing keeps the distinction that matters.  A dependency found by
+# find_package is an imported target, and CMake puts an imported target's
+# headers behind -isystem; without that, Boost and oneTBB report warnings
+# against these files that Dyninst never sees compiling its own sources.  The
+# include directories have to be borrowed as $<TARGET_PROPERTY:...> rather
+# than read with get_target_property: they hold $<BUILD_INTERFACE:a;b;c>, and
+# any list operation splits that on its semicolons into fragments that are no
+# longer a generator expression.
+# ---------------------------------------------------------------------------
+function(_dyninst_listing_targets _roots _out_local _out_imported)
+  set(_seen "")
+  set(_queue ${_roots})
+  set(_local "")
+  set(_imp "")
+
+  while(_queue)
+    list(POP_FRONT _queue _t)
+    if(NOT TARGET ${_t} OR ${_t} IN_LIST _seen)
+      continue()
+    endif()
+    list(APPEND _seen ${_t})
+
+    get_target_property(_is_imported ${_t} IMPORTED)
+    if(_is_imported)
+      list(APPEND _imp ${_t})
+    else()
+      list(APPEND _local ${_t})
+    endif()
+
+    # Anything that is not a plain target name here -- a $<LINK_ONLY:...>
+    # wrapper, a bare library path -- carries no usage requirements to
+    # borrow, and the TARGET test above drops it.
+    get_target_property(_l ${_t} INTERFACE_LINK_LIBRARIES)
+    if(_l)
+      list(APPEND _queue ${_l})
+    endif()
+  endwhile()
+
+  set(${_out_local} "${_local}" PARENT_SCOPE)
+  set(${_out_imported} "${_imp}" PARENT_SCOPE)
+endfunction()
+
+function(dyninst_validate_listings _module)
+  cmake_parse_arguments(V "" "" "SOURCES;USES" ${ARGN})
+  if(NOT V_SOURCES)
+    message(FATAL_ERROR "dyninst_validate_listings: SOURCES is required")
+  endif()
+  if(NOT DYNINST_DOCS_VALIDATE_LISTINGS)
+    return()
+  endif()
+  if(NOT V_USES)
+    set(V_USES ${_module})
+  endif()
+
+  _dyninst_listing_targets("${V_USES}" _local _imported)
+
+  set(_check ${_module}-doc-listings)
+  add_library(${_check} OBJECT EXCLUDE_FROM_ALL ${V_SOURCES})
+  set_target_properties(${_check} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  target_compile_options(${_check} PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+
+  foreach(_t ${_local})
+    target_include_directories(
+      ${_check} PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_INCLUDE_DIRECTORIES>)
+    target_compile_definitions(
+      ${_check} PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_COMPILE_DEFINITIONS>)
+  endforeach()
+
+  foreach(_t ${_imported})
+    target_include_directories(
+      ${_check} SYSTEM PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_INCLUDE_DIRECTORIES>)
+    target_compile_definitions(
+      ${_check} PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_COMPILE_DEFINITIONS>)
+  endforeach()
+
+  if(TARGET ${_module}.pdf)
+    add_dependencies(${_module}.pdf ${_check})
+  endif()
+endfunction()
