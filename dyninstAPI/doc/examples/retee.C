@@ -107,24 +107,24 @@ BPatch_variableExpr* writeFileDescIntoMutatee(BPatch_process* app,
                                               int fileDescriptor)
 {
   // (1) Allocate a variable in the mutatee of size (and type) int
-  BPatch_variableExpr* fdVar = app->malloc(*appImage->findType("int"));
-  if (fdVar == NULL)
+  BPatch_variableExpr* mutateeFd = app->malloc(*appImage->findType("int"));
+  if (mutateeFd == NULL)
     return NULL;
 
   // (2) Write the value into the variable
   // Like memcpy, writeValue takes a pointer
   // The third parameter is for functionality called "saveTheWorld",
   // which we don't worry about here (and so is false)
-  bool ret = fdVar->writeValue((void *)&fileDescriptor, sizeof(int), false);
+  bool ret = mutateeFd->writeValue((void *)&fileDescriptor, sizeof(int), false);
   if (ret == false)
     return NULL;
-  return fdVar;
+  return mutateeFd;
 }
 // We now have an open file descriptor in the mutatee. We want to
 // instrument write to intercept and copy the output. That happens
 // here.
 bool interceptAndCloneWrite(BPatch_process* app, BPatch_image* appImage,
-                            BPatch_variableExpr* fdVar)
+                            BPatch_variableExpr* mutateeFd)
 {
   // (1) Locate the write call
   std::vector<BPatch_function*> writeFuncs;
@@ -135,13 +135,13 @@ bool interceptAndCloneWrite(BPatch_process* app, BPatch_image* appImage,
   }
 
   // (2) Build the call to (our) write. Arguments are:
-  // ours: fdVar (file descriptor)
+  // ours: mutateeFd (file descriptor)
   // parameter: buffer
   // parameter: buffer size
   // Declare a vector to hold these.
   std::vector<BPatch_snippet*> writeArgs;
   // The file descriptor
-  writeArgs.push_back(fdVar);
+  writeArgs.push_back(mutateeFd);
 
   // Well, we need the buffer... but that's a parameter to the
   // function we're implementing. That's not a problem - we can grab

@@ -6,6 +6,9 @@ using namespace DataflowAPI;
 // We extend the default ASTVisitor to check whether the AST is a constant
 class ConstVisitor: public ASTVisitor {
 public:
+  // the three overloads left alone keep the base class's behaviour
+  using ASTVisitor::visit;
+
   bool resolved;
   Address target;
   ConstVisitor() : resolved(true), target(0){}
@@ -15,7 +18,7 @@ public:
   {
     target = ast->val().val;
     return AST::Ptr();
-  };
+  }
 
   // If the AST contains a variable
   // or an operation, then the control flow target cannot
@@ -24,7 +27,7 @@ public:
   {
     resolved = false;
     return AST::Ptr();
-  };
+  }
   virtual AST::Ptr visit(DataflowAPI::RoseAST* ast)
   {
     resolved = false;
@@ -35,7 +38,7 @@ public:
       ast->child(i)->accept(this);
     }
     return AST::Ptr();
-  };
+  }
 };
 
 Address ExpandSlice(GraphPtr slice, Assignment::Ptr pcAssign)
