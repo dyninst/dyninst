@@ -267,12 +267,12 @@ BPatch_function* fastMalloc = appImage->findFunction(...);
 Symtab* symtab = SymtabAPI::convert(fastMalloc->getModule());
 std::vector<Symbol*> syms;
 symtab->findSymbol(syms, "origMalloc",
-  Symbol::ST_UNKNOWN, // Don't specify type
-  mangledName,        // Look for raw symbol name
-  false,              // Not regular expression
-  false,              // Don't check case
-  true                // Include undefined symbols
-);
+                   Symbol::ST_UNKNOWN, // Don't specify type
+                   mangledName,        // Look for raw symbol name
+                   false,              // Not regular expression
+                   false,              // Don't check case
+                   true                // Include undefined symbols
+                   );
 app->wrapFunction(malloc, fastMalloc, syms[0]);
   \end{lstlisting}
 

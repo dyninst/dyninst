@@ -44,21 +44,21 @@ int main(int argc, char* argv[])
 
     // Make a cluster for nodes of this function
     cout << "\t subgraph cluster_" << i
-         << " { \n\t\t label=\""
-         << f->name()
-         << "\"; \n\t\t color=blue;" << endl;
+          << " { \n\t\t label=\""
+          << f->name()
+          << "\"; \n\t\t color=blue;" << endl;
 
     cout << "\t\t\"" << hex << f->addr() << dec
-         << "\" [shape=box";
+          << "\" [shape=box";
     if (f->retstatus() == NORETURN)
       cout << ",color=red";
     cout << "]" << endl;
 
     // Label functions by name
     cout << "\t\t\"" << hex << f->addr() << dec
-         << "\" [label = \""
-         << f->name() << "\\n" << hex << f->addr() << dec
-         << "\"];" << endl;
+          << "\" [label = \""
+          << f->name() << "\\n" << hex << f->addr() << dec
+          << "\"];" << endl;
 
     stringstream edgeoutput;
 
@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
       seen[b->start()] = true;
 
       cout << "\t\t\"" << hex << b->start() << dec
-           << "\";" << endl;
+            << "\";" << endl;
 
       auto it = b->targets().begin();
       for (; it != b->targets().end(); ++it)  {

@@ -8,21 +8,21 @@ and then to insert, delete or update a piece of code at these points.
 \subsubsection{CFG Traversal}
 \begin{lstlisting}[caption=Example of CFG traversal]
 ParseAPI::CodeObject* co = ...
-PatchObject* obj = PatchObject::create(co, code_base);
+      PatchObject* obj = PatchObject::create(co, code_base);
 
 // Find all functions in the object
 std::vector<PatchFunction*> all;
 obj->funcs(back_inserter(all));
 
 for (std::vector<PatchFunction*>::iterator fi = all.begin();
-     fi != all.end(); fi++)  {
+      fi != all.end(); fi++)  {
   // Print out each function's name
   PatchFunction* func = *fi;
   std::cout << func->name() << std::endl;
 
   const PatchFunction::Blockset& blks = func->blocks();
   for (PatchFunction::BlockSet::iterator bi = blks.begin();
-       bi != blks.end(); bi++)  {
+        bi != blks.end(); bi++)  {
     // Print out each block's size
     PatchBlock* blk = *bi;
     std::cout << "\tBlock size:" << blk->size() << std::endl;
@@ -75,7 +75,7 @@ MySnippet::ptr snippet = MySnippet::create(new MySnippet);
 
 Patcher patcher(mgr);
 for (std::vector<Point*>::iterator iter = pts.begin();
-     iter != pts.end(); ++iter)  {
+      iter != pts.end(); ++iter)  {
   Point* pt = *iter;
   patcher.add(PushBackCommand::create(pt, snippet));
 }
@@ -98,11 +98,11 @@ invoked. That is, all snippet insertions would succeed or all would fail.
 class MyAddrSpace : public AddrSpace {
 public:
   ...
-  virtual Address malloc(PatchObject* obj, size_t size, Address near)
+        virtual Address malloc(PatchObject* obj, size_t size, Address near)
   {
     Address buffer = ...
-    // do memory allocation here
-    return buffer;
+          // do memory allocation here
+          return buffer;
   }
   virtual bool write(PatchObject* obj, Address to_addr, Address from_addr,
                      size_t size)
@@ -111,7 +111,7 @@ public:
     return true;
   }
   ...
-};
+        };
 \end{lstlisting}
 The above code is to implement the address space plugin, in which, a set of
 memory management methods should be specified, including malloc, free, realloc,
@@ -142,16 +142,16 @@ binary code.
 \begin{lstlisting}[caption=Example of customizing CFG parsing]
 class MyFunction : public PatchFunction {
   ...
-};
+        };
 class MyCFGMaker : public CFGMaker {
 public:
   ...
-  virtual PatchFunction* makeFunction(ParseAPI::Function* f, PatchObject* o)
+        virtual PatchFunction* makeFunction(ParseAPI::Function* f, PatchObject* o)
   {
     return new MyFunction(f, o);
   }
   ...
-};
+        };
 \end{lstlisting}
 Programmers can augment PatchAPI's CFG structures by annotating their own data.
 In this case, a factory class should be built by inheriting from the
@@ -164,7 +164,7 @@ class MyPoint : public Point {
 public:
   MyPoint(Point::Type t, PatchMgrPtr m, PatchFunction* f);
   ...
-};
+        };
 
 class MyPointMaker: public PointMaker {
 protected:
@@ -197,13 +197,13 @@ method \emph{run()}.
 \subsubsection{Plugin Registration}
 \begin{lstlisting}[caption=Example of registering plugins]
 MyCFGMakerPtr cm = ...
-PatchObject* obj = PatchObject::create(..., cm);
+      PatchObject* obj = PatchObject::create(..., cm);
 
 MyAddrSpacePtr as = ...
-as->loadObject(obj);
+      as->loadObject(obj);
 
 MyInstrumenter inst = ...
-PatchMgrPtr mgr = PatchMgr::create(as, ..., inst);
+      PatchMgrPtr mgr = PatchMgr::create(as, ..., inst);
 
 MySnippet::ptr snippet = MySnippet::create(new MySnippet);
 \end{lstlisting}

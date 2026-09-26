@@ -688,12 +688,12 @@ void foo()
   for (x=0; x<10; x++)  {
     for (y = 0; y<10; y++)
       ...
-    for (z = 0; z<10; z++)
-      ...
-  }
+            for (z = 0; z<10; z++)
+            ...
+            }
   for (i = 0; i<10; i++)  {
     ...
- }
+          }
 }
 \end{lstlisting}
 
@@ -800,9 +800,9 @@ if (point is in the buffer)  {
 }  else  {
   if (create == true)  {
     create point
-    if (point creation fails) return NULL;
+          if (point creation fails) return NULL;
     put the point in the buffer
-  }  else  {
+          }  else  {
       return NULL;
     }
 }
@@ -872,7 +872,7 @@ returned. The code below shows the prototype of an example functor.
 
 \begin{lstlisting}[caption=Code template for the filter function in findPoint]
 template <class T>
-class FilterFunc {
+      class FilterFunc {
 public:
   bool operator()(Point::Type type, Location loc, T arg)
   {

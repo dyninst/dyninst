@@ -41,7 +41,7 @@ void usage()
 {
   fprintf(stderr,
           "Usage: retee <process pid> <filename>\n"
-  " note: <filename> is relative to the application process.\n");
+          " note: <filename> is relative to the application process.\n");
 }
 
 // We need to use a callback, and so the things that callback requires
@@ -249,8 +249,8 @@ int main(int argc, char* argv[])
 
   fprintf(stderr,
           "Writing returned file descriptor %d into"
-  "mutatee...\n",
-  fileDescriptor);
+          "mutatee...\n",
+          fileDescriptor);
 
   // This was defined globally as the exit callback needs it.
   fdVar = writeFileDescIntoMutatee(app, appImage, fileDescriptor);

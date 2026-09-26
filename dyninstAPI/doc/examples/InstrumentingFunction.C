@@ -48,8 +48,8 @@ BPatch_addressSpace* startInstrumenting(accessType_t accessType,
 
 // Find a point at which to insert instrumentation
 std::vector<BPatch_point*>* findPoint(BPatch_addressSpace* app,
-                                       const char* name,
-                                       BPatch_procedureLocation loc)
+                                      const char* name,
+                                      BPatch_procedureLocation loc)
 {
   BPatch_image* appImage = app->getImage();
 
@@ -79,8 +79,8 @@ bool createAndInsertSnippet(BPatch_addressSpace* app,
   BPatch_type* type = appImage->findType("int");
   BPatch_variableExpr* counter = app->malloc(*type, "myCounter");
   BPatch_arithExpr addOne(
-      BPatch_assign, *counter,
-      BPatch_arithExpr(BPatch_plus, *counter, BPatch_constExpr(1)));
+        BPatch_assign, *counter,
+        BPatch_arithExpr(BPatch_plus, *counter, BPatch_constExpr(1)));
 
   // Insert the snippet
   if (!app->insertSnippet(addOne, *points))  {
@@ -98,7 +98,7 @@ bool createAndInsertSnippet2(BPatch_addressSpace* app,
   // Create the printf function call snippet
   std::vector<BPatch_snippet*> printfArgs;
   BPatch_snippet* fmt =
-      new BPatch_constExpr("InterestingProcedure called %d times\n");
+        new BPatch_constExpr("InterestingProcedure called %d times\n");
   printfArgs.push_back(fmt);
   BPatch_variableExpr* var = appImage->findVariable("myCounter");
   if (!var)  {
@@ -153,7 +153,7 @@ int main()
 
   // Create/attach/open a binary
   BPatch_addressSpace* app =
-      startInstrumenting(mode, progName, progPID, progArgv);
+        startInstrumenting(mode, progName, progPID, progArgv);
   if (!app)  {
     fprintf(stderr, "startInstrumenting failed\n");
     return EXIT_FAILURE;
@@ -161,7 +161,7 @@ int main()
   // Find the entry point for function InterestingProcedure
   const char* interestingFuncName = "InterestingProcedure";
   std::vector<BPatch_point*>* entryPoint =
-      findPoint(app, interestingFuncName, BPatch_entry);
+        findPoint(app, interestingFuncName, BPatch_entry);
   if (!entryPoint || entryPoint->size() == 0)  {
     fprintf(stderr, "No entry points for %s\n", interestingFuncName);
     return EXIT_FAILURE;

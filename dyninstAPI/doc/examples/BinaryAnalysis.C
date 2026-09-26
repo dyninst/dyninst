@@ -59,12 +59,12 @@ int binaryAnalysis(BPatch_addressSpace* app)
   std::set<BPatch_basicBlock*> blocks;
   fg->getAllBasicBlocks(blocks);
   for (auto block_iter = blocks.begin(); block_iter != blocks.end();
-       ++block_iter)  {
+        ++block_iter)  {
     BPatch_basicBlock* block = *block_iter;
     std::vector<Dyninst::InstructionAPI::Instruction> insns;
     block->getInstructions(insns);
     for (auto insn_iter = insns.begin(); insn_iter != insns.end();
-         ++insn_iter)  {
+          ++insn_iter)  {
       Dyninst::InstructionAPI::Instruction insn = *insn_iter;
       if (insn.readsMemory() || insn.writesMemory())  {
         insns_access_memory++;
@@ -82,7 +82,7 @@ int main()
   accessType_t mode = create;
   // Create/attach/open a binary
   BPatch_addressSpace* app =
-      startInstrumenting(mode, progName, progPID, progArgv);
+        startInstrumenting(mode, progName, progPID, progArgv);
   if (!app)  {
     fprintf(stderr, "startInstrumenting failed\n");
     exit(1);

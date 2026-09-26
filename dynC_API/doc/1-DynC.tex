@@ -75,7 +75,7 @@ exitSnippetVect.push_back(BPatch_functionCallExpr(*printf_func, exitArgs));
 Increment the counter:
 \begin{lstlisting}
 BPatch_arithExpr addOne(BPatch_assign, *intCounter,
-       BPatch_arithExpr(BPatch_plus, *intCounter, BPatch_constExpr(1)));
+      BPatch_arithExpr(BPatch_plus, *intCounter, BPatch_constExpr(1)));
 \end{lstlisting}
 
 Add increment to the entry snippet:
@@ -147,9 +147,9 @@ FILE* exitFile = fopen("myExitDynC.txt", "r");
 \noindent Next call DynC API with each function's entry and exit points:
 \begin{lstlisting}
 BPatch_snippet* entrySnippet =
-     dynC_API::createSnippet(entryFile, entryPoint, "entrySnippet");
+      dynC_API::createSnippet(entryFile, entryPoint, "entrySnippet");
 BPatch_snippet* exitSnippet =
-     dynC_API::createSnippet(exitFile, exitPoint, "exitSnippet");
+      dynC_API::createSnippet(exitFile, exitPoint, "exitSnippet");
 \end{lstlisting}
 
 \noindent Finally insert the snippets at each function's entry and exit points:
@@ -169,7 +169,7 @@ entryString << ",dyninst`function_name, intCounter);";
 
 // call to DynC API
 BPatch_snippet* entrySnippet =
-       dynC_API::createSnippet(entryString.str().c_str(), entryPoint, "entrySnippet");
+      dynC_API::createSnippet(entryString.str().c_str(), entryPoint, "entrySnippet");
 
 // build exitString
 std::stringstream exitString;
