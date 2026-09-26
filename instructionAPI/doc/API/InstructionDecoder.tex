@@ -2,7 +2,7 @@
 \label{sec:instructionDecoder}
 
 The \code{InstructionDecoder} class decodes instructions, given a buffer of bytes and a
-length, and constructs an Instruction. 
+length, and constructs an Instruction.
 
 The \code{InstructionDecoder} class decodes instructions, given a buffer of bytes and a length, and
 the architecture for which to decode instructions,
@@ -12,10 +12,10 @@ Calls to decode will proceed to decode instructions sequentially from that buffe
 end is reached.  At that point, all subsequent calls to decode will return a null \code{Instruction} pointer.
 
 \begin{apient}
-  InstructionDecoder(const unsigned char *buffer, size_t size,
-                     Architecture arch)
-  InstructionDecoder(const void *buffer, size_t size,
-                     Architecture arch)
+  InstructionDecoder(const unsigned char* buffer, size_t size,
+                     Architecture arch);
+  InstructionDecoder(const void* buffer, size_t size,
+                     Architecture arch);
 \end{apient}
 
 \apidesc{
@@ -25,7 +25,7 @@ end is reached.  At that point, all subsequent calls to decode will return a nul
 }
 
 \begin{apient}
-Instruction::Ptr decode();
+Instruction decode();
 \end{apient}
 
 \apidesc{
@@ -36,7 +36,7 @@ Instruction::Ptr decode();
 }
 
 \begin{apient}
-  Instruction::Ptr decode(const unsigned char*);
+  Instruction decode(const unsigned char*);
 \end{apient}
 
 \apidesc{
@@ -47,7 +47,7 @@ Instruction::Ptr decode();
 }
 
 \begin{apient}
-  struct unknown_instruction
+  struct unknown_instruction;
 \end{apient}
 \apidesc{
   This interface allows registering a callback function to be invoked

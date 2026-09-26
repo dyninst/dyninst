@@ -2,8 +2,8 @@ An object of this class represents the original executable or a library.
 It serves as a container of \code{BPatch\_module} objects.
 
 \begin{apient}
-  std::string name()
-  std::string pathName()
+  std::string name() const;
+  std::string pathName() const;
 \end{apient}
 
 \apidesc{
@@ -12,7 +12,7 @@ It serves as a container of \code{BPatch\_module} objects.
 }
 
 \begin{apient}
-  Dyninst::Address fileOffsetToAddr(Dyninst::Offset offset)
+  Dyninst::Address fileOffsetToAddr(Dyninst::Offset offset);
 \end{apient}
 
 \apidesc{
@@ -29,7 +29,7 @@ It serves as a container of \code{BPatch\_module} objects.
     Dyninst::Address base;
     unsigned long size;
     type_t type;
-  }
+  };
 \end{apient}
 
 \apidesc{
@@ -37,7 +37,7 @@ It serves as a container of \code{BPatch\_module} objects.
 }
 
 \begin{apient}
-  void regions(std::vector<Region> &regions)
+  void regions(std::vector<Region>& regions);
 \end{apient}
 
 \apidesc{
@@ -46,7 +46,7 @@ It serves as a container of \code{BPatch\_module} objects.
 }
 
 \begin{apient}
-  void modules(std::vector<BPatch_module *> &modules)
+  void modules(std::vector<BPatch_module*>& modules);
 \end{apient}
 
 \apidesc{
@@ -54,7 +54,7 @@ It serves as a container of \code{BPatch\_module} objects.
 }
 
 \begin{apient}
-  bool findPoints(Dyninst::Address addr, std::vector<BPatch_point *> &points)
+  bool findPoints(Dyninst::Address addr, std::vector<BPatch_point*>& points);
 \end{apient}
 
 \apidesc{
@@ -66,9 +66,9 @@ It serves as a container of \code{BPatch\_module} objects.
 
 \begin{apient}
   std::vector<BPatch_function*> *
-  findFunction(const char *name, std::vector<BPatch_function*> &funcs,
+  findFunction(std::string name, std::vector<BPatch_function*>& funcs,
                bool notify_on_failure = true, bool regex_case_sensitive = true,
-               bool incUninstrumentable = false)
+               bool incUninstrumentable = false);
 \end{apient}
 
 \apidesc{
@@ -86,4 +86,24 @@ It serves as a container of \code{BPatch\_module} objects.
     name is a mangled function name. If this second search succeeds,
     functions with mangled names matching name are
   returned instead.]
+}
+
+\begin{apient}
+  BPatchSnippetHandle* insertInitCallback(BPatch_snippet& callback);
+\end{apient}
+
+\apidesc{
+  This function inserts the snippet callback at the entry point of
+  this object's init function
+  (creating a new init function/section if necessary).
+}
+
+\begin{apient}
+  BPatchSnippetHandle* insertFiniCallback(BPatch_snippet& callback);
+\end{apient}
+
+\apidesc{
+  This function inserts the snippet callback at the exit point of
+  this object's fini function
+  (creating a new fini function/section if necessary).
 }

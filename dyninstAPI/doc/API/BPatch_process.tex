@@ -3,9 +3,9 @@ includes one or more threads of execution and an address
 space.
 
 \begin{apient}
-  bool stopExecution()
-  bool continueExecution()
-  bool terminateExecution
+  bool stopExecution();
+  bool continueExecution();
+  bool terminateExecution();
 \end{apient}
 
 
@@ -22,9 +22,9 @@ space.
 }
 
 \begin{apient}
-  bool isStopped()
-  int stopSignal()
-  bool isTerminated()
+  bool isStopped();
+  int stopSignal();
+  bool isTerminated();
 \end{apient}
 
 \apidesc{
@@ -38,12 +38,12 @@ space.
 }
 
 \begin{apient}
-  BPatch_variableExpr *getInheritedVariable(BPatch_variableExpr &parentVar)
+  BPatch_variableExpr* getInheritedVariable(BPatch_variableExpr& parentVar);
 \end{apient}
 
 \apidesc{
   Retrieve a new handle to an existing variable (such as one created
-  by \code{BPatch\_process\:\:malloc}) that was created in a
+  by \code{BPatch\_process::malloc}) that was created in a
   parent process and now exists in a forked child process. When a
   process forks all existing \code{BPatch\_variableExpr}s are
   copied to the child process, but the Dyninst handles for these
@@ -57,13 +57,13 @@ space.
 
 
 \begin{apient}
-  BPatchSnippetHandle *getInheritedSnippet(BPatchSnippetHandle &parentSnippet)
+  BPatchSnippetHandle* getInheritedSnippet(BPatchSnippetHandle& parentSnippet);
 \end{apient}
 
 \apidesc{
   This function is similar to getInheritedVariable, but operates on
   BPatchSnippetHandles. Given a child process that was
-  created via fork and a BPatch­SnippetHandle, parentSnippet, from
+  created via fork and a BPatch\-SnippetHandle, parentSnippet, from
   the parent process, this function will return a handle
   to parentSnippet that is valid in the child process. If it is
   determined that parentSnippet is not associated with
@@ -71,7 +71,7 @@ space.
 }
 
 \begin{apient}
-  void detach(bool cont)
+  bool detach(bool cont);
 \end{apient}
 
 \apidesc{
@@ -86,7 +86,7 @@ space.
 }
 
 \begin{apient}
-  int getPid()
+  int getPid();
 \end{apient}
 
 \apidesc{
@@ -100,7 +100,7 @@ space.
     NoExit,
     ExitedNormally,
     ExitedViaSignal
-  }
+  };
 \end{apient}
 
 \apidesc{
@@ -108,7 +108,7 @@ space.
 }
 
 \begin{apient}
-  BPatch_exitType terminationStatus()
+  BPatch_exitType terminationStatus();
 \end{apient}
 
 \apidesc{
@@ -121,7 +121,7 @@ space.
 }
 
 \begin{apient}
-  int getExitCode()
+  int getExitCode();
 \end{apient}
 
 \apidesc{
@@ -135,7 +135,7 @@ space.
 }
 
 \begin{apient}
-  int getExitSignal()
+  int getExitSignal();
 \end{apient}
 
 \apidesc{
@@ -144,7 +144,7 @@ space.
 }
 
 \begin{apient}
-  void oneTimeCode(const BPatch_snippet &expr)
+  void* oneTimeCode(const BPatch_snippet& expr, bool* err = NULL);
 \end{apient}
 
 \apidesc{
@@ -159,7 +159,7 @@ space.
 }
 
 \begin{apient}
-  bool oneTimeCodeAsync(const BPatch_snippet &expr, void *userData = NULL)
+  bool oneTimeCodeAsync(const BPatch_snippet& expr, void* userData = NULL);
 \end{apient}
 
 \apidesc{
@@ -180,7 +180,7 @@ space.
 }
 
 \begin{apient}
-  void getThreads(std::vector<BPatch_thread *> &thrds)
+  void getThreads(std::vector<BPatch_thread*>& thrds);
 \end{apient}
 
 \apidesc{
@@ -188,8 +188,8 @@ space.
 }
 
 \begin{apient}
-  bool isMultithreaded()
-  bool isMultithreadCapable()
+  bool isMultithreaded();
+  bool isMultithreadCapable();
 \end{apient}
 
 \apidesc{

@@ -9,8 +9,8 @@ be written or read.  It satisfies the C++
 concept. It also offers the standard \code{begin/end} members for iteration.
 
 \begin{apient}
-AddressSet::ptr
-AddressSet::const_ptr
+AddressSet::ptr;
+AddressSet::const_ptr;
 \end{apient}
 
 \apidesc{
@@ -21,14 +21,14 @@ there are no more references.
 }
 
 \begin{apient}
-typedef std::pair<Dyninst::Address, Process::ptr> value_type
+typedef std::pair<Dyninst::Address, Process::ptr> value_type;
 \end{apient}
 
 \apidesc{
 }
 
 \begin{apient}
-static AddressSet::ptr newAddressSet()
+static AddressSet::ptr newAddressSet();
 \end{apient}
 
 \apidesc{
@@ -36,7 +36,7 @@ This function returns a new AddressSet that is empty.
 }
 
 \begin{apient}
-static AddressSet::ptr newAddressSet(ProcessSet::const_ptr ps, Dyninst::Address addr)
+static AddressSet::ptr newAddressSet(ProcessSet::const_ptr ps, Dyninst::Address addr);
 \end{apient}
 
 \apidesc{
@@ -47,7 +47,7 @@ paired with the Address addr.
 \begin{apient}
 static AddressSet::ptr newAddressSet(ProcessSet::const_ptr ps,
                                      std::string library_name,
-                                     Dyninst::Offset off)
+                                     Dyninst::Offset off);
 \end{apient}
 
 \apidesc{
@@ -57,8 +57,8 @@ address of library\_name in each Process and adding it to off.
 }
 
 \begin{apient}
-iterator find(Dyninst::Address addr)
-const_iterator find(Dyninst::Address addr) const
+iterator find(Dyninst::Address addr);
+const_iterator find(Dyninst::Address addr) const;
 \end{apient}
 
 \apidesc{
@@ -68,8 +68,8 @@ addr.
 }
 
 \begin{apient}
-iterator find(Dyninst::Address addr, Process::const_ptr proc)
-const_iterator find(Dyninst::Address addr, Process::const_ptr proc) const
+iterator find(Dyninst::Address addr, Process::const_ptr proc);
+const_iterator find(Dyninst::Address addr, Process::const_ptr proc) const;
 \end{apient}
 
 \apidesc{
@@ -78,7 +78,7 @@ and address of proc and addr. It returns end() if no element matches.
 }
 
 \begin{apient}
-size_t count(Dyninst::Address addr) const
+size_t count(Dyninst::Address addr) const;
 \end{apient}
 
 \apidesc{
@@ -86,7 +86,7 @@ This function returns the number of elements with address addr.
 }
 
 \begin{apient}
-size_t size() const
+size_t size() const;
 \end{apient}
 
 \apidesc{
@@ -94,7 +94,7 @@ This function returns the number of elements in the AddressSet.
 }
 
 \begin{apient}
-bool empty() const
+bool empty() const;
 \end{apient}
 
 \apidesc{
@@ -103,7 +103,7 @@ otherwise.
 }
 
 \begin{apient}
-std::pair<iterator, bool> insert(Dyninst::Address addr, Process::const_ptr proc)
+std::pair<iterator, bool> insert(Dyninst::Address addr, Process::const_ptr proc);
 \end{apient}
 
 \apidesc{
@@ -115,7 +115,7 @@ and false otherwise.
 }
 
 \begin{apient}
-size_t insert(Dyninst::Address addr, ProcessSet::const_ptr ps)
+size_t insert(Dyninst::Address addr, ProcessSet::const_ptr ps);
 \end{apient}
 
 \apidesc{
@@ -124,7 +124,7 @@ It returns the number of new elements created.
 }
 
 \begin{apient}
-void erase(iterator pos)
+void erase(iterator pos);
 \end{apient}
 
 \apidesc{
@@ -132,7 +132,7 @@ This function removes the element pointed to by pos from the AddressSet.
 }
 
 \begin{apient}
-size_t erase(Process::const_ptr proc)
+size_t erase(Process::const_ptr proc);
 \end{apient}
 
 \apidesc{
@@ -141,17 +141,16 @@ It returns the number of elements removed.
 }
 
 \begin{apient}
-size_t erase(Dyninst::Address addr,
+size_t erase(Dyninst::Address addr, Process::const_ptr proc);
 \end{apient}
 
 \apidesc{
-Process::const\_ptr proc)
 This function removes any element that has and address and process of addr and
 proc from the AddressSet. It returns the number of elements removed.
 }
 
 \begin{apient}
-void clear()
+void clear();
 \end{apient}
 
 \apidesc{
@@ -160,7 +159,8 @@ size zero.
 }
 
 \begin{apient}
-iterator lower_bound(Dyninst::Address addr)
+iterator lower_bound(Dyninst::Address addr);
+const_iterator lower_bound(Dyninst::Address addr) const;
 \end{apient}
 
 \apidesc{
@@ -169,7 +169,8 @@ AddressSet that has an address greater than or equal to addr.
 }
 
 \begin{apient}
-iterator upper_bound(Dyninst::Address addr)
+iterator upper_bound(Dyninst::Address addr);
+const_iterator upper_bound(Dyninst::Address addr) const;
 \end{apient}
 
 \apidesc{
@@ -178,7 +179,7 @@ AddressSet that has an address greater than addr.
 }
 
 \begin{apient}
-std::pair<iterator, iterator> equal_range(Address addr) const
+std::pair<iterator, iterator> equal_range(Address addr) const;
 \end{apient}
 
 \apidesc{
@@ -188,7 +189,7 @@ value as the return of upper\_bound(addr).
 }
 
 \begin{apient}
-AddressSet::ptr set_union(AddressSet::const_ptr aset)
+AddressSet::ptr set_union(AddressSet::const_ptr aset) const;
 \end{apient}
 
 \apidesc{
@@ -197,7 +198,7 @@ AddressSet and aset.
 }
 
 \begin{apient}
-AddressSet::ptr set_intersection(AddressSet::const_ptr aset)
+AddressSet::ptr set_intersection(AddressSet::const_ptr aset) const;
 \end{apient}
 
 \apidesc{
@@ -206,7 +207,7 @@ of this AddressSet and aset.
 }
 
 \begin{apient}
-AddressSet::ptr set_difference(AddressSet::const_ptr aset)
+AddressSet::ptr set_difference(AddressSet::const_ptr aset) const;
 \end{apient}
 
 \apidesc{

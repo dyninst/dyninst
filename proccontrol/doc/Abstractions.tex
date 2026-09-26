@@ -12,7 +12,7 @@ Each Process is guaranteed to have at least one Thread associated with it. A
 multi-threaded process may have a Process object with more than one Thread.
 Each process has an address space associated with it, which can be written or
 read through the Process object. Each thread has a set of registers
-associated with it, which can be access through the Thread object. 
+associated with it, which can be access through the Thread object.
 
 At any one time a Thread will be in either a stopped state or a running
 state. A thread in a
@@ -22,7 +22,7 @@ A thread in a running state is allowed to execute as normal. A thread in a
 running state may block for other reasons, e.g. blocking on IO calls, but this
 does not affect ProcControlAPI\'s view of the thread state.
 A thread is only in the stopped state if ProcControlAPI has explicitly
-stopped it. 
+stopped it.
 
 A Process object is not considered to have a stopped or running
 state- only its Thread objects are stopped or running. A
@@ -46,13 +46,13 @@ Each event can be broken up into
 an EventType object and an Event
 object. The EventType describes a type of event that can happen, and Event
 describes a specific instance of an event happening. Each Event will have one
-and only one EventType. 
+and only one EventType.
 
 Each EventType has two primary fields: its time and its code. The code field
 of describes what type of event occurred, e.g. EventType::Exit represents a
 target process exiting. The time field of an EventType represents whether the
 EventType is happening before or after will have code and will have a value of
-EventType::Pre, EventType::Post, or EventType::None. 
+EventType::Pre, EventType::Post, or EventType::None.
 
 For example, an EventType with time and code of EventType::Pre and
 EventType::Exit will occur just before a target process exits, and a code of
@@ -60,13 +60,13 @@ EventType::Exec with a time of EventType::Post will occur after an exec system
 call occurs. In this document we will abbreviate EventTypes such as these as
 pre-exit and post-exec. Some EventTypes do not have a time associated with
 them, for example EventType::Breakpoint does not have an associated time and
-thus has a time value of EventType::none. 
+thus has a time value of EventType::none.
 
 An Event represents an instance of an EventType occurring. In addition to an
 EventType, each Event also has pointer to the Process and Thread that it
 occurred on. Certain events may also have event specific information
 associated with them, which is represented in a sub-class of Event. Each
-EventType is associated with a specific sub-class of Event. 
+EventType is associated with a specific sub-class of Event.
 
 For example, EventType::Library is used to signify a shared library being loaded
 into the target process. When an EventType::Library occurs ProcControlAPI
@@ -75,7 +75,7 @@ any registered callback functions. In addition to the information inherited
 from Event, the EventLibrary will contain extra information about the library
 that was loaded into the target process.
 
-Table 1 shows the Event subclass that is used for each EventType. Not all
+Table~\ref{tab:event-subclass} shows the Event subclass that is used for each EventType. Not all
 EventTypes are available on every platform- a checkmark
 under the specific OS column means that the EventType is available on that OS.
 
@@ -106,6 +106,8 @@ under the specific OS column means that the EventType is available on that OS.
     Crash & EventCrash & \checkmark & \checkmark & \checkmark \\ \hline
     ForceTerminate & EventForceTerminate & \checkmark & \checkmark & \checkmark \\ \hline
   \end{tabular}
+  \caption{Event subclass used for each EventType}
+  \label{tab:event-subclass}
 \end{table}
 
 
@@ -115,7 +117,7 @@ callback function. A ProcControlAPI user can register callback functions for
 an EventType using the Process::registerEventCallback function. All callback
 functions must be declared using the signature:
 
-\begin{lstlisting}[language=c++]
+\begin{lstlisting}
 Process::cb_ret_t callback_func_name(Event::ptr)
 \end{lstlisting}
 
@@ -146,17 +148,17 @@ deliver a callback it must first gain control of a user visible thread in the
 controller process. This thread will be used to invoke the callback
 function. ProcControlAPI does not use its
 internal threads for delivering callbacks, as this would expose the
-ProcControlAPI user to race conditions. 
+ProcControlAPI user to race conditions.
 
 Unfortunately, the user thread is not always accessible to ProcControlAPI when
 it needs to invoke a callback function. For example, the user visible thread
 may be performing network IO or waiting for input from a GUI when an event
-occurs. 
+occurs.
 
 ProcControlAPI uses a notification system built around the EventNotify class to
 alert the ProcControlAPI user that a callback is ready to be delivered. Once
 the user is notified then they can call the Process::handleEvents function,
-under which ProcControlAPI will invoke any pending callback functions. 
+under which ProcControlAPI will invoke any pending callback functions.
 
 The EventNotify class has two mechanisms for
 notifying the ProcControlAPI user that a callback is pending: writing to a file
@@ -168,7 +170,7 @@ ProcControlAPI events. Alternatively, the ProcControlAPI user can register a
 light-weight callback that is invoked when a callback is ready. This
 light-weight callback provides no information about the Event and may occur on
 another thread or from a signal handler- the ProcControlAPI
-user is encouraged to keep this callback minimal. 
+user is encouraged to keep this callback minimal.
 
 It is important for a user to respond promptly to a callback notification. A
 target process may remain blocked while a notification is pending. If a

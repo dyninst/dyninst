@@ -14,15 +14,14 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchAsyncThreadEventCallback)(
-    BPatch_process *proc,
-    BPatch_thread *thread
-  )
+    BPatch_process* proc,
+    BPatch_thread* thread
+  );
 
   bool registerThreadEventCallback(BPatch_asyncEventType type,
-                                   BPatchAsyncThreadEventCallback cb)
-
+                                   BPatchAsyncThreadEventCallback cb);
   bool removeThreadEventCallback(BPatch_asyncEventType type,
-                                 BPatch_AsyncThreadEventCallback cb)
+                                 BPatchAsyncThreadEventCallback cb);
 \end{apient}
 
 \apidesc{
@@ -36,12 +35,12 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchCodeDiscoveryCallback)(
-    BPatch_Vector<BPatch_function*> &newFuncs,
-    BPatch_Vector<BPatch_function*> &modFuncs
-  )
+    BPatch_Vector<BPatch_function*>& newFuncs,
+    BPatch_Vector<BPatch_function*>& modFuncs
+  );
 
-  bool registerCodeDiscoveryCallback(BPatchCodeDiscoveryCallback cb)
-  bool removeCodeDiscoveryCallback(BPatchCodeDiscoveryCallback cb)
+  bool registerCodeDiscoveryCallback(BPatchCodeDiscoveryCallback cb);
+  bool removeCodeDiscoveryCallback(BPatchCodeDiscoveryCallback cb);
 \end{apient}
 
 \apidesc{
@@ -55,18 +54,18 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchCodeOverwriteBeginCallback)(
-    BPatch_Vector<BPatch_basicBlock*> &overwriteLoopBlocks
-  )
+    BPatch_Vector<BPatch_basicBlock*>& overwriteLoopBlocks
+  );
 
   typedef void (*BPatchCodeOverwriteEndCallback)(
-    BPatch_Vector<std::pair<Dyninst::Address,int>> &deadBlocks,
-    BPatch_Vector<BPatch_function*> &owFuncs,
-    BPatch_Vector<BPatch_function*> &modFuncs,
-    BPatch_Vector<BPatch_function*> &newFuncs
-  )
+    BPatch_Vector<std::pair<Dyninst::Address, int>>& deadBlocks,
+    BPatch_Vector<BPatch_function*>& owFuncs,
+    BPatch_Vector<BPatch_function*>& modFuncs,
+    BPatch_Vector<BPatch_function*>& newFuncs
+  );
 
   bool registerCodeOverwriteCallbacks(BPatchCodeOverwriteBeginCallback cbBegin,
-                                      BPatchCodeOverwriteEndCallback cbEnd)
+                                      BPatchCodeOverwriteEndCallback cbEnd);
 \end{apient}
 
 \apidesc{
@@ -90,12 +89,12 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchDynamicCallSiteCallback)(
-    BPatch_point*at_point,
-    BPatch_function *called_function
-  )
+    BPatch_point* at_point,
+    BPatch_function* called_function
+  );
 
-  bool registerDynamicCallCallback(BPatchDynamicCallSiteCallback cb)
-  bool removeDynamicCallCallback(BPatchDynamicCallSiteCallback cb)
+  bool registerDynamicCallCallback(BPatchDynamicCallSiteCallback cb);
+  bool removeDynamicCallCallback(BPatchDynamicCallSiteCallback cb);
 \end{apient}
 
 \apidesc{
@@ -112,12 +111,12 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchDynLibraryCallback)(
-    BPatch_thread *thr,
-    BPatch_object *obj,
+    BPatch_thread* thr,
+    BPatch_object* obj,
     bool loaded
-  )
+  );
 
-  BPatchDynLibraryCallback registerDynLibraryCallback(BPatchDynLibraryCallback func)
+  BPatchDynLibraryCallback registerDynLibraryCallback(BPatchDynLibraryCallback func);
 \end{apient}
 
 \apidesc{
@@ -134,19 +133,19 @@ pass a \code{BPatch\_thread} object when a
     BPatchSerious,
     BPatchWarning,
     BPatchInfo
-  }
+  };
 \end{apient}
 
 \begin{apient}
   typedef void (*BPatchErrorCallback)(
     BPatchErrorLevel severity,
     int number,
-    const char * const *params
-  )
+    const char* const* params
+  );
 \end{apient}
 
 \begin{apient}
-  BPatchErrorCallback registerErrorCallback(BPatchErrorCallback func)
+  BPatchErrorCallback registerErrorCallback(BPatchErrorCallback func);
 \end{apient}
 
 \apidesc{
@@ -169,12 +168,12 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchExecCallback)(
-    BPatch_thread *thr
-  )
+    BPatch_thread* thr
+  );
 \end{apient}
 
 \begin{apient}
-  BPatchExecCallback registerExecCallback(BPatchExecCallback func)
+  BPatchExecCallback registerExecCallback(BPatchExecCallback func);
 \end{apient}
 
 \apidesc{
@@ -188,7 +187,7 @@ pass a \code{BPatch\_thread} object when a
     NoExit,
     ExitedNormally,
     ExitedViaSignal
-  }
+  };
 \end{apient}
 
 \apidesc{
@@ -197,15 +196,15 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchExitCallback)(
-    BPatch_thread *proc,
+    BPatch_thread* proc,
     BPatch_exitType exit_type
-  )
+  );
 \end{apient}
 
 \begin{apient}
-  BPatchExitCallback registerExitCallback(BPatchExitCallback func)
+  BPatchExitCallback registerExitCallback(BPatchExitCallback func);
 \end{apient}
-  
+
 \apidesc{
   Register a function to be called when a process terminates. For a
   normal process exit, the callback will actually be
@@ -222,9 +221,9 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchForkCallback)(
-    BPatch_thread *parent,
-    BPatch_thread *child
-  )
+    BPatch_thread* parent,
+    BPatch_thread* child
+  );
 \end{apient}
 
 \apidesc{
@@ -235,7 +234,7 @@ pass a \code{BPatch\_thread} object when a
 }
 
 \begin{apient}
-  BPatchForkCallback registerPreForkCallback(BPatchForkCallback func)
+  BPatchForkCallback registerPreForkCallback(BPatchForkCallback func);
 \end{apient}
 
 \apidesc{
@@ -243,7 +242,7 @@ pass a \code{BPatch\_thread} object when a
 }
 
 \begin{apient}
-  BPatchForkCallback registerPostForkCallback(BPatchForkCallback func)
+  BPatchForkCallback registerPostForkCallback(BPatchForkCallback func);
 \end{apient}
 
 \apidesc{
@@ -258,14 +257,14 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchOneTimeCodeCallback)(
-    Bpatch_thread *thr,
-    void *userData,
-    void *returnValue
-  )
+    BPatch_thread* thr,
+    void* userData,
+    void* returnValue
+  );
 \end{apient}
 
 \begin{apient}
-  BPatchOneTimeCodeCallback registerOneTimeCodeCallback(BPatchOneTimeCodeCallback func)
+  BPatchOneTimeCodeCallback registerOneTimeCodeCallback(BPatchOneTimeCodeCallback func);
 \end{apient}
 
 \apidesc{
@@ -280,14 +279,14 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchSignalHandlerCallback)(
-    BPatch_point *at_point,
+    BPatch_point* at_point,
     long signum,
-    std::vector<Dyninst::Address> *handlers
-  )
+    std::vector<Dyninst::Address>* handlers
+  );
 \end{apient}
 
 \begin{apient}
-  bool registerSignalHandlerCallback(BPatchSignalHandlerCallback cb, std::set<long> &signal_numbers)
+  bool registerSignalHandlerCallback(BPatchSignalHandlerCallback cb, std::set<long>& signal_numbers);
 \end{apient}
 
 \apidesc{
@@ -307,7 +306,7 @@ pass a \code{BPatch\_thread} object when a
 }
 
 \begin{apient}
-  bool removeSignalHandlerCallback(BPatchSignalHandlerCallback cb)
+  bool removeSignalHandlerCallback(BPatchSignalHandlerCallback cb);
 \end{apient}
 
 \apidesc{
@@ -320,9 +319,9 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchStopThreadCallback)(
-    BPatch_point *at_point,
-    void *returnValue
-  )
+    BPatch_point* at_point,
+    void* returnValue
+  );
 \end{apient}
 
 \apidesc{
@@ -345,14 +344,14 @@ pass a \code{BPatch\_thread} object when a
 
 \begin{apient}
   typedef void (*BPatchUserEventCallback)(
-    BPatch_process *proc,
-    void *buf,
+    BPatch_process* proc,
+    void* buf,
     unsigned int bufsize
-  )
+  );
 \end{apient}
 
 \begin{apient}
-  bool registerUserEventCallback(BPatchUserEventCallback cb)
+  bool registerUserEventCallback(BPatchUserEventCallback cb);
 \end{apient}
 
 \apidesc{
@@ -362,7 +361,7 @@ pass a \code{BPatch\_thread} object when a
 }
 
 \begin{apient}
-  bool removeUserEventCallback(BPatchUserEventCallback cb)
+  bool removeUserEventCallback(BPatchUserEventCallback cb);
 \end{apient}
 
 \apidesc{

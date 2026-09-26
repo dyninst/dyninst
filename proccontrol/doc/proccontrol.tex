@@ -12,18 +12,13 @@
 \input{../../common/doc/manual_frontpage.tex}
 
 \lstset{
-  basicstyle=\ttfamily,
-  keywordstyle=\ttfamily\color{purple},
-  commentstyle=\ttfamily\color{lightgray},
-  stringstyle=\ttfamily\color{orange},
-  frame=leftline,
-  % Highlight the proccontrol types like they are keywords, but in a different color
+  %% Highlight this manual's own type names like keywords; the style
+  %% itself lives in common/doc/manual_commands.tex.
   emph={
     Process,
     Event,
     EventType
   },
-  emphstyle=\color{blue}
 }
 
 \tableofcontents
@@ -43,7 +38,7 @@
 
   \subsection{Process}
     \input{API/Process}
-  
+
     \subsubsection{Memory Permissions}
       \input{API/mem_perm}
 
@@ -71,7 +66,7 @@
 
   \subsection{Event}
     \input{API/Event}
-  
+
   An \code{Event} passed to a callback function can be cast to the
   appropriate child class by inspecting the \code{EventType}.
 
@@ -146,38 +141,38 @@
   Upon being continued the process will resume execution at the point. A
   Breakpoint object is a handle that can represents one or more breakpoints in
   one or more processes. Upon receiving notification that a breakpoint has
-  executed, ProcControlAPI will deliver a callback with an EventBreakpoint. 
-  
+  executed, ProcControlAPI will deliver a callback with an EventBreakpoint.
+
   Some Breakpoint objects can be created as control-transfer
   breakpoints. When a process is
   continued after executing a control-transfer the process will resume at an
   alternate location, rather than at the breakpoint's
   installation point.
-  
+
   A single Breakpoint can be inserted into multiple locations within a target
   process. This can be useful when a user has wants to perform a single action
   at multiple locations in a target process. For example, if a user wants to
   insert a breakpoint at the entry to function foo, and foo has multiple
   instantiations in a process, then a single Breakpoint can be inserted at each
   instance of foo.
-  
+
   A single Breakpoint object can be inserted into multiple target processes at the
   same time. When a process does an operation that copies an address space,
   such as fork on UNIX, the child process will receive all Breakpoint objects
-  that were installed in the parent process. 
-  
+  that were installed in the parent process.
+
   Multiple Breakpoint objects can be inserted into the same location with-in the
   same process. When this location is executed in the target process a single
   callback will be delivered, and the EventBreakpoint object will contain a
   reference to each Breakpoint inserted at the location. At most one
   control-transfer breakpoint can be inserted at any one point in a process.
-  
+
   Due to the many-to-many nature of Breakpoints and Processes, a single
   installation of a Breakpoint can be identified by a Breakpoint, Process,
   Address triple. The functions for inserting and removing breakpoints
   (Process::addBreakpoint and Process::rmBreakpoint) need all three pieces of
   information.
-  
+
   A Breakpoint can be a hardware breakpoint or
   a software breakpoint. A hardware
   breakpoint is typically implemented by setting special debug register in the
@@ -209,7 +204,7 @@
   both in a created address spaces as well as loading new libraries into one.
 
   \subsection{Library}
-    \input{API/Library}  
+    \input{API/Library}
 
   \subsection{LibraryPool}
     \input{API/LibraryPool}
@@ -223,7 +218,7 @@
   the associated process may be modified to accommodate timely handling (e.g.,
   inserting breakpoints). When polling-driven handling is enabled, the
   associated process is not modified and events are handled on demand by calling
-  the appropriate “refresh” member function.
+  the appropriate ``refresh'' member function.
 
   \subsection{FollowFork}
     \input{API/FollowFork}

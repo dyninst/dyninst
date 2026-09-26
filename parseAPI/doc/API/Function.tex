@@ -2,7 +2,7 @@
 
 \definedin{CFG.h}
 
-The Function class represents the portion of the program CFG that is reachable through intraprocedural control flow transfers from the function's entry block. Functions in the ParseAPI have only a single entry point; multiple-entry functions such as those found in Fortran programs are represented as several functions that ``share'' a subset of the CFG. Functions may be non-contiguous and may share blocks with other functions. 
+The Function class represents the portion of the program CFG that is reachable through intraprocedural control flow transfers from the function's entry block. Functions in the ParseAPI have only a single entry point; multiple-entry functions such as those found in Fortran programs are represented as several functions that ``share'' a subset of the CFG. Functions may be non-contiguous and may share blocks with other functions.
 
 \begin{center}
 \begin{tabular}{ll}
@@ -35,15 +35,15 @@ RETURN & may return \\
 \end{center}
 
 \begin{apient}
-typedef boost::transform_iterator<selector, blockmap::iterator> bmap_iterator
-typedef boost::transform_iterator<selector, blockmap::const_iterator> bmap_const_iterator
-typedef boost::iterator_range<bmap_iterator> blocklist
-typedef boost::iterator_range<bmap_const_iterator> const_blocklist
-typedef std::set<Edge*> edgelist
+typedef boost::transform_iterator<selector, blockmap::iterator> bmap_iterator;
+typedef boost::transform_iterator<selector, blockmap::const_iterator> bmap_const_iterator;
+typedef boost::iterator_range<bmap_iterator> blocklist;
+typedef boost::iterator_range<bmap_const_iterator> const_blocklist;
+typedef std::set<Edge*> edgelist;
 \end{apient}
 \apidesc{Containers for block and edge access. Library users \emph{must not} rely on the underlying container type of std::set/std::vector lists, as it is subject to change.}
 
-\begin{tabular}{p{1.25in}p{1.125in}p{3.125in}}
+\begin{tabularx}{\textwidth}{llX}
 \toprule
 Method name & Return type & Method description \\
 \midrule
@@ -66,76 +66,76 @@ restatus & FuncReturnStatus * & Returns the best-effort determination of whether
 getReturnType & Type * & Type representing the return type of the function. \\
 
 \bottomrule
-\end{tabular}
+\end{tabularx}
 
 \begin{apient}
 Function(Address addr,
-         string name,
-         CodeObject * obj,
-         CodeRegion * region,
-         InstructionSource * isource)
+         std::string name,
+         CodeObject* obj,
+         CodeRegion* region,
+         InstructionSource* isource);
 \end{apient}
-\apidesc{Creates a function at \code{addr} in the code region specified. 
+\apidesc{Creates a function at \code{addr} in the code region specified.
 Insructions for this function are given in \code{isource}.}
 
 \begin{apient}
-LoopTreeNode* getLoopTree()
+LoopTreeNode* getLoopTree() const;
 \end{apient}
 \apidesc{Return the nesting tree of the loops in the function. See class \code{LoopTreeNode} for more details}
 
 \begin{apient}
-Loop* findLoop(const char *name)
+Loop* findLoop(const char* name) const;
 \end{apient}
 \apidesc{Return the loop with the given nesting name. See class \code{LoopTreeNode} for more details about how loop nesting names are assigned.}
 
 \begin{apient}
-bool getLoops(vector<Loop*> &loops);
+bool getLoops(std::vector<Loop*>& loops) const;
 \end{apient}
 \apidesc{Fill \code{loops} with all the loops in the function}
 
 \begin{apient}
-bool getOuterLoops(vector<Loop*> &loops);
+bool getOuterLoops(std::vector<Loop*>& loops) const;
 \end{apient}
 \apidesc{Fill \code{loops} with all the outermost loops in the function}
 
 \begin{apient}
-bool dominates(Block* A, Block *B);
+bool dominates(Block* A, Block* B) const;
 \end{apient}
 \apidesc{Return true if block \code{A} dominates block \code{B}}
 
 \begin{apient}
-Block* getImmediateDominator(Block *A);
+Block* getImmediateDominator(Block* A) const;
 \end{apient}
 \apidesc{Return the immediate dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate dominator.}
 
 \begin{apient}
-void getImmediateDominates(Block *A, set<Block*> &imm);
+void getImmediateDominates(Block* A, std::set<Block*>& imm) const;
 \end{apient}
 \apidesc{Fill \code{imm} with all the blocks immediate dominated by block \code{A}}
 
 \begin{apient}
-void getAllDominates(Block *A, set<Block*> &dom);
+void getAllDominates(Block* A, std::set<Block*>& dom) const;
 \end{apient}
 \apidesc{Fill \code{dom} with all the blocks dominated by block \code{A}}
 
 
 \begin{apient}
-bool postDominates(Block* A, Block *B);
+bool postDominates(Block* A, Block* B) const;
 \end{apient}
 \apidesc{Return true if block \code{A} post-dominates block \code{B}}
 
 \begin{apient}
-Block* getImmediatePostDominator(Block *A);
+Block* getImmediatePostDominator(Block* A) const;
 \end{apient}
 \apidesc{Return the immediate post-dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate post-dominator.}
 
 \begin{apient}
-void getImmediatePostDominates(Block *A, set<Block*> &imm);
+void getImmediatePostDominates(Block* A, std::set<Block*>& imm) const;
 \end{apient}
 \apidesc{Fill \code{imm} with all the blocks immediate post-dominated by block \code{A}}
 
 \begin{apient}
-void getAllPostDominates(Block *A, set<Block*> &dom);
+void getAllPostDominates(Block* A, std::set<Block*>& dom) const;
 \end{apient}
 \apidesc{Fill \code{dom} with all the blocks post-dominated by block \code{A}}
 
@@ -143,28 +143,29 @@ void getAllPostDominates(Block *A, set<Block*> &dom);
 
 
 \begin{apient}
-std::vector<FuncExtent *> const& extents()
+std::vector<FuncExtent*> const& extents();
 \end{apient}
 \apidesc{Returns a list of contiguous extents of binary code within the function.}
 
 \begin{apient}
-void setEntryBlock(block * new_entry)
+void setEntryBlock(Block* new_entry);
 \end{apient}
 \apidesc{Set the entry block for this function to \code{new\_entry}.}
 
 \begin{apient}
-void set_retstatus(FuncReturnStatus rs)
+void set_retstatus(FuncReturnStatus rs);
 \end{apient}
 \apidesc{Set the return status for the function to \code{rs}.}
 
 \begin{apient}
-bool contains(Block *b)
+bool contains(Block* b);
+bool contains(Block* b) const;
 \end{apient}
 \apidesc{Return true if this function contains the given block \code{b};
 otherwise false.}
 
 
 \begin{apient}
-void removeBlock(Block *)
+void removeBlock(Block *);
 \end{apient}
 \apidesc{Remove a basic block from the function.}

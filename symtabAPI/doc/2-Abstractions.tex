@@ -10,7 +10,7 @@
     \tikzstyle{annotation} = []
     \begin{tikzpicture}[
             level distance=1cm,
-            level 3/.style={level distance=1cm}, 
+            level 3/.style={level distance=1cm},
             growth parent anchor=south,
             sibling distance=2.2cm,
             child anchor=north,
@@ -65,7 +65,7 @@
         \draw [->] (Variable) -- (Symbol);
 
     \end{tikzpicture}
-    
+
     \vspace{1cm}
 
     % legend
@@ -104,7 +104,7 @@
     \node [rectangle, label=left: \rotatebox{90}{LEGEND}, fit=(legendBox)] {};
 
     \end{tikzpicture}
-    
+
     \caption{SymtabAPI Object Ownership Diagram}
     \label{fig:object-ownership}
 \end{figure}
@@ -112,7 +112,7 @@
 SymtabAPI provides a simple set of abstractions over complicated data structures
 which makes it straight-forward to use. The SymtabAPI consists of five classes of
 interfaces: the symbol table interface, the type interface, the line map
-interface, the local variable interface, and the address translation interface. 
+interface, the local variable interface, and the address translation interface.
 
 Figure~\ref{fig:object-ownership} shows the ownership hierarchy for the
 SymtabAPI classes. Ownership here is a ``contains'' relationship; if one
@@ -121,7 +121,7 @@ instance of the other. For example, each Symtab class instance contains multiple
 instances of class Symbol and each Symbol class instance belongs to one Symtab
 class instance. Each of four interfaces and the classes belonging to these
 interfaces are described in the rest of this section. The API functions in each
-of the classes are described in detail in Section \ref{sec:symtabAPI}.
+of the classes are described in detail in Section~\ref{sec:symtabAPI}.
 
 \subsection{Symbol Table Interface}
 
@@ -129,21 +129,21 @@ The symbol table interface is responsible for parsing the object file and
 handling the look-up and addition of new symbols. It is also responsible for the
 emit functionality that SymtabAPI supports. The Symtab and the Module classes
 inherit from the LookupInterface class, an abstract class, ensuring the same
-lookup function signatures for both Module and Symtab classes. 
+lookup function signatures for both Module and Symtab classes.
 
 \begin{description}
 \item[Symtab] A Symtab class object represents either an object file on-disk or in-memory that the SymtabAPI library operates on.
 \item[Symbol] A Symbol class object represents an entry in the symbol table.
 \item[Module] A Module class object represents a particular source file in cases where multiple files were compiled into a single binary object; if this information is not present, we use a single default module.
-\item[Archive] An Archive class object represents a collection of binary objects stored in a single file (e.g., a static archive). 
+\item[Archive] An Archive class object represents a collection of binary objects stored in a single file (e.g., a static archive).
 \item[ExceptionBlock] An ExceptionBlock class object represents an exception block which contains the information necessary for run-time exception handling.
 \end{description}
 
-In addition, we define two symbol aggregates, Function and Variable. These classes collect multiple symbols with the same address and type but different names; for example, weak and strong symbols for a single function. 
+In addition, we define two symbol aggregates, Function and Variable. These classes collect multiple symbols with the same address and type but different names; for example, weak and strong symbols for a single function.
 
 \subsection{Type Interface}
 \label{subsec:typeInterface}
- The Type interface is responsible for parsing type information from the object file and handling the look-up and addition of new type information. Figure \ref{fig:class-inherit} shows the class inheritance diagram for the type interface. Class Type is the base class for all of the classes that are part of the interface. This class provides the basic common functionality for all the types, such as querying the name and size of a type. The rest of the classes represent specific types and provide more functionality based on the type. 
+ The Type interface is responsible for parsing type information from the object file and handling the look-up and addition of new type information. Figure~\ref{fig:class-inherit} shows the class inheritance diagram for the type interface. Class Type is the base class for all of the classes that are part of the interface. This class provides the basic common functionality for all the types, such as querying the name and size of a type. The rest of the classes represent specific types and provide more functionality based on the type.
 
  \begin{figure}
     \centering
@@ -154,7 +154,7 @@ node distance=.65cm]
 pattern=north west lines, pattern color=yellow]
     \tikzstyle{annotation} = []
     \begin{tikzpicture}[
-        level distance=1cm, 
+        level distance=1cm,
         growth parent anchor=south,
         level 1/.style={sibling distance=3cm},
     ]
@@ -212,7 +212,7 @@ height=1.25em] (abstract) {};
     \node [annotation, right=.25cm of abstract] (abstractClass) {Represents an abstract class};
 
     \node [rectangle, draw, fit=(A)(classA)(classA2)(littleA)(littleB)(inherits)(abstract)(abstractClass)]
-(legendBox) {};   
+(legendBox) {};
     \node [rectangle, label=left: \rotatebox{90}{LEGEND}, fit=(legendBox)] {};
 
     \end{tikzpicture}
@@ -220,21 +220,21 @@ height=1.25em] (abstract) {};
      \label{fig:class-inherit}
  \end{figure}
 
-Some of the types inherit from a second level of type classes, each representing a separate category of types. 
+Some of the types inherit from a second level of type classes, each representing a separate category of types.
 \begin{description}
-\item[fieldListType] - This category of types represent the container types that contain a list of fields. Examples of this category include structure and the union types. 
-\item[derivedType] - This category of types represent types derived from a base type. Examples of this category include typedef, pointer and reference types. 
-\item[rangedType] - This category represents range types. Examples of this category include the array and the sub-range types. 
+\item[fieldListType] - This category of types represent the container types that contain a list of fields. Examples of this category include structure and the union types.
+\item[derivedType] - This category of types represent types derived from a base type. Examples of this category include typedef, pointer and reference types.
+\item[rangedType] - This category represents range types. Examples of this category include the array and the sub-range types.
 \end{description}
 The enum, function, common block and scalar types do not fall under any of the above category of types. Each of the specific types is derived from Type.
 
 \subsection{Line Number Interface}
 
-The Line Number interface is responsible for parsing line number information from the object file debug information and handling the look-up and addition of new line information. The main classes for this interface are LineInformation and LineNoTuple. 
+The Line Number interface is responsible for parsing line number information from the object file debug information and handling the look-up and addition of new line information. The main classes for this interface are LineInformation and LineNoTuple.
 
 \begin{description}
-\item[LineInformation] - A LineInformation class object represents a mapping of line numbers to address range within a module (source file). 
-\item[Statement/LineNoTuple] - A Statement class object represents a location in source code with a source file, line number in that source file and start column in that line. For backwards compatibility, Statements may also be referred to as LineNoTuples. 
+\item[LineInformation] - A LineInformation class object represents a mapping of line numbers to address range within a module (source file).
+\item[Statement/LineNoTuple] - A Statement class object represents a location in source code with a source file, line number in that source file and start column in that line. For backwards compatibility, Statements may also be referred to as LineNoTuples.
 \end{description}
 
 \subsection{Local Variable Interface}

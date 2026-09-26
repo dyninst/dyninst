@@ -9,14 +9,12 @@ computation that the AST being evaluated represents. It will fill in results of
 as many of the nodes in the tree as possible, and if full evaluation is
 possible, it will return the result of the computation performed by the tree.
 
-Equality of two expressions, \code{E_1} and \code{E_2}, is defined by
+Equality of two expressions, $E_1$ and $E_2$, is defined by
 \begin{itemize}
-\item \code{E_1} and \code{E_2} are the same type
+\item $E_1$ and $E_2$ are the same type
 \item If leaf nodes, they represent the same immediate value or the same register
-\item If non-\/leaf nodes, they represent the same operation and their corresponding children are equal 
+\item If non-\/leaf nodes, they represent the same operation and their corresponding children are equal
 \end{itemize}
-
-\begin{apient}
 
 Permissible leaf nodes of an \code{Expression} tree are RegisterAST and Immediate
 objects. Permissible internal nodes are \code{BinaryFunction} and Dereference objects.
@@ -55,9 +53,9 @@ automatically using the \code{setValue} mechanism. The \code{Expression} then at
 to determine its \code{Result} based on the \code{Result}s of its children. If this \code{Result} can
 be determined (most likely because register contents have been filled in via
 \code{setValue} or \code{bind}), it will be returned from \code{eval}; if it can
-not be determined, a \code{Result} with an undefined value will be returned. See Figure
-6 for an illustration of this concept; the operand represented is 
-\code{[ \code{EBX} + \code{4} $\ast$ \code{EAX} ]}. 
+not be determined, a \code{Result} with an undefined value will be returned. See
+Figure~\ref{fig:deref-eval} for an illustration of this concept; the operand represented is
+\code{[ \code{EBX} + \code{4} $\ast$ \code{EAX} ]}.
 The contents of \code{EBX} and \code{EAX} have been determined through some
 outside mechanism, and have been defined with \code{setValue}. The \code{eval}
 mechanism proceeds to determine the address being read by the \code{Dereference}, since
@@ -65,9 +63,6 @@ this information can be determined given the contents of the registers. This
 address is available from the Dereference through its child in the tree, even
 though calling \code{eval} on the Dereference returns a \code{Result} with an
 undefined value.
-
-\dotfile deref-eval.dot
-"Applying eval to a Dereference tree with the state of the registers known and the state of memory unknown"
 
 \begin{figure}
     \centering
@@ -78,14 +73,14 @@ having user-provided values.}
 \end{figure}
 
 \begin{apient}
-typedef boost::shared_ptr<Expression> Ptr
+typedef boost::shared_ptr<Expression> Ptr;
 \end{apient}
 \apidesc{
     A type definition for a reference-counted pointer to an \code{Expression}.
 }
 
 \begin{apient}
-bool operator==(const Expression &rhs) const  
+bool operator==(const Expression& rhs) const;
 \end{apient}
 \apidesc{
 Compare two AST nodes for equality.
@@ -96,17 +91,17 @@ equal. \code{RegisterAST}s are equal if they represent the same register.
 }
 
 \begin{apient}
-virtual bool isUsed(Expression::Ptr findMe) const
+bool isUsed(Expression::Ptr findMe) const;
 \end{apient}
 \apidesc{
     Search for an arbitrary subexpression, \code{findMe}, as a subtree of
-    the current tree. 
+    the current tree.
 
     Returns \code{true} if \code{findMe} is used by this AST node.
 }
 
 \begin{apient}
-virtual std::string format(formatStyle how == defaultStyle) const
+std::string format(formatStyle how = defaultStyle) const;
 \end{apient}
 \apidesc{
     The \code{format} interface returns the contents of an \code{Expression}
@@ -114,7 +109,7 @@ virtual std::string format(formatStyle how == defaultStyle) const
 }
 
 \begin{apient}
-const Result & eval() const
+const Result& eval() const;
 \end{apient}
 \apidesc{
     If the \code{Expression} can be evaluated, returns a \code{Result}
@@ -122,7 +117,7 @@ const Result & eval() const
 }
 
 \begin{apient}
-const setValue(const Result & knownValue)
+void setValue(const Result& knownValue);
 \end{apient}
 \apidesc{
     Sets the result of \code{eval} for this \code{Expression} to
@@ -130,7 +125,7 @@ const setValue(const Result & knownValue)
 }
 
 \begin{apient}
-void clearValue()
+void clearValue();
 \end{apient}
 \apidesc{
     \code{clearValue} sets the contents of this \code{Expression} to undefined.
@@ -139,7 +134,7 @@ void clearValue()
 }
 
 \begin{apient}
-int size() const
+int size() const;
 \end{apient}
 \apidesc{
     \code{size} returns the size of this \code{Expression}'s \code{Result}, in
@@ -147,7 +142,7 @@ int size() const
 }
 
 \begin{apient}
-bool bind(Expression * expr, const Result & value)
+bool bind(Expression* expr, const Result& value);
 \end{apient}
 \apidesc{
     \code{bind} searches for all instances of the Expression \code{expr} within
@@ -162,18 +157,17 @@ bool bind(Expression * expr, const Result & value)
 }
 
 \begin{apient}
-virtual void apply(Visitor *)
+void apply(Visitor *);
 \end{apient}
 \apidesc{
     \code{apply} applies a \code{Visitor} to this \code{Expression}. Visitors
     perform postfix-order traversal of the ASTs represented by an
     \code{Expression}, with user-defined actions performed at each node of the
-    tree. We present a thorough discussion with examples in Section
-    \ref{sec:visitor}. 
+    tree. We present a thorough discussion with examples in Section~\ref{sec:visitor}.
 }
 
 \begin{apient}
-std::vector<Expression::Ptr> getSubexpressions() const
+std::vector<Expression::Ptr> getSubexpressions() const;
 \end{apient}
 \apidesc{
 Returns all subexpressions used by the current expression.

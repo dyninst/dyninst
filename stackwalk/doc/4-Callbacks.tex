@@ -1,8 +1,8 @@
 \section{Callback Interface Default Implementations}
 
 StackwalkerAPI provides one or more default implementations of each of the
-callback classes described in Section 3.5. These implementations are used by a
-default configuration of StackwalkerAPI. 
+callback classes described in Section~\ref{sec:callback-interface}. These implementations are used by a
+default configuration of StackwalkerAPI.
 
 \subsection{Debugger Interface}
 \label{subsec:debugger}
@@ -12,18 +12,18 @@ walks. In 3rd party mode StackwalkerAPI uses the OS's debugger interface to
 connect to another process and walk its call stacks. As part of being a debugger
 StackwalkerAPI receives and needs to handle debug events. When a debugger event
 occurs, StackwalkerAPI must get control of the host process in order to receive
-the debugger event and continue the target process. 
+the debugger event and continue the target process.
 
 To illustrate the complexities with running in 3rd party mode, consider the
 follow code snippet that uses StackwalkerAPI to collect a stack walk every five
-seconds. 
+seconds.
 
 \begin{lstlisting}
-Walker *walker = Walker::newWalker(pid);
+Walker* walker = Walker::newWalker(pid);
 std::vector<Frame> swalk;
-for (;;) {
-		walker->walkStack(swalk);
-		sleep(5);
+for (;;)  {
+  walker->walkStack(swalk);
+  sleep(5);
 }
 \end{lstlisting}
 
@@ -58,29 +58,29 @@ found in Section~\ref{subsubsec:procdebug}. See the UNIX man pages for more info
 error handling and includes that should be present when using \code{select}.
 
 \begin{lstlisting}
-Walker *walker = Walker::newWalker(pid);
-ProcDebug *debugger = (ProcDebug *) walker->getProcessState();
+Walker* walker = Walker::newWalker(pid);
+ProcDebug* debugger = (ProcDebug *) walker->getProcessState();
 std::vector<Frame> swalk;
-for (;;) {
-    walker->walkStack(swalk);		
-    struct timeval timeout;
-    timeout.tv_sec = 5;
-    timeout.tv_usec = 0;
-    int max = 1;
-    fd_set readfds, writefds, exceptfds;
-    FD_ZERO(&readfds); FD_ZERO(&writefds); FD_ZERO(&exceptfds);
-    FD_SET(ProcDebug::getNotificationFD(), &readfds);
-    for (;;) {
-        int result = select(max, &readfds, &writefds, &exceptfds, &timeout);
-        if (FD_ISSET(ProcDebug::getNotificationFD(), readfds)) {
-            //Debug event
-            ProcDebug::handleDebugEvent();
-        }
-        if (result == 0) {
-            //Timeout
-            break;
-        }
+for (;;)  {
+  walker->walkStack(swalk);
+  struct timeval timeout;
+  timeout.tv_sec = 5;
+  timeout.tv_usec = 0;
+  int max = 1;
+  fd_set readfds, writefds, exceptfds;
+  FD_ZERO(&readfds); FD_ZERO(&writefds); FD_ZERO(&exceptfds);
+  FD_SET(ProcDebug::getNotificationFD(), &readfds);
+  for (;;)  {
+    int result = select(max, &readfds, &writefds, &exceptfds, &timeout);
+    if (FD_ISSET(ProcDebug::getNotificationFD(), readfds))  {
+      //Debug event
+      ProcDebug::handleDebugEvent();
     }
+    if (result == 0)  {
+      //Timeout
+      break;
+    }
+  }
 }
 \end{lstlisting}
 
@@ -97,15 +97,15 @@ inherits from the \code{ProcessState} interface. The easiest way to get at a
 \code{ProcDebug} interface:
 
 \begin{lstlisting}
-ProcDebug *debugger;
+ProcDebug* debugger;
 debugger = dynamic_cast<ProcDebug*>(walker->getProcessState());
-if (debugger != NULL) {
-    //3rd party
-    ...
-} else {
+if (debugger != NULL)  {
+  //3rd party
+  ...
+        }  else  {
     //1st party
     ...
-}
+          }
 \end{lstlisting}
 
 In addition to the handling of debug events, described in
@@ -116,7 +116,7 @@ process, and test for events such as process death. As an implementation of the
 functionality described in Section~\ref{subsec:processstate}.
 
 \begin{apient}
-virtual bool pause(Dyninst::THR_ID tid = NULL_THR_ID)
+bool pause(Dyninst::THR_ID tid = NULL_THR_ID);
 \end{apient}
 \apidesc{
     This method pauses a process or thread. The paused object will not resume
@@ -137,7 +137,7 @@ virtual bool pause(Dyninst::THR_ID tid = NULL_THR_ID)
 }
 
 \begin{apient}
-virtual bool resume(Dyninst::THR_ID tid = NULL_THR_ID)
+bool resume(Dyninst::THR_ID tid = NULL_THR_ID);
 \end{apient}
 \apidesc{
     This method resumes execution on a paused process or thread. This method
@@ -152,7 +152,7 @@ virtual bool resume(Dyninst::THR_ID tid = NULL_THR_ID)
 }
 
 \begin{apient}
-virtual bool detach(bool leave_stopped = false)
+bool detach(bool leave_stopped = false);
 \end{apient}
 \apidesc{
     This method detaches StackwalkerAPI from the target process. StackwalkerAPI
@@ -173,7 +173,7 @@ virtual bool detach(bool leave_stopped = false)
 }
 
 \begin{apient}
-virtual bool isTerminated()
+bool isTerminated();
 \end{apient}
 \apidesc{
     This method returns \code{true} if the associated target process has
@@ -181,14 +181,14 @@ virtual bool isTerminated()
     calling exit, returning from main, or receiving an unhandled signal.
     Attempting to collect stack walks or perform other operations on a
     terminated process is illegal an will lead to undefined behavior.
-	
+
     A process termination will also be signaled through the notification FD.
 Users should check processes for the isTerminated state after returning from
-handleDebugEvent.  
+handleDebugEvent.
 }
 
 \begin{apient}
-static int getNotificationFD()
+static int getNotificationFD();
 \end{apient}
 \apidesc{
     This method returns StackwalkerAPI's notification FD. The notification FD is
@@ -196,13 +196,13 @@ static int getNotificationFD()
     event occurs that need. If the user code sees a byte on this file descriptor
     it should call \code{handleDebugEvent} to let StackwalkerAPI handle the debug
     event. Example code using \code{getNotificationFD} can be found in
-    Section~\ref{subsec:debugger}. 
+    Section~\ref{subsec:debugger}.
 
 	StackwalkerAPI will only create one notification FD, even if it is attached to multiple 3rd party target processes.
 }
 
 \begin{apient}
-static bool handleDebugEvent(bool block = false)
+static bool handleDebugEvent(bool block = false);
 \end{apient}
 \apidesc{
     When this method is called StackwalkerAPI will receive and handle all
@@ -216,7 +216,7 @@ static bool handleDebugEvent(bool block = false)
     If the \code{block} parameter is \code{true}, then \code{handleDebugEvents}
     will block until it has handled at least one debug event. If the block
     parameter is \code{false}, then handleDebugEvents will handle any currently pending
-    debug events or immediately return if none are available. 
+    debug events or immediately return if none are available.
 
     StackwalkerAPI may receive process exit events for target processes while
     handling debug events. The user should check for any exited processes by
@@ -224,8 +224,8 @@ static bool handleDebugEvent(bool block = false)
 
     This method returns \code{true} if successful and \code{false} on error.
 }
-    
-\subsection{FrameSteppers}\label{sec:framesteppers} 
+
+\subsection{FrameSteppers}\label{sec:framesteppers}
 \definedin{framestepper.h}
 
 StackwalkerAPI ships with numerous default implementations of the
@@ -248,9 +248,9 @@ providing their own implementation of these helper classes.
 This class implements stack walking through a call frame that is setup with the
 architectures standard stack frame. For example, on x86 this \code{FrameStepper} will
 be used to walk through stack frames that are setup with a \code{push \%ebp/mov
-\%esp,\%ebp} prologue. 
+\%esp,\%ebp} prologue.
 
-\paragraph{Class FrameFuncHelper}
+\subsubsection{Class FrameFuncHelper}
 
 \code{FrameFuncStepper} uses a helper class, \code{FrameFuncHelper}, to get information on
 what kind of stack frame it's walking through. The \code{FrameFuncHelper} will
@@ -277,7 +277,7 @@ typedef enum {
     systems, and means that a function saves the old frame pointer, but does not
     setup a new frame pointer (it has a \code{push \%ebp} instruction, but no \code{mov
     \%esp,\%ebp}). If the \code{FrameFuncHelper} cannot determine the
-    \code{frame\_type}, then it should be assigned the value \code{unknown\_t}. 
+    \code{frame\_type}, then it should be assigned the value \code{unknown\_t}.
 }
 
 \begin{apient}
@@ -293,7 +293,7 @@ typedef enum {
     frame at some point of execution. For example, a function may set up a
     standard stack frame and have a \code{frame\_type} of \code{standard\_frame}, but execution
     may be at the first instruction in the function and the frame is not yet
-    setup, in which case the \code{frame\_state} will be \code{unset\_frame}. 
+    setup, in which case the \code{frame\_state} will be \code{unset\_frame}.
 
     If the function sets up a standard stack frame and the execution point is
     someplace where the frame is completely setup, then the \code{frame\_state} should be
@@ -303,11 +303,12 @@ at a point where the frame does not yet exist or has been torn down, then
 value of \code{frame\_state} is
 currently only meaningful on the x86 family of architecture, and should if the
 function has saved the old frame pointer, but not yet set up a new frame
-pointer.	
+pointer.
 }
 
 \begin{apient}
-typedef std::pair<frame_type, frame_state> alloc_frame_t;		
+typedef std::pair<frame_type, frame_state> alloc_frame_t;
+
 virtual alloc_frame_t allocatesFrame(Address addr) = 0;
 \end{apient}
 \apidesc{
@@ -316,9 +317,9 @@ virtual alloc_frame_t allocatesFrame(Address addr) = 0;
     describes the frame\_type of the function at \code{addr} and the
     \code{frame\_state} of the
     function when execution reached \code{addr}.
-	
+
     If \code{addr} is invalid or an error occurs, allocatedFrame should return
-    \code{alloc\_frame\_t(unknown\_t, unknown\_s)}.  
+    \code{alloc\_frame\_t(unknown\_t, unknown\_s)}.
 }
 
 \subsubsection{Class SigHandlerStepper}
@@ -332,7 +333,7 @@ stack frame that cannot be walked through using normal stack walking techniques.
 
 This class uses debug information found in a binary to walk through a stack
 frame. It depends on SymtabAPI to read debug information from a binary, then
-uses that debug information to walk through a call frame. 
+uses that debug information to walk through a call frame.
 
 Most binaries must be built with debug information (\code{-g} with \code{gcc}) in order to
 include debug information that this \code{FrameStepper} uses. Some languages, such as
@@ -345,7 +346,7 @@ information if it is available.
 This class uses dataflow analysis to determine possible stack sizes at
 all locations in a function as well as the location of the frame
 pointer. It is able to handle optimized code with omitted frame
-pointers and overlapping code sequences. 
+pointers and overlapping code sequences.
 
 \subsubsection{Class StepperWanderer}
 
@@ -355,7 +356,7 @@ caller of the current function, we conclude it is the actual return
 address and construct a matching stack frame. Since this approach is
 heuristic it can make mistakes leading to incorrect stack
 information. It has primarily been replaced by the
-\code{AnalysisStepper} described above. 
+\code{AnalysisStepper} described above.
 
 \subsubsection{Class BottomOfStackStepper}
 

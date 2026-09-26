@@ -1,7 +1,7 @@
 A \code{MachSyscall} represents a system call in a platform-independent manner.
 
 \begin{apient}
-SyscallIDPlatform num() const
+SyscallIDPlatform num() const;
 \end{apient}
 
 \apidesc{
@@ -9,15 +9,15 @@ Returns the platform-specific syscall number
 }
 
 \begin{apient}
-SyscallName name() const
+SyscallName name() const;
 \end{apient}
 
 \apidesc{
-Returns the name of the system call (e.g. “getpid”)
+Returns the name of the system call (e.g. ``getpid'')
 }
 
 \begin{apient}
-bool operator==(const MachSyscall&) const
+bool operator==(const MachSyscall&) const;
 \end{apient}
 
 \apidesc{
@@ -26,7 +26,7 @@ and have the same syscall number.
 }
 
 \begin{apient}
-static MachSyscall makeFromPlatform(Platform, SyscallIDIndependent)
+static MachSyscall makeFromPlatform(Platform, SyscallIDIndependent);
 \end{apient}
 
 \apidesc{

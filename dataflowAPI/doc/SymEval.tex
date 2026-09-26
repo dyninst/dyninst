@@ -14,7 +14,7 @@ typedef std::map<Assignment::Ptr, AST::Ptr, AssignmentPtrValueComp> Result_t;
 Each assignment in the slice has a corresponding AST.}
 
 \begin{apient}
-static std::pair<AST::Ptr, bool> expand(const Assignment::Ptr &assignment, 
+static std::pair<AST::Ptr, bool> expand(const Assignment::Ptr& assignment,
                                         bool applyVisitors = true);
 \end{apient}
 \apidesc{This interface expands a single assignment given by \code{assignment}
@@ -24,14 +24,14 @@ succeeded or not. \code{applyVisitors} specifies whether or not to perform stack
 analysis to precisely track stack variables.}
 
 \begin{apient}
-static bool expand(Result_t &res, 
-                   std::set<InstructionPtr> &failedInsns,
+static bool expand(Result_t& res,
+                   std::set<InstructionPtr>& failedInsns,
 		   bool applyVisitors = true);
 \end{apient}
 \apidesc{This interface expands a set of assignment prepared in \code{res}. The
 corresponding ASTs are written back into \code{res} and all instructions that
-failed during expansion are inserted into \code{failedInsns}. \code{applyVisitors} 
-specifies whether or not to perform stack analysis to precisely track stack variables. 
+failed during expansion are inserted into \code{failedInsns}. \code{applyVisitors}
+specifies whether or not to perform stack analysis to precisely track stack variables.
 This function returns \code{true} when all assignments in \code{res} are
 successfully expanded. }
 
@@ -50,7 +50,7 @@ SUCCESS & success \\
 \end{center}
 
 \begin{apient}
-static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res);
+static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t& res);
 \end{apient}
 \apidesc{This interface expands a slice and returns an AST for each assignment in
 the slice. This function will perform substitution of ASTs.}
@@ -58,7 +58,7 @@ the slice. This function will perform substitution of ASTs.}
 We use an AST to represent the symbolic expressions of an assignment. A symbolic
 expression AST contains internal node type \code{RoseAST}, which abstracts the
 operations performed with its child nodes, and two leave node types:
-\code{VariableAST} and \code{ConstantAST}. 
+\code{VariableAST} and \code{ConstantAST}.
 
 \code{RoseAST}, \code{VariableAST},
 and \code{ConstantAST} all extend class \code{AST}. Besides the methods provided
@@ -69,17 +69,16 @@ them.
 \begin{apient}
 Variable& VariableAST::val() const;
 Constant& ConstantAST::val() const;
-ROSEOperation & RoseAST::val() const;
+ROSEOperation& RoseAST::val() const;
 \end{apient}
 
 We now describe data structure \code{Variable}, \code{Constant}, and
 \code{ROSEOperation}.
- 
-\begin{apient}
-struct Variable;
-\end{apient}
-\apidesc{A \code{Variable} represents an abstract region at a particular
-address.}
+
+\subsection{Class Variable}
+
+A \code{Variable} represents an abstract region at a particular
+address.
 
 \begin{apient}
 Variable::Variable();
@@ -89,9 +88,8 @@ Variable::Variable(AbsRegion r, Address a);
 \apidesc{The constructors of class Variable.}
 
 \begin{apient}
-bool Variable::operator==(const Variable &rhs) const;
-bool Variable::operator<(const Variable &rhs) const; 
-
+bool Variable::operator==(const Variable& rhs) const;
+bool Variable::operator<(const Variable& rhs) const;
 \end{apient}
 \apidesc{Two Variable objects are equal when their AbsRegion are equal and their
 addresses are equal.}
@@ -107,10 +105,9 @@ Address Variable::addr;
 \end{apient}
 \apidesc{The abstraction region and the address of this Variable.}
 
-\begin{apient}
-struct Constant;
-\end{apient}
-\apidesc{A \code{Constant} object represents a constant value in code.}
+\subsection{Class Constant}
+
+A \code{Constant} object represents a constant value in code.
 
 \begin{apient}
 Constant::Constant();
@@ -120,8 +117,8 @@ Constant::Constant(uint64_t v, size_t s);
 \apidesc{Construct Constant objects.}
 
 \begin{apient}
-bool Constant::operator==(const Constant &rhs) const;
-bool Constant::operator<(const Constant &rhs) const;
+bool Constant::operator==(const Constant& rhs) const;
+bool Constant::operator<(const Constant& rhs) const;
 \end{apient}
 \apidesc{Comparison operators for Constant objects. Comparison is based on the
 value and size.}
@@ -137,9 +134,7 @@ size_t Constant::size;
 \end{apient}
 \apidesc{The numerical value and bit size of this value.}
 
-\begin{apient}
-struct ROSEOperation;
-\end{apient}
+\subsection{Class ROSEOperation}
 
 \code{ROSEOperation} defines the following operations and we represent the
 semantics of all instructions with these operations.
@@ -176,7 +171,7 @@ ROSEOperation::Op & Meaning \\
     uMultOp & Unsigned multiplication operation \\
     sDivOp & Signed division operation \\
     sModOp & Signed modular operation \\
-    uDivOp & Unsigned division operation \\    
+    uDivOp & Unsigned division operation \\
     uModOp & Unsigned modular operation \\
     extendOp & Zero extend operation \\
     extendMSBOp & Extend the most significant bit operation \\
@@ -191,7 +186,7 @@ ROSEOperation::ROSEOperation(Op o, size_t s);
 \apidesc{Constructors for ROSEOperation}
 
 \begin{apient}
-bool ROSEOperation::operator==(const ROSEOperation &rhs) const;
+bool ROSEOperation::operator==(const ROSEOperation& rhs) const;
 \end{apient}
 \apidesc{Equal operator}
 
@@ -213,12 +208,13 @@ for ASTs.
 
 \begin{apient}
 typedef boost::shared_ptr<AST> ASTVisitor::ASTPtr;
-virtual ASTVisitor::ASTPtr ASTVisitor::visit(AST *);
-virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::BottomAST *);
-virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::ConstantAST *);
-virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::VariableAST *);
-virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::RoseAST *);
-virtual ASTVisitor::ASTPtr ASTVisitor::visit(StackAST *);
+
+ASTVisitor::ASTPtr ASTVisitor::visit(AST *);
+ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::BottomAST *);
+ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::ConstantAST *);
+ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::VariableAST *);
+ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::RoseAST *);
+ASTVisitor::ASTPtr ASTVisitor::visit(StackAST *);
 \end{apient}
 \apidesc{Callback functions for visiting each type of AST node. The default
 behavior is to return the input parameter.}

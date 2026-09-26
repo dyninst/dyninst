@@ -8,37 +8,38 @@ instantiation of the default ParseCallback can be passed to the CodeObject durin
 
 \begin{apient}
 struct default_details {
-    default_details(unsigned char * b,size_t s, bool ib);
-    unsigned char * ibuf;
+    default_details(unsigned char* b, size_t s, bool ib);
+    unsigned char* ibuf;
     size_t isize;
     bool isbranch;
-}
+};
 \end{apient}
 \apidesc{Details used in the \code{unresolved\_cf} and \code{abruptEnd\_cf}
 callbacks.}
 
 \begin{apient}
-virtual void instruction_cb(Function *,
+void instruction_cb(Function *,
                             Block *,
                             Address,
-                            insn_details *)
+                            insn_details *);
 \end{apient}
 \apidesc{Invoked for each instruction decoded during parsing. Implementing this callback may incur significant overhead.}
 
 \begin{apient}
 struct insn_details {
-    InsnAdapter::InstructionAdapter * insn;
-}
+    InsnAdapter::InstructionAdapter* insn;
+};
 \end{apient}
 
 \begin{apient}
 void interproc_cf(Function *,
+                  Block *,
                   Address,
-                  interproc_details *)
+                  interproc_details *);
 \end{apient}
 \apidesc{Invoked for each interprocedural control flow instruction.}
 
-\begin{apient}  
+\begin{apient}
 struct interproc_details {
     typedef enum {
         ret,
@@ -46,7 +47,7 @@ struct interproc_details {
         branch_interproc, // tail calls, branches to plts
         syscall
     } type_t;
-    unsigned char * ibuf;
+    unsigned char* ibuf;
     size_t isize;
     type_t type;
     union {
@@ -56,12 +57,12 @@ struct interproc_details {
             bool dynamic_call;
         } call;
     } data;
-}
+};
 \end{apient}
 \apidesc{Details used in the \code{interproc\_cf} callback.}
 
 \begin{apient}
 void overlapping_blocks(Block *,
-                        Block *)
+                        Block *);
 \end{apient}
 \apidesc{Noification of inconsistent parse data (overlapping blocks).}

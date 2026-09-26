@@ -9,7 +9,7 @@ and pseudo-registers is implementation dependent
 and should not be relied upon; it may change in future releases.
 
 \begin{apient}
-  int getImm()
+  long getImm() const;
 \end{apient}
 
 \apidesc{
@@ -17,7 +17,7 @@ and should not be relied upon; it may change in future releases.
 }
 
 \begin{apient}
-  int getReg(unsigned i)
+  int getReg(unsigned i) const;
 \end{apient}
 
 \apidesc{
@@ -27,7 +27,7 @@ and should not be relied upon; it may change in future releases.
 }
 
 \begin{apient}
-  int getScale()
+  int getScale() const;
 \end{apient}
 
 \apidesc{

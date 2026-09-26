@@ -7,13 +7,13 @@ and produce another \code{ValueComputation}.
 For the purposes of representing a single operand of an instruction, the
 \code{BinaryFunction}s of interest are addition and multiplication of integer values;
 this allows an \code{Expression} to represent all addressing modes on the architectures
-currently supported by the Instruction API. 
+currently supported by the Instruction API.
 
 \begin{apient}
 BinaryFunction(Expression::Ptr arg1,
                Expression::Ptr arg2,
                Result_Type result_type,
-               funcT:Ptr func)
+               funcT::Ptr func);
 \end{apient}
 \apidesc{
 The constructor for a \code{BinaryFunction} may take a reference-\/counted pointer or a plain C++ pointer
@@ -28,11 +28,11 @@ The \code{func} parameter is a binary functor on two \code{Result}s. It should b
 as part of the InstructionAPI, as they are necessary for representing address calculations. Other \code{funcTs}
 may be implemented by the user if desired. \code{funcTs} have names associated with them for output and
 debugging purposes. The addition and multiplication functors provided with the Instruction API are named
-"+" and "*", respectively. 
+\code{+} and \code{*}, respectively.
 }
 
 \begin{apient}
-const Result & eval () const
+const Result& eval() const;
 \end{apient}
 \apidesc{
 The \code{BinaryFunction} version of \code{eval} allows the \code{eval} mechanism to handle complex addressing
@@ -47,14 +47,14 @@ evaluable.
 }
 
 \begin{apient}
-std::vector<Expression::Ptr> getSubexpressions() const
+std::vector<Expression::Ptr> getSubexpressions() const;
 \end{apient}
 \apidesc{
 Returns the left and right subexpressions.
 }
 
 \begin{apient}
-bool isUsed (Expression::Ptr findMe) const 
+bool isUsed(Expression::Ptr findMe) const;
 \end{apient}
 \apidesc{
 \code{isUsed} returns \code{true} if \code{findMe} is an argument of this \code{BinaryFunction}, or if it is in the use set of either argument.

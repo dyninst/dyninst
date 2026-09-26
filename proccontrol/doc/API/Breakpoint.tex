@@ -1,5 +1,6 @@
 \begin{apient}
-Breakpoint::ptr Breakpoint::const_ptr
+Breakpoint::ptr;
+Breakpoint::const_ptr;
 \end{apient}
 
 \apidesc{
@@ -12,7 +13,9 @@ process.
 }
 
 \begin{apient}
-static const int BP_X = 1 static const int BP_W = 2 static const int BP_R = 4
+static const int BP_X = 1;
+static const int BP_W = 2;
+static const int BP_R = 4;
 \end{apient}
 
 \apidesc{
@@ -21,7 +24,7 @@ breakpoints.
 }
 
 \begin{apient}
-Breakpoint::ptr newBreakpoint()
+static Breakpoint::ptr newBreakpoint();
 \end{apient}
 
 \apidesc{
@@ -31,7 +34,7 @@ Process::addBreakpoint().
 }
 
 \begin{apient}
-Breakpoint::ptr newTransferBreakpoint(Dyninst::Address ctrl_to)
+static Breakpoint::ptr newTransferBreakpoint(Dyninst::Address ctrl_to);
 \end{apient}
 
 \apidesc{
@@ -41,7 +44,7 @@ specified by the ctrl\_to parameter.
 }
 
 \begin{apient}
-Breakpoint::ptr newHardwareBreakpoint(unsigned int mode, unsigned int size)
+static Breakpoint::ptr newHardwareBreakpoint(unsigned int mode, unsigned int size);
 \end{apient}
 
 \apidesc{
@@ -55,16 +58,16 @@ then the breakpoint will trigger.
 }
 
 \begin{apient}
-bool isCtrlTransfer() const
+bool isCtrlTransfer() const;
 \end{apient}
 
 \apidesc{
 This function returns true if the Breakpoint is a control transfer breakpoint,
-and false if it is a regular Breakpoint. 
+and false if it is a regular Breakpoint.
 }
 
 \begin{apient}
-Dyninst::Address getToAddress() const
+Dyninst::Address getToAddress() const;
 \end{apient}
 
 \apidesc{
@@ -74,26 +77,26 @@ control transfer breakpoint, then this function returns 0.
 }
 
 \begin{apient}
-void setData(void *data) const
+void setData(void* data) const;
 \end{apient}
 
 \apidesc{
 This function sets the value of an opaque handle that is associated with each
 Breakpoint. The opaque handle can be any value, and it can be retrieved with
-the getData function. 
+the getData function.
 }
 
 \begin{apient}
-void *getData() const
+void* getData() const;
 \end{apient}
 
 \apidesc{
 This function returns the value of the opaque handled that is associated with
-this Breakpoint. 
+this Breakpoint.
 }
 
 \begin{apient}
-void setSuppressCallbacks(bool val)
+void setSuppressCallbacks(bool val);
 \end{apient}
 
 \apidesc{
@@ -104,7 +107,7 @@ default callbacks occur from every breakpoint.
 }
 
 \begin{apient}
-bool suppressCallbacks() const
+bool suppressCallbacks() const;
 \end{apient}
 
 \apidesc{

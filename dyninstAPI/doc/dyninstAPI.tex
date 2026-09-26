@@ -1,6 +1,10 @@
 \documentclass{article}
 \newcommand{\ManualName}{dyninstAPI}
 
+%% loop_example.pdf is a PDF 1.6 file; without this pdfTeX emits 1.5 and
+%% warns that it is including a newer PDF than it is producing.
+\pdfminorversion=6
+
 \usepackage{pgf}
 \pgfrealjobname{dyninstAPI}
 
@@ -10,25 +14,20 @@
 \input{../../common/doc/manual_frontpage.tex}
 
 \lstset{
-  basicstyle=\ttfamily,
-  keywordstyle=\ttfamily\color{purple},
-  commentstyle=\ttfamily\color{lightgray},
-  stringstyle=\ttfamily\color{orange},
-  frame=leftline,
-  % Highlight the BPatch types like they are keywords, but in a different color
+  %% Highlight this manual's own type names like keywords; the style
+  %% itself lives in common/doc/manual_commands.tex.
   emph={
     BPatch_actualAddressExpr, BPatch_addressSpace, BPatch_addrSpec_NP, BPatch_arithExpr,
     BPatch_basicBlockLoop, BPatch_basicBlock, BPatch_binaryEdit, BPatch_boolExpr,
     BPatch_breakPointExpr, BPatch_bytesAccessedExpr, BPatch_cblock, BPatch_constExpr,
     BPatch_countSpec_NP, BPatch_dynamicTargetExpr, BPatch_edge, BPatch_effectiveAddressExpr,
     BPatch_flowGraph, BPatch_frame, BPatch_funcCallExpr, BPatch_function, BPatch_ifExpr,
-    BPatch_image, BPatch_instruction, BPatch_loopTreeNode, BPatch_module, BPatch_nullExpr,
+    BPatch_image, BPatch_instruction, BPatch_loopTreeNode, BPatch_memoryAccess, BPatch_module, BPatch_nullExpr,
     BPatch_object, BPatch_originalAddressExpr, BPatch_paramExpr, BPatch_process, BPatch_registerExpr,
     BPatch_retExpr, BPatch_scrambleRegistersExpr, BPatch_sequence, BPatch_snippet, BPatch_sourceBlock,
     BPatch_sourceObj, BPatch_stopThreadExpr, BPatch, BPatch_thread, BPatch_tidExpr, BPatch_variableExpr,
-    BPatch_whileExpr, StackMod 
+    BPatch_whileExpr, StackMod
   },
-  emphstyle=\color{blue}
 }
 
 \tableofcontents
@@ -60,6 +59,8 @@
       \input{API/BPatch_image}
     \subsubsection{BPatch\_instruction}
       \input{API/BPatch_instruction}
+    \subsubsection{BPatch\_memoryAccess}
+      \input{API/BPatch_memoryAccess}
     \subsubsection{BPatch\_module}
       \input{API/BPatch_module}
     \subsubsection{BPatch\_object}
@@ -68,13 +69,13 @@
       \input{API/BPatch_sourceBlock}
     \subsubsection{BPatch\_sourceObj}
       \input{API/BPatch_sourceObj}
-  
+
   \subsection{Control Flow}
 
     \subsubsection{BPatch\_basicBlockLoop}
       \input{API/BPatch_basicBlockLoop}
     \subsubsection{BPatch\_edge}
-      \input{API/BPatch_edge}  
+      \input{API/BPatch_edge}
     \subsubsection{BPatch\_flowGraph}
       \input{API/BPatch_flowGraph}
     \subsubsection{BPatch\_loopTreeNode}
@@ -126,6 +127,7 @@
   \input{ErrorHandling}
 
 \section{Conversions to other Dyninst toolkits}
+\label{sec:conversions}
   \input{Conversions}
 
 \section{Usage}
@@ -136,13 +138,13 @@
     \input{examples/retee}
 
   \subsection{Instrumenting Memory Access}
-    \input{examples/InstrumentingMemoryAccess}
+    \lstinputlisting{examples/InstrumentingMemoryAccess.C}
 
   \subsection{Instrumenting a Function}
-    \input{examples/InstrumentingFunction}
+    \lstinputlisting{examples/InstrumentingFunction.C}
 
   \subsection{Binary Analysis}
-    \input{examples/BinaryAnalysis}
+    \lstinputlisting{examples/BinaryAnalysis.C}
 
 \section{Optimization}
   \input{OptimizingPerformance}

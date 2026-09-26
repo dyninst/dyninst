@@ -6,14 +6,10 @@ The Immediate class represents an immediate value in an operand.
 Since an Immediate represents a constant value, the \code{setValue} and
 \code{clearValue} interface are disabled on Immediate objects. If an immediate
 value is being modified, a new Immediate object should be created to represent
-the new value. 
+the new value.
 
 \begin{apient}
-virtual bool isUsed(Expression::Ptr findMe) const
-\end{apient}
-
-\begin{apient}
-bool isUsed(InstructionAPI::Ptr findMe) const
+bool isUsed(Expression::Ptr findMe) const;
 \end{apient}
 \apidesc{
 \code{isUsed}, when called on an Immediate, will return true if \code{findMe}
@@ -22,6 +18,6 @@ arbitrary, it allows \code{isUsed} to follow a natural rule: an
 \code{Expression}
 is used by another \code{Expression} if and only if the first
 \code{Expression} is a
-subtree of the second one. 
+subtree of the second one.
 }
 

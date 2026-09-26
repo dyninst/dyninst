@@ -7,7 +7,7 @@
     BPatch_times,   // multiply rOperand by lOperand
     BPatch_ref,     // Array reference of the form lOperand[rOperand]
     BPatch_seq,     // Define a sequence of two expressions (similar to comma in C)
-  }
+  };
 \end{apient}
 
 \apidesc{
@@ -15,8 +15,8 @@
 }
 
 \begin{apient}
-  BPatch_arithExpr(BPatch_binOp op, const BPatch_snippet &lOperand,
-                   const BPatch_snippet &rOperand)}
+  BPatch_arithExpr(BPatch_binOp op, const BPatch_snippet& lOperand,
+                   const BPatch_snippet& rOperand);
 \end{apient}
 
 \apidesc{
@@ -28,7 +28,7 @@ Perform the requested binary operation.
     BPatch_negate, // Returns the negation of an integer
     BPatch_addr,   // Returns a pointer to a BPatch_variableExpr
     BPatch_deref,  // Dereferences a pointer
-  }
+  };
 \end{apient}
 
 \apidesc{
@@ -36,7 +36,7 @@ Perform the requested binary operation.
 }
 
 \begin{apient}
-  BPatch_arithExpr(BPatch_unOp, const BPatch_snippet &operand)
+  BPatch_arithExpr(BPatch_unOp, const BPatch_snippet& operand);
 \end{apient}
 
 \apidesc{

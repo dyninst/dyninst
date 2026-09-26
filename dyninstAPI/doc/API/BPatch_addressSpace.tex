@@ -3,7 +3,7 @@ and \code{BPatch\_binaryEdit} classes. It contains functionality that is common
 between the two subclasses.
 
 \begin{apient}
-  BPatch_image *getImage()
+  BPatch_image* getImage();
 \end{apient}
 
 \apidesc{
@@ -11,7 +11,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool getSourceLines(unsigned long addr, std::vector<BPatch_statement> &lines)
+  bool getSourceLines(unsigned long addr, std::vector<BPatch_statement>& lines);
 \end{apient}
 
 \apidesc{
@@ -21,14 +21,14 @@ between the two subclasses.
   address, but certain compiler optimizations may lead to multiple filenames and
   lines at an address. This information is only available if the mutatee was compiled
   with debug information.
-  
+
   This function returns true if it was able to find any line information at addr,
   or false otherwise.
 }
 
 \begin{apient}
-  bool getAddressRanges(const char *fileName, unsigned int lineNo,
-                        std::vector<std::pair<unsigned long, unsigned long>> &ranges)
+  bool getAddressRanges(const char* fileName, unsigned int lineNo,
+                        std::vector<std::pair<unsigned long, unsigned long>>& ranges);
 \end{apient}
 
 \apidesc{
@@ -43,9 +43,8 @@ between the two subclasses.
 }
 
 \begin{apient}
-  BPatch_variableExpr *malloc(int n, std::string name = std::string(""))
-
-  BPatch_variableExpr *malloc(const BPatch_type &type, std::string name = std::string(""))
+  BPatch_variableExpr* malloc(int n, std::string name = std::string(""));
+  BPatch_variableExpr* malloc(const BPatch_type& type, std::string name = std::string(""));
 \end{apient}
 
 \apidesc{
@@ -62,9 +61,9 @@ between the two subclasses.
 }
 
 \begin{apient}
-  BPatch_variableExpr *createVariable(Dyninst::Address addr, BPatch_type *type,
+  BPatch_variableExpr* createVariable(Dyninst::Address addr, BPatch_type* type,
                                       std::string var_name = std::string(""),
-                                      BPatch_module *in_module = NULL)
+                                      BPatch_module* in_module = NULL);
 \end{apient}
 
 \apidesc{
@@ -80,7 +79,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool free(BPatch_variableExpr &ptr)
+  bool free(BPatch_variableExpr& ptr);
 \end{apient}
 
 \apidesc{
@@ -91,7 +90,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool getRegisters(std::vector<BPatch_register> &regs)
+  bool getRegisters(std::vector<BPatch_register>& regs);
 \end{apient}
 
 \apidesc{
@@ -99,14 +98,13 @@ between the two subclasses.
 }
 
 \begin{apient}
-  BPatchSnippetHandle *insertSnippet(const BPatch_snippet &expr,  BPatch_point &point,
+  BPatchSnippetHandle* insertSnippet(const BPatch_snippet& expr, BPatch_point& point,
                                      BPatch_callWhen when,
-                                     BPatch_snippetOrder order = BPatch_firstSnippet)
-
-  BPatchSnippetHandle *insertSnippet(const BPatch_snippet &expr,
-                                     const std::vector<BPatch_point *> &points,
-                                     BPatch_callWhen when, 
-                                     BPatch_snippetOrder order = BPatch_firstSnippet)
+                                     BPatch_snippetOrder order = BPatch_firstSnippet);
+  BPatchSnippetHandle* insertSnippet(const BPatch_snippet& expr,
+                                     const std::vector<BPatch_point*>& points,
+                                     BPatch_callWhen when,
+                                     BPatch_snippetOrder order = BPatch_firstSnippet);
 \end{apient}
 
 \apidesc{
@@ -127,12 +125,12 @@ between the two subclasses.
   instrumentation before the first instruction in a subroutine. Likewise, it is
   illegal to use \code{BPatch\_callBefore} with a \code{BPatch\_exit} point. Use
   \code{BPatch\_callAfter} with exit points. \code{BPatch\_callAfter} inserts
-  instrumentation at the last instruction in the subroutine. insert­Snippet will return
+  instrumentation at the last instruction in the subroutine. insert\-Snippet will return
   NULL when used with an illegal pair of points.
 }
 
 \begin{apient}
-  bool deleteSnippet(BPatchSnippetHandle *handle)
+  bool deleteSnippet(BPatchSnippetHandle* handle);
 \end{apient}
 
 \apidesc{
@@ -141,7 +139,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  void beginInsertionSet()
+  void beginInsertionSet();
 \end{apient}
 
 \apidesc{
@@ -161,7 +159,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool finalizeInsertionSet(bool atomic)
+  bool finalizeInsertionSet(bool atomic);
 \end{apient}
 
 \apidesc{
@@ -178,7 +176,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool removeFunctionCall(BPatch_point &point)
+  bool removeFunctionCall(BPatch_point& point);
 \end{apient}
 
 \apidesc{
@@ -191,9 +189,8 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool replaceFunction(BPatch_function &old, BPatch_function &new)
-
-  bool revertReplaceFunction(BPatch_function &old)
+  bool replaceFunction(BPatch_function& old, BPatch_function& new);
+  bool revertReplaceFunction(BPatch_function& old);
 \end{apient}
 
 \apidesc{
@@ -204,7 +201,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool replaceFunctionCall(BPatch_point &point, BPatch_function &newFunc)
+  bool replaceFunctionCall(BPatch_point& point, BPatch_function& newFunc);
 \end{apient}
 
 \apidesc{
@@ -222,9 +219,8 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool wrapFunction(BPatch_function *old, BPatch_function *new, Dyninst::SymtabAPI::Symbol *sym)
-
-  bool revertWrapFunction(BPatch_function *old)
+  bool wrapFunction(BPatch_function* old, BPatch_function* new, Dyninst::SymtabAPI::Symbol* sym);
+  bool revertWrapFunction(BPatch_function* old);
 \end{apient}
 
 \apidesc{
@@ -236,19 +232,20 @@ between the two subclasses.
   (referenced by origMalloc) for all others.
 }
 
-  \begin{lstlisting}[language=C++]
-        void *origMalloc(unsigned long size);
-    
-        void *fastMalloc(unsigned long size) {
-          if (size == 1024) {
-            unsigned long ret = fastPool;
-            fastPool += 1024;
-            return ret;
-          }
-          else {
-            return origMalloc(size);
-          }
-        }
+  \begin{lstlisting}
+void* origMalloc(unsigned long size);
+
+void* fastMalloc(unsigned long size)
+{
+  if (size == 1024)  {
+    unsigned long ret = fastPool;
+    fastPool += 1024;
+    return ret;
+  }
+  else  {
+    return origMalloc(size);
+  }
+}
   \end{lstlisting}
 
 \apidesc{
@@ -258,25 +255,25 @@ between the two subclasses.
 
   The following code wraps malloc with fastMalloc, while allowing functions to
   still access the original malloc function by calling origMalloc. It makes use of
-  the new convert interface described in Section 5.
+  the new convert interface described in Section~\ref{sec:conversions}.
 }
 
-  \begin{lstlisting}[language=C++]
-        using namespace Dyninst;
-        using namespace SymtabAPI;
-    
-        BPatch_function *malloc = appImage->findFunction(...);
-        BPatch_function *fastMalloc = appImage->findFunction(...);
-        Symtab *symtab = SymtabAPI::convert(fastMalloc->getModule());
-        std::vector<Symbol *> syms;
-        symtab->findSymbol(syms, "origMalloc",
-          Symbol::ST_UNKNOWN, // Don't specify type
-          mangledName,        // Look for raw symbol name
-          false,              // Not regular expression
-          false,              // Don't check case
-          true                // Include undefined symbols
-        );
-        app->wrapFunction(malloc, fastMalloc, syms[0]);
+  \begin{lstlisting}
+using namespace Dyninst;
+using namespace SymtabAPI;
+
+BPatch_function* malloc = appImage->findFunction(...);
+BPatch_function* fastMalloc = appImage->findFunction(...);
+Symtab* symtab = SymtabAPI::convert(fastMalloc->getModule());
+std::vector<Symbol*> syms;
+symtab->findSymbol(syms, "origMalloc",
+                   Symbol::ST_UNKNOWN, // Don't specify type
+                   mangledName,        // Look for raw symbol name
+                   false,              // Not regular expression
+                   false,              // Don't check case
+                   true                // Include undefined symbols
+                   );
+app->wrapFunction(malloc, fastMalloc, syms[0]);
   \end{lstlisting}
 
 \apidesc{
@@ -284,17 +281,17 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool replaceCode(BPatch_point *point, BPatch_snippet *snippet)
+  bool replaceCode(BPatch_point* point, BPatch_snippet* snippet);
 \end{apient}
 
 \apidesc{
   This function has been removed; users interested in replacing code should instead use
   the PatchAPI code modification interface described in the PatchAPI manual. For
-  information on accessing PatchAPI abstractions from DyninstAPI abstractions, see Section 5.
+  information on accessing PatchAPI abstractions from DyninstAPI abstractions, see Section~\ref{sec:conversions}.
 }
 
 \begin{apient}
-  BPatch_module * loadLibrary(const char *libname, bool reload=false)
+  BPatch_object* loadLibrary(const char* libname, bool reload=false);
 \end{apient}
 
 \apidesc{
@@ -310,7 +307,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool isStaticExecutable()
+  bool isStaticExecutable();
 \end{apient}
 
 \apidesc{
@@ -319,7 +316,7 @@ between the two subclasses.
 }
 
 \begin{apient}
-  processType getType()
+  processType getType();
 \end{apient}
 
 \apidesc{

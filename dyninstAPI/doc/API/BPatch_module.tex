@@ -8,9 +8,12 @@ objects that it cannot match to a source file.
 \code{BPatch\_image} member function \code{getModules}.
 
 \begin{apient}
-  std::vector<BPatch_function*> *findFunction(const char *name,
-                                              std::vector<BPatch_function*> &funcs,
-                                              bool incUninstrumentable = false)
+  std::vector<BPatch_function*>* findFunction(const char* name,
+                                              std::vector<BPatch_function*>& funcs,
+                                              bool notify_on_failure = true,
+                                              bool regex_case_sensitive = true,
+                                              bool incUninstrumentable = false,
+                                              bool dont_use_regex = false);
 \end{apient}
 
 \apidesc{
@@ -25,9 +28,10 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  BPatch_Vector<BPatch_function *> *findFunctionByAddress(void *addr,
+  BPatch_Vector<BPatch_function*>* findFunctionByAddress(void* addr,
+                                                          BPatch_Vector<BPatch_function*>& funcs,
                                                           bool notify_on_failure = true,
-                                                          bool incUninstrumentable = false)
+                                                          bool incUninstrumentable = false);
 \end{apient}
 
 \apidesc{
@@ -39,7 +43,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  BPatch_function *findFunctionByEntry(Dyninst::Address addr)
+  BPatch_function* findFunctionByEntry(Dyninst::Address addr);
 \end{apient}
 
 \apidesc{
@@ -47,8 +51,8 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  BPatch_function *findFunctionByMangled(const char *mangled_name,
-                                         bool incUninstrumentable = false)
+  BPatch_function* findFunctionByMangled(const char* mangled_name,
+                                         bool incUninstrumentable = false);
 \end{apient}
 
 \apidesc{
@@ -62,8 +66,8 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  bool getAddressRanges(char *fileName, unsigned int lineNo,
-                        std::vector<std::pair<unsigned long, unsigned long>> &ranges)
+  bool getAddressRanges(const char* fileName, unsigned int lineNo,
+                        std::vector<std::pair<unsigned long, unsigned long>>& ranges);
 \end{apient}
 
 \apidesc{
@@ -86,7 +90,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  size_t getAddressWidth()
+  size_t getAddressWidth();
 \end{apient}
 
 \apidesc{
@@ -96,7 +100,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  void *getBaseAddr()
+  void* getBaseAddr();
 \end{apient}
 
 \apidesc{
@@ -105,7 +109,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  std::vector<BPatch_function *> *getProcedures(bool incUninstrumentable = false)
+  std::vector<BPatch_function*>* getProcedures(bool incUninstrumentable = false);
 \end{apient}
 
 \apidesc{
@@ -113,7 +117,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  char *getFullName(char *buffer, int length)
+  char* getFullName(char* buffer, int length);
 \end{apient}
 
 \apidesc{
@@ -122,7 +126,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  BPatch_hybridMode getHybridMode()
+  BPatch_hybridMode getHybridMode();
 \end{apient}
 
 \apidesc{
@@ -131,7 +135,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  char *getName(char *buffer, int len)
+  char* getName(char* buffer, int len);
 \end{apient}
 
 \apidesc{
@@ -141,7 +145,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  unsigned long getSize()
+  unsigned long getSize();
 \end{apient}
 
 \apidesc{
@@ -151,7 +155,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  bool getSourceLines(unsigned long addr, std::vector<BPatch_statement> &lines)
+  bool getSourceLines(unsigned long addr, std::vector<BPatch_statement>& lines);
 \end{apient}
 
 \apidesc{
@@ -174,19 +178,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  char *getUniqueString(char *buffer, int length)
-\end{apient}
-
-\apidesc{
-  Performs a lookup and returns a unique string for this image.
-  Returns a string the can be compared (via strcmp) to
-  indicate if two images refer to the same underlying object file
-  (i.e., executable or library). The contents of the
-  string are implementation specific and defined to have no semantic meaning.
-}
-
-\begin{apient}
-  bool getVariables(std::vector<BPatch_variableExpr *> &vars)
+  bool getVariables(std::vector<BPatch_variableExpr*>& vars);
 \end{apient}
 
 \apidesc{
@@ -196,27 +188,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  BpatchSnippetHandle* insertInitCallback(Bpatch_snippet& callback)
-\end{apient}
-
-\apidesc{
-  This function inserts the snippet callback at the entry point of
-  this module's init function
-  (creating a new init function/section if necessary).
-}
-
-\begin{apient}
-  BpatchSnippetHandle* insertFiniCallback(Bpatch_snippet& callback)
-\end{apient}
-
-\apidesc{
-  This function inserts the snippet callback at the exit point of
-  this module's fini function
-  (creating a new fini function/section if necessary).
-}
-
-\begin{apient}
-  bool isExploratoryModeOn()
+  bool isExploratoryModeOn();
 \end{apient}
 
 \apidesc{
@@ -226,15 +198,7 @@ objects that it cannot match to a source file.
 }
 
 \begin{apient}
-  bool isMutatee()
-\end{apient}
-
-\apidesc{
-  This function returns true if the module is the mutatee.
-}
-
-\begin{apient}
-  bool isSharedLib()
+  bool isSharedLib();
 \end{apient}
 
 \apidesc{

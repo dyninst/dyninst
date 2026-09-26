@@ -8,10 +8,10 @@ given function.
   std::string getDemangledName();
   std::string getMangledName();
   std::string getTypedName();
-  void getNames(std::vector<std::string> &names);
-  void getDemangledNames(std::vector<std::string> &names);
-  void getMangledNames(std::vector<std::string> &names)
-  void getTypedNames(std::vector<std::string> &names);
+  bool getNames(std::vector<std::string>& names);
+  bool getDemangledNames(std::vector<std::string>& names);
+  bool getMangledNames(std::vector<std::string>& names);
+  bool getTypedNames(std::vector<std::string>& names);
 \end{apient}
 
 \apidesc{
@@ -23,7 +23,7 @@ given function.
 }
 
 \begin{apient}
-  bool getAddressRange(Dyninst::Address &start, Dyninst::Address &end)
+  bool getAddressRange(Dyninst::Address& start, Dyninst::Address& end);
 \end{apient}
 
 \apidesc{
@@ -33,7 +33,7 @@ given function.
 }
 
 \begin{apient}
-  std::vector<BPatch_localVar *> *getParams()
+  std::vector<BPatch_localVar*>* getParams();
 \end{apient}
 
 \apidesc{
@@ -45,7 +45,7 @@ given function.
 }
 
 \begin{apient}
-  BPatch_type *getReturnType()
+  BPatch_type* getReturnType();
 \end{apient}
 
 \apidesc{
@@ -53,7 +53,7 @@ given function.
 }
 
 \begin{apient}
-  BPatch_variableExpr *getFunctionRef()
+  BPatch_variableExpr* getFunctionRef();
 \end{apient}
 
 \apidesc{
@@ -62,7 +62,7 @@ given function.
 }
 
 \begin{apient}
-  std::vector<BPatch_localVar *> *getVars()
+  std::vector<BPatch_localVar*>* getVars();
 \end{apient}
 
 \apidesc{
@@ -76,7 +76,7 @@ given function.
 }
 
 \begin{apient}
-  bool isInstrumentable()
+  bool isInstrumentable();
 \end{apient}
 
 \apidesc{
@@ -88,7 +88,7 @@ given function.
 }
 
 \begin{apient}
-  bool isSharedLib()
+  bool isSharedLib();
 \end{apient}
 
 \apidesc{
@@ -96,7 +96,7 @@ given function.
 }
 
 \begin{apient}
-  BPatch_module *getModule()
+  BPatch_module* getModule();
 \end{apient}
 
 \apidesc{
@@ -108,7 +108,7 @@ given function.
 }
 
 \begin{apient}
-  char *getModuleName(char *name, int maxLen)
+  char* getModuleName(char* name, int maxLen);
 \end{apient}
 
 \apidesc{
@@ -129,13 +129,13 @@ given function.
     BPatch_locLoopStartIter,
     BPatch_locLoopStartExit,
     BPatch_allLocations
-  }
+  };
 \end{apient}
 
 \apidesc{}
 
 \begin{apient}
-  const std::vector<BPatch_point *> *findPoint(const BPatch_procedureLocation loc)
+  std::vector<BPatch_point*>* findPoint(const BPatch_procedureLocation loc);
 \end{apient}
 
 \apidesc{
@@ -154,13 +154,13 @@ given function.
     BPatch_opLoad,
     BPatch_opStore,
     BPatch_opPrefetch
-  }
+  };
 \end{apient}
 
 \apidesc{}
 
 \begin{apient}
-  std::vector<BPatch_point *> *findPoint(const std::set<BPatch_opCode> &ops)
+  std::vector<BPatch_point*>* findPoint(const std::set<BPatch_opCode>& ops);
 \end{apient}
 
 \apidesc{
@@ -177,7 +177,7 @@ given function.
 }
 
 \begin{apient}
-  BPatch_localVar *findLocalVar(const char *name)
+  BPatch_localVar* findLocalVar(const char* name);
 \end{apient}
 
 \apidesc{
@@ -188,8 +188,8 @@ given function.
 }
 
 \begin{apient}
-  std::vector<BPatch_variableExpr *> *findVariable(const char *name)
-  bool findVariable(const char *name, std::vector<BPatch_variableExpr> &vars)
+  std::vector<BPatch_variableExpr*>* findVariable(const char* name);
+  bool findVariable(const char* name, std::vector<BPatch_variableExpr>& vars);
 \end{apient}
 
 \apidesc{
@@ -200,7 +200,7 @@ given function.
 }
 
 \begin{apient}
-  BPatch_localVar *findLocalParam(const char *name)
+  BPatch_localVar* findLocalParam(const char* name);
 \end{apient}
 
 \apidesc{
@@ -210,7 +210,7 @@ given function.
 }
 
 \begin{apient}
-  void *getBaseAddr()
+  void* getBaseAddr();
 \end{apient}
 
 \apidesc{
@@ -218,7 +218,7 @@ given function.
 }
 
 \begin{apient}
-  BPatch_flowGraph *getCFG()
+  BPatch_flowGraph* getCFG();
 \end{apient}
 
 \apidesc{
@@ -228,7 +228,7 @@ given function.
 }
 
 \begin{apient}
-  bool findOverlapping(std::vector<BPatch_function *> &funcs)
+  bool findOverlapping(std::vector<BPatch_function*>& funcs);
 \end{apient}
 
 \apidesc{
@@ -240,7 +240,7 @@ given function.
 }
 
 \begin{apient}
-  bool addMods(std::set<StackMod *> mods)
+  bool addMods(std::set<StackMod*> mods);
 \end{apient}
 
 \apidesc{

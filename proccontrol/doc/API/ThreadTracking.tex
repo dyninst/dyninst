@@ -2,7 +2,7 @@
 associated Process.
 
 \begin{apient}
-static void setDefaultTrackThreads(bool b)
+static void setDefaultTrackThreads(bool b);
 \end{apient}
 
 \apidesc{
@@ -11,7 +11,7 @@ to interrupt-driven (b = true) or polling-driven (b = false).
 }
 
 \begin{apient}
-static bool getDefaultTrackThreads()
+static bool getDefaultTrackThreads();
 \end{apient}
 
 \apidesc{
@@ -21,7 +21,7 @@ false indicates polling-driven.
 }
 
 \begin{apient}
-bool setTrackThreads(bool b) const
+bool setTrackThreads(bool b) const;
 \end{apient}
 
 \apidesc{
@@ -31,7 +31,7 @@ Returns true on success and false on failure.
 }
 
 \begin{apient}
-bool getTrackThreads() const
+bool getTrackThreads() const;
 \end{apient}
 
 \apidesc{
@@ -41,7 +41,7 @@ indicates polling-driven.
 }
 
 \begin{apient}
-bool refreshThreads()
+bool refreshThreads();
 \end{apient}
 
 \apidesc{

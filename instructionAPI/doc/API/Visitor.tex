@@ -26,8 +26,7 @@ repeated here for reference:
 \begin{apient}
 class Visitor {
   public:
-    Visitor() {}
-    virtual ~Visitor() {}
+    virtual ~Visitor() = default;
     virtual void visit(BinaryFunction* b) = 0;
     virtual void visit(Immediate* i) = 0;
     virtual void visit(RegisterAST* r) = 0;
@@ -36,21 +35,19 @@ class Visitor {
 };
 \end{apient}
 
-A user provides implementations of the four \code{visit} methods. When
+A user provides implementations of the five \code{visit} methods. When
 applied to an \code{Expression} (via the \code{Expression::apply}
 method) the InstructionAPI will perform a post-order traversal of the
-tree, calling the appropriate \code{visit} method at each node. 
+tree, calling the appropriate \code{visit} method at each node.
 
 As a simple example, the following code prints out the name of each
 register used in an \code{Expression}:
 
-\lstset{language=[GNU]C++,basicstyle=\ttfamily\selectfont\small}
-\lstset{numbers=none}
 \lstinputlisting{examples/Visitor-regexample.C}
 
 Visitors may also set and use internal state. For example, the
 following visitor (presented without surrounding use code) matches x86
 and x86-64 instructions that add 0 to a register (effectively a
-noop). 
+noop).
 
 \lstinputlisting{examples/Visitor-noop.C}

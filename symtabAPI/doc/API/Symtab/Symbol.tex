@@ -47,7 +47,7 @@ typedef enum {
 } SymbolVisibility;
 \end{apient}
 
-\begin{tabular}{p{1.25in}p{1in}p{3.25in}}
+\begin{tabularx}{\textwidth}{llX}
 \toprule
 Method name & Return type & Method description \\
 \midrule
@@ -79,7 +79,7 @@ getCloneSuffix & string & The clone suffix including the initial `.'. Returns an
 isClone & bool & True if the symbol's name is a clone (contains a '.'). \\
 isColdClone & bool & True if the symbol's name has a clone that contains a `.cold' (code that belongs to the function name without the `.cold'). \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 
 \begin{apient}
 DYNINST_EXPORT Symbol(const std::string& name,
@@ -87,43 +87,43 @@ DYNINST_EXPORT Symbol(const std::string& name,
                      SymbolLinkage linkage,
                      SymbolVisibility visibility,
                      Offset offset,
-                     Module *module = NULL, 
-                     Region *region = NULL, 
+                     Module* module = NULL,
+                     Region* region = NULL,
                      unsigned size = 0,
-                     bool dyamic = false,
+                     bool dynamic = false,
                      bool absolute = false,
                      int index = -1,
                      int strindex = -1,
-                     bool commonStorage = false)
+                     bool commonStorage = false);
 \end{apient}
 \apidesc{
 Symbol creation interface:
 \begin{description}
-\item[name] The mangled name of the symbol. 
-\item[type] The type of the symbol as specified above. 
-\item[linkage] The linkage of the symbol as specified above. 
-\item[visibility] The visibility of the symbol as specified above. 
-\item[offset] The offset within the file that the symbol refers to. 
-\item[module] The source code module the symbol should belong to; default is no module. 
-\item[region] The region the symbol belongs to; if left unset this will be determined if a new binary is generated. 
-\item[size] The size of the object the symbol refers to; defaults to 0. 
-\item[dynamic] If true, the symbol belongs to the dynamic symbol table (ELF) and may be used as the target of inter-module references. 
-\item[absolute] If true, the offset specified is treated as an absolute value rather than an offset. 
-\item[index] The index in the symbol table. If left unset, it will be determined when generating a new binary. 
-\item[strindex] The index in the string table that contains the symbol name. If left unset, it will be determined when generating a new binary. 
-\item[commonStorage] If true, the symbol references common storage (Fortran). 
+\item[name] The mangled name of the symbol.
+\item[type] The type of the symbol as specified above.
+\item[linkage] The linkage of the symbol as specified above.
+\item[visibility] The visibility of the symbol as specified above.
+\item[offset] The offset within the file that the symbol refers to.
+\item[module] The source code module the symbol should belong to; default is no module.
+\item[region] The region the symbol belongs to; if left unset this will be determined if a new binary is generated.
+\item[size] The size of the object the symbol refers to; defaults to 0.
+\item[dynamic] If true, the symbol belongs to the dynamic symbol table (ELF) and may be used as the target of inter-module references.
+\item[absolute] If true, the offset specified is treated as an absolute value rather than an offset.
+\item[index] The index in the symbol table. If left unset, it will be determined when generating a new binary.
+\item[strindex] The index in the string table that contains the symbol name. If left unset, it will be determined when generating a new binary.
+\item[commonStorage] If true, the symbol references common storage (Fortran).
 \end{description}
 }
 
 \begin{apient}
-bool getVersionFileName(std::string &fileName)
+bool getVersionFileName(std::string& fileName) const;
 \end{apient}
 \apidesc{
 This method retrieves the file name in which this symbol is present. Returns \code{false} if this symbol does not have any version information present otherwise returns \code{true}.
 }
 
 \begin{apient}
-bool getVersions(std::vector<std::string> *&vers)
+bool getVersions(std::vector<std::string>*& vers) const;
 \end{apient}
 \apidesc{
 This method retrieves all the version names for this symbol. Returns \code{false} if the symbol does not have any version information present.
@@ -131,25 +131,25 @@ This method retrieves all the version names for this symbol. Returns \code{false
 
 \subsubsection{Symbol modification}
 
-Most elements of a \code{Symbol} can be modified using the functions below. Each returns \code{true} on success and \code{false} otherwise. 
+Most elements of a \code{Symbol} can be modified using the functions below. Each returns \code{true} on success and \code{false} otherwise.
 
 \begin{apient}
-bool setSize (unsigned size)
-bool setOffset (Offset newOffset)
-bool setMangledName (string name)
-bool setType (SymbolType sType)
-bool setModule (Module *module)
-bool setRegion (Region *region)
-bool setDynamic (bool dyn)
-bool setAbsolute (bool absolute)
-bool setCommonStorage (bool common) 
-bool setFunction (Function *func)
-bool setVariable (Variable *var)
-bool setIndex (int index)
-bool setStrIndex (int index)
-bool setPtrOffset (Offset ptr)
-bool setLocalTOC (Offset toc)
-bool setVersionNum (unsigned num)
-bool setVersionFileName (std::string &fileName)
-bool setVersions (std::vector<std::string> &vers)
+bool setSize(unsigned size);
+bool setOffset(Offset newOffset);
+bool setMangledName(std::string name);
+bool setSymbolType(SymbolType sType);
+bool setModule(Module* module);
+bool setRegion(Region* region);
+bool setDynamic(bool dyn);
+bool setAbsolute(bool absolute);
+bool setCommonStorage(bool common);
+bool setFunction(Function* func);
+bool setVariable(Variable* var);
+bool setIndex(int index);
+bool setStrIndex(int index);
+bool setPtrOffset(Offset ptr);
+bool setLocalTOC(Offset toc);
+bool setVersionNum(unsigned num);
+bool setVersionFileName(std::string fileName);
+bool setVersions(std::vector<std::string>& vers);
 \end{apient}

@@ -1,5 +1,5 @@
 \section{Plugin API Reference}
-\label{sec-plugin-api}
+\label{sec:plugin-api}
 
 This section describes the various plugin interfaces for extending PatchAPI. We
 expect that most users should not have to ever explicitly use an interface from
@@ -10,7 +10,7 @@ As with the public interface, all objects and methods in this section are in the
 ``Dyninst::PatchAPI'' namespace.
 
 \subsection{AddrSpace}
-\label{sec-3.2.1}
+\label{sec:addrspace}
 
 \textbf{Declared in}: AddrSpace.h
 
@@ -22,7 +22,7 @@ patching - 1st party, 3rd party, or binary rewriting.
 
 
 \begin{apient}
-virtual bool write(PatchObject* obj, Address to, Address from, size_t size);
+bool write(PatchObject* obj, Address to, Address from, size_t size);
 \end{apient}
 
 
@@ -38,7 +38,7 @@ If the write operation succeeds, this method returns true; otherwise, false.
 }
 
 \begin{apient}
-virtual Address malloc(PatchObject* obj, size_t size, Address near);
+Address malloc(PatchObject* obj, size_t size, Address near);
 \end{apient}
 
 
@@ -54,7 +54,7 @@ If this method succeeds, it returns a non-zero address; otherwise, it returns 0.
 }
 
 \begin{apient}
-virtual Address realloc(PatchObject* obj, Address orig, size_t size);
+bool realloc(PatchObject* obj, Address orig, size_t size);
 \end{apient}
 
 
@@ -69,7 +69,7 @@ If this method succeeds, it returns a non-zero address; otherwise, it returns 0.
 }
 
 \begin{apient}
-virtual bool free(PatchObject* obj, Address orig);
+bool free(PatchObject* obj, Address orig);
 \end{apient}
 
 
@@ -82,7 +82,7 @@ If this method succeeds, it returns true; otherwise, it returns false.
 }
 
 \begin{apient}
-virtual bool loadObject(PatchObject* obj);
+bool loadObject(PatchObject* obj);
 \end{apient}
 
 
@@ -124,7 +124,7 @@ Returns the PatchMgr's pointer, where the PatchMgr contains this address space.
 }
 
 \subsection{Snippet}
-\label{sec-3.2.2}
+\label{sec:snippet}
 
 \textbf{Declared in}: Snippet.h
 
@@ -143,7 +143,7 @@ Creates an object of the Snippet.
 }
 
 \begin{apient}
-virtual bool generate(Point *pt, Buffer &buf);
+bool generate(Point* pt, Buffer& buf);
 \end{apient}
 
 
@@ -157,7 +157,7 @@ in-param that identifies where the snippet is being generated.  Buffer {\em buf}
 is an out-param that holds the generated code.  }
 
 \subsection{Command}
-\label{sec-3.2.3}
+\label{sec:command}
 
 \textbf{Declared in}: Command.h
 
@@ -187,7 +187,7 @@ Undoes the operation of this Command.
 }
 
 \begin{apient}
-virtual bool commit();
+bool commit();
 \end{apient}
 
 
@@ -196,19 +196,17 @@ Implements the transactional semantics: all succeed, or all fail. Basically, it
 performs such logic:
 }
 
-\lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
-\lstset{numbers=none}
 \begin{lstlisting}
-if (run()) {
+if (run())  {
   return true;
-} else {
+}  else  {
   undo();
   return false;
 }
 \end{lstlisting}
 
 \subsection{BatchCommand}
-\label{sec-3.2.4}
+\label{sec:batchcommand}
 
 \textbf{Declared in}: Command.h
 
@@ -218,7 +216,7 @@ Commands will succeed, or all will fail.
 
 
 \begin{apient}
-typedef std::list<CommandPtr> CommandList;
+typedef std::list<Command*> CommandList;
 
 CommandList to_do_;
 CommandList done_;
@@ -232,8 +230,8 @@ executed.
 }
 
 \begin{apient}
-virtual bool run();
-virtual bool undo();
+bool run();
+bool undo();
 \end{apient}
 
 \apidesc{
@@ -244,7 +242,7 @@ order.
 }
 
 \begin{apient}
-void add(CommandPtr command);
+void add(Command* command);
 \end{apient}
 
 
@@ -261,7 +259,7 @@ This method removes a Command from \emph{to\_do\_}.
 }
 
 \subsection{Instrumenter}
-\label{sec-3.2.5}
+\label{sec:instrumenter}
 
 \textbf{Declared in}: Command.h
 
@@ -282,7 +280,7 @@ implementation of the instrumentation engine.
 }
 
 \begin{apient}
-static InstrumenterPtr create(AddrSpacePtr as);
+static Instrumenter* create(AddrSpace* as);
 \end{apient}
 
 \apidesc{
@@ -291,7 +289,7 @@ that is going to be instrumented.
 }
 
 \begin{apient}
-virtual bool replaceFunction(PatchFunction* oldfunc, PatchFunction* newfunc);
+bool replaceFunction(PatchFunction* oldfunc, PatchFunction* newfunc);
 \end{apient}
 
 
@@ -302,7 +300,7 @@ It returns true on success; otherwise, it returns false.
 }
 
 \begin{apient}
-virtual bool revertReplacedFunction(PatchFunction* oldfunc);
+bool revertReplacedFunction(PatchFunction* oldfunc);
 \end{apient}
 
 \apidesc{
@@ -321,7 +319,7 @@ PatchFunction.
 }
 
 \begin{apient}
-virtual FuncModMap& funcRepMap();
+FuncModMap& funcRepMap();
 \end{apient}
 
 \apidesc{
@@ -330,7 +328,7 @@ new function, where the old function is replaced by the new function.
 }
 
 \begin{apient}
-virtual bool wrapFunction(PatchFunction* oldfunc, PatchFunction* newfunc, string name);
+bool wrapFunction(PatchFunction* oldfunc, PatchFunction* newfunc, std::string name);
 \end{apient}
 
 
@@ -341,12 +339,11 @@ virtual bool wrapFunction(PatchFunction* oldfunc, PatchFunction* newfunc, string
   look like follows:
 }
 
-\lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
-\lstset{numbers=none}
 \begin{lstlisting}
-void *malloc_wrapper(int size) {
+void* malloc_wrapper(int size)
+{
   // do stuff
-  void *ret = malloc_clone(size);
+  void* ret = malloc_clone(size);
   // do more stuff
   return ret;
 }
@@ -360,7 +357,7 @@ indirect calls (function pointers).
 }
 
 \begin{apient}
-virtual bool revertWrappedFunction(PatchFunction* oldfunc);
+bool revertWrappedFunction(PatchFunction* oldfunc);
 \end{apient}
 
 \apidesc{
@@ -370,8 +367,7 @@ It returns true on success; otherwise, it returns false.
 }
 
 \begin{apient}
-virtual FuncModMap& funcWrapMap();
-
+FuncWrapMap& funcWrapMap();
 \end{apient}
 
 
@@ -381,8 +377,8 @@ wrapper PatchFunction.
 }
 
 \begin{apient}
-bool modifyCall(PatchBlock *callBlock, PatchFunction *newCallee,
-                PatchFunction *context = NULL);
+bool modifyCall(PatchBlock* callBlock, PatchFunction* newCallee,
+                PatchFunction* context = NULL);
 \end{apient}
 
 
@@ -398,7 +394,7 @@ It returns true on success; otherwise, it returns false.
 }
 
 \begin{apient}
-bool revertModifiedCall(PatchBlock *callBlock, PatchFunction *context = NULL);
+bool revertModifiedCall(PatchBlock* callBlock, PatchFunction* context = NULL);
 \end{apient}
 
 
@@ -412,7 +408,7 @@ It returns true on success; otherwise, it returns false.
 }
 
 \begin{apient}
-bool removeCall(PatchBlock *callBlock, PatchFunction *context = NULL);
+bool removeCall(PatchBlock* callBlock, PatchFunction* context = NULL);
 \end{apient}
 
 
@@ -427,8 +423,8 @@ It returns true on success; otherwise, it returns false.
 
 
 \begin{apient}
-typedef map<PatchBlock*,        // B  : A call block
-            map<PatchFunction*, // F_c: Function context
+typedef std::map<PatchBlock*,        // B  : A call block
+            std::map<PatchFunction*, // F_c: Function context
                 PatchFunction*> // F  : The function to be replaced
            > CallModMap;
 \end{apient}
@@ -452,7 +448,7 @@ Returns the CallModMap for function call replacement / removal.
 }
 
 \begin{apient}
-AddrSpacePtr as() const;
+AddrSpace* as() const;
 \end{apient}
 
 
@@ -461,7 +457,7 @@ Returns the address space associated with this Instrumenter.
 }
 
 \subsection{Patcher}
-\label{sec-3.2.6}
+\label{sec:patcher}
 
 \textbf{Declared in}: Command.h
 
@@ -473,7 +469,7 @@ and install the instrumentation.
 
 
 \begin{apient}
-Patcher(PatchMgrPtr mgr)
+Patcher(PatchMgrPtr mgr);
 \end{apient}
 
 
@@ -482,7 +478,7 @@ The constructor of Patcher takes input the relevant PatchMgr \emph{mgr}.
 }
 
 \begin{apient}
-virtual bool run();
+bool run();
 \end{apient}
 
 
@@ -493,7 +489,7 @@ other Commands in the \emph{to\_do\_}.
 }
 
 \subsection{CFGMaker}
-\label{sec-3.2.12}
+\label{sec:cfgmaker}
 
 \textbf{Declared in}: CFGMaker.h
 
@@ -505,15 +501,13 @@ structures.
 
 
 \begin{apient}
-virtual PatchFunction* makeFunction(ParseAPI::Function* func, PatchObject* obj);
-virtual PatchFunction* copyFunction(PatchFunction* func, PatchObject* obj);
-
-virtual PatchBlock* makeBlock(ParseAPI::Block* blk, PatchObject* obj);
-virtual PatchBlock* copyBlock(PatchBlock* blk, PatchObject* obj);
-
-virtual PatchEdge* makeEdge(ParseAPI::Edge* edge, PatchBlock* src,
+PatchFunction* makeFunction(ParseAPI::Function* func, PatchObject* obj);
+PatchFunction* copyFunction(PatchFunction* func, PatchObject* obj);
+PatchBlock* makeBlock(ParseAPI::Block* blk, PatchObject* obj);
+PatchBlock* copyBlock(PatchBlock* blk, PatchObject* obj);
+PatchEdge* makeEdge(ParseAPI::Edge* edge, PatchBlock* src,
                             PatchBlock* trg, PatchObject* obj);
-virtual PatchEdge* copyEdge(PatchEdge* edge, PatchObject* obj);
+PatchEdge* copyEdge(PatchEdge* edge, PatchObject* obj);
 \end{apient}
 
 \apidesc{
@@ -523,7 +517,7 @@ forking a new process).
 }
 
 \subsection{PointMaker}
-\label{sec-3.2.13}
+\label{sec:pointmaker}
 
 \textbf{Declared in}: Point.h
 
@@ -542,12 +536,12 @@ The constructor takes input the relevant PatchMgr \emph{mgr}.
 }
 
 \begin{apient}
-virtual Point *mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f);
-virtual Point *mkFuncSitePoint(Point::Type t, PatchMgrPtr m, PatchFunction *f, PatchBlock *b);
-virtual Point *mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock *b, PatchFunction *context);
-virtual Point *mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, Address a,
-                           InstructionAPI::Instruction::Ptr i, PatchFunction *context);
-virtual Point *mkEdgePoint(Point::Type t, PatchMgrPtr m, PatchEdge *e, PatchFunction *context);
+Point* mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction* f);
+Point* mkFuncSitePoint(Point::Type t, PatchMgrPtr m, PatchFunction* f, PatchBlock* b);
+Point* mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock* b, PatchFunction* context);
+Point* mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, Address a,
+                           InstructionAPI::Instruction i, PatchFunction* context);
+Point* mkEdgePoint(Point::Type t, PatchMgrPtr m, PatchEdge* e, PatchFunction* context);
 \end{apient}
 
 \apidesc{
@@ -558,10 +552,10 @@ Point.
 }
 
 \subsection{Default Plugin}
-\label{sec-3.3}
+\label{sec:default-plugin}
 
 \subsection{PushFrontCommand and PushBackCommand}
-\label{sec-3.3.1}
+\label{sec:push-commands}
 
 \textbf{Declared in}: Command.h
 
@@ -573,7 +567,8 @@ list.
 
 
 \begin{apient}
-static Ptr create(Point* pt, SnippetPtr snip);
+static PushFrontCommand* create(Point* pt, SnippetPtr snip);
+static PushBackCommand* create(Point* pt, SnippetPtr snip);
 \end{apient}
 
 \apidesc{
@@ -589,7 +584,7 @@ Returns a snippet instance that is inserted at the point.
 }
 
 \subsection{RemoveSnippetCommand}
-\label{sec-3.3.2}
+\label{sec:removesnippetcommand}
 
 \textbf{Declared in}: Command.h
 
@@ -598,7 +593,7 @@ a snippet Instance.
 
 
 \begin{apient}
-static Ptr create(InstancePtr instance);
+static RemoveSnippetCommand* create(InstancePtr instance);
 \end{apient}
 
 \apidesc{
@@ -606,7 +601,7 @@ This static function creates an instance of RemoveSnippetCommand.
 }
 
 \subsection{RemoveCallCommand}
-\label{sec-3.3.3}
+\label{sec:removecallcommand}
 
 \textbf{Declared in}: Command.h
 
@@ -615,7 +610,8 @@ function call.
 
 
 \begin{apient}
-static Ptr create(PatchMgrPtr mgr, PatchBlock* call_block, PatchFunction* context = NULL);
+static RemoveCallCommand* create(PatchMgrPtr mgr, PatchBlock* call_block,
+                                 PatchFunction* context = NULL);
 \end{apient}
 
 
@@ -629,7 +625,7 @@ only from the PatchFuncton \emph{context}.
 }
 
 \subsection{ReplaceCallCommand}
-\label{sec-3.3.4}
+\label{sec:replacecallcommand}
 
 \textbf{Declared in}: Command.h
 
@@ -638,8 +634,9 @@ function call with another function.
 
 
 \begin{apient}
-static Ptr create(PatchMgrPtr mgr, PatchBlock* call_block,
-                  PatchFunction* new_callee, PatchFunction* context);
+static ReplaceCallCommand* create(PatchMgrPtr mgr, PatchBlock* call_block,
+                                  PatchFunction* new_callee,
+                                  PatchFunction* context);
 \end{apient}
 
 \apidesc{
@@ -651,7 +648,7 @@ would be replaced in all PatchFunctions that contains it.
 }
 
 \subsection{ReplaceFuncCommand}
-\label{sec-3.3.5}
+\label{sec:replacefunccommand}
 
 \textbf{Declared in}: Command.h
 
@@ -660,7 +657,8 @@ an old function with the new one.
 
 
 \begin{apient}
-static Ptr create(PatchMgrPtr mgr, PatchFunction* old_func, PatchFunction* new_func);
+static ReplaceFuncCommand* create(PatchMgrPtr mgr, PatchFunction* old_func,
+                                  PatchFunction* new_func);
 \end{apient}
 
 \apidesc{

@@ -11,10 +11,10 @@ determine the result of any computations that are encoded in it. It will rarely
 be the case that an Instruction is built with its Operands' state fully
 specified. This mechanism is instead intended to allow a user to fill in
 knowledge about the state of the processor at the time the Instruction is
-executed. 
+executed.
 
 \begin{apient}
-Operand(Expression::Ptr val, bool read, bool written)
+Operand(Expression::Ptr val, bool read, bool written);
 \end{apient}
 \apidesc{
     Create an operand from an \code{Expression} and flags describing whether the
@@ -23,12 +23,12 @@ Operand(Expression::Ptr val, bool read, bool written)
     \code{val} is a reference-counted pointer to the \code{Expression} that will
     be contained in the \code{Operand} being constructed. \code{read} is true if
     this operand is read. \code{written} is true if this operand is written.
-    
+
     An instruction can be true predicated, false predicated, or not predicated at all.
 }
 
 \begin{apient}
-void getReadSet(std::set<RegisterAST::Ptr> & regsRead) const
+void getReadSet(std::set<RegisterAST::Ptr>& regsRead) const;
 \end{apient}
 \apidesc{
 Get the registers read by this operand. The registers read are inserted into
@@ -36,7 +36,7 @@ Get the registers read by this operand. The registers read are inserted into
 }
 
 \begin{apient}
-void getWriteSet(std::set<RegisterAST::Ptr> & regsWritten) const
+void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
 \end{apient}
 \apidesc{
 Get the registers written by this operand. The registers written are inserted into
@@ -44,50 +44,49 @@ Get the registers written by this operand. The registers written are inserted in
 }
 
 \begin{apient}
-
-bool isRead() const
+bool isRead() const;
 \end{apient}
 \apidesc{
     Returns \code{true} if this operand is read.
 }
 
 \begin{apient}
-bool isWritten() const
+bool isWritten() const;
 \end{apient}
 \apidesc{
 Returns \code{true} if this operand is written.
 }
 
 \begin{apient}
-bool isRead(Expression::Ptr candidate) const
+bool isRead(Expression::Ptr candidate) const;
 \end{apient}
 \apidesc{
     Returns \code{true} if \code{candidate} is read by this operand.
 }
 
 \begin{apient}
-bool isWritten(Expression::Ptr candidate) const
+bool isWritten(Expression::Ptr candidate) const;
 \end{apient}
 \apidesc{
 Returns \code{true} if \code{candidate} is written to by this operand.
 }
 
 \begin{apient}
-bool readsMemory() const
+bool readsMemory() const;
 \end{apient}
 \apidesc{
     Returns \code{true} if this operand reads memory.
 }
 
 \begin{apient}
-bool writesMemory() const
+bool writesMemory() const;
 \end{apient}
 \apidesc{
     Returns \code{true} if this operand writes memory.
 }
 
 \begin{apient}
-void addEffectiveReadAddresses(std::set<Expression::Ptr> & memAccessors) const
+void addEffectiveReadAddresses(std::set<Expression::Ptr>& memAccessors) const;
 \end{apient}
 \apidesc{
     If \code{Operand} is a memory read operand, insert the \code{ExpressionPtr}
@@ -95,7 +94,7 @@ void addEffectiveReadAddresses(std::set<Expression::Ptr> & memAccessors) const
 }
 
 \begin{apient}
-void addEffectiveWriteAddresses(std::set<Expression::Ptr> & memAccessors) const
+void addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const;
 \end{apient}
 \apidesc{
     If \code{Operand} is a memory write operand, insert the \code{ExpressionPtr}
@@ -103,17 +102,17 @@ void addEffectiveWriteAddresses(std::set<Expression::Ptr> & memAccessors) const
 }
 
 \begin{apient}
-std::string format(Architecture arch, Address addr = 0) const
+std::string format(Architecture arch, Address addr = 0) const;
 \end{apient}
 \apidesc{
     Return a printable string representation of the operand. The
     \code{arch} parameter must be supplied, as operands do not record
     their architectures. The optional \code{addr} parameter specifies
-    the value of the program counter. 
+    the value of the program counter.
 }
 
 \begin{apient}
-Expression::Ptr getValue() const
+Expression::Ptr getValue() const;
 \end{apient}
 \apidesc{
     The \code{getValue} method returns an \code{ExpressionPtr} to the AST

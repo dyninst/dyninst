@@ -1,6 +1,6 @@
 \begin{apient}
   BPatch_funcCallExpr(const BPatch_function& func,
-                      const std::vector<BPatch_snippet*> &args)
+                      const std::vector<BPatch_snippet*>& args);
 \end{apient}
 
 \apidesc{
@@ -12,7 +12,7 @@
   against the function to be called. Availability of
   type checking depends on the source language of the application and
   program being compiled for debugging.
-  
+
   AMD64 and IA-32 platforms can have any number of arguments. PowerPC
   can have at most 8.
 }

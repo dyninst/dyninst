@@ -1,3 +1,8 @@
+%% article.cls sets the page counter to 1 both on entering and on leaving
+%% titlepage, so the title page and the page after it are both page 1 and
+%% hyperref emits a duplicate page.1 destination.  Give the title page no
+%% page anchor; nothing links to it.
+\hypersetup{pageanchor=false}
 \begin{titlepage}
 \beginpgfgraphicnamed{titlepage}
 \begin{tikzpicture}[remember picture, overlay]
@@ -6,7 +11,7 @@
         (current page.north) coordinate (topcenter);
 
     % Header
-    \node [font=\sffamily] (pppt) at ($(topcenter) - (0,1.0in)$) 
+    \node [font=\sffamily] (pppt) at ($(topcenter) - (0,1.0in)$)
         {\fontsize{24}{36}\selectfont Paradyn Parallel Performance Tools};
 
     % Document Title
@@ -103,17 +108,18 @@
          Email & \texttt{dyninst-team@g-groups.wisc.edu} \\
          Web & \texttt{https://github.com/dyninst/dyninst} \\
         \end{tabular}};
-        
+
 
     % Logo
-    \path 
+    \path
         node (logo) at ($(origin)+(4.0in,-7.0in)$) [%
             anchor=north west]
         {%
             \includegraphics[width=3.25in]{paradyn_logo}
-        }; 
+        };
 
 
 \end{tikzpicture}
 \endpgfgraphicnamed
 \end{titlepage}
+\hypersetup{pageanchor=true}

@@ -17,25 +17,25 @@ this manual.
 ContainerWrapper containers export the following interface (\code{iterator} types vary depending on the template parameters of the ContainerWrapper, but are always instantiations of the PredicateIterator described below):
 
 \begin{apient}
-iterator begin()
-iterator begin(predicate *)
+iterator begin();
+iterator begin(predicate *);
 \end{apient}
-\apidesc{Return an iterator pointing to the beginning of the container, with or without a filtering predicate implementation (see Section \ref{sec:pred} for details on filter predicates).}
+\apidesc{Return an iterator pointing to the beginning of the container, with or without a filtering predicate implementation (see Section~\ref{sec:pred} for details on filter predicates).}
 
 \begin{apient}
-iterator const& end()
+iterator const& end();
 \end{apient}
 \apidesc{Return the iterator pointing to the end of the container (past the last element).}
 
 \begin{apient}
-size_t size()
+size_t size();
 \end{apient}
 \apidesc{Returns the number of elements in the container. Execution cost may vary depending on the underlying container type.}
 
 \begin{apient}
-bool empty()
+bool empty();
 \end{apient}
 \apidesc{Indicates whether the container is empty or not.}
 
 \noindent
-The elements in ParseAPI containers can be accessed by iteration using an instantiation of the PredicateIterator. These iterators can optionally act as filters, evaluating a boolean predicate for each element and only returning those elements for which the predicate returns {\scshape true}. \emph{Iterators with non-{\scshape null} predicates may return fewer elements during iteration than their \code{size()} method indicates.} Currently PredicateIterators only support forward iteration. The operators \code{++} (prefix and postfix), \code{==}, \code{!=}, and \code{*} (dereference) are supported.
+The elements in ParseAPI containers can be accessed by iteration using an instantiation of the PredicateIterator. These iterators can optionally act as filters, evaluating a boolean predicate for each element and only returning those elements for which the predicate returns \code{true}. \emph{Iterators with non-\code{null} predicates may return fewer elements during iteration than their \code{size()} method indicates.} Currently PredicateIterators only support forward iteration. The operators \code{++} (prefix and postfix), \code{==}, \code{!=}, and \code{*} (dereference) are supported.

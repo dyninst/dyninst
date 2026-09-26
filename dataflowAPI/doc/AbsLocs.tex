@@ -27,7 +27,7 @@ static Absloc makeFP(Dyninst::Architecture arch);
 \end{apient}
 \apidesc{Shortcut interfaces for creating abstract locations representing PC,
 SP, and FP}
-  
+
 \begin{apient}
 bool isPC() const;
 bool isSP() const;
@@ -47,7 +47,7 @@ Absloc(MachRegister reg);
 register \code{reg}.}
 
 \begin{apient}
-Absloc(Address addr):
+Absloc(Address addr);
 \end{apient}
 \apidesc{Create a Heap type abstract location, representing a heap variable at
 address \code{addr}.}
@@ -56,12 +56,12 @@ address \code{addr}.}
 \begin{apient}
 Absloc(int o,
        int r,
-       ParseAPI::Function *f);
-\end{apient}		       
+       ParseAPI::Function* f);
+\end{apient}
 \apidesc{Create a Stack type abstract location, representing a stack variable in
 the frame of function \code{f}, within abstract region \code{r}, and at offset \code{o} within the frame.}
-    
-\begin{apient}    
+
+\begin{apient}
 std::string format() const;
 \end{apient}
 \apidesc{Return the string representation of this abstract location.}
@@ -78,7 +78,7 @@ bool isValid() const;
 \code{true} when the type is not Unknown.}
 
 \begin{apient}
-const MachRegister &reg() const;
+const MachRegister& reg() const;
 \end{apient}
 \apidesc{Return the register represented by this abstract location. This method
 should only be called when this abstract location truly represents a register.}
@@ -98,7 +98,7 @@ location. This method should only be called when this abstract location truly
 represents a stack variable.}
 
 \begin{apient}
-ParseAPI::Function *func() const;
+ParseAPI::Function* func() const;
 \end{apient}
 \apidesc{
 Return the function of the stack variable represented by this abstract
@@ -114,12 +114,12 @@ Return the address of the heap variable represented by this abstract
 location. This method should only be called when this abstract location truly
 represents a heap variable.
 }
-  
+
 
 \begin{apient}
-bool operator<(const Absloc &rhs) const;
-bool operator==(const Absloc &rhs) const;
-bool operator!=(const Absloc &rhs) const;
+bool operator<(const Absloc& rhs) const;
+bool operator==(const Absloc& rhs) const;
+bool operator!=(const Absloc& rhs) const;
 \end{apient}
 \apidesc{Comparison operators}
 
@@ -150,8 +150,8 @@ AbsRegion(Absloc a);
 
 \begin{apient}
 bool contains(const Absloc::Type t) const;
-bool contains(const Absloc &abs) const;
-bool contains(const AbsRegion &rhs) const;
+bool contains(const Absloc& abs) const;
+bool contains(const AbsRegion& rhs) const;
 \end{apient}
 \apidesc{Return \code{true} if this abstract region contains abstract locations
 of type \code{t}, contains abstract location \code{abs}, or contains abstract
@@ -164,9 +164,9 @@ bool containsOfType(Absloc::Type t) const;
 in type \code{t}.}
 
 \begin{apient}
-bool operator==(const AbsRegion &rhs) const;
-bool operator!=(const AbsRegion &rhs) const;
-bool operator<(const AbsRegion &rhs) const;
+bool operator==(const AbsRegion& rhs) const;
+bool operator!=(const AbsRegion& rhs) const;
+bool operator<(const AbsRegion& rhs) const;
 \end{apient}
 \apidesc{Comparison operators}
 
@@ -214,9 +214,9 @@ single memory region.}
 \begin{apient}
 void convertAll(InstructionAPI::Expression::Ptr expr,
                 Address addr,
-                ParseAPI::Function *func,
-                ParseAPI::Block *block,
-                std::vector<AbsRegion> &regions);
+                ParseAPI::Function* func,
+                ParseAPI::Block* block,
+                std::vector<AbsRegion>& regions);
 \end{apient}
 \apidesc{Create all abstract regions used in \code{expr} and return them in
 \code{regions}. All registers appear in \code{expr} will have a separate
@@ -228,12 +228,12 @@ If PC appears in this expression, we assume the expression is
 at address \code{addr} and replace PC with a constant value \code{addr}.}
 
 \begin{apient}
-void convertAll(InstructionAPI::Instruction::Ptr insn,
-                Address addr,		
-                ParseAPI::Function *func,
-                ParseAPI::Block *block,
-                std::vector<AbsRegion> &used,
-                std::vector<AbsRegion> &defined);
+void convertAll(const InstructionAPI::Instruction& insn,
+                Address addr,
+                ParseAPI::Function* func,
+                ParseAPI::Block* block,
+                std::vector<AbsRegion>& used,
+                std::vector<AbsRegion>& defined);
 \end{apient}
 \apidesc{Create abstract regions appearing in instruction \code{insn}. Input
 abstract regions of this instructions are returned in \code{used} and output
@@ -244,7 +244,7 @@ expression.
 If PC appears in this expression, we assume the expression is
 at address \code{addr} and replace PC with a constant value \code{addr}.}
 
-\begin{apient} 
+\begin{apient}
 AbsRegion convert(InstructionAPI::RegisterAST::Ptr reg);
 \end{apient}
 \apidesc{Create an abstract region representing the register \code{reg}.}
@@ -252,8 +252,8 @@ AbsRegion convert(InstructionAPI::RegisterAST::Ptr reg);
 \begin{apient}
 AbsRegion convert(InstructionAPI::Expression::Ptr expr,
                   Address addr,
-                  ParseAPI::Function *func,
-                  ParseAPI::Block *block);
+                  ParseAPI::Function* func,
+                  ParseAPI::Block* block);
 \end{apient}
 \apidesc{Create and return the single abstract region represented by
 \code{expr}.}

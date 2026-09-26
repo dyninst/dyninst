@@ -8,8 +8,8 @@ processes. It satisfies the C++
 concept. It also offers the standard \code{begin/end} members for iteration.
 
 \begin{apient}
-  ProcessSet::ptr
-  ProcessSet::const_ptr
+  ProcessSet::ptr;
+  ProcessSet::const_ptr;
 \end{apient}
 
 \apidesc{
@@ -17,8 +17,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  struct CreateInfo
-  struct AttachInfo
+  struct CreateInfo;
+  struct AttachInfo;
 \end{apient}
 
 \apidesc{
@@ -28,8 +28,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  struct write_t
-  struct read_t
+  struct write_t;
+  struct read_t;
 \end{apient}
 
 \apidesc{
@@ -38,7 +38,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  static ProcessSet::ptr newProcessSet()
+  static ProcessSet::ptr newProcessSet();
 \end{apient}
 
 \apidesc{
@@ -46,7 +46,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  static ProcessSet::ptr newProcessSet(Process::const_ptr proc)
+  static ProcessSet::ptr newProcessSet(Process::const_ptr proc);
 \end{apient}
 
 \apidesc{
@@ -54,7 +54,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  static ProcessSet::ptr newProcessSet(ProcessSet::const_ptr pset)
+  static ProcessSet::ptr newProcessSet(ProcessSet::const_ptr pset);
 \end{apient}
 
 \apidesc{
@@ -62,7 +62,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  static ProcessSet::ptr newProcessSet(const std::set<Process::const_ptr> &procs)
+  static ProcessSet::ptr newProcessSet(const std::set<Process::const_ptr>& procs);
 \end{apient}
 
 \apidesc{
@@ -70,7 +70,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  static ProcessSet newProcessSet(AddressSet::const_iterator ab, AddressSet::const_iterator ae)
+  static ProcessSet::ptr newProcessSet(AddressSet::const_iterator ab, AddressSet::const_iterator ae);
 \end{apient}
 
 \apidesc{
@@ -79,7 +79,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  static ProcessSet::ptr createProcessSet(std::vector<CreateInfo> &cinfo)
+  static ProcessSet::ptr createProcessSet(std::vector<CreateInfo>& cinfo);
 \end{apient}
 
 \apidesc{
@@ -97,7 +97,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  static ProcessSet::ptr attachProcessSet(std::vector<AttachInfo> &ainfo)
+  static ProcessSet::ptr attachProcessSet(std::vector<AttachInfo>& ainfo);
 \end{apient}
 
 \apidesc{
@@ -114,7 +114,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  ProcessSet::ptr set_union(ProcessSet::ptrpset) const
+  ProcessSet::ptr set_union(ProcessSet::ptr pset) const;
 \end{apient}
 
 \apidesc{
@@ -123,7 +123,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  ProcessSet::ptr set_intersection(ProcessSet::ptr pset) const
+  ProcessSet::ptr set_intersection(ProcessSet::ptr pset) const;
 \end{apient}
 
 \apidesc{
@@ -133,7 +133,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  ProcessSet::ptr set_difference(ProcessSet::ptr pset) const
+  ProcessSet::ptr set_difference(ProcessSet::ptr pset) const;
 \end{apient}
 
 \apidesc{
@@ -142,8 +142,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  iterator find(Process::const_ptr proc)
-  const_iterator find(Process::const_ptr proc) const
+  iterator find(Process::const_ptr proc);
+  const_iterator find(Process::const_ptr proc) const;
 \end{apient}
 
 \apidesc{
@@ -153,8 +153,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  iterator find(Dyninst::PID pid)
-  const_iterator find(Dyninst::PID pid) const
+  iterator find(Dyninst::PID pid);
+  const_iterator find(Dyninst::PID pid) const;
 \end{apient}
 
 \apidesc{
@@ -164,7 +164,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool empty() const
+  bool empty() const;
 \end{apient}
 
 \apidesc{
@@ -173,7 +173,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  size_t size() const
+  size_t size() const;
 \end{apient}
 
 \apidesc{
@@ -181,7 +181,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  std::pair<iterator, bool> insert(Process::const_ptr proc)
+  std::pair<iterator, bool> insert(Process::const_ptr proc);
 \end{apient}
 
 \apidesc{
@@ -193,7 +193,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  void erase(iterator pos)
+  void erase(iterator pos);
 \end{apient}
 
 \apidesc{
@@ -201,7 +201,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  size_t erase(Process::const_ptr proc)
+  size_t erase(Process::const_ptr proc);
 \end{apient}
 
 \apidesc{
@@ -210,7 +210,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  void clear()
+  void clear();
 \end{apient}
 
 \apidesc{
@@ -218,7 +218,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  ProcessSet::ptr getErrorSubset() const
+  ProcessSet::ptr getErrorSubset() const;
 \end{apient}
 
 \apidesc{
@@ -230,7 +230,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  void getErrorSubsets(std::map<ProcControlAPI::err_t, ProcessSet::ptr> &err_sets) const
+  void getErrorSubsets(std::map<ProcControlAPI::err_t, ProcessSet::ptr>& err_sets) const;
 \end{apient}
 
 \apidesc{
@@ -242,8 +242,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool anyTerminated() const
-  bool allTerminated() const
+  bool anyTerminated() const;
+  bool allTerminated() const;
 \end{apient}
 
 \apidesc{
@@ -252,8 +252,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool anyExited() const
-  bool allExited() const
+  bool anyExited() const;
+  bool allExited() const;
 \end{apient}
 
 \apidesc{
@@ -262,8 +262,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool anyCrashed() const
-  bool allCrashed() const
+  bool anyCrashed() const;
+  bool allCrashed() const;
 \end{apient}
 
 \apidesc{
@@ -272,8 +272,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool anyDetached()
-  bool allDetached()
+  bool anyDetached() const;
+  bool allDetached() const;
 \end{apient}
 
 \apidesc{
@@ -282,8 +282,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool anyThreadStopped()
-  bool allThreadStopped()
+  bool anyThreadStopped() const;
+  bool allThreadsStopped() const;
 \end{apient}
 
 \apidesc{
@@ -292,8 +292,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool anyThreadRunning()
-  bool allThreadRunning()
+  bool anyThreadRunning() const;
+  bool allThreadsRunning() const;
 \end{apient}
 
 \apidesc{
@@ -302,7 +302,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  ProcessSet::ptr getTerminatedSubset() const
+  ProcessSet::ptr getTerminatedSubset() const;
 \end{apient}
 
 \apidesc{
@@ -311,7 +311,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  ProcessSet::ptr getExitedSubset() const
+  ProcessSet::ptr getExitedSubset() const;
 \end{apient}
 
 \apidesc{
@@ -320,7 +320,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  ProcessSet::ptr getCrashedSubset() const
+  ProcessSet::ptr getCrashedSubset() const;
 \end{apient}
 
 \apidesc{
@@ -329,7 +329,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  ProcessSet::ptr getDetachedSubset() const
+  ProcessSet::ptr getDetachedSubset() const;
 \end{apient}
 
 \apidesc{
@@ -338,8 +338,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  ProcessSet::ptr getAllThreadRunningSubset() const
-  ProcessSet::ptr getAnyThreadRunningSubset() const
+  ProcessSet::ptr getAllThreadRunningSubset() const;
+  ProcessSet::ptr getAnyThreadRunningSubset() const;
 \end{apient}
 
 \apidesc{
@@ -348,8 +348,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  ProcessSet::ptr getAllThreadStoppedSubset() const
-  ProcessSet::ptr getAnyThreadStoppedSubset() const
+  ProcessSet::ptr getAllThreadStoppedSubset() const;
+  ProcessSet::ptr getAnyThreadStoppedSubset() const;
 \end{apient}
 
 \apidesc{
@@ -358,7 +358,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool continueProcs()
+  bool continueProcs() const;
 \end{apient}
 
 \apidesc{
@@ -368,7 +368,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool stopProcs()
+  bool stopProcs() const;
 \end{apient}
 
 \apidesc{
@@ -379,7 +379,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool detach(bool leaveStopped = true)
+  bool detach(bool leaveStopped = false) const;
 \end{apient}
 
 \apidesc{
@@ -392,7 +392,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool terminate()
+  bool terminate() const;
 \end{apient}
 
 \apidesc{
@@ -402,7 +402,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool temporaryDetach()
+  bool temporaryDetach() const;
 \end{apient}
 
 \apidesc{
@@ -413,7 +413,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool reAttach()
+  bool reAttach() const;
 \end{apient}
 
 \apidesc{
@@ -423,7 +423,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  AddressSet::ptr mallocMemory(size_t sz) const
+  AddressSet::ptr mallocMemory(size_t sz) const;
 \end{apient}
 
 \apidesc{
@@ -433,7 +433,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool mallocMemory(size_t size, AddressSet::ptr location)
+  bool mallocMemory(size_t size, AddressSet::ptr location) const;
 \end{apient}
 
 \apidesc{
@@ -448,7 +448,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool freeMemory(AddressSet::ptr addrs) const
+  bool freeMemory(AddressSet::ptr addrs) const;
 \end{apient}
 
 \apidesc{
@@ -465,8 +465,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 
 \begin{apient}
   bool readMemory(AddressSet::ptr addrs,
-                  std::multimap<Process::ptr, void *> &result,
-                  size_t size) const
+                  std::multimap<Process::ptr, void*>& result,
+                  size_t size) const;
 \end{apient}
 
 \apidesc{
@@ -486,8 +486,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 
 \begin{apient}
   bool readMemory(AddressSet::ptr addrs,
-                  std::map<void *, ProcessSet::ptr> &result,
-                  size_t size)
+                  std::map<void *, ProcessSet::ptr>& result,
+                  size_t size);
 \end{apient}
 
 \apidesc{
@@ -507,7 +507,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool readMemory(std::multimap<Process::const_ptr, read_t> &addr)
+  bool readMemory(std::multimap<Process::const_ptr, read_t>& addr) const;
 \end{apient}
 
 \apidesc{
@@ -522,7 +522,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool writMemory(AddressSet::ptr addrs, const void *buffer, size_t sz) const
+  bool writeMemory(AddressSet::ptr addrs, const void* buffer, size_t sz) const;
 \end{apient}
 
 \apidesc{
@@ -535,7 +535,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool writeMemory(std::multimap<Process::const_ptr, write_t> &addrs) const
+  bool writeMemory(std::multimap<Process::const_ptr, write_t>& addrs) const;
 \end{apient}
 
 \apidesc{
@@ -551,7 +551,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool addBreakpoint(AddressSet::ptr as, Breakpoint::ptr bp) const
+  bool addBreakpoint(AddressSet::ptr as, Breakpoint::ptr bp) const;
 \end{apient}
 
 \apidesc{
@@ -565,7 +565,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool rmBreakpoint(AddressSet::ptr as, Breakpoint::ptr bp) const
+  bool rmBreakpoint(AddressSet::ptr as, Breakpoint::ptr bp) const;
 \end{apient}
 
 \apidesc{
@@ -578,7 +578,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool postIRPC(const std::multimap<Process::const_ptr, IRPC::ptr> &rpcs) const
+  bool postIRPC(const std::multimap<Process::const_ptr, IRPC::ptr>& rpcs) const;
 \end{apient}
 
 \apidesc{
@@ -591,7 +591,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 }
 
 \begin{apient}
-  bool postIRPC(IRPC::ptr irpc, std::multimap<Process::ptr, IRPC::ptr> *result = NULL)
+  bool postIRPC(IRPC::ptr irpc, std::multimap<Process::ptr, IRPC::ptr>* result = NULL) const;
 \end{apient}
 
 \apidesc{
@@ -607,7 +607,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 \begin{apient}
   bool postIRPC(IRPC::ptr irpc,
                 AddressSet::ptr addrs,
-                std::multimap<Process::ptr, IRPC::ptr> *result = NULL)
+                std::multimap<Process::ptr, IRPC::ptr>* result = NULL) const;
 \end{apient}
 
 \apidesc{
