@@ -55,7 +55,7 @@
     // Scan the function InterestingProcedure
     // and create instrumentation points
     std::vector<BPatch_function*> functions;
-    appImage->findFunction(InterestingProcedure, functions);
+    appImage->findFunction("InterestingProcedure", functions);
 
     std::vector<BPatch_point*>* points = functions[0]->findPoint(axs);
     if (!points) {
@@ -72,7 +72,7 @@
 
     // Find the printf function
     std::vector<BPatch_function*> printfFuncs;
-    appImage->findFunction(printf, printfFuncs);
+    appImage->findFunction("printf", printfFuncs);
     if (printfFuncs.size() == 0) {
       fprintf(stderr, "Could not find printf\n");
       return false;
@@ -108,7 +108,7 @@
     // Set up information about the program to be instrumented
     const char* progName = "InterestingProgram";
     int progPID = 42;
-    const char* progArgv[] = {"InterestingProgram", -h, NULL};
+    const char* progArgv[] = {"InterestingProgram", "-h", NULL};
     accessType_t mode = create;
 
     // Create/attach/open a binary

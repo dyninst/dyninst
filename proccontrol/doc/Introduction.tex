@@ -49,7 +49,7 @@ brevity.
     auto new_thrd = new_thrd_ev->getNewThread();
 
     std::cout << "Got a new thread with LWP " << new_thrd->getLWP() << std::endl;
-    return Process::cbDefault;
+    return pc::Process::cbDefault;
   }
 
   int main(int argc, char* argv[]) {

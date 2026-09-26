@@ -67,7 +67,7 @@ you wish to save that output in a file without having to re-run the program.
   int openFileForWrite(BPatch_process* app, BPatch_image* appImage,
                        char* fileName) {
     // The code to be generated is:
-    // fd = open(argv[2], O_WRONLY{\textbar}O_CREAT, 0666);
+    // fd = open(argv[2], O_WRONLY|O_CREAT, 0666);
 
     // (1) Find the open function
     std::vector<BPatch_function*> openFuncs;
@@ -84,8 +84,8 @@ you wish to save that output in a file without having to re-run the program.
     // (3) Create a string constant expression from argv[3]
     BPatch_constExpr fileNameExpr(fileName);
 
-    // (4) Create two more constant expressions _WRONLY{\textbar}O_CREAT and 0666
-    BPatch_constExpr fileFlagsExpr(O_WRONLY{\textbar} O_CREAT);
+    // (4) Create two more constant expressions _WRONLY|O_CREAT and 0666
+    BPatch_constExpr fileFlagsExpr(O_WRONLY| O_CREAT);
     BPatch_constExpr fileModeExpr(0666);
 
     // (5) Push 3 & 4 onto the list from step 2, push first to last parameter.
@@ -149,10 +149,9 @@ you wish to save that output in a file without having to re-run the program.
     // parameter: buffer
     // parameter: buffer size
     // Declare a vector to hold these.
-    std::vector<BPatch_snippet*> writeArgs = {
-      // The file descriptor
-      writeArgs.push_back(fdVar)
-    };
+    std::vector<BPatch_snippet*> writeArgs;
+    // The file descriptor
+    writeArgs.push_back(fdVar);
 
     // Well, we need the buffer... but that's a parameter to the
     // function we're implementing. That's not a problem - we can grab
