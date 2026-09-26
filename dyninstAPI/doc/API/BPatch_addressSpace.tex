@@ -233,18 +233,19 @@ between the two subclasses.
 }
 
   \begin{lstlisting}
-        void* origMalloc(unsigned long size);
+void* origMalloc(unsigned long size);
 
-        void* fastMalloc(unsigned long size) {
-          if (size == 1024) {
-            unsigned long ret = fastPool;
-            fastPool += 1024;
-            return ret;
-          }
-          else {
-            return origMalloc(size);
-          }
-        }
+void* fastMalloc(unsigned long size)
+{
+  if (size == 1024)  {
+    unsigned long ret = fastPool;
+    fastPool += 1024;
+    return ret;
+  }
+  else  {
+    return origMalloc(size);
+  }
+}
   \end{lstlisting}
 
 \apidesc{
@@ -258,21 +259,21 @@ between the two subclasses.
 }
 
   \begin{lstlisting}
-        using namespace Dyninst;
-        using namespace SymtabAPI;
+using namespace Dyninst;
+using namespace SymtabAPI;
 
-        BPatch_function* malloc = appImage->findFunction(...);
-        BPatch_function* fastMalloc = appImage->findFunction(...);
-        Symtab* symtab = SymtabAPI::convert(fastMalloc->getModule());
-        std::vector<Symbol*> syms;
-        symtab->findSymbol(syms, "origMalloc",
-          Symbol::ST_UNKNOWN, // Don't specify type
-          mangledName,        // Look for raw symbol name
-          false,              // Not regular expression
-          false,              // Don't check case
-          true                // Include undefined symbols
-        );
-        app->wrapFunction(malloc, fastMalloc, syms[0]);
+BPatch_function* malloc = appImage->findFunction(...);
+BPatch_function* fastMalloc = appImage->findFunction(...);
+Symtab* symtab = SymtabAPI::convert(fastMalloc->getModule());
+std::vector<Symbol*> syms;
+symtab->findSymbol(syms, "origMalloc",
+  Symbol::ST_UNKNOWN, // Don't specify type
+  mangledName,        // Look for raw symbol name
+  false,              // Not regular expression
+  false,              // Don't check case
+  true                // Include undefined symbols
+);
+app->wrapFunction(malloc, fastMalloc, syms[0]);
   \end{lstlisting}
 
 \apidesc{

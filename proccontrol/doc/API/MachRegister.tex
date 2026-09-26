@@ -115,12 +115,12 @@ with an ``i''. For example, a switch statement for MachRegister, reg, could be w
 
 
 \begin{lstlisting}
-switch (reg.val()) {
+switch (reg.val())  {
   case x86_64::irax:
   case x86_64::irbx:
   case x86_64::ircx:
-   ...
-}
+    ...
+  }
 \end{lstlisting}
 
 \begin{apient}

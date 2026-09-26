@@ -17,30 +17,31 @@
  * original destination (e.g., stdout).
  *
  * This mutator operates in several phases. In brief:
- * 1) Attach to the running process and get a handle (BPatch_process
- * object)
- * 2) Get a handle for the parsed image of the mutatee for function
- * lookup (BPatch_image object)
- * 3) Open a file for output
- * 3a) Look up the "open" function
- * 3b) Build a code snippet to call open with the file name.
- * 3c) Run that code snippet via a oneTimeCode, saving the returned
- * file descriptor
- * 4) Write the returned file descriptor into a memory variable for
- * mutatee-side use
- * 5) Build a snippet that copies output to the file
- * 5a) Locate the "write" library call
- * 5b) Access its parameters
- * 5c) Build a snippet calling write(fd, parameters)
- * 5d) Insert the snippet at write
- * 6) Add a hook to exit to ensure that we close the file (using
- * a callback at exit and another oneTimeCode)
- */
+* 1) Attach to the running process and get a handle (BPatch_process
+* object)
+* 2) Get a handle for the parsed image of the mutatee for function
+* lookup (BPatch_image object)
+* 3) Open a file for output
+* 3a) Look up the "open" function
+* 3b) Build a code snippet to call open with the file name.
+* 3c) Run that code snippet via a oneTimeCode, saving the returned
+* file descriptor
+* 4) Write the returned file descriptor into a memory variable for
+* mutatee-side use
+* 5) Build a snippet that copies output to the file
+* 5a) Locate the "write" library call
+* 5b) Access its parameters
+* 5c) Build a snippet calling write(fd, parameters)
+* 5d) Insert the snippet at write
+* 6) Add a hook to exit to ensure that we close the file (using
+* a callback at exit and another oneTimeCode)
+*/
 
-void usage() {
+void usage()
+{
   fprintf(stderr,
           "Usage: retee <process pid> <filename>\n"
-          " note: <filename> is relative to the application process.\n");
+  " note: <filename> is relative to the application process.\n");
 }
 
 // We need to use a callback, and so the things that callback requires
@@ -51,7 +52,8 @@ BPatch_variableExpr* fdVar = NULL;
 // writing. We can do this with a oneTimeCode - a piece of code run at
 // a particular time, rather than at a particular location.
 int openFileForWrite(BPatch_process* app, BPatch_image* appImage,
-                     char* fileName) {
+                     char* fileName)
+{
   // The code to be generated is:
   // fd = open(argv[2], O_WRONLY|O_CREAT, 0666);
 
@@ -59,7 +61,7 @@ int openFileForWrite(BPatch_process* app, BPatch_image* appImage,
   std::vector<BPatch_function*> openFuncs;
   appImage->findFunction("open", openFuncs);
 
-  if (openFuncs.size() == 0) {
+  if (openFuncs.size() == 0)  {
     fprintf(stderr, "ERROR: Unable to find function for open()\n");
     return -1;
   }
@@ -102,7 +104,8 @@ int openFileForWrite(BPatch_process* app, BPatch_image* appImage,
 // descriptor as a constant into any inserted instrumentation.
 BPatch_variableExpr* writeFileDescIntoMutatee(BPatch_process* app,
                                               BPatch_image* appImage,
-                                              int fileDescriptor) {
+                                              int fileDescriptor)
+{
   // (1) Allocate a variable in the mutatee of size (and type) int
   BPatch_variableExpr* fdVar = app->malloc(*appImage->findType("int"));
   if (fdVar == NULL)
@@ -121,11 +124,12 @@ BPatch_variableExpr* writeFileDescIntoMutatee(BPatch_process* app,
 // instrument write to intercept and copy the output. That happens
 // here.
 bool interceptAndCloneWrite(BPatch_process* app, BPatch_image* appImage,
-                            BPatch_variableExpr* fdVar) {
+                            BPatch_variableExpr* fdVar)
+{
   // (1) Locate the write call
   std::vector<BPatch_function*> writeFuncs;
   appImage->findFunction("write", writeFuncs);
-  if (writeFuncs.size() == 0) {
+  if (writeFuncs.size() == 0)  {
     fprintf(stderr, "ERROR: Unable to find function for write()\n");
     return false;
   }
@@ -155,7 +159,7 @@ bool interceptAndCloneWrite(BPatch_process* app, BPatch_image* appImage,
   // call would operate off a different function than the snippet.
   std::vector<BPatch_point*>* points;
   points = writeFuncs[0]->findPoint(BPatch_entry);
-  if ((*points).size() == 0) {
+  if ((*points).size() == 0)  {
     return false;
   }
 
@@ -177,7 +181,8 @@ bool interceptAndCloneWrite(BPatch_process* app, BPatch_image* appImage,
 //
 // Note that the callback gives us a thread, and we want a process - but
 // each thread has an up pointer.
-void closeFile(BPatch_thread* thread, BPatch_exitType) {
+void closeFile(BPatch_thread* thread, BPatch_exitType)
+{
   fprintf(stderr, "Exit callback called for process...\n");
   // (1) Get the BPatch_process and BPatch_images
   BPatch_process* app = thread->getProcess();
@@ -187,7 +192,7 @@ void closeFile(BPatch_thread* thread, BPatch_exitType) {
   // (2) Find close
   std::vector<BPatch_function*> closeFuncs;
   appImage->findFunction("close", closeFuncs);
-  if (closeFuncs.size() == 0) {
+  if (closeFuncs.size() == 0)  {
     fprintf(stderr, "ERROR: Unable to find function for close()\n");
     return;
   }
@@ -216,9 +221,10 @@ BPatch bpatch;
 // 2) Open a file descriptor
 // 3) Instrument write
 // 4) Continue the process and wait for it to terminate
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   int pid;
-  if (argc != 3) {
+  if (argc != 3)  {
     usage();
     exit(1);
   }
@@ -236,25 +242,25 @@ int main(int argc, char* argv[]) {
   std::vector<BPatch_function*> writeFuncs;
   fprintf(stderr, "Opening file %s for write...\n", argv[2]);
   int fileDescriptor = openFileForWrite(app, appImage, argv[2]);
-  if (fileDescriptor == -1) {
+  if (fileDescriptor == -1)  {
     fprintf(stderr, "ERROR: opening file %s for write failed\n", argv[2]);
     exit(1);
   }
 
   fprintf(stderr,
           "Writing returned file descriptor %d into"
-          "mutatee...\n",
-          fileDescriptor);
+  "mutatee...\n",
+  fileDescriptor);
 
   // This was defined globally as the exit callback needs it.
   fdVar = writeFileDescIntoMutatee(app, appImage, fileDescriptor);
-  if (fdVar == NULL) {
+  if (fdVar == NULL)  {
     fprintf(stderr, "ERROR: failed to write mutatee-side variable\n");
     exit(1);
   }
   fprintf(stderr, "Instrumenting write...\n");
   bool ret = interceptAndCloneWrite(app, appImage, fdVar);
-  if (!ret) {
+  if (!ret)  {
     fprintf(stderr, "ERROR: failed to instrument mutatee\n");
     exit(1);
   }

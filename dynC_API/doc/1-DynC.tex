@@ -21,72 +21,72 @@ which are then combined and inserted into the mutatee.
 \noindent Look up \code{printf}:
 
 \begin{lstlisting}
-  std::vector<BPatch_function*>* printf_func;
-  appImage->findFunction("printf", printf_func);
-  BPatch_function* BPF_printf = printf_func[0];
+std::vector<BPatch_function*>* printf_func;
+appImage->findFunction("printf", printf_func);
+BPatch_function* BPF_printf = printf_func[0];
 \end{lstlisting}
 
 \noindent Create each \code{printf} pattern:
 \begin{lstlisting}
-  BPatch_constExpr entryPattern("Entering %s, called %d times.\n");
-  BPatch_constExpr exitPattern("Exiting %s.\n");
+BPatch_constExpr entryPattern("Entering %s, called %d times.\n");
+BPatch_constExpr exitPattern("Exiting %s.\n");
 \end{lstlisting}
 
 \noindent \textbf{For each function, do the following:}
 
 Create snippet vectors:
 \begin{lstlisting}
-     std::vector<BPatch_snippet*> entrySnippetVect;
-     std::vector<BPatch_snippet*> exitSnippetVect;
+std::vector<BPatch_snippet*> entrySnippetVect;
+std::vector<BPatch_snippet*> exitSnippetVect;
 \end{lstlisting}
 
 Create the \code{intCounter} global variable:
 \begin{lstlisting}
-     appProc->malloc(appImage->findType("int"), std::string("intCounter"));
+appProc->malloc(appImage->findType("int"), std::string("intCounter"));
 \end{lstlisting}
 
 Get the name of the function:
 \begin{lstlisting}
-     char fName[128];
-     BPatch_constExpr funcName(functions[i]->getName(fName, 128));
+char fName[128];
+BPatch_constExpr funcName(functions[i]->getName(fName, 128));
 \end{lstlisting}
 
 Build the entry \code{printf}:
 \begin{lstlisting}
-     std::vector<BPatch_snippet*> entryArgs;
-     entryArgs.push_back(entryPattern);
-     entryArgs.push_back(funcName);
-     entryArgs.push_back(intCounter);
+std::vector<BPatch_snippet*> entryArgs;
+entryArgs.push_back(entryPattern);
+entryArgs.push_back(funcName);
+entryArgs.push_back(intCounter);
 \end{lstlisting}
 
 Build the exit \code{printf}:
 \begin{lstlisting}
-     std::vector<BPatch_snippet*> exitArgs;
-     exitArgs.push_back(exitPattern);
-     exitArgs.push_back(funcName);
+std::vector<BPatch_snippet*> exitArgs;
+exitArgs.push_back(exitPattern);
+exitArgs.push_back(funcName);
 \end{lstlisting}
 
 Add \code{printf} to the snippet:
 \begin{lstlisting}
-     entrySnippetVect.push_back(BPatch_functionCallExpr(*printf_func, entryArgs));
-     exitSnippetVect.push_back(BPatch_functionCallExpr(*printf_func, exitArgs));
+entrySnippetVect.push_back(BPatch_functionCallExpr(*printf_func, entryArgs));
+exitSnippetVect.push_back(BPatch_functionCallExpr(*printf_func, exitArgs));
 \end{lstlisting}
 
 Increment the counter:
 \begin{lstlisting}
-     BPatch_arithExpr addOne(BPatch_assign, *intCounter,
-            BPatch_arithExpr(BPatch_plus, *intCounter, BPatch_constExpr(1)));
+BPatch_arithExpr addOne(BPatch_assign, *intCounter,
+       BPatch_arithExpr(BPatch_plus, *intCounter, BPatch_constExpr(1)));
 \end{lstlisting}
 
 Add increment to the entry snippet:
 \begin{lstlisting}
-     entrySnippetVect.push_back(&addOne);
+entrySnippetVect.push_back(&addOne);
 \end{lstlisting}
 
 Insert the snippets:
 \begin{lstlisting}
-     appProc->insertSnippet(*entrySnippetVect, functions[i]->findPoint(BPatch_entry));
-     appProc->insertSnippet(*exitSnippetVect, functions[i]->findPoint(BPatch_exit));
+appProc->insertSnippet(*entrySnippetVect, functions[i]->findPoint(BPatch_entry));
+appProc->insertSnippet(*exitSnippetVect, functions[i]->findPoint(BPatch_exit));
 \end{lstlisting}
 
 \begin{center}
@@ -124,14 +124,14 @@ A function tracer is much easier to build in DynC API, especially if reading dyn
 
 %\lstset{frame=single}
 \begin{lstlisting}
-  // myEntryDynC.txt
-  static int intCounter;
-  printf("Entering %s, called %d times.\n", dyninst`function_name, intCounter++);
+// myEntryDynC.txt
+static int intCounter;
+printf("Entering %s, called %d times.\n", dyninst`function_name, intCounter++);
 \end{lstlisting}
 
 \begin{lstlisting}
-  // myExitDynC.txt
-  printf("Leaving %s.\n", dyninst`function_name);
+// myExitDynC.txt
+printf("Leaving %s.\n", dyninst`function_name);
 \end{lstlisting}
 
 %\lstset{frame=none}
@@ -140,22 +140,22 @@ A function tracer is much easier to build in DynC API, especially if reading dyn
 
 \noindent First open files:
 \begin{lstlisting}
-  FILE* entryFile = fopen("myEntryDynC.txt", "r");
-  FILE* exitFile = fopen("myExitDynC.txt", "r");
+FILE* entryFile = fopen("myEntryDynC.txt", "r");
+FILE* exitFile = fopen("myExitDynC.txt", "r");
 \end{lstlisting}
 
 \noindent Next call DynC API with each function's entry and exit points:
 \begin{lstlisting}
-  BPatch_snippet* entrySnippet =
-       dynC_API::createSnippet(entryFile, entryPoint, "entrySnippet");
-  BPatch_snippet* exitSnippet =
-       dynC_API::createSnippet(exitFile, exitPoint, "exitSnippet");
+BPatch_snippet* entrySnippet =
+     dynC_API::createSnippet(entryFile, entryPoint, "entrySnippet");
+BPatch_snippet* exitSnippet =
+     dynC_API::createSnippet(exitFile, exitPoint, "exitSnippet");
 \end{lstlisting}
 
 \noindent Finally insert the snippets at each function's entry and exit points:
 \begin{lstlisting}
-  appProc->insertSnippet(*entrySnippet, entryPoint);
-  appProc->insertSnippet(*exitSnippet, exitPoint);
+appProc->insertSnippet(*entrySnippet, entryPoint);
+appProc->insertSnippet(*exitSnippet, exitPoint);
 \end{lstlisting}
 
 \begin{comment}
@@ -184,7 +184,7 @@ BPatch_snippet* exitSnippet =
 std::vector<BPatch_point*>* entry_points = (*functions)[0]->findPoint(BPatch_entry);
 std::vector<BPatch_point*>* exit_points = (*functions)[0]->findPoint(BPatch_exit);
 
-for(unsigned int i = 1; i < functions->size(); i++){
+for (unsigned int i = 1; i < functions->size(); i++){
   entry_points->push_back((*(*functions)[i]->findPoint(BPatch_entry))[0]);
   exit_points->push_back((*(*functions)[i]->findPoint(BPatch_exit))[0]);
 }
@@ -195,7 +195,6 @@ appProc->insertSnippet(*exitSnippet, exit_points);
 
 //run mutatee
 appProc->continueExecution();
-
 \end{lstlisting}
 \end{comment}
 
@@ -206,7 +205,7 @@ appProc->continueExecution();
 \subsection{Calling DynC API}
 All DynC functions reside in the \code{dynC\_API} namespace. The primary DynC API function is:
 \begin{lstlisting}
-   BPatch_Snippet* createSnippet(<dynC code>, <location>, char* name);
+BPatch_Snippet* createSnippet(<dynC code>, <location>, char* name);
 \end{lstlisting}
 where \code{<dynC code>} can be either a constant c-style string or a file
 descriptor and \code{<location>} can take the form of a \code{BPatch\_point} or

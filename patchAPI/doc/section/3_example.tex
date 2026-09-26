@@ -15,14 +15,14 @@ std::vector<PatchFunction*> all;
 obj->funcs(back_inserter(all));
 
 for (std::vector<PatchFunction*>::iterator fi = all.begin();
-     fi != all.end(); fi++) {
+     fi != all.end(); fi++)  {
   // Print out each function's name
   PatchFunction* func = *fi;
   std::cout << func->name() << std::endl;
 
   const PatchFunction::Blockset& blks = func->blocks();
   for (PatchFunction::BlockSet::iterator bi = blks.begin();
-       bi != blks.end(); bi++) {
+       bi != blks.end(); bi++)  {
     // Print out each block's size
     PatchBlock* blk = *bi;
     std::cout << "\tBlock size:" << blk->size() << std::endl;
@@ -75,7 +75,7 @@ MySnippet::ptr snippet = MySnippet::create(new MySnippet);
 
 Patcher patcher(mgr);
 for (std::vector<Point*>::iterator iter = pts.begin();
-     iter != pts.end(); ++iter) {
+     iter != pts.end(); ++iter)  {
   Point* pt = *iter;
   patcher.add(PushBackCommand::create(pt, snippet));
 }
@@ -96,19 +96,21 @@ invoked. That is, all snippet insertions would succeed or all would fail.
 \subsubsection{Address Space}
 \begin{lstlisting}[caption=Example of implementing address space plugin]
 class MyAddrSpace : public AddrSpace {
-  public:
-    ...
-    virtual Address malloc(PatchObject* obj, size_t size, Address near) {
-      Address buffer = ...
-      // do memory allocation here
-      return buffer;
-    }
-    virtual bool write(PatchObject* obj, Address to_addr, Address from_addr,
-                       size_t size) {
-      // copy data from the address from_addr to the address to_addr
-      return true;
-    }
-    ...
+public:
+  ...
+  virtual Address malloc(PatchObject* obj, size_t size, Address near)
+  {
+    Address buffer = ...
+    // do memory allocation here
+    return buffer;
+  }
+  virtual bool write(PatchObject* obj, Address to_addr, Address from_addr,
+                     size_t size)
+  {
+    // copy data from the address from_addr to the address to_addr
+    return true;
+  }
+  ...
 };
 \end{lstlisting}
 The above code is to implement the address space plugin, in which, a set of
@@ -121,11 +123,12 @@ space, and then \emph{write} the code snippet into this buffer.
 \subsubsection{Snippet Representation} \label{sec:example-snippet-representation}
 \begin{lstlisting}[caption=Example of implementing snippet plugin]
 class MySnippet : public Snippet {
-  public:
-    virtual bool generate(Point* pt, Buffer& buf) {
-      // Generate and store binary code in the Buffer buf
-      return true;
-    }
+public:
+  virtual bool generate(Point* pt, Buffer& buf)
+  {
+    // Generate and store binary code in the Buffer buf
+    return true;
+  }
 };
 MySnippet::ptr snippet = MySnippet::create(new MySnippet);
 \end{lstlisting}
@@ -141,12 +144,13 @@ class MyFunction : public PatchFunction {
   ...
 };
 class MyCFGMaker : public CFGMaker {
-  public:
-    ...
-    virtual PatchFunction* makeFunction(ParseAPI::Function* f, PatchObject* o) {
-      return new MyFunction(f, o);
-    }
-    ...
+public:
+  ...
+  virtual PatchFunction* makeFunction(ParseAPI::Function* f, PatchObject* o)
+  {
+    return new MyFunction(f, o);
+  }
+  ...
 };
 \end{lstlisting}
 Programmers can augment PatchAPI's CFG structures by annotating their own data.
@@ -157,16 +161,17 @@ be used for CFG parsing.
 \subsubsection{Point Making}
 \begin{lstlisting}[caption=Example of point making]
 class MyPoint : public Point {
-  public:
-    MyPoint(Point::Type t, PatchMgrPtr m, PatchFunction* f);
-    ...
+public:
+  MyPoint(Point::Type t, PatchMgrPtr m, PatchFunction* f);
+  ...
 };
 
 class MyPointMaker: public PointMaker {
-  protected:
-    virtual Point* mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction* f) {
-      return new MyPoint(t, m, f);
-    }
+protected:
+  virtual Point* mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction* f)
+  {
+    return new MyPoint(t, m, f);
+  }
 };
 \end{lstlisting}
 In the above example, the MyPoint class inherits from the Point class, and the
@@ -178,10 +183,11 @@ will be invoked by PatchMgr::findPoint(s).
 \subsubsection{Instrumentation Engine}
 \begin{lstlisting}[caption=Example of customizing instrumentation engine]
 class MyInstrumenter : public Instrumenter {
-  public:
-    virtual bool run() {
-      // Specify how to install instrumentation
-    }
+public:
+  virtual bool run()
+  {
+    // Specify how to install instrumentation
+  }
 };
 \end{lstlisting}
 Programmers can customize the instrumentation engine by extending the

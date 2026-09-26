@@ -682,17 +682,18 @@ For example, consider the following C function:
 
 \begin{lstlisting}
 
-void foo() {
+void foo()
+{
   int x, y, z, i;
-  for (x=0; x<10; x++) {
+  for (x=0; x<10; x++)  {
     for (y = 0; y<10; y++)
       ...
     for (z = 0; z<10; z++)
       ...
   }
-  for (i = 0; i<10; i++) {
-     ...
-  }
+  for (i = 0; i<10; i++)  {
+    ...
+ }
 }
 \end{lstlisting}
 
@@ -794,16 +795,16 @@ of finding a point can be found in the Listing~\ref{findpt}.
 }
 
 \begin{lstlisting}[label=findpt, caption=Pseudocode of finding a point]
-if (point is in the buffer) {
+if (point is in the buffer)  {
   return point;
-} else {
-  if (create == true) {
+}  else  {
+  if (create == true)  {
     create point
     if (point creation fails) return NULL;
     put the point in the buffer
-  } else {
-    return NULL;
-  }
+  }  else  {
+      return NULL;
+    }
 }
 \end{lstlisting}
 
@@ -872,11 +873,12 @@ returned. The code below shows the prototype of an example functor.
 \begin{lstlisting}[caption=Code template for the filter function in findPoint]
 template <class T>
 class FilterFunc {
-  public:
-    bool operator()(Point::Type type, Location loc, T arg) {
-      // The logic to check whether this point is what we need
-      return true;
-    }
+public:
+  bool operator()(Point::Type type, Location loc, T arg)
+  {
+    // The logic to check whether this point is what we need
+    return true;
+  }
 };
 \end{lstlisting}
 

@@ -6,7 +6,8 @@
 
 namespace pc = Dyninst::ProcControlAPI;
 
-pc::Process::cb_ret_t on_thread_create(pc::Event::const_ptr ev) {
+pc::Process::cb_ret_t on_thread_create(pc::Event::const_ptr ev)
+{
   // Callback when the target process creates a thread.
   auto new_thrd_ev = ev->getEventNewThread();
   auto new_thrd = new_thrd_ev->getNewThread();
@@ -15,12 +16,13 @@ pc::Process::cb_ret_t on_thread_create(pc::Event::const_ptr ev) {
   return pc::Process::cbDefault;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
   std::vector<std::string> args;
 
   // Create a new target process
   std::string exec = argv[1];
-  for (int i = 1; i < argc; i++) {
+  for (int i = 1; i < argc; i++)  {
     args.emplace_back(argv[i]);
   }
 
@@ -33,7 +35,7 @@ int main(int argc, char* argv[]) {
   // Run the process and wait for it to terminate.
   proc->continueProc();
 
-  while (!proc->isTerminated()) {
+  while (!proc->isTerminated())  {
     pc::Process::handleEvents(true);
   }
 }

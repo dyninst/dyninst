@@ -33,27 +33,28 @@ default for Visual Studio.
 The following code example shows how to get loop information using ParseAPI once we have an parsed Function object.
 
 \begin{lstlisting}
-void GetLoopInFunc(Function* f) {
-    // Get all loops in the function
-    std::vector<Loop*> loops;
-    f->getLoops(loops);
+void GetLoopInFunc(Function* f)
+{
+  // Get all loops in the function
+  std::vector<Loop*> loops;
+  f->getLoops(loops);
 
-    // Iterate over all loops
-    for (auto lit = loops.begin(); lit != loops.end(); ++lit) {
-        Loop* loop = *lit;
+  // Iterate over all loops
+  for (auto lit = loops.begin(); lit != loops.end(); ++lit)  {
+    Loop* loop = *lit;
 
-        // Get all the entry blocks of the loop
-	std::vector<Block*> entries;
-	loop->getLoopEntries(entries);
+    // Get all the entry blocks of the loop
+    std::vector<Block*> entries;
+    loop->getLoopEntries(entries);
 
-        // Get all the blocks in the loop
-        std::vector<Block*> blocks;
-	loop->getLoopBasicBlocks(blocks);
+    // Get all the blocks in the loop
+    std::vector<Block*> blocks;
+    loop->getLoopBasicBlocks(blocks);
 
-	// Get all the back edges in the loop
-	std::vector<Edge*> backEdges;
-	loop->getBackEdges(backEdges);
-    }
+    // Get all the back edges in the loop
+    std::vector<Edge*> backEdges;
+    loop->getBackEdges(backEdges);
+  }
 }
 \end{lstlisting}
 

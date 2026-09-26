@@ -68,8 +68,8 @@ void getFuncs(OutputIterator result);
 \apidesc{Generic version of the above; adds each Function that contains this block to the provided OutputIterator. For example:}
 
 \begin{lstlisting}
-       std::set<Function*> funcs;
-       block->getFuncs(std::inserter(funcs, funcs.begin()));
+std::set<Function*> funcs;
+block->getFuncs(std::inserter(funcs, funcs.begin()));
 \end{lstlisting}
 
 \begin{apient}

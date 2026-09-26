@@ -16,40 +16,42 @@ typedef enum { create, attach, open } accessType_t;
 
 BPatch_addressSpace* startInstrumenting(accessType_t accessType,
                                         const char* name, int pid,
-                                        const char* argv[]) {
+                                        const char* argv[])
+{
   BPatch_addressSpace* handle = NULL;
-  switch (accessType) {
-  case create:
-    handle = bpatch.processCreate(name, argv);
-    if (!handle) {
-      fprintf(stderr, "processCreate failed\n");
-    }
-    break;
-  case attach:
-    handle = bpatch.processAttach(name, pid);
-    if (!handle) {
-      fprintf(stderr, "processAttach failed\n");
-    }
-    break;
-  case open:
-    // Open the binary file and all dependencies
-    handle = bpatch.openBinary(name, true);
-    if (!handle) {
-      fprintf(stderr, "openBinary failed\n");
-    }
-    break;
+  switch (accessType)  {
+    case create:
+      handle = bpatch.processCreate(name, argv);
+      if (!handle)  {
+        fprintf(stderr, "processCreate failed\n");
+      }
+      break;
+    case attach:
+      handle = bpatch.processAttach(name, pid);
+      if (!handle)  {
+        fprintf(stderr, "processAttach failed\n");
+      }
+      break;
+    case open:
+      // Open the binary file and all dependencies
+      handle = bpatch.openBinary(name, true);
+      if (!handle)  {
+        fprintf(stderr, "openBinary failed\n");
+      }
+      break;
   }
   return handle;
 }
-int binaryAnalysis(BPatch_addressSpace* app) {
+int binaryAnalysis(BPatch_addressSpace* app)
+{
   BPatch_image* appImage = app->getImage();
   int insns_access_memory = 0;
   std::vector<BPatch_function*> functions;
   appImage->findFunction("InterestingProcedure", functions);
-  if (functions.size() == 0) {
+  if (functions.size() == 0)  {
     fprintf(stderr, "No function InterestingProcedure\n");
     return insns_access_memory;
-  } else if (functions.size() > 1) {
+  }  else if (functions.size() > 1)  {
     fprintf(stderr,
             "More than one InterestingProcedure; using the first one\n");
   }
@@ -57,21 +59,22 @@ int binaryAnalysis(BPatch_addressSpace* app) {
   std::set<BPatch_basicBlock*> blocks;
   fg->getAllBasicBlocks(blocks);
   for (auto block_iter = blocks.begin(); block_iter != blocks.end();
-       ++block_iter) {
+       ++block_iter)  {
     BPatch_basicBlock* block = *block_iter;
     std::vector<Dyninst::InstructionAPI::Instruction> insns;
     block->getInstructions(insns);
     for (auto insn_iter = insns.begin(); insn_iter != insns.end();
-         ++insn_iter) {
+         ++insn_iter)  {
       Dyninst::InstructionAPI::Instruction insn = *insn_iter;
-      if (insn.readsMemory() || insn.writesMemory()) {
+      if (insn.readsMemory() || insn.writesMemory())  {
         insns_access_memory++;
       }
     }
   }
   return insns_access_memory;
 }
-int main() {
+int main()
+{
   // Set up information about the program to be instrumented
   const char* progName = "InterestingProgram";
   int progPID = 42;
@@ -80,7 +83,7 @@ int main() {
   // Create/attach/open a binary
   BPatch_addressSpace* app =
       startInstrumenting(mode, progName, progPID, progArgv);
-  if (!app) {
+  if (!app)  {
     fprintf(stderr, "startInstrumenting failed\n");
     exit(1);
   }

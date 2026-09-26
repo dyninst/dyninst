@@ -11,20 +11,21 @@ function may contain multiple outer loops. The outer
 loops are contained in the root instance's vector of children.
 
 \begin{lstlisting}
-  void foo() {
-    for(int x=0; x<10; x++) {
+void foo()
+{
+  for (int x=0; x<10; x++)  {
+    // ...
+    for (int y = 0; y<10; y++)  {
       // ...
-      for(int y = 0; y<10; y++) {
+      for (int z = 0; z<10; z++)  {
         // ...
-        for(int z = 0; z<10; z++) {
-          // ...
-        }
       }
     }
-    for(int i = 0; i<10; i++) {
-      // ...
-    }
   }
+  for (int i = 0; i<10; i++)  {
+    // ...
+  }
+}
 \end{lstlisting}
 
 Each instance of \code{BPatch\_loopTreeNode} is given a name that

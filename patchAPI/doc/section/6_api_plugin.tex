@@ -197,9 +197,9 @@ performs such logic:
 }
 
 \begin{lstlisting}
-if (run()) {
+if (run())  {
   return true;
-} else {
+}  else  {
   undo();
   return false;
 }
@@ -340,7 +340,8 @@ bool wrapFunction(PatchFunction* oldfunc, PatchFunction* newfunc, std::string na
 }
 
 \begin{lstlisting}
-void* malloc_wrapper(int size) {
+void* malloc_wrapper(int size)
+{
   // do stuff
   void* ret = malloc_clone(size);
   // do more stuff

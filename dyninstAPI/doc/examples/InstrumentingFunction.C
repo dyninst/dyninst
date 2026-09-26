@@ -18,29 +18,30 @@ enum accessType_t { create, attach, open };
 // Attach, create, or open a file for rewriting
 BPatch_addressSpace* startInstrumenting(accessType_t accessType,
                                         const char* name, int pid,
-                                        const char* argv[]) {
-  switch (accessType) {
-  case create: {
-    auto handle = bpatch.processCreate(name, argv);
-    if (!handle) {
-      fprintf(stderr, "processCreate failed\n");
+                                        const char* argv[])
+{
+  switch (accessType)  {
+    case create: {
+      auto handle = bpatch.processCreate(name, argv);
+      if (!handle)  {
+        fprintf(stderr, "processCreate failed\n");
+      }
+      return handle;
     }
-    return handle;
-  }
-  case attach: {
-    auto handle = bpatch.processAttach(name, pid);
-    if (!handle) {
-      fprintf(stderr, "processAttach failed\n");
+    case attach: {
+      auto handle = bpatch.processAttach(name, pid);
+      if (!handle)  {
+        fprintf(stderr, "processAttach failed\n");
+      }
+      return handle;
     }
-    return handle;
-  }
-  case open:
-    // Open the binary file and all dependencies
-    auto handle = bpatch.openBinary(name, true);
-    if (!handle) {
-      fprintf(stderr, "openBinary failed\n");
-    }
-    return handle;
+    case open:
+      // Open the binary file and all dependencies
+      auto handle = bpatch.openBinary(name, true);
+      if (!handle)  {
+        fprintf(stderr, "openBinary failed\n");
+      }
+      return handle;
   }
   return nullptr;
 }
@@ -48,18 +49,19 @@ BPatch_addressSpace* startInstrumenting(accessType_t accessType,
 // Find a point at which to insert instrumentation
 std::vector<BPatch_point*>* findPoint(BPatch_addressSpace* app,
                                        const char* name,
-                                       BPatch_procedureLocation loc) {
+                                       BPatch_procedureLocation loc)
+{
   BPatch_image* appImage = app->getImage();
 
   // Scan for functions named "name"
   std::vector<BPatch_function*> functions;
   appImage->findFunction(name, functions);
-  if (functions.size() == 0) {
+  if (functions.size() == 0)  {
     fprintf(stderr, "No function %s\n", name);
     return nullptr;
   }
 
-  if (functions.size() > 1) {
+  if (functions.size() > 1)  {
     fprintf(stderr, "More than one %'s;' using the first one\n", name);
   }
 
@@ -69,7 +71,8 @@ std::vector<BPatch_point*>* findPoint(BPatch_addressSpace* app,
 
 // Create and insert an increment snippet
 bool createAndInsertSnippet(BPatch_addressSpace* app,
-                            std::vector<BPatch_point*>* points) {
+                            std::vector<BPatch_point*>* points)
+{
   BPatch_image* appImage = app->getImage();
 
   // Create an increment snippet
@@ -80,7 +83,7 @@ bool createAndInsertSnippet(BPatch_addressSpace* app,
       BPatch_arithExpr(BPatch_plus, *counter, BPatch_constExpr(1)));
 
   // Insert the snippet
-  if (!app->insertSnippet(addOne, *points)) {
+  if (!app->insertSnippet(addOne, *points))  {
     fprintf(stderr, "insertSnippet failed\n");
     return false;
   }
@@ -88,7 +91,8 @@ bool createAndInsertSnippet(BPatch_addressSpace* app,
 }
 // Create and insert a printf snippet
 bool createAndInsertSnippet2(BPatch_addressSpace* app,
-                             std::vector<BPatch_point*>* points) {
+                             std::vector<BPatch_point*>* points)
+{
   BPatch_image* appImage = app->getImage();
 
   // Create the printf function call snippet
@@ -97,7 +101,7 @@ bool createAndInsertSnippet2(BPatch_addressSpace* app,
       new BPatch_constExpr("InterestingProcedure called %d times\n");
   printfArgs.push_back(fmt);
   BPatch_variableExpr* var = appImage->findVariable("myCounter");
-  if (!var) {
+  if (!var)  {
     fprintf(stderr, "Could not find 'myCounter' variable\n");
     return false;
   }
@@ -106,7 +110,7 @@ bool createAndInsertSnippet2(BPatch_addressSpace* app,
   // Find the printf function
   std::vector<BPatch_function*> printfFuncs;
   appImage->findFunction("printf", printfFuncs);
-  if (printfFuncs.size() == 0) {
+  if (printfFuncs.size() == 0)  {
     fprintf(stderr, "Could not find printf\n");
     return false;
   }
@@ -115,30 +119,32 @@ bool createAndInsertSnippet2(BPatch_addressSpace* app,
   BPatch_funcCallExpr printfCall(*(printfFuncs[0]), printfArgs);
 
   // Insert the snippet
-  if (!app->insertSnippet(printfCall, *points)) {
+  if (!app->insertSnippet(printfCall, *points))  {
     fprintf(stderr, "insertSnippet failed\n");
     return false;
   }
   return true;
 }
-void finishInstrumenting(BPatch_addressSpace* app, const char* newName) {
+void finishInstrumenting(BPatch_addressSpace* app, const char* newName)
+{
   BPatch_process* appProc = dynamic_cast<BPatch_process*>(app);
   BPatch_binaryEdit* appBin = dynamic_cast<BPatch_binaryEdit*>(app);
-  if (appProc) {
-    if (!appProc->continueExecution()) {
+  if (appProc)  {
+    if (!appProc->continueExecution())  {
       fprintf(stderr, "continueExecution failed\n");
     }
-    while (!appProc->isTerminated()) {
+    while (!appProc->isTerminated())  {
       bpatch.waitForStatusChange();
     }
-  } else if (appBin) {
-    if (!appBin->writeFile(newName)) {
+  }  else if (appBin)  {
+    if (!appBin->writeFile(newName))  {
       fprintf(stderr, "writeFile failed\n");
     }
   }
 }
 
-int main() {
+int main()
+{
   // Set up information about the program to be instrumented
   const char* progName = "InterestingProgram";
   int progPID = 42;
@@ -148,7 +154,7 @@ int main() {
   // Create/attach/open a binary
   BPatch_addressSpace* app =
       startInstrumenting(mode, progName, progPID, progArgv);
-  if (!app) {
+  if (!app)  {
     fprintf(stderr, "startInstrumenting failed\n");
     return EXIT_FAILURE;
   }
@@ -156,23 +162,23 @@ int main() {
   const char* interestingFuncName = "InterestingProcedure";
   std::vector<BPatch_point*>* entryPoint =
       findPoint(app, interestingFuncName, BPatch_entry);
-  if (!entryPoint || entryPoint->size() == 0) {
+  if (!entryPoint || entryPoint->size() == 0)  {
     fprintf(stderr, "No entry points for %s\n", interestingFuncName);
     return EXIT_FAILURE;
   }
   // Create and insert instrumentation snippet
-  if (!createAndInsertSnippet(app, entryPoint)) {
+  if (!createAndInsertSnippet(app, entryPoint))  {
     fprintf(stderr, "createAndInsertSnippet failed\n");
     return EXIT_FAILURE;
   }
   // Find the exit point of main
   std::vector<BPatch_point*>* exitPoint = findPoint(app, "main", BPatch_exit);
-  if (!exitPoint || exitPoint->size() == 0) {
+  if (!exitPoint || exitPoint->size() == 0)  {
     fprintf(stderr, "No exit points for main\n");
     return EXIT_FAILURE;
   }
   // Create and insert instrumentation snippet 2
-  if (!createAndInsertSnippet2(app, exitPoint)) {
+  if (!createAndInsertSnippet2(app, exitPoint))  {
     fprintf(stderr, "createAndInsertSnippet2 failed\n");
     return EXIT_FAILURE;
   }

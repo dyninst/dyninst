@@ -21,9 +21,9 @@ seconds.
 \begin{lstlisting}
 Walker* walker = Walker::newWalker(pid);
 std::vector<Frame> swalk;
-for (;;) {
-		walker->walkStack(swalk);
-		sleep(5);
+for (;;)  {
+  walker->walkStack(swalk);
+  sleep(5);
 }
 \end{lstlisting}
 
@@ -61,26 +61,26 @@ error handling and includes that should be present when using \code{select}.
 Walker* walker = Walker::newWalker(pid);
 ProcDebug* debugger = (ProcDebug *) walker->getProcessState();
 std::vector<Frame> swalk;
-for (;;) {
-    walker->walkStack(swalk);
-    struct timeval timeout;
-    timeout.tv_sec = 5;
-    timeout.tv_usec = 0;
-    int max = 1;
-    fd_set readfds, writefds, exceptfds;
-    FD_ZERO(&readfds); FD_ZERO(&writefds); FD_ZERO(&exceptfds);
-    FD_SET(ProcDebug::getNotificationFD(), &readfds);
-    for (;;) {
-        int result = select(max, &readfds, &writefds, &exceptfds, &timeout);
-        if (FD_ISSET(ProcDebug::getNotificationFD(), readfds)) {
-            //Debug event
-            ProcDebug::handleDebugEvent();
-        }
-        if (result == 0) {
-            //Timeout
-            break;
-        }
+for (;;)  {
+  walker->walkStack(swalk);
+  struct timeval timeout;
+  timeout.tv_sec = 5;
+  timeout.tv_usec = 0;
+  int max = 1;
+  fd_set readfds, writefds, exceptfds;
+  FD_ZERO(&readfds); FD_ZERO(&writefds); FD_ZERO(&exceptfds);
+  FD_SET(ProcDebug::getNotificationFD(), &readfds);
+  for (;;)  {
+    int result = select(max, &readfds, &writefds, &exceptfds, &timeout);
+    if (FD_ISSET(ProcDebug::getNotificationFD(), readfds))  {
+      //Debug event
+      ProcDebug::handleDebugEvent();
     }
+    if (result == 0)  {
+      //Timeout
+      break;
+    }
+  }
 }
 \end{lstlisting}
 
@@ -99,13 +99,13 @@ inherits from the \code{ProcessState} interface. The easiest way to get at a
 \begin{lstlisting}
 ProcDebug* debugger;
 debugger = dynamic_cast<ProcDebug*>(walker->getProcessState());
-if (debugger != NULL) {
-    //3rd party
-    ...
-} else {
+if (debugger != NULL)  {
+  //3rd party
+  ...
+}  else  {
     //1st party
     ...
-}
+  }
 \end{lstlisting}
 
 In addition to the handling of debug events, described in
