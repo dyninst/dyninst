@@ -21,7 +21,7 @@ void LivenessAnalysis(Function* f, Block* b)
     printf("Cannot look up live registers at block entry\n");
   }
 
-  printf("There are %d registers live at the block entry\n", liveEntry.count());
+  printf("There are %lu registers live at the block entry\n", liveEntry.count());
 
   // Query live register at the block exit
   bitArray liveExit;

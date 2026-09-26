@@ -62,7 +62,7 @@ std::vector<BPatch_point*>* findPoint(BPatch_addressSpace* app,
   }
 
   if (functions.size() > 1)  {
-    fprintf(stderr, "More than one %'s;' using the first one\n", name);
+    fprintf(stderr, "More than one %s; using the first one\n", name);
   }
 
   // Locate the relevant points
