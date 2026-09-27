@@ -3757,6 +3757,13 @@ void int_thread::throwEventsBeforeContinue()
 
    int_iRPC::ptr rpc = nextPostedIRPC();
    bp_instance *bpi = isStoppedOnBP();
+   if (!bpi && stopped_on_breakpoint_addr) {
+      // The breakpoint this thread stopped on is gone (e.g. its own emulated single-step
+      // breakpoint, retired by the hit), so this continue carries the thread past that
+      // address. Drop the mark: a breakpoint inserted there later would otherwise make us
+      // step this thread over it from wherever the thread is by then.
+      markStoppedOnBP(NULL);
+   }
    if (rpc && !runningRPC() && rpc->getState() == int_iRPC::Posted) {
       pthrd_printf("Found thread %d/%d ready to run IRPC, not continuing\n", llproc()->getPid(), getLWP());
 
