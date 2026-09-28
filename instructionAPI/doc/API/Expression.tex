@@ -57,7 +57,7 @@ be determined (most likely because register contents have been filled in via
 \code{setValue} or \code{bind}), it will be returned from \code{eval}; if it can
 not be determined, a \code{Result} with an undefined value will be returned. See
 Figure~\ref{fig:deref-eval} for an illustration of this concept; the operand represented is
-\code{[ \code{EBX} + \code{4} $\ast$ \code{EAX} ]}.
+\code{[ EBX + 4 $\ast$ EAX ]}.
 The contents of \code{EBX} and \code{EAX} have been determined through some
 outside mechanism, and have been defined with \code{setValue}. The \code{eval}
 mechanism proceeds to determine the address being read by the \code{Dereference}, since
