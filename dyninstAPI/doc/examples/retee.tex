@@ -1,8 +1,7 @@
 re-tee
 
-It takes three arguments: the pathname of an executable program, the
-process id of a running instance of the same program, and a file
-name. It adds code to the running program that
+It takes two arguments: the process id of a running program and a
+file name. It adds code to that program that
 copies to the named file all output that the program writes to its
 standard output file descriptor. In this way it
 works like ``tee,'' which passes output along to its own standard out

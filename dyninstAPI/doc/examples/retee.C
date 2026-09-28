@@ -69,7 +69,7 @@ int openFileForWrite(BPatch_process* app, BPatch_image* appImage,
   // (2) Allocate a vector of snippets for the parameters to open
   std::vector<BPatch_snippet*> openArgs;
 
-  // (3) Create a string constant expression from argv[3]
+  // (3) Create a string constant expression from argv[2]
   BPatch_constExpr fileNameExpr(fileName);
 
   // (4) Create two more constant expressions _WRONLY|O_CREAT and 0666
