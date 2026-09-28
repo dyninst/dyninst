@@ -253,7 +253,7 @@ This method sets the new name of the function type to \code{name}. Returns \code
 dyn_c_vector<boost::shared_ptr<Type>>& getParams();
 \end{apient}
 \apidesc{
-This method returns the vector containing the individual parameters represented by their types in order. Returns \code{NULL} if there are no parameters to the function type.
+This method returns the vector containing the individual parameters represented by their types in order. The vector is empty if the function type takes no parameters.
 }
 
 \subsection{Class typeScalar}
