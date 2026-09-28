@@ -32,18 +32,18 @@ while (!work.empty())  {
   Block* b = work.back();
   work.pop_back();
 
-  Block::edgelist& targets = block->targets();
+  const Block::edgelist& targets = b->targets();
   // Do stuff for each out edge
-  std::for_each(make_filter_iterator(targets.begin(), epred),
-                make_filter_iterator(targets.end(), epred),
+  std::for_each(make_filter_iterator(epred, targets.begin(), targets.end()),
+                make_filter_iterator(epred, targets.end(), targets.end()),
                 do_stuff());
-  std::transform(make_filter_iterator(targets.begin(), epred),
-                 make_filter_iterator(targets.end(), epred),
+  std::transform(make_filter_iterator(epred, targets.begin(), targets.end()),
+                 make_filter_iterator(epred, targets.end(), targets.end()),
                  std::back_inserter(work),
-                 std::mem_fun(Edge::trg));
+                 target_block());
   Block::edgelist::const_iterator found_interproc =
           std::find_if(targets.begin(), targets.end(), Interproc());
-  if (interproc != targets.end())  {
+  if (found_interproc != targets.end())  {
     // do something with the interprocedural edge you found
   }
 }
