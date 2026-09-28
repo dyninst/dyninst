@@ -19,20 +19,29 @@ A type definition for a reference-counted pointer to a \code{MultiRegisterAST}.
 MultiRegisterAST(MachRegister r, uint32_t num_elements = 1);
 \end{apient}
 \apidesc{
-Construct a register using the provided register object \code{r}. The
-\code{MachRegister} datatype is Dyninst's register representation and
-should not be constructed manually.
+Construct a collection of \code{num\_elements} consecutive registers beginning
+at \code{r}. The registers after the first are formed by incrementing the
+register number of \code{r}, so a collection built this way is always
+consecutive. The \code{MachRegister} datatype is Dyninst's register
+representation and should not be constructed manually.
 }
 
 \begin{apient}
 MultiRegisterAST(std::vector<RegisterAST::Ptr> _in);
 \end{apient}
+\apidesc{
+Construct a collection from the registers in \code{\_in}, keeping their order.
+\code{\_in} must not be empty, as its first element supplies the base register.
+The registers given need not be consecutive.
+}
 
 \begin{apient}
 bool isUsed(Expression::Ptr findMe) const;
 \end{apient}
 \apidesc{
-\code{isUsed} returns \code{true} if \code{findMe} is a \code{MultiRegisterAST} that represents the same register as this \code{MultiRegisterAST}, and \code{false} otherwise.
+\code{isUsed} returns \code{true} if \code{findMe} is a \code{MultiRegisterAST}
+that represents the same registers, in the same order, as this
+\code{MultiRegisterAST}, and \code{false} otherwise.
 }
 
 \begin{apient}
