@@ -72,8 +72,8 @@ int openFileForWrite(BPatch_process* app, BPatch_image* appImage,
   // (3) Create a string constant expression from argv[2]
   BPatch_constExpr fileNameExpr(fileName);
 
-  // (4) Create two more constant expressions _WRONLY|O_CREAT and 0666
-  BPatch_constExpr fileFlagsExpr(O_WRONLY| O_CREAT);
+  // (4) Create two more constant expressions O_WRONLY|O_CREAT and 0666
+  BPatch_constExpr fileFlagsExpr(O_WRONLY|O_CREAT);
   BPatch_constExpr fileModeExpr(0666);
 
   // (5) Push 3 & 4 onto the list from step 2, push first to last parameter.
