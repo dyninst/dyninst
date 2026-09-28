@@ -66,7 +66,7 @@ bool instrumentMemoryAccesses(BPatch_addressSpace* app)
 
   // Create the printf function call snippet
   std::vector<BPatch_snippet*> printfArgs;
-  BPatch_snippet* fmt = new BPatch_constExpr("Access at : 0x%lx\n");
+  BPatch_snippet* fmt = new BPatch_constExpr("Access at: 0x%lx\n");
   printfArgs.push_back(fmt);
   BPatch_snippet* eae = new BPatch_effectiveAddressExpr();
   printfArgs.push_back(eae);
