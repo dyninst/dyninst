@@ -67,9 +67,9 @@ and \code{ConstantAST} each have a different data structure associated with
 them.
 
 \begin{apient}
-Variable& VariableAST::val() const;
-Constant& ConstantAST::val() const;
-ROSEOperation& RoseAST::val() const;
+const Variable& VariableAST::val() const;
+const Constant& ConstantAST::val() const;
+const ROSEOperation& RoseAST::val() const;
 \end{apient}
 
 We now describe data structure \code{Variable}, \code{Constant}, and
@@ -97,7 +97,7 @@ bool Variable::operator<(const Variable& rhs) const;
 addresses are equal.}
 
 \begin{apient}
-const std::string Variable::format() const;
+std::string Variable::format() const;
 \end{apient}
 \apidesc{Return the string representation of the Variable.}
 
@@ -128,7 +128,7 @@ bool Constant::operator<(const Constant& rhs) const;
 value and size.}
 
 \begin{apient}
-const std::string Constant::format() const;
+std::string Constant::format() const;
 \end{apient}
 \apidesc{Return the string representation of the Constant object.}
 
@@ -197,7 +197,7 @@ bool operator==(const ROSEOperation& rhs) const;
 \apidesc{Equal operator}
 
 \begin{apient}
-const std::string ROSEOperation::format() const;
+std::string ROSEOperation::format() const;
 \end{apient}
 \apidesc{Return the string representation.}
 
