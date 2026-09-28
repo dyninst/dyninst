@@ -180,13 +180,13 @@ ROSEOperation::Op & Meaning \\
 \end{center}
 
 \begin{apient}
-ROSEOperation::ROSEOperation(Op o) : op(o);
-ROSEOperation::ROSEOperation(Op o, size_t s);
+explicit ROSEOperation(Op o);
+ROSEOperation(Op o, size_t s);
 \end{apient}
 \apidesc{Constructors for ROSEOperation}
 
 \begin{apient}
-bool ROSEOperation::operator==(const ROSEOperation& rhs) const;
+bool operator==(const ROSEOperation& rhs) const;
 \end{apient}
 \apidesc{Equal operator}
 
