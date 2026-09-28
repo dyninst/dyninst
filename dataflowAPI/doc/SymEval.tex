@@ -217,13 +217,16 @@ for ASTs.
 \begin{apient}
 typedef boost::shared_ptr<AST> ASTVisitor::ASTPtr;
 
-ASTVisitor::ASTPtr ASTVisitor::visit(AST *);
-ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::BottomAST *);
-ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::ConstantAST *);
-ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::VariableAST *);
-ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::RoseAST *);
-ASTVisitor::ASTPtr ASTVisitor::visit(StackAST *);
+virtual ASTVisitor::ASTPtr ASTVisitor::visit(AST* a);
+virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::BottomAST* a);
+virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::ConstantAST* a);
+virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::VariableAST* a);
+virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::RoseAST* a);
+virtual ASTVisitor::ASTPtr ASTVisitor::visit(DataflowAPI::StackAST* a);
 \end{apient}
-\apidesc{Callback functions for visiting each type of AST node. The default
-behavior is to return the input parameter.}
+\apidesc{Callback functions for visiting each type of AST node. \code{AST::accept}
+returns whatever the visit function for that node type returns. The default
+implementation of each returns an empty \code{ASTPtr} rather than \code{a}, so a
+derived visitor must override every node type it expects to encounter; a node
+type left unoverridden contributes a null pointer to the result.}
 
