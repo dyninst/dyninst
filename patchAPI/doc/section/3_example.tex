@@ -21,7 +21,7 @@ for (std::vector<PatchFunction*>::iterator fi = all.begin();
   std::cout << func->name() << std::endl;
 
   const PatchFunction::Blockset& blks = func->blocks();
-  for (PatchFunction::BlockSet::iterator bi = blks.begin();
+  for (PatchFunction::Blockset::const_iterator bi = blks.begin();
         bi != blks.end(); bi++)  {
     // Print out each block's size
     PatchBlock* blk = *bi;
