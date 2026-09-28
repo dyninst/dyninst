@@ -5,24 +5,24 @@
 The CodeRegion interface is an accounting structure used to divide CodeSources into distinct regions. This interface is mostly of interest to CodeSource implementors.
 
 \begin{apient}
-void names(Address addr,
-           std::vector<std::string>& names);
+virtual void names(Address addr,
+                   std::vector<std::string>& names);
 \end{apient}
 \apidesc{Fills the provided vector with any names associated with the function at a given address in the region, e.g. symbol names in an ELF or PE binary.}
 
 \begin{apient}
-bool findCatchBlock(Address addr,
+virtual bool findCatchBlock(Address addr,
                             Address& catchStart);
 \end{apient}
 \apidesc{Finds the exception handler associated with an address, if one exists. This routine is only implemented for binary code sources that support structured exception handling, such as the SymtabAPI-based SymtabCodeSource provided as part of the ParseAPI.}
 
 \begin{apient}
-Address low() const;
+virtual Address low() const;
 \end{apient}
 \apidesc{The lower bound of the interval of address space covered by this region.}
 
 \begin{apient}
-Address high() const;
+virtual Address high() const;
 \end{apient}
 \apidesc{The upper bound of the interval of address space covered by this region.}
 
@@ -32,6 +32,6 @@ bool contains(Address addr) const;
 \apidesc{Returns \code{true} if $\mbox{\code{addr}} \in [\mbox{\code{low()}},\mbox{\code{high()}})$, \code{false} otherwise.}
 
 \begin{apient}
-bool wasUserAdded() const;
+virtual bool wasUserAdded() const;
 \end{apient}
 \apidesc{Return \code{true} if this region was added by the user, \code{false} otherwise.}

@@ -75,7 +75,7 @@ block->getFuncs(std::inserter(funcs, funcs.begin()));
 \begin{apient}
 typedef std::map<Offset, InstructionAPI::Instruction> Insns;
 
-void getInsns(Insns& insns) const;
+virtual void getInsns(Insns& insns) const;
 \end{apient}
 \apidesc{Disassembles the block and stores the result in
   \code{Insns}.}

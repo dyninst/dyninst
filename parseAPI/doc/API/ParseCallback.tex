@@ -18,7 +18,7 @@ struct default_details {
 callbacks.}
 
 \begin{apient}
-void instruction_cb(Function *,
+virtual void instruction_cb(Function *,
                             Block *,
                             Address,
                             insn_details *);
@@ -32,10 +32,10 @@ struct insn_details {
 \end{apient}
 
 \begin{apient}
-void interproc_cf(Function *,
-                  Block *,
-                  Address,
-                  interproc_details *);
+virtual void interproc_cf(Function *,
+                          Block *,
+                          Address,
+                          interproc_details *);
 \end{apient}
 \apidesc{Invoked for each interprocedural control flow instruction.}
 
@@ -62,7 +62,7 @@ struct interproc_details {
 \apidesc{Details used in the \code{interproc\_cf} callback.}
 
 \begin{apient}
-void overlapping_blocks(Block *,
-                        Block *);
+virtual void overlapping_blocks(Block *,
+                                Block *);
 \end{apient}
 \apidesc{Noification of inconsistent parse data (overlapping blocks).}
