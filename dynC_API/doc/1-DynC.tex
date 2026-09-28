@@ -21,7 +21,7 @@ which are then combined and inserted into the mutatee.
 \noindent Look up \code{printf}:
 
 \begin{lstlisting}
-std::vector<BPatch_function*>* printf_func;
+std::vector<BPatch_function*> printf_func;
 appImage->findFunction("printf", printf_func);
 BPatch_function* BPF_printf = printf_func[0];
 \end{lstlisting}
@@ -42,7 +42,8 @@ std::vector<BPatch_snippet*> exitSnippetVect;
 
 Create the \code{intCounter} global variable:
 \begin{lstlisting}
-appProc->malloc(appImage->findType("int"), std::string("intCounter"));
+BPatch_variableExpr* intCounter =
+      appProc->malloc(*appImage->findType("int"), std::string("intCounter"));
 \end{lstlisting}
 
 Get the name of the function:
@@ -54,22 +55,24 @@ BPatch_constExpr funcName(functions[i]->getName(fName, 128));
 Build the entry \code{printf}:
 \begin{lstlisting}
 std::vector<BPatch_snippet*> entryArgs;
-entryArgs.push_back(entryPattern);
-entryArgs.push_back(funcName);
+entryArgs.push_back(&entryPattern);
+entryArgs.push_back(&funcName);
 entryArgs.push_back(intCounter);
 \end{lstlisting}
 
 Build the exit \code{printf}:
 \begin{lstlisting}
 std::vector<BPatch_snippet*> exitArgs;
-exitArgs.push_back(exitPattern);
-exitArgs.push_back(funcName);
+exitArgs.push_back(&exitPattern);
+exitArgs.push_back(&funcName);
 \end{lstlisting}
 
 Add \code{printf} to the snippet:
 \begin{lstlisting}
-entrySnippetVect.push_back(BPatch_functionCallExpr(*printf_func, entryArgs));
-exitSnippetVect.push_back(BPatch_functionCallExpr(*printf_func, exitArgs));
+BPatch_funcCallExpr entryCall(*BPF_printf, entryArgs);
+BPatch_funcCallExpr exitCall(*BPF_printf, exitArgs);
+entrySnippetVect.push_back(&entryCall);
+exitSnippetVect.push_back(&exitCall);
 \end{lstlisting}
 
 Increment the counter:
@@ -85,8 +88,10 @@ entrySnippetVect.push_back(&addOne);
 
 Insert the snippets:
 \begin{lstlisting}
-appProc->insertSnippet(*entrySnippetVect, functions[i]->findPoint(BPatch_entry));
-appProc->insertSnippet(*exitSnippetVect, functions[i]->findPoint(BPatch_exit));
+BPatch_sequence entrySequence(entrySnippetVect);
+BPatch_sequence exitSequence(exitSnippetVect);
+appProc->insertSnippet(entrySequence, *functions[i]->findPoint(BPatch_entry));
+appProc->insertSnippet(exitSequence, *functions[i]->findPoint(BPatch_exit));
 \end{lstlisting}
 
 \begin{center}
