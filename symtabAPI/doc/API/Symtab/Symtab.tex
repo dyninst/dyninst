@@ -127,7 +127,7 @@ not being misled by it.
 
 \begin{apient}
 static bool openFile(Symtab*& obj,
-                     std::string filename,
+                     const std::string& filename,
                      def_t defensive_binary = NotDefensive);
 \end{apient}
 \apidesc{
@@ -139,7 +139,7 @@ Returns \code{true} if the file is parsed without an error, else returns \code{f
 static bool openFile(Symtab*& obj,
                      void* mem_image,
                      size_t size,
-                     std::string name,
+                     const std::string& name,
                      def_t defensive_binary = NotDefensive);
 \end{apient}
 \apidesc{
@@ -359,7 +359,7 @@ This method finds all the new regions added to the object file. Returns \code{tr
 
 \begin{apient}
 bool findRegion(Region*& reg,
-                std::string sname);
+                const std::string& sname);
 \end{apient}
 \apidesc{
 Find a region (ELF section) wih name \code{sname} in the binary. Returns \code{true} if found, with \code{reg} set to the region pointer. Otherwise returns \code{false} with \code{reg} set to \code{NULL}.
@@ -571,7 +571,7 @@ Forces SymtabAPI to perform type parsing instead of delaying it to when needed.
 
 \begin{apient}
 bool findType(Type*& type,
-              std::string name);
+              const std::string& name);
 \end{apient}
 \apidesc{
 Performs a look up among all the built-in types, standard types and user-defined types and returns a handle to the found type with name \code{name}.
@@ -610,7 +610,7 @@ Returns \code{true} with \code{vars} containing a list of \code{localVar} object
 
 \begin{apient}
 bool findVariableType(Type*& type,
-                      std::string name);
+                      const std::string& name);
 \end{apient}
 \apidesc{
 This method looks up a global variable with name \code{name} and returns its type attribute.

@@ -132,7 +132,7 @@ Returns all line information  (Section~\ref{Statement}) available for the module
 
 \begin{apient}
 bool findType(Type * &type,
-              std::string name);
+              const std::string& name);
 \end{apient}
 \apidesc{
 This method performs a look up and returns a handle to the named \code{type}.
@@ -150,7 +150,7 @@ Returns \code{true} with vars containing a list of \code{localVar} objects corre
 
 \begin{apient}
 bool findVariableType(Type*& type,
-                      std::string name);
+                      const std::string& name);
 \end{apient}
 \apidesc{
 This method looks up a global variable with name \code{name} and returns its type attribute.

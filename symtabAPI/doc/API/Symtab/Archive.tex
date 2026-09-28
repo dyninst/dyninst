@@ -3,7 +3,7 @@ This is used only on ELF platforms. This class represents an archive. This class
 
 \begin{apient}
 static bool openArchive(Archive*& img,
-                        std::string name);
+                        const std::string& name);
 \end{apient}
 \apidesc{
 This factory method creates a new \code{Archive} object for an archive file on disk. This object serves as a handle to the parsed archive file. \code{name} represents the name of the archive to be parsed. The \code{Archive} object is returned in \code{img} if the parsing succeeds.
