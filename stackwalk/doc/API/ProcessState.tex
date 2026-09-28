@@ -107,6 +107,47 @@ std::string getExecutablePath();
 Returns the name of the executable associated with the current process state.
 }
 
+\begin{apient}
+virtual bool isFirstParty() = 0;
+\end{apient}
+\apidesc{
+    Returns \code{true} if this \code{ProcessState} walks the stack of the
+    process it runs in, and \code{false} if it walks another process through a
+    debugger interface.  Of the two implementations StackwalkerAPI provides,
+    \code{ProcSelf} returns \code{true} and \code{ProcDebug} returns
+    \code{false}.
+}
+
+\begin{apient}
+void setDefaultLibraryTracker();
+\end{apient}
+\apidesc{
+    Gives this \code{ProcessState} the default \code{LibraryState}, unless one
+    has already been set.  An implementation that does not supply its own
+    library tracking should call this.
+}
+
+\begin{apient}
+virtual LibraryState* getLibraryTracker();
+\end{apient}
+\apidesc{
+    Returns the \code{LibraryState} this \code{ProcessState} uses to find the
+    libraries loaded into the target process; see
+    Section~\ref{subsubsec:librarystate}.  Returns \code{NULL} if none has been
+    set.
+}
+
+\begin{apient}
+virtual bool preStackwalk(Dyninst::THR_ID tid);
+virtual bool postStackwalk(Dyninst::THR_ID tid);
+\end{apient}
+\apidesc{
+    Called before and after each walk of thread \code{tid}, so that an
+    implementation can prepare the target process and afterwards release
+    whatever it took.  Both return \code{true} on success and \code{false} on
+    error; a \code{false} from \code{preStackwalk} abandons the walk.
+}
+
 \subsubsection{Class LibraryState}
 \label{subsubsec:librarystate}
 
