@@ -285,7 +285,7 @@ BPatch_type* createArray(const char* name, BPatch_type* ptr, unsigned int low, u
 
 \apidesc{
 Create a new array type. The name of the type is name, and the type of each element is ptr. The index of the first
-element of the array is low, and the last is high. The standard rules of type compatibility, described in Section
+element of the array is low, and the last is high. The standard rules of type compatibility, described in Section~\ref{sec:typesystem}
 , are used with arrays created using this function.
 }
 
@@ -301,7 +301,7 @@ type where the user specifies the identifier (int) for each element. In the seco
 identifiers for each element. In both cases, a vector of character arrays is passed to supply the names of the
 elements of the enumerated type. In the first form of the function, the number of element in the elementNames and
 elementIds vectors must be the same, or the type will not be created and this function will return NULL. The standard
-rules of type compatibility, described in Section , are used with enums created using this
+rules of type compatibility, described in Section~\ref{sec:typesystem}, are used with enums created using this
 function.
 }
 
@@ -323,7 +323,7 @@ BPatch_type* createStruct(const char* name, std::vector<char*>& fieldNames,
 \apidesc{
 Create a new structure type. The name of the structure is specified in the name parameter. The fieldNames and
 fieldTypes vectors specify fields of the type. These two vectors must have the same number of elements or the
-function will fail (and return NULL). The standard rules of type compatibility, described in Section
+function will fail (and return NULL). The standard rules of type compatibility, described in Section~\ref{sec:typesystem}
 , are used with structures created using this function. The size of the structure is the sum of
 the size of the elements in the fieldTypes vector.
 }
