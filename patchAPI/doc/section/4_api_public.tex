@@ -804,7 +804,7 @@ method simply returns a pointer to this Point from a buffer, no matter whether
 \emph{create} is true or false. If the Point we want to find is not yet created,
 and \emph{create} is true, then this method constructs this Point and put it in
 a buffer, and finally returns a Pointer to this Point. If the Point creation
-fails, this method also returns false. If the Point we want to find is not yet
+fails, this method also returns NULL. If the Point we want to find is not yet
 created, and \emph{create} is false, this method returns NULL. The basic logic
 of finding a point can be found in the Listing~\ref{findpt}.
 
