@@ -28,7 +28,7 @@ object is used to customize how StackwalkerAPI looks up symbolic names of the
 function or object that created a stack frame.
 
 \begin{apient}
-static Walker* newWalker();
+static Walker* newWalker(std::string exec_name = std::string(""));
 static Walker* newWalker(Dyninst::PID pid);
 static Walker* newWalker(Dyninst::PID pid, std::string executable);
 static Walker* newWalker(Dyninst::ProcControlAPI::Process::ptr proc);

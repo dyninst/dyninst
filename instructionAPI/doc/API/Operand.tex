@@ -16,15 +16,25 @@ knowledge about the state of the processor at the time the Instruction is
 executed.
 
 \begin{apient}
-Operand(Expression::Ptr val, bool read, bool written);
+Operand(Expression::Ptr val = {},
+        bool read = false,
+        bool written = false,
+        bool implicit = false,
+        bool trueP = false,
+        bool falseP = false);
 \end{apient}
 \apidesc{
     Create an operand from an \code{Expression} and flags describing whether the
-    ValueComputation is read, written, or both.
+    ValueComputation is read, written, or both, whether it is implicit in the
+    instruction rather than written out, and which side of a predicate it
+    belongs to.
 
     \code{val} is a reference-counted pointer to the \code{Expression} that will
     be contained in the \code{Operand} being constructed. \code{read} is true if
     this operand is read. \code{written} is true if this operand is written.
+    \code{implicit} is true if the operand does not appear in the instruction's
+    text.  \code{trueP} and \code{falseP} mark the operand used when a
+    predicated instruction's predicate is true or false.
 
     An instruction can be true predicated, false predicated, or not predicated at all.
 }
