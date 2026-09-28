@@ -1,3 +1,5 @@
+\declaredin{StackMod.h}
+
 Stack modifications are based on the
 abstraction of stack locations, not the contents of these locations.
 All stack offsets are with respect to the original
@@ -10,6 +12,8 @@ Only implemented on x86 and x86-64.
 }
 
 \subsubsection{Insert}
+
+\declaredin{StackMod.h}
 
 \begin{apient}
   Insert(int low, int high);
@@ -26,6 +30,8 @@ Only implemented on x86 and x86-64.
 
 \subsubsection{Remove}
 
+\declaredin{StackMod.h}
+
 \begin{apient}
   Remove(int low, int high);
 \end{apient}
@@ -41,6 +47,8 @@ Only implemented on x86 and x86-64.
 
 \subsubsection{Move}
 
+\declaredin{StackMod.h}
+
 \begin{apient}
   Move(int sLow, int sHigh, int dLow);
 \end{apient}
@@ -54,6 +62,8 @@ Only implemented on x86 and x86-64.
 }
 
 \subsubsection{Canary}
+
+\declaredin{StackMod.h}
 
 \begin{apient}
   Canary();
@@ -81,6 +91,8 @@ Only implemented on x86 and x86-64.
 }
 
 \subsubsection{Randomize}
+
+\declaredin{StackMod.h}
 
 \begin{apient}
   Randomize();
