@@ -5,6 +5,8 @@ SymtabAPI's dynamic components operate on a process. The dynamic components curr
 
 \subsection{Class AddressLookup}
 
+\declaredin{AddrLookup.h}
+
 The \code{AddressLookup} class provides a mapping interface for determining the address in a process where a SymtabAPI object is loaded. A single dynamic library may load at different addresses in different processes. The `address' fields in a dynamic library's symbol tables will contain offsets rather than absolute addresses. These offsets can be added to the library's load address, which is computed at runtime, to determine the absolute address where a symbol is loaded.
 
 The \code{AddressLookup} class examines a process and finds its dynamic libraries and executables and each one's load address. This information can be used to map between SymtabAPI objects and absolute addresses. Each \code{AddressLookup} instance is associated with one process. An \code{AddressLookup} object can be created to work with the currently running process or a different process on the same system.
@@ -144,6 +146,8 @@ Given a Symtab object, \code{sym}, this function returns the load address of its
 
 \subsection{Class ProcessReader}
 \label{subsec:ProcessReader}
+
+\declaredin{ProcReader.h}
 
 The implementation of the \code{AddressLookup} on Linux requires it to be able to read from the target process's address space. By default, reading from another process on the same system this is done through the operating system debugger interface. A user can provide their own process reading mechanism by implementing a child of the \code{ProcessReader} class and passing it to the \code{AddressLookup} constructors.
 The API described in this section is an interface that a user can implement. With the exception of the \code{ProcessReader} constructor, these functions should not be called by user code.

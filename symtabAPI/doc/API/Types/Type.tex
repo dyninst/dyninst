@@ -1,5 +1,7 @@
 \subsection{Class Type}
 
+\declaredin{Type.h}
+
 The class \code{Type} represents the types of variables, parameters, return values, and functions. Instances of this class can represent language predefined types (e.g. \code{int}, \code{float}), already defined types in the Object File or binary (e.g., structures compiled into the binary), or newly created types (created using the create factory methods of the corresponding type classes described later in this section) that are added to SymtabAPI by the user.
 
 As described in Section~\ref{subsec:typeInterface}, this class serves as a base class for all the other classes in this interface. An object of this class is returned from type look up operations performed through the Symtab class described in Section~\ref{sec:symtabAPI}. The user can then obtain the specific type object from the generic Type class object. The following example shows how to get the specific object from a given \code{Type} object returned as part of a look up operation.
@@ -154,6 +156,9 @@ If this \code{Type} object represents a \code{Reference} type, then return the o
 }
 
 \subsection{Class typeEnum}
+
+\declaredin{Type.h}
+
 This class represents an enumeration type containing a list of constants with values. This class is derived from \code{Type}, so all those member functions are applicable. \code{typeEnum} inherits from the \code{Type} class.
 
 \begin{apient}
@@ -199,6 +204,9 @@ bool isCompatible(Type* type);
  }
 
  \subsection{Class typeFunction}
+
+\declaredin{Type.h}
+
 This class represents a function type, containing a list of parameters and a return type. This class is derived from \code{Type}, so all the member functions of class \code{Type} are applicable. \code{typeFunction} inherits from the \code{Type} class.
 
 
@@ -258,6 +266,8 @@ This method returns the vector containing the individual parameters represented 
 
 \subsection{Class typeScalar}
 
+\declaredin{Type.h}
+
 This class represents a scalar type. This class is derived from \code{Type}, so all the
 member functions of class \code{Type} are applicable. \code{typeScalar} inherits from the Type
 class.
@@ -288,6 +298,9 @@ This method returns \code{true} if the scalar type is compatible with the given 
 }
 
 \subsection{Class Field}
+
+\declaredin{Type.h}
+
 This class represents a field in a container. For e.g. a field in a structure/union type.
 
 
@@ -368,6 +381,8 @@ This returns \code{visPublic} for the variables within a common block.
 
 \subsection{Class fieldListType}
 
+\declaredin{Type.h}
+
 This class represents a container type. It is one of the three categories of types as described in Section~\ref{subsec:typeInterface}. The structure and the union types fall under this category. This class is derived from \code{Type}, so all the member functions of class \code{Type} are applicable. \code{fieldListType} inherits from the \code{Type} class.
 
 
@@ -415,6 +430,9 @@ This method adds a field \code{fld} after field \code{num} to the container type
 }
 
 \subsubsection{Class typeStruct : public fieldListType}
+
+\declaredin{Type.h}
+
 \mbox{ }\\
 
 This class represents a structure type. The structure type is a special case of
@@ -451,6 +469,9 @@ This method returns \code{true} if the struct type is compatible with the given 
 }
 
 \subsubsection{Class typeUnion}
+
+\declaredin{Type.h}
+
 \mbox{ }\\
 
 This class represents a union type, a special case of the container type. The fields of the union type represent the fields in this case. As a subclass of class \code{fieldListType}, all methods in \code{fieldListType} are applicable. \code{typeUnion} inherits from the \code{fieldListType} class.
@@ -484,12 +505,18 @@ This method returns \code{true} if the union type is compatible with the given t
 }
 
 \subsubsection{Class typeCommon}
+
+\declaredin{Type.h}
+
 \mbox{ }\\
 
 This class represents a common block type in fortran, a special case of the container type. The variables of the common block represent the fields in this case. As a subclass of class \code{fieldListType}, all methods in \code{fieldListType} are applicable. \code{typeCommon} inherits from the \code{Type} class.
 
 
 \subsubsection{Class CBlock}
+
+\declaredin{Type.h}
+
 \mbox{ }\\
 
 This class represents a common block in Fortran. Multiple functions can share a common block.
@@ -511,6 +538,9 @@ or \code{NULL} if there are none.
 }
 
 \subsection{Class derivedType}
+
+\declaredin{Type.h}
+
 This class represents a derived type which is a reference to another type. It is one of the three categories of types as described in Section~\ref{subsec:typeInterface}. The pointer, reference and the typedef types fall under this category. This class is derived from \code{Type}, so all the member functions of class \code{Type} are applicable.
 
 
@@ -522,6 +552,9 @@ Type* getConstituentType() const;
 }
 
 \subsubsection{Class typePointer}
+
+\declaredin{Type.h}
+
 \mbox{ }\\
 
 This class represents a pointer type, a special case of the derived type. The base type in this case is the type this particular type points to. As a subclass of class \code{derivedType}, all methods in \code{derivedType} are also applicable.
@@ -556,6 +589,9 @@ This method sets the pointer type to point to the type in \code{ptr}. Returns \c
 }
 
 \subsubsection{Class typeTypedef}
+
+\declaredin{Type.h}
+
 \mbox{ }\\
 
 This class represents a \code{typedef} type, a special case of the derived type. The base type in this case is the \code{Type}. This particular type is typedefed to. As a subclass of class \code{derivedType}, all methods in \code{derivedType} are also applicable.
@@ -579,6 +615,9 @@ This method returns \code{true} if the typedef type is compatible with the given
 }
 
 \subsubsection{Class typeRef }
+
+\declaredin{Type.h}
+
 \mbox{ }\\
 
 This class represents a reference type, a special case of the derived type. The base type in this case is the \code{Type} this particular type refers to. As a subclass of class \code{derivedType}, all methods in \code{derivedType} are also applicable here.
@@ -601,6 +640,9 @@ This method returns \code{true} if the ref type is compatible with the given typ
 }
 
 \subsection{Class rangedType}
+
+\declaredin{Type.h}
+
 This class represents a range type with a lower and an upper bound. It is one of the three categories of types as described in Section~\ref{subsec:typeInterface}. The sub-range and the array types fall under this category. This class is derived from \code{Type}, so all the member functions of class \code{Type} are applicable.
 
 
@@ -621,6 +663,9 @@ This can be the higher bound of the range type or the highest index for an array
 }
 
 \subsubsection{Class typeSubrange}
+
+\declaredin{Type.h}
+
 \mbox{ }\\
 
 This class represents a sub-range type. As a subclass of class \code{rangedType}, all methods in \code{rangedType} are applicable here. This type is usually used to represent a sub-range of another type. For example, a \code{typeSubrange} can represent a sub-range of the array type or a new integer type can be declared as a sub range of the integer using this type.
@@ -646,6 +691,9 @@ This method returns \code{true} if this sub range type is compatible with the gi
 }
 
 \subsubsection{Class typeArray}
+
+\declaredin{Type.h}
+
 \mbox{ }\\
 
 This class represents an \code{Array} type. As a subclass of class \code{rangedType}, all methods in \code{rangedType} are applicable.
