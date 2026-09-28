@@ -304,12 +304,23 @@ A handle for identifying the visibility of a certain \code{Field} in a container
 }
 
 \begin{apient}
-Field(std::string& name,
+Field(std::string name,
       Type* type,
+      int offsetVal = -1,
       visibility_t vis = visUnknown);
 \end{apient}
 \apidesc{
-This constructor creates a new field with name \code{name}, type \code{type} and visibility \code{vis}. This newly created \code{Field} can be added to a container type.
+This constructor creates a new field with name \code{name}, type \code{type},
+offset \code{offsetVal} within its container, and visibility \code{vis}. This
+newly created \code{Field} can be added to a container type.
+}
+
+\begin{apient}
+unsigned int getSize();
+\end{apient}
+\apidesc{
+This method returns the size of the field's type, or 0 if the field has no
+type.
 }
 
 \begin{apient}
