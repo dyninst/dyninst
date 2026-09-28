@@ -176,14 +176,14 @@ Retrieve all modules with name \code{name}.
 Module* findModuleByOffset(Offset offset) const;
 \end{apient}
 \apidesc{
-Returns the module starting at \code{offset}; \code{NULL}, if not found.
+Returns the module starting at \code{offset}; \code{nullptr}, if not found.
 }
 
 \begin{apient}
 Module* getContainingModule(Offset offset) const;
 \end{apient}
 \apidesc{
-Returns the module with PC ranges that contain \code{offset}; \code{NULL}, if not found.
+Returns the module with PC ranges that contain \code{offset}; \code{nullptr}, if not found.
 The default module will be returned if and only if it is the only module present. By contrast,
 \code{findModuleByOffset}, finds a module \it{starting} at \code{offset}.
 }
@@ -362,7 +362,7 @@ bool findRegion(Region*& reg,
                 const std::string& sname);
 \end{apient}
 \apidesc{
-Find a region (ELF section) wih name \code{sname} in the binary. Returns \code{true} if found, with \code{reg} set to the region pointer. Otherwise returns \code{false} with \code{reg} set to \code{NULL}.
+Find a region (ELF section) wih name \code{sname} in the binary. Returns \code{true} if found, with \code{reg} set to the region pointer. Otherwise returns \code{false} with \code{reg} set to \code{nullptr}.
 }
 
 \begin{apient}
@@ -371,7 +371,7 @@ bool findRegion(Region*& reg,
                 const unsigned long size);
 \end{apient}
 \apidesc{
-Find a region (ELF section) with a memory offset of \code{addr} and memory size of \code{size}.  Returns \code{true} if found, with \code{reg} set to the region pointer. Otherwise returns \code{false} with \code{reg} set to \code{NULL}.
+Find a region (ELF section) with a memory offset of \code{addr} and memory size of \code{size}.  Returns \code{true} if found, with \code{reg} set to the region pointer. Otherwise returns \code{false} with \code{reg} set to \code{nullptr}.
 }
 
 \begin{apient}
@@ -379,14 +379,14 @@ bool findRegionByEntry(Region*& reg,
                        const Offset soff);
 \end{apient}
 \apidesc{
-Find a region (ELF section) with a memory offset of \code{addr}.  Returns \code{true} if found, with \code{reg} set to the region pointer. Otherwise returns \code{false} with \code{reg} set to \code{NULL}.
+Find a region (ELF section) with a memory offset of \code{addr}.  Returns \code{true} if found, with \code{reg} set to the region pointer. Otherwise returns \code{false} with \code{reg} set to \code{nullptr}.
 }
 
 \begin{apient}
 Region* findEnclosingRegion(const Offset offset);
 \end{apient}
 \apidesc{
-Find the region (ELF section) whose virtual address range contains \code{offset}. Returns the region if found; otherwise returns \code{NULL}.
+Find the region (ELF section) whose virtual address range contains \code{offset}. Returns the region if found; otherwise returns \code{nullptr}.
 }
 
 \subsubsection{Insertion and modification}
@@ -412,7 +412,7 @@ Function* createFunction(const std::string& name,
                          Module* mod = NULL);
 \end{apient}
 \apidesc{
-This method creates a \code{Function} and updates all necessary data structures (including creating Symbols, if necessary). The function has the provided mangled name, offset, and size, and is added to the Module \code{mod}. Symbols representing the function are added to the static and dynamic symbol tables. Returns the pointer to the new \code{Function} on success or \code{NULL} on failure.
+This method creates a \code{Function} and updates all necessary data structures (including creating Symbols, if necessary). The function has the provided mangled name, offset, and size, and is added to the Module \code{mod}. Symbols representing the function are added to the static and dynamic symbol tables. Returns the pointer to the new \code{Function} on success or \code{nullptr} on failure.
 }
 
 \begin{apient}
@@ -422,7 +422,7 @@ Variable* createVariable(const std::string& name,
                          Module* mod = NULL);
 \end{apient}
 \apidesc{
-This method creates a \code{Variable} and updates all necessary data structures (including creating Symbols, if necessary). The variable has the provided mangled name, offset, and size, and is added to the Module \code{mod}. Symbols representing the variable are added to the static and dynamic symbol tables. Returns the pointer to the new \code{Variable} on success or \code{NULL} on failure.
+This method creates a \code{Variable} and updates all necessary data structures (including creating Symbols, if necessary). The variable has the provided mangled name, offset, and size, and is added to the Module \code{mod}. Symbols representing the variable are added to the static and dynamic symbol tables. Returns the pointer to the new \code{Variable} on success or \code{nullptr} on failure.
 }
 
 \begin{apient}
@@ -614,7 +614,7 @@ bool findVariableType(Type*& type,
 \end{apient}
 \apidesc{
 This method looks up a global variable with name \code{name} and returns its type attribute.
-Returns \code{true} if a variable is found or returns \code{false} with type set to \code{NULL}.
+Returns \code{true} if a variable is found or returns \code{false} with type set to \code{nullptr}.
 }
 
 \begin{apient}

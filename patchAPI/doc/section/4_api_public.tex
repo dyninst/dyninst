@@ -43,7 +43,7 @@ Creates an instance of PatchObject, which has \emph{co} as its on-disk
 representation (ParseAPI::CodeObject), and \emph{base} as the base address where
 this object is loaded in the memory. For binary rewriting, base should be 0. The
 \emph{cm} and \emph{cb} parameters are for registering plugins. If \emph{cm} or
-\emph{cb} is NULL, then we use the default implementation of CFGMaker or
+\emph{cb} is \code{nullptr}, then we use the default implementation of CFGMaker or
 PatchCallback.
 
 }
@@ -59,7 +59,7 @@ static PatchObject* clone(PatchObject* par_obj, Address base,
 Returns a new object that is copied from the specified object \emph{par\_obj} at
 the loaded address \emph{base} in the memory.  For binary rewriting, base should
 be 0. The \emph{cm} and \emph{cb} parameters are for registering plugins. If
-\emph{cm} or \emph{cb} is NULL, then we use the default implementation of
+\emph{cm} or \emph{cb} is \code{nullptr}, then we use the default implementation of
 CFGMaker or PatchCallback.
 
 }
@@ -87,7 +87,7 @@ PatchFunction created for the ParseAPI function \emph{func}, and the
 \emph{create} parameter is false, then no any instance of PatchFunction will be
 created.
 
-It returns NULL in two cases. First, the function \emph{func} is not in this
+It returns \code{nullptr} in two cases. First, the function \emph{func} is not in this
 PatchObject. Second, the PatchFunction is not yet created and the \emph{create}
 is false. Otherwise, it returns a PatchFunction.
 
@@ -117,7 +117,7 @@ parameter. PatchAPI creates a PatchBlock on-demand, so if there is not any
 PatchBlock created for the ParseAPI block \emph{blk}, and the \emph{create}
 parameter is false, then no any instance of PatchBlock will be created.
 
-It returns NULL in two cases. First, the ParseAPI block \emph{blk} is not in
+It returns \code{nullptr} in two cases. First, the ParseAPI block \emph{blk} is not in
 this PatchObject. Second, the PatchBlock is not yet created and the
 \emph{create} is false. Otherwise, it returns a PatchBlock.
 
@@ -149,7 +149,7 @@ ParseAPI::Edge \emph{edge}, source PatchBlock \emph{src}, and target PatchBlock
 PatchEdge created for the ParseAPI \emph{edge}, and the \emph{create} parameter
 is false, then no any instance of PatchEdge will be created.
 
-It returns NULL in two cases. First, the ParseAPI \emph{edge} is not in this
+It returns \code{nullptr} in two cases. First, the ParseAPI \emph{edge} is not in this
 PatchObject. Second, the PatchEdge is not yet created and the \emph{create} is
 false. Otherwise, it returns a PatchEdge.
 
@@ -295,7 +295,7 @@ bool dominates(PatchBlock* A, PatchBlock* B);
 \begin{apient}
 PatchBlock* getImmediateDominator(PatchBlock* A);
 \end{apient}
-\apidesc{Return the immediate dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate dominator.}
+\apidesc{Return the immediate dominator of block \code{A}, \code{nullptr} if the block \code{A} does not have an immediate dominator.}
 
 \begin{apient}
 void getImmediateDominates(PatchBlock* A, std::set<PatchBlock*>& imm);
@@ -316,7 +316,7 @@ bool postDominates(PatchBlock* A, PatchBlock* B);
 \begin{apient}
 PatchBlock* getImmediatePostDominator(PatchBlock* A);
 \end{apient}
-\apidesc{Return the immediate post-dominator of block \code{A}, \code{NULL} if the block \code{A} does not have an immediate post-dominator.}
+\apidesc{Return the immediate post-dominator of block \code{A}, \code{nullptr} if the block \code{A} does not have an immediate post-dominator.}
 
 \begin{apient}
 void getImmediatePostDominates(PatchBlock* A, std::set<PatchBlock*>& imm);
@@ -449,7 +449,7 @@ PatchFunction* getCallee();
 
 \apidesc{
 Returns the callee function, if this PatchBlock contains a function call;
-otherwise, NULL is returned.
+otherwise, \code{nullptr} is returned.
 }
 
 \begin{apient}
@@ -586,7 +586,7 @@ It represents code structure that may execute repeatedly.
 \begin{apient}
 PatchLoop* parent;
 \end{apient}
-\apidesc{Returns the loop which directly encloses this loop. NULL if no such loop.}
+\apidesc{Returns the loop which directly encloses this loop. \code{nullptr} if no such loop.}
 
 
 \begin{apient}
@@ -665,8 +665,8 @@ PatchLoop contained in a function. The structure of the tree
 follows the nesting relationship of the loops in a function.
 Each PatchLoopTreeNode contains a pointer to a loop (represented by PatchLoop), and a set
 of sub-loops (represented by other PatchLoopTreeNode objects). The \code{loop} field
-at the root node is always \code{NULL} since a function may contain multiple outer
-loops. The \code{loop} field is never \code{NULL} at any other node since it
+at the root node is always \code{nullptr} since a function may contain multiple outer
+loops. The \code{loop} field is never \code{nullptr} at any other node since it
 always corresponds to a real loop.
 Therefore, the outer most loops in the function are contained in the vector of \code{children} of the root.
 
@@ -697,7 +697,7 @@ void foo()
 }
 \end{lstlisting}
 
-The \code{foo} function will have a root PatchLoopTreeNode, containing a NULL loop entry and
+The \code{foo} function will have a root PatchLoopTreeNode, containing a \code{nullptr} loop entry and
 two PatchLoopTreeNode children representing the functions outermost loops. These children
 would have names \code{loop\_1} and \code{loop\_2}, respectively representing the \code{x} and \code{i} loops. \code{loop\_2} has
 no children. \code{loop\_1} has two child PatchLoopTreeNode objects, named
@@ -783,7 +783,7 @@ This factory method creates a new PatchMgr object that performs binary code
 patching. It takes input three plugins, including AddrSpace \emph{as},
 Instrumenter \emph{inst}, and PointMaker \emph{pm}. PatchAPI uses default
 plugins for PointMaker and Instrumenter, if \emph{pm} and \emph{inst} are not
-specified (NULL by default).
+specified (\code{nullptr} by default).
 
 This method returns PatchMgrPtr() if it was unable to create a new PatchMgr
 object.
@@ -806,8 +806,8 @@ method simply returns a pointer to this Point from a buffer, no matter whether
 \emph{create} is true or false. If the Point we want to find is not yet created,
 and \emph{create} is true, then this method constructs this Point and put it in
 a buffer, and finally returns a Pointer to this Point. If the Point creation
-fails, this method also returns NULL. If the Point we want to find is not yet
-created, and \emph{create} is false, this method returns NULL. The basic logic
+fails, this method also returns \code{nullptr}. If the Point we want to find is not yet
+created, and \emph{create} is false, this method returns \code{nullptr}. The basic logic
 of finding a point can be found in the Listing~\ref{findpt}.
 
 }
@@ -1178,7 +1178,7 @@ PatchFunction* getCallee();
 \apidesc{
 Returns the function that is invoked at this Point, which should have
 Point::Type of Point::PreCall or Point::PostCall. It there is not a function
-invoked at this point, it returns NULL.
+invoked at this point, it returns \code{nullptr}.
 }
 
 \begin{apient}

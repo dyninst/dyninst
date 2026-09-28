@@ -59,7 +59,7 @@ SymbolLookup callbacks for the current platform. First-party walkers use the Pro
 for its ProcessState object. Third-party walkers use ProcDebug instead. See Section~\ref{subsec:defaults} for
 more information about defaults in the Callback Interface.
 
-This method returns NULL if it was unable to create a new Walker object. The new Walker object
+This method returns \code{nullptr} if it was unable to create a new Walker object. The new Walker object
 was created with the new operator, and should be deallocated with the delete operator when it
 is no longer needed.
 }

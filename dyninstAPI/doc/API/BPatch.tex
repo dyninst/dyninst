@@ -25,7 +25,7 @@ Each of these functions returns a pointer to a new instance of the
 \code{BPatch\_process} class. The path parameter needed by these functions should be the
 pathname of the executable file containing the process image. The \code{processAttach}
 function returns a \code{BPatch\_process} associated with an existing process. On Linux platforms
-the path parameter can be NULL since the executable image can be derived from the
+the path parameter can be \code{nullptr} since the executable image can be derived from the
 process pid. Attaching to a process puts it into the stopped state. The processCreate
 function creates a new process and returns a new \code{BPatch\_process} associated with it.
 The new process is put into a stopped state before executing any code.
@@ -67,7 +67,7 @@ This function opens the executable file or library file pointed to by path for
 binary rewriting. If openDependencies is true then Dyninst will also open all shared
 libraries that path depends on. Upon success, this function returns a new instance
 of a \code{BPatch\_binaryEdit} class that represents the opened file and any dependent shared
-libraries. This function returns NULL in the event of an error.
+libraries. This function returns \code{nullptr} in the event of an error.
 }
 
 \begin{apient}
@@ -300,7 +300,7 @@ Create a new enumerated type. There are two variations of this function. The fir
 type where the user specifies the identifier (int) for each element. In the second form, the system specifies the
 identifiers for each element. In both cases, a vector of character arrays is passed to supply the names of the
 elements of the enumerated type. In the first form of the function, the number of element in the elementNames and
-elementIds vectors must be the same, or the type will not be created and this function will return NULL. The standard
+elementIds vectors must be the same, or the type will not be created and this function will return \code{nullptr}. The standard
 rules of type compatibility, described in Section~\ref{sec:typesystem}, are used with enums created using this
 function.
 }
@@ -323,7 +323,7 @@ BPatch_type* createStruct(const char* name, std::vector<char*>& fieldNames,
 \apidesc{
 Create a new structure type. The name of the structure is specified in the name parameter. The fieldNames and
 fieldTypes vectors specify fields of the type. These two vectors must have the same number of elements or the
-function will fail (and return NULL). The standard rules of type compatibility, described in Section~\ref{sec:typesystem}
+function will fail (and return \code{nullptr}). The standard rules of type compatibility, described in Section~\ref{sec:typesystem}
 , are used with structures created using this function. The size of the structure is the sum of
 the size of the elements in the fieldTypes vector.
 }
@@ -357,5 +357,5 @@ BPatch_type* createUnion(const char* name, std::vector<char*>& fieldNames,
 \apidesc{
 Create a new union type. The name of the union is specified in the name parameter. The fieldNames and fieldTypes
 vectors specify fields of the type. These two vectors must have the same number of elements or the function will fail
-(and return NULL). The size of the union is the size of the largest element in the fieldTypes vector.
+(and return \code{nullptr}). The size of the union is the size of the largest element in the fieldTypes vector.
 }

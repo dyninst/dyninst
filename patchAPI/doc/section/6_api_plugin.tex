@@ -386,8 +386,8 @@ virtual bool modifyCall(PatchBlock* callBlock, PatchFunction* newCallee,
 Replaces the function that is invoked in the basic block \emph{callBlock} with the
 function \emph{newCallee}. There may be multiple functions containing the same
 \emph{callBlock}, so the \emph{context} parameter specifies in which function the
-\emph{callBlock} should be modified. If \emph{context} is NULL, then the \emph{callBlock} would
-be modified in all PatchFunctions that contain it. If the \emph{newCallee} is NULL,
+\emph{callBlock} should be modified. If \emph{context} is \code{nullptr}, then the \emph{callBlock} would
+be modified in all PatchFunctions that contain it. If the \emph{newCallee} is \code{nullptr},
 then the \emph{callBlock} is removed.
 
 It returns true on success; otherwise, it returns false.
@@ -401,7 +401,7 @@ virtual bool revertModifiedCall(PatchBlock* callBlock, PatchFunction* context = 
 \apidesc{
 Undoes the function call modification for \emph{oldfunc}. There may be multiple
 functions containing the same \emph{callBlock}, so the \emph{context} parameter specifies
-in which function the \emph{callBlock} should be modified. If \emph{context} is NULL, then
+in which function the \emph{callBlock} should be modified. If \emph{context} is \code{nullptr}, then
 the \emph{callBlock} would be modified in all PatchFunctions that contain it.
 
 It returns true on success; otherwise, it returns false.
@@ -415,7 +415,7 @@ virtual bool removeCall(PatchBlock* callBlock, PatchFunction* context = NULL);
 \apidesc{
 Removes the \emph{callBlock}, where a function is invoked. There may be multiple
 functions containing the same \emph{callBlock}, so the \emph{context} parameter specifies
-in which function the \emph{callBlock} should be modified. If \emph{context} is NULL, then
+in which function the \emph{callBlock} should be modified. If \emph{context} is \code{nullptr}, then
 the \emph{callBlock} would be modified in all PatchFunctions that contain it.
 
 It returns true on success; otherwise, it returns false.
@@ -434,8 +434,8 @@ typedef std::map<PatchBlock*,        // B  : A call block
 
 The type CallModMap maps from B -> F$_c$ -> F, where B identifies a call block,
 and F$_c$ identifies an (optional) function context for the replacement. If F$_c$ is
-not specified, we use NULL. F specifies the replacement callee; if we want to
-remove the call entirely, we use NULL.
+not specified, we use \code{nullptr}. F specifies the replacement callee; if we want to
+remove the call entirely, we use \code{nullptr}.
 }
 
 \begin{apient}
@@ -619,7 +619,7 @@ static RemoveCallCommand* create(PatchMgrPtr mgr, PatchBlock* call_block,
 This static method takes input the relevant PatchMgr \emph{mgr}, the \emph{call\_block}
 that contains the function call to be removed, and the PatchFunction \emph{context}.
 There may be multiple PatchFunctions containing the same \emph{call\_block}. If the
-\emph{context} is NULL, then the \emph{call\_block} would be deleted from all
+\emph{context} is \code{nullptr}, then the \emph{call\_block} would be deleted from all
 PatchFunctions that contains it; otherwise, the \emph{call\_block} would be deleted
 only from the PatchFuncton \emph{context}.
 }
@@ -643,7 +643,7 @@ static ReplaceCallCommand* create(PatchMgrPtr mgr, PatchBlock* call_block,
 This Command replaces the \emph{call\_block} with the new PatchFunction
 \emph{new\_callee}. There may be multiple functions containing the same
 \emph{call\_block}, so the \emph{context} parameter specifies in which function the
-\emph{call\_block} should be replaced. If \emph{context} is NULL, then the \emph{call\_block}
+\emph{call\_block} should be replaced. If \emph{context} is \code{nullptr}, then the \emph{call\_block}
 would be replaced in all PatchFunctions that contains it.
 }
 

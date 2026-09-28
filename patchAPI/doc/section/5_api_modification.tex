@@ -31,7 +31,7 @@ experience any problems or bugs, please contact \code{bugs@dyninst.org}.
 
 Many of these methods return a boolean type; true indicates a
 successful operation, and false indicates a failure. For methods that
-return a pointer, a \code{NULL} return value indicates a failure.
+return a pointer, a \code{nullptr} return value indicates a failure.
 
 \subsection{Class PatchModifier}
 \declaredin{PatchModifier.h}
@@ -77,7 +77,7 @@ static InsertedCode::Ptr insert(PatchObject* obj, void* start, unsigned size);
 \apidesc{Methods for inserting new code into a CFG.  The first
   \code{insert} call takes a PatchAPI Snippet structure and a Point
   that is used to generate that Snippet; the point is only passed
-  through to the snippet code generator and thus may be \code{NULL} if
+  through to the snippet code generator and thus may be \code{nullptr} if
   the snippet does not use Point information. The second \code{insert}
   call takes a raw code buffer.  Both return the
   \code{InsertedCode} below.}

@@ -445,7 +445,7 @@ bool postIRPC(IRPC::ptr irpc, std::multimap<Thread::ptr, IRPC::ptr>* result = NU
 
 \apidesc{
 This function posts a copy of irpc to every Thread in this ThreadSet. If
-result is non-NULL, then the new IRPC objects are returned in the result
+result is not \code{nullptr}, then the new IRPC objects are returned in the result
 multimap, with the Thread mapped to the IRPC that was posted there. This
 function is similar to Thread::postIRPC.
 This function return true if it succeeded for every Thread, and false otherwise.

@@ -284,7 +284,7 @@ Expression::Ptr getControlFlowTarget() const;
 \apidesc{
 When called on an explicitly control-\/flow altering instruction, returns the
 non-fallthrough control flow destination. When called on any other instruction,
-returns \code{NULL}.
+returns \code{nullptr}.
 
 For direct absolute branch instructions, \code{getControlFlowTarget} will return
 an immediate value. For direct relative branch instructions,

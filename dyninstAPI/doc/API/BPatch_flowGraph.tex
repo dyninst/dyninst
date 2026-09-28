@@ -105,7 +105,7 @@ can be obtained by calling the getCFG method of a
 
 \apidesc{
   Find the basic block within this flow graph that contains addr.
-  Returns NULL on failure. This method is inefficient but
+  Returns \code{nullptr} on failure. This method is inefficient but
   guaranteed to succeed if addr is present in any block in this CFG.
   [NOTE: Dyninst is not always able to generate a correct flow graph
     in the presence of indirect jumps. If a function

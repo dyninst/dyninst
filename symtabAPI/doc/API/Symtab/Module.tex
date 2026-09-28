@@ -117,7 +117,7 @@ Return \code{true} if at least one tuple corresponding to the offset was found a
 LineInformation* getLineInformation();
 \end{apient}
 \apidesc{
-This method returns the line map (Section~\ref{LineInformation}) corresponding to the module. Returns \code{NULL} if
+This method returns the line map (Section~\ref{LineInformation}) corresponding to the module. Returns \code{nullptr} if
 there is no line information existing for the module.}
 
 \begin{apient}
@@ -154,4 +154,4 @@ bool findVariableType(Type*& type,
 \end{apient}
 \apidesc{
 This method looks up a global variable with name \code{name} and returns its type attribute.
-Returns \code{true} if a variable is found or returns \code{false} with \code{type} set to \code{NULL}.}
+Returns \code{true} if a variable is found or returns \code{false} with \code{type} set to \code{nullptr}.}

@@ -5,8 +5,8 @@ Loop contained in a function. The structure of the tree
 follows the nesting relationship of the loops in a function.
 Each LoopTreeNode contains a pointer to a loop (represented by Loop), and a set
 of sub-loops (represented by other LoopTreeNode objects). The \code{loop} field
-at the root node is always \code{NULL} since a function may contain multiple outer
-loops. The \code{loop} field is never \code{NULL} at any other node since it
+at the root node is always \code{nullptr} since a function may contain multiple outer
+loops. The \code{loop} field is never \code{nullptr} at any other node since it
 always corresponds to a real loop.
 Therefore, the outer most loops in the function are contained in the vector of \code{children} of the root.
 
@@ -36,7 +36,7 @@ void foo()
 }
 \end{lstlisting}
 
-The \code{foo} function will have a root LoopTreeNode, containing a NULL loop entry and
+The \code{foo} function will have a root LoopTreeNode, containing a \code{nullptr} loop entry and
 two LoopTreeNode children representing the functions outermost loops. These children
 would have names \code{loop\_1} and \code{loop\_2}, respectively representing the \code{x} and \code{i} loops. \code{loop\_2} has
 no children. \code{loop\_1} has two child LoopTreeNode objects, named

@@ -191,7 +191,7 @@ bool getObject(void* &obj) const;
     interface allows for an opaque object, a \code{void*}, to be associated with a
     \code{Frame} object. The contents of this \code{void*} is determined by the
 \code{SymbolLookup} implementation. Under the default implementation that uses
-SymtabAPI, the \code{void*} points to a Symbol object or NULL if no symbol is found.
+SymtabAPI, the \code{void*} points to a Symbol object or \code{nullptr} if no symbol is found.
 
 This method returns \code{true} on success and \code{false} on error.
 }

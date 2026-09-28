@@ -98,7 +98,7 @@ void parseGaps(CodeRegion* cr,
 When parsing binary objects such as .o files and static libraries which may have multiple
 \texttt{CodeRegion} objects that overlap in the address space, the \texttt{CodeRegion} argument
 \textit{must} be passed. For executable binaries and shared libraries that are fully linked, there
-is no ambiguity, and \code{NULL} can be passed. The only exception is \texttt{findFuncsByBlock}
+is no ambiguity, and \code{nullptr} can be passed. The only exception is \texttt{findFuncsByBlock}
 which always requires a valid \texttt{CodeRegion}.%
 \end{minipage}}
 
@@ -106,7 +106,7 @@ which always requires a valid \texttt{CodeRegion}.%
 Function* findFuncByEntry(CodeRegion* cr,
                            Address entry);
 \end{apient}
-\apidesc{Find the function starting at address \code{entry} in the indicated CodeRegion. Returns \code{NULL} if no such function exists.}
+\apidesc{Find the function starting at address \code{entry} in the indicated CodeRegion. Returns \code{nullptr} if no such function exists.}
 
 \begin{apient}
 int findFuncs(CodeRegion* cr,
@@ -132,7 +132,7 @@ const funclist& funcs();
 Block* findBlockByEntry(CodeRegion* cr,
                          Address entry);
 \end{apient}
-\apidesc{Find the basic block starting at address \code{entry}. Returns \code{NULL} if no such block exists.}
+\apidesc{Find the basic block starting at address \code{entry}. Returns \code{nullptr} if no such block exists.}
 
 \begin{apient}
 int findBlocks(CodeRegion* cr,
@@ -145,7 +145,7 @@ int findBlocks(CodeRegion* cr,
 Block* findNextBlock(CodeRegion* cr,
                       Address addr);
 \end{apient}
-\apidesc{Find the next reachable basic block starting at address \code{entry}. Returns \code{NULL} if no such block exists.}
+\apidesc{Find the next reachable basic block starting at address \code{entry}. Returns \code{nullptr} if no such block exists.}
 
 \begin{apient}
 CodeSource* cs() const;

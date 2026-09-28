@@ -217,7 +217,7 @@ value.
   These functions serve as a form of dynamic\_cast. They cast the Event into a
   child type and return the result of that cast. If the Event object is not of
   the appropriate type for the given function, then they return a shared pointer
-  NULL equivalent (ptr() or const\_ptr()).
+  \code{nullptr} equivalent (ptr() or const\_ptr()).
   For example, if an Event was an instance of an EventRPC, then the
   getEventRPC()
   function would cast it to EventRPC and return the resulting value.

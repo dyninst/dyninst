@@ -3,7 +3,7 @@ informed when an error or significant event occurs.
 Each function allows a user to register a handler for an event. The
 return code for all callback registration
 functions is the address of the handler that was previously
-registered (which may be NULL if no handler was previously
+registered (which may be \code{nullptr} if no handler was previously
 registered). For backwards compatibility reasons, some callbacks may
 pass a \code{BPatch\_thread} object when a
 \code{BPatch\_process} may be more appropriate. A
@@ -103,7 +103,7 @@ pass a \code{BPatch\_thread} object when a
   back function is called, the user needs to explicitly instrument
   dynamic call sites. One way to achieve this goal is to
   first get instrumentation points representing dynamic call sites
-  and then call \code{BPatch\_point::monitorCalls} with a NULL
+  and then call \code{BPatch\_point::monitorCalls} with a \code{nullptr}
   input parameter.
 }
 
@@ -230,7 +230,7 @@ pass a \code{BPatch\_thread} object when a
   This is the prototype for the pre-fork and post-fork callbacks.
   The parent parameter is the parent thread, and the
   child parameter is a \code{BPatch\_thread} in the newly created
-  process. When invoked as a pre-fork callback, the child is NULL.
+  process. When invoked as a pre-fork callback, the child is \code{nullptr}.
 }
 
 \begin{apient}
@@ -250,7 +250,7 @@ pass a \code{BPatch\_thread} object when a
 
   Register callbacks for pre-fork (before the child is created) and
   post-fork (immediately after the child is created).
-  When a pre-fork callback is executed the child parameter will be NULL.
+  When a pre-fork callback is executed the child parameter will be \code{nullptr}.
 }
 
 \subsection{One Time Code}

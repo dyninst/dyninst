@@ -600,7 +600,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 \apidesc{
   This function makes a copy of irpc for each Process in this
   ProcessSet and posts
-  it to that Process. If result is non-NULL, then the multimap will be filled
+  it to that Process. If result is not \code{nullptr}, then the multimap will be filled
   with each newly created IRPC and the Process to which it was posted. It is
   similar to Process::postIRPC.
   This function returns true if every post happened without error, and false
@@ -616,7 +616,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 \apidesc{
   This function makes a copy of irpc and posts it to each Process in
   addrs at the
-  given Address. If result is non-NULL, then the multimap will be filled with
+  given Address. If result is not \code{nullptr}, then the multimap will be filled with
   each newly created IRPC and the Process to which it was posted. It is similar
   to Process::postIRPC.
   This function\' s behavior is undefined if rpcs contains

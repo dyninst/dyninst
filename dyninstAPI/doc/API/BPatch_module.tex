@@ -19,7 +19,7 @@ objects that it cannot match to a source file.
 \end{apient}
 
 \apidesc{
-  Return a vector of \code{BPatch\_functions} matching name, or NULL if the function does not
+  Return a vector of \code{BPatch\_functions} matching name, or \code{nullptr} if the function does not
   exist. If name contains a POSIX-extended regular expression, a regex search will be per-
   formed on function names, and matching \code{BPatch\_functions} returned. If the \code{incUninstrumentable}
   flag is set, the returned table of procedures will include
@@ -38,7 +38,7 @@ objects that it cannot match to a source file.
 
 \apidesc{
   Return a vector of \code{BPatch\_function} s that contains addr, or
-  NULL if the function does not exist.
+  \code{nullptr} if the function does not exist.
   If the incUninstrumentable flag is set, the returned table of
   procedures will include uninstrumentable functions. The
   default behavior is to omit these functions.
@@ -60,7 +60,7 @@ objects that it cannot match to a source file.
 \apidesc{
   Return a \code{BPatch\_function} for the mangled function name
   defined in the module corresponding to the invoking
-  \code{BPatch\_module}, or NULL if it does not define the function.
+  \code{BPatch\_module}, or \code{nullptr} if it does not define the function.
 
   If the incUninstrumentable flag is set, the functions searched will
   include uninstrumentable functions. The default

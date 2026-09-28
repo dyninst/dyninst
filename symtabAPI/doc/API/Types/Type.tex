@@ -82,77 +82,77 @@ This method returns the total size in bytes occupied by the type.
 typeEnum* getEnumType();
 \end{apient}
 \apidesc{
-If this \code{Type} hobject represents an enum type, then return the object casting the \code{Type} object to \code{typeEnum} otherwise return \code{NULL}.
+If this \code{Type} hobject represents an enum type, then return the object casting the \code{Type} object to \code{typeEnum} otherwise return \code{nullptr}.
 }
 
 \begin{apient}
 typePointer* getPointerType();
 \end{apient}
 \apidesc{
-If this \code{Type} object represents an pointer type, then return the object casting the \code{Type} object to \code{typePointer} otherwise return \code{NULL}.
+If this \code{Type} object represents an pointer type, then return the object casting the \code{Type} object to \code{typePointer} otherwise return \code{nullptr}.
 }
 
 \begin{apient}
 typeFunction* getFunctionType();
 \end{apient}
 \apidesc{
-If this \code{Type} object represents an \code{Function} type, then return the object casting the \code{Type} object to \code{typeFunction} otherwise return \code{NULL}.
+If this \code{Type} object represents an \code{Function} type, then return the object casting the \code{Type} object to \code{typeFunction} otherwise return \code{nullptr}.
 }
 
 \begin{apient}
 typeSubrange* getSubrangeType();
 \end{apient}
 \apidesc{
-If this \code{Type} object represents a \code{Subrange} type, then return the object casting the \code{Type} object to \code{typeSubrange} otherwise return \code{NULL}.
+If this \code{Type} object represents a \code{Subrange} type, then return the object casting the \code{Type} object to \code{typeSubrange} otherwise return \code{nullptr}.
 }
 
 \begin{apient}
 typeArray* getArrayType();
 \end{apient}
 \apidesc{
-If this \code{Type} object represents an \code{Array} type, then return the object casting the \code{Type} object to \code{typeArray} otherwise return \code{NULL}.
+If this \code{Type} object represents an \code{Array} type, then return the object casting the \code{Type} object to \code{typeArray} otherwise return \code{nullptr}.
 }
 
 \begin{apient}
 typeStruct* getStructType();
 \end{apient}
 \apidesc{
-If this \code{Type} object represents a \code{Structure} type, then return the object casting the \code{Type} object to \code{typeStruct} otherwise return \code{NULL}.
+If this \code{Type} object represents a \code{Structure} type, then return the object casting the \code{Type} object to \code{typeStruct} otherwise return \code{nullptr}.
 }
 
 \begin{apient}
 typeUnion* getUnionType();
 \end{apient}
 \apidesc{
-If this \code{Type} object represents a \code{Union} type, then return the object casting the \code{Type} object to \code{typeUnion} otherwise return \code{NULL}.
+If this \code{Type} object represents a \code{Union} type, then return the object casting the \code{Type} object to \code{typeUnion} otherwise return \code{nullptr}.
 }
 
 \begin{apient}
 typeScalar* getScalarType();
 \end{apient}
 \apidesc{
-If this \code{Type} object represents a \code{Scalar} type, then return the object casting the \code{Type} object to \code{typeScalar} otherwise return \code{NULL}.
+If this \code{Type} object represents a \code{Scalar} type, then return the object casting the \code{Type} object to \code{typeScalar} otherwise return \code{nullptr}.
 }
 
 \begin{apient}
 typeCommon* getCommonType();
 \end{apient}
 \apidesc{
-If this \code{Type} object represents a \code{Common} type, then return the object casting the \code{Type} object to \code{typeCommon} otherwise return \code{NULL}.
+If this \code{Type} object represents a \code{Common} type, then return the object casting the \code{Type} object to \code{typeCommon} otherwise return \code{nullptr}.
 }
 
 \begin{apient}
 typeTypedef* getTypedefType();
 \end{apient}
 \apidesc{
-If this \code{Type} object represents a \code{TypeDef} type, then return the object casting the \code{Type} object to \code{typeTypedef} otherwise return \code{NULL}.
+If this \code{Type} object represents a \code{TypeDef} type, then return the object casting the \code{Type} object to \code{typeTypedef} otherwise return \code{nullptr}.
 }
 
 \begin{apient}
 typeRef* getRefType();
 \end{apient}
 \apidesc{
-If this \code{Type} object represents a \code{Reference} type, then return the object casting the \code{Type} object to \code{typeRef} otherwise return \code{NULL}.
+If this \code{Type} object represents a \code{Reference} type, then return the object casting the \code{Type} object to \code{typeRef} otherwise return \code{nullptr}.
 }
 
 \subsection{Class typeEnum}
@@ -218,7 +218,7 @@ static typeFunction* create(std::string& name,
 \end{apient}
 \apidesc{
 This factory method creates a new function type with name \code{name}. \code{retType} represents the return type of the function and \code{paramTypes} is a vector of the types of the parameters in order.
-The the newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{NULL} the type is not added to any object file, but it will be available for further queries.
+The the newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{nullptr} the type is not added to any object file, but it will be available for further queries.
 }
 
 \begin{apient}
@@ -240,7 +240,7 @@ Returns \code{true} if it succeeds, else returns \code{false}.
 Type* getReturnType() const;
 \end{apient}
 \apidesc{
- This method returns the return type for this function type. Returns \code{NULL} if there is no return type associated with this function type.
+ This method returns the return type for this function type. Returns \code{nullptr} if there is no return type associated with this function type.
 }
 
 \begin{apient}
@@ -279,7 +279,7 @@ static typeScalar* create(std::string& name, int size, Symtab* obj = NULL);
 This factory method creates a new scalar type. The \code{name} field is used to specify
 the name of the type, and the \code{size} parameter is used to specify the size in
 bytes of each instance of the type.  The newly created type is added to the
-\code{Symtab} object \code{obj}. If \code{obj} is \code{NULL} the type is not added to any object file, but
+\code{Symtab} object \code{obj}. If \code{obj} is \code{nullptr} the type is not added to any object file, but
 it will be available for further queries.
 }
 
@@ -391,7 +391,7 @@ dyn_c_vector<Field*>* getComponents() const;
 \end{apient}
 \apidesc{
 This method returns the list of all fields present in the container.
-This gives information about the name, type and visibility of each of the fields. Returns \code{NULL} of there are no fields.
+This gives information about the name, type and visibility of each of the fields. Returns \code{nullptr} of there are no fields.
 }
 
 \begin{apient}
@@ -448,7 +448,7 @@ static typeStruct* create(std::string& name,
 \end{apient}
 \apidesc{
 This factory method creates a new struct type. The name of the structure is specified in the \code{name} parameter. The \code{flds} vector specifies the names and types of the fields of the structure type.
-The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{NULL} the type is not added to any object file, but it will be available for further queries.
+The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{nullptr} the type is not added to any object file, but it will be available for further queries.
 }
 
 \begin{apient}
@@ -458,7 +458,7 @@ static typeStruct* create(std::string& name,
 \end{apient}
 \apidesc{
 This factory method creates a new struct type. The name of the structure is specified in the \code{name} parameter. The \code{fields} vector specifies the fields of the type.
-The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{NULL} the type is not added to any object file, but it will be available for further queries.
+The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{nullptr} the type is not added to any object file, but it will be available for further queries.
 }
 
 \begin{apient}
@@ -484,7 +484,7 @@ static typeUnion* create(std::string& name,
 \end{apient}
 \apidesc{
  This factory method creates a new union type. The name of the union is specified in the \code{name} parameter. The \code{flds} vector specifies the names and types of the fields of the union type.
-The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{NULL} the type is not added to any object file, but it will be available for further queries.
+The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{nullptr} the type is not added to any object file, but it will be available for further queries.
 }
 
 \begin{apient}
@@ -494,7 +494,7 @@ static typeUnion* create(std::string& name,
 \end{apient}
 \apidesc{
 This factory method creates a new union type. The name of the structure is specified in the \code{name} parameter. The \code{fields} vector specifies the fields of the type.
-The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{NULL} the type is not added to any object file, but it will be available for further queries.
+The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{nullptr} the type is not added to any object file, but it will be available for further queries.
 }
 
 \begin{apient}
@@ -526,7 +526,7 @@ dyn_c_vector<Field*>* getComponents();
 \end{apient}
 \apidesc{
 This method returns the vector containing the individual variables of the common block,
-or \code{NULL} if there are none.
+or \code{nullptr} if there are none.
 }
 
 \begin{apient}
@@ -534,7 +534,7 @@ dyn_c_vector<Symbol*>* getFunctions();
 \end{apient}
 \apidesc{
 This method returns the functions that can see this common block with the set of variables described in \code{getComponents} method above,
-or \code{NULL} if there are none.
+or \code{nullptr} if there are none.
 }
 
 \subsection{Class derivedType}
@@ -571,7 +571,7 @@ static typePointer* create(std::string& name,
 \end{apient}
 \apidesc{
 These factory methods create a new type, named \code{name}, which points to objects of type \code{ptr}. The first form creates a pointer whose size is equal to sizeof(void*) on the target platform where the application is running. In the second form, the size of the pointer is the value passed in the \code{size} parameter.
-The newly created type is added to the \code{Symtab} object \code{obj}. If obj is \code{NULL} the type is not added to any object file, but it will be available for further queries.
+The newly created type is added to the \code{Symtab} object \code{obj}. If obj is \code{nullptr} the type is not added to any object file, but it will be available for further queries.
 }
 
 \begin{apient}
@@ -604,7 +604,7 @@ static typeTypedef* create(std::string& name,
 \end{apient}
 \apidesc{
 This factory method creates a new type called \code{name} and having the type \code{ptr}.
-The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{NULL} the type is not added to any object file, but it will be available for further queries.
+The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{nullptr} the type is not added to any object file, but it will be available for further queries.
 }
 
 \begin{apient}
@@ -629,7 +629,7 @@ static typeRef* create(std::string& name,
                        Symtab* obj = NULL);
 \end{apient}
 \apidesc{
-This factory method creates a new type, named \code{name}, which is a reference to objects of type \code{ptr}. The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{NULL} the type is not added to any object file, but it will be available for further queries.
+This factory method creates a new type, named \code{name}, which is a reference to objects of type \code{ptr}. The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{nullptr} the type is not added to any object file, but it will be available for further queries.
 }
 
 \begin{apient}
@@ -680,7 +680,7 @@ static typeSubrange* create(std::string& name,
 \end{apient}
 \apidesc{
 This factory method creates a new sub-range type. The name of the type is \code{name}, and the size is \code{size}. The lower bound of the type is represented by \code{low}, and the upper bound is represented by \code{high}.
-The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{NULL} the type is not added to any object file, but it will be available for further queries.
+The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{nullptr} the type is not added to any object file, but it will be available for further queries.
 }
 
 \begin{apient}
@@ -707,7 +707,7 @@ static typeArray* create(std::string& name,
 \end{apient}
 \apidesc{
 This factory method creates a new array type. The name of the type is \code{name}, and the type of each element is \code{type}. The index of the first element of the array is \code{low}, and the last is \code{high}.
-The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{NULL} the type is not added to any object file, but it will be available for further queries.
+The newly created type is added to the \code{Symtab} object \code{obj}. If \code{obj} is \code{nullptr} the type is not added to any object file, but it will be available for further queries.
 }
 
 \begin{apient}

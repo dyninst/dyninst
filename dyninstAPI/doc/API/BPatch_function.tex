@@ -105,7 +105,7 @@ given function.
   Return the module that contains this function. Depending on whether
   the program was compiled for debugging or the
   symbol table stripped, this information may not be available. This
-  function returns NULL if module information was
+  function returns \code{nullptr} if module information was
   not found.
 }
 
@@ -148,7 +148,7 @@ given function.
   and exit points of the subroutine. \code{BPatch\_subroutine}
   returns the list of points where the procedure calls other
   procedures. If the lookup fails to locate any points of the
-  requested type, NULL is returned.
+  requested type, \code{nullptr} is returned.
 }
 
 \begin{apient}
@@ -185,7 +185,7 @@ given function.
 \apidesc{
   Search the function\'s local variable collection for name. This
   returns a pointer to the local
-  variable if a match is found. This function returns NULL if it
+  variable if a match is found. This function returns \code{nullptr} if it
   fails to find any variables.
 }
 
@@ -198,7 +198,7 @@ given function.
   Return a set of variables matching name at the scope of this
   function. If no variables match in the local scope, then
   the global scope will be searched for matches. This function
-  returns NULL if it fails to find any variables.
+  returns \code{nullptr} if it fails to find any variables.
 }
 
 \begin{apient}
@@ -208,7 +208,7 @@ given function.
 \apidesc{
   Search the function\'s parameters for a given name. A
   \code{BPatch\_localVar} pointer is returned if a
-  match is found, and NULL is returned otherwise.
+  match is found, and \code{nullptr} is returned otherwise.
 }
 
 \begin{apient}
@@ -224,7 +224,7 @@ given function.
 \end{apient}
 
 \apidesc{
-  Return the control flow graph for the function, or NULL if this
+  Return the control flow graph for the function, or \code{nullptr} if this
   information is not available. The \code{BPatch\_flowGraph} is
   described in section.
 }

@@ -21,8 +21,8 @@ static AddressLookup* createAddressLookup(ProcessReader* reader = NULL);
 \end{apient}
 \apidesc{
 This factory constructor creates a new \code{AddressLookup} object associated with the process that called this function. The returned \code{AddressLookup} object should be cleaned with the delete operator when it is no longer needed.
-If the reader parameter is non-NULL on Linux then the new \code{AddressLookup} object will use reader to read from the target process.
-This function returns the new \code{AddressLookup} object on success and \code{NULL} on error.
+If the reader parameter is not \code{nullptr} on Linux then the new \code{AddressLookup} object will use reader to read from the target process.
+This function returns the new \code{AddressLookup} object on success and \code{nullptr} on error.
 }
 
 \begin{apient}
@@ -30,7 +30,7 @@ static AddressLookup* createAddressLookup(PID pid,
                                           ProcessReader* reader = NULL);
 \end{apient}
 \apidesc{
-This factory constructor creates a new \code{AddressLookup} object associated with the process referred to by \code{pid}. The returned \code{AddressLookup} object should be cleaned with the delete operator when it is no longer needed. If the \code{reader} parameter is non-NULL on Linux then the new \code{AddressLookup} object will use it to read from the target process. This function returns the new \code{AddressLookup} object on success and \code{NULL} on error.
+This factory constructor creates a new \code{AddressLookup} object associated with the process referred to by \code{pid}. The returned \code{AddressLookup} object should be cleaned with the delete operator when it is no longer needed. If the \code{reader} parameter is not \code{nullptr} on Linux then the new \code{AddressLookup} object will use it to read from the target process. This function returns the new \code{AddressLookup} object on success and \code{nullptr} on error.
 }
 
 \begin{apient}
@@ -46,7 +46,7 @@ static AddressLookup* createAddressLookup(const std::vector<LoadedLibrary>& ll);
 \end{apient}
 \apidesc{
 This factory constructor creates a new \code{AddressLookup} associated with a previously collected list of libraries from a process. The list of libraries can initially be collected with the \code{getLoadAddresses} function. The list can then be used with this function to re-create the \code{AddressLookup} object, even if the original process no longer exists. This can be useful for off-line address lookups, where only the load addresses are collected while the process exists and then all address translation is done after the process has terminated.
-This function returns the new \code{AddressLookup} object on success and \code{NULL} on error.
+This function returns the new \code{AddressLookup} object on success and \code{nullptr} on error.
 }
 
 \begin{apient}

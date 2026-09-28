@@ -98,7 +98,7 @@ function \code{getImage}.
 
 \apidesc{
   Return a vector of \code{BPatch\_function}s corresponding to name,
-  or NULL if the function does not exist. If name contains a
+  or \code{nullptr} if the function does not exist. If name contains a
   POSIX-extended regular expression, and \code{dont\_use\_regex} is
   false, a regular expression search will be performed on
   function names and matching \code{BPatch\_function}s returned. If
@@ -194,7 +194,7 @@ function \code{getImage}.
 
 \apidesc{
   Returns a module named name if present in the image. If the match
-  fails, NULL is returned. If \code{substring\_match} is
+  fails, \code{nullptr} is returned. If \code{substring\_match} is
   true, the first module that has name as a substring of its name is
   returned (e.g. to find libpthread.so.1, search for
   libpthread with \code{substring\_match} set to true).

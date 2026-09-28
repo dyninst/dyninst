@@ -75,7 +75,7 @@ between the two subclasses.
   new variable.
 
   When operating in binary rewriting mode, it is an error for the \code{in\_module}
-  parameter to be NULL; it is necessary to specify the module in which the
+  parameter to be \code{nullptr}; it is necessary to specify the module in which the
   variable will be created. Dyninst will then write the variable back out in the file
   specified by \code{in\_module}.
 }
@@ -128,7 +128,7 @@ between the two subclasses.
   illegal to use \code{BPatch\_callBefore} with a \code{BPatch\_exit} point. Use
   \code{BPatch\_callAfter} with exit points. \code{BPatch\_callAfter} inserts
   instrumentation at the last instruction in the subroutine. insert\-Snippet will return
-  NULL when used with an illegal pair of points.
+  \code{nullptr} when used with an illegal pair of points.
 }
 
 \begin{apient}

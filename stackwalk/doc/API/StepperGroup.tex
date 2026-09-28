@@ -62,7 +62,7 @@ virtual bool findStepperForAddr(Address addr, FrameStepper* &out,
     \code{FrameStepper::getCallerFrame}). In this case StackwalkerAPI will call
     findStepperForAddr again with the last\_tried parameter set to the failed
     \code{FrameStepper}. findStepperForAddr should then find another \code{FrameStepper} to
-    use. Parameter \code{last\_tried} will be set to NULL the first time getStepperToUse
+    use. Parameter \code{last\_tried} will be set to \code{nullptr} the first time getStepperToUse
     is called for a stack frame.
 
     The default version of this method uses address ranges to decide which
