@@ -159,14 +159,17 @@ space.
 }
 
 \begin{apient}
-  bool oneTimeCodeAsync(const BPatch_snippet& expr, void* userData = NULL);
+  bool oneTimeCodeAsync(const BPatch_snippet& expr,
+                        void* userData = NULL,
+                        BPatchOneTimeCodeCallback cb = NULL);
 \end{apient}
 
 \apidesc{
   This function sets up a snippet to be evaluated by the process at
   the next available opportunity. When the snippet
   finishes running Dyninst will callback any function registered
-  through \code{BPatch::registerOneTimeCodeCallback}, with
+  through \code{BPatch::registerOneTimeCodeCallback}, or \code{cb} if one
+  is given here, with
   userData passed as a parameter. This function return true on
   success and false if it could not post the oneTimeCode.
   If the process is multithreaded, the snippet is run on a thread
