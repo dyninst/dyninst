@@ -239,7 +239,6 @@ int main(int argc, char* argv[])
 
   // Read the program's image and get an associated image object
   BPatch_image* appImage = app->getImage();
-  std::vector<BPatch_function*> writeFuncs;
   fprintf(stderr, "Opening file %s for write...\n", argv[2]);
   int fileDescriptor = openFileForWrite(app, appImage, argv[2]);
   if (fileDescriptor == -1)  {
