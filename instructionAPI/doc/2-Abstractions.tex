@@ -132,4 +132,6 @@ std::vector<RegisterAST::Ptr> getUsedRegisters(Expression::Ptr expr);
 \end{apient}
 \apidesc{
 Returns the AST nodes for the registers read or written by \code{expr}.
+This is a free function rather than a member, and is declared in
+\code{InstructionAST.h}.
 }

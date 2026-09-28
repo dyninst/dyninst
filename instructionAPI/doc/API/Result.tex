@@ -1,6 +1,8 @@
 \subsection{Result Class}
 \label{sec:result}
 
+\declaredin{Result.h}
+
 A \code{Result} object represents a value computed by an \code{Expression} AST.
 
 The \code{Result} class is a tagged-\/union representation of the results that Expressions can produce. It includes 8, 16, 32, 48, and 64 bit integers (signed and unsigned), bit values, and single and double precision floating point values. For each of these types, the value of a Result may be undefined, or it may be a value within the range of the type.
