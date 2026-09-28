@@ -6,12 +6,9 @@ The \code{LineInformation} class also provides the ability for iterating over it
 using namespace Dyninst;
 using namespace SymtabAPI;
 
-//Obj represents a handle to a parsed object file using symtabAPI
-//Module handle for the module
-Module* mod;
-
+//obj represents a handle to a parsed object file using symtabAPI
 //Find the module 'foo' within the object.
-for (auto* m : findModulesByName("foo"))  {
+for (auto* m : obj->findModulesByName("foo"))  {
 
   // Get the Line Information for module foo.
   LineInformation* info = m->getLineInformation();
@@ -20,11 +17,16 @@ for (auto* m : findModulesByName("foo"))  {
   LineInformation::const_iterator iter;
   for (iter = info->begin(); iter != info->end(); iter++)
   {
-    // First component represents the address range for the line
-    const std::pair<Offset, Offset> addrRange = iter->first;
+    //Each entry is a Statement, which is itself an address range
+    Statement* stmt = *iter;
 
-    //Second component gives information about the line itself.
-    LineNoTuple lt = iter->second;
+    //The range of addresses generated for this line
+    Offset lowAddr = stmt->startAddr();
+    Offset highAddr = stmt->endAddr();
+
+    //and the source position they came from
+    const std::string& file = stmt->getFile();
+    unsigned int line = stmt->getLine();
   }
 }
 \end{lstlisting}

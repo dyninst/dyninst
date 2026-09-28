@@ -11,12 +11,13 @@ As described in Section~\ref{subsec:typeInterface}, this class serves as a base 
 using namespace Dyninst;
 using namespace SymtabAPI;
 
-//Obj represents a handle to a parsed object file using symtabAPI
+//obj represents a handle to a parsed object file using symtabAPI
 //Find a structure type in the object file
-Type* structType = obj->findType("structType1");
+Type* structType = nullptr;
+obj->findType(structType, "structType1");
 
 // Get the specific typeStruct object
-typeStruct* stType = structType->isStructType();
+typeStruct* stType = structType->getStructType();
 \end{lstlisting}
 
 \begin{apient}
