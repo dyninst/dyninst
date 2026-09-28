@@ -56,7 +56,13 @@ class int_eventBreakpoint
    hw_breakpoint *hwbp;
 
    result_response::ptr pc_regset;
-   int_thread *thrd;
+   // Reference-counted handle to the thread that hit the breakpoint.  A
+   // breakpoint event can outlive the underlying int_thread (the mutatee
+   // exits while the event is still queued); the int_thread is then deleted,
+   // but this wrapper survives and its internal pointer is cleanly reset to
+   // NULL.  Storing the raw int_thread* here would dangle.  Dereference via
+   // thrd->llthrd() at point of use (see lookupInstalledBreakpoint).
+   Thread::const_ptr thrd;
    bool stopped_proc;
 
    std::set<Breakpoint::ptr> cb_bps;
@@ -116,7 +122,11 @@ class int_eventNewUserThread {
    int_eventNewUserThread();
    ~int_eventNewUserThread();
 
-   int_thread *thr;
+   // Reference-counted handle: the new thread can exit (and its int_thread be
+   // deleted) before this event reaches the callback/muxer layer.  The Thread
+   // wrapper survives with exit-safe accessors; a raw int_thread* would
+   // dangle.  See the matching comment on int_eventBreakpoint::thrd.
+   Thread::const_ptr thr;
    Dyninst::LWP lwp;
    void *raw_data;
    bool needs_update;

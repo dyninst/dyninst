@@ -243,9 +243,23 @@ void GeneratorLinux::evictFromWaitpid()
    }
    on_sigusr2_hit = 0;
    bool bresult = t_kill(generator_lwp, SIGUSR2);
+   // The generator may exit on its own initiative (e.g. no live processes
+   // left) concurrently with this eviction.  If the SIGUSR2 was queued to the
+   // dying thread it is discarded and on_sigusr2_hit never fires, which used
+   // to leave this loop spinning forever inside exit().  Bound the wait: this
+   // eviction is best-effort (we are exiting; exit_group() will reap the
+   // generator thread regardless), so give up after a couple of seconds.
+   struct timespec evict_start, evict_now;
+   clock_gettime(CLOCK_MONOTONIC, &evict_start);
    while (bresult && !on_sigusr2_hit) {
       //Don't use a lock because pthread_mutex_unlock is not signal safe
       sched_yield();
+      clock_gettime(CLOCK_MONOTONIC, &evict_now);
+      if (evict_now.tv_sec - evict_start.tv_sec >= 2) {
+         pthrd_printf("Timed out evicting generator from waitpid; "
+                      "it likely exited on its own\n");
+         break;
+      }
    }
 
    result = sigaction(SIGUSR2, &oldact, NULL);
@@ -292,7 +306,33 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 
    int_process *proc = NULL;
    linux_process *lproc = NULL;
-   int_thread *thread = ProcPool()->findThread(archevent->pid);
+   // Top-down refactor: resolve the thread wrapper AND its owning process
+   // wrapper in one atomic pool lookup (archevent->pid is the OS LWP id;
+   // the process is keyed off the thread's impl, safely, inside the pool's
+   // map_lock where "registered implies impl alive" holds).  Every event this
+   // decode produces is stamped with `pw`.
+   Thread::ptr thread_wrapper;
+   Process::ptr pw;
+   // Registration barrier (condvar retirement, option ii): bootstrap
+   // (create/attach) holds the ProcPool condvar across [plat_create/attach ..
+   // registration].  Taking it briefly around the lookup delays decoding a
+   // just-born pid until it is registered -- the per-process lock cannot do
+   // this (an unregistered process cannot be found to be locked).  Released
+   // BEFORE decode_plock: the generator never holds it while acquiring a
+   // proc_lock, so no cycle with bootstrap (which takes proc_locks under it).
+   ProcPool()->condvar()->lock();
+   ProcPool()->findThreadAndProc(archevent->pid, thread_wrapper, pw);
+   ProcPool()->condvar()->unlock();
+   // Step 2 (work_lock retirement): hold the decoded process's proc_lock
+   // across the whole decode, so the generator and the handler's destroy are
+   // mutually exclusive on this process -- closing the generator/handler
+   // use-vs-delete race.  Null-tolerant for events whose process is unknown
+   // or already gone.
+   ProcScopeLock decode_plock(pw);
+   // Impl derefs only under the proc_lock: teardown for this process is now
+   // excluded, so the llthrd() read is stable across the whole decode.
+   ThreadImplRef thread_ref(thread_wrapper);
+   int_thread *thread = thread_ref.get();
    linux_thread *lthread = NULL;
    if (thread) {
       proc = thread->llproc();
@@ -345,7 +385,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                if( lthread->isSet_fakeSyscallExitBp &&
                    lthread->addr_fakeSyscallExitBp == addr){
                    // do not handle the bp and clear the bp.
-                    bool rst = lthread->proc()->rmBreakpoint(addr, lthread->BPptr_fakeSyscallExitBp );
+                    bool rst = pw->rmBreakpoint(addr, lthread->BPptr_fakeSyscallExitBp );
                     if( !rst){
                         perr_printf("ARM-error: Failed to remove inserted BP, addr %p.\n",
                                 (void*)addr);
@@ -462,7 +502,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                     else {
                         EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
                         event = lwp_ev;
-                        event->setThread(thread->thread());
+                        event->setThread(thread_wrapper);
                         lproc->decodeTdbLWPExit(lwp_ev);
                         lthread->setGeneratorExiting();
                     }
@@ -548,8 +588,8 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                 event = Event::ptr(new EventBreakpointRestore(new int_eventBreakpointRestore(clearingbp)));
                 if (thread->singleStepUserMode()) {
                    Event::ptr subservient_ss = EventSingleStep::ptr(new EventSingleStep());
-                   subservient_ss->setProcess(proc->proc());
-                   subservient_ss->setThread(thread->thread());
+                   subservient_ss->setProcess(pw);
+                   subservient_ss->setThread(thread_wrapper);
                    subservient_ss->setSyncType(Event::sync_thread);
                    event->addSubservientEvent(subservient_ss);
                 }
@@ -588,12 +628,12 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                             thread->getLWP(), adjusted_addr);
                EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(new int_eventBreakpoint(adjusted_addr, ibp, thread)));
                event = event_bp;
-               event->setThread(thread->thread());
+               event->setThread(thread_wrapper);
 
                if (thread->singleStepUserMode() && !proc->plat_breakpointAdvancesPC()) {
                   Event::ptr subservient_ss = EventSingleStep::ptr(new EventSingleStep());
-                  subservient_ss->setProcess(proc->proc());
-                  subservient_ss->setThread(thread->thread());
+                  subservient_ss->setProcess(pw);
+                  subservient_ss->setThread(thread_wrapper);
                   subservient_ss->setSyncType(Event::sync_thread);
                   event->addSubservientEvent(subservient_ss);
                }
@@ -601,8 +641,8 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                if (adjusted_addr == lproc->getLibBreakpointAddr()) {
                   pthrd_printf("Breakpoint is library load/unload\n");
                   EventLibrary::ptr lib_event = EventLibrary::ptr(new EventLibrary());
-                  lib_event->setThread(thread->thread());
-                  lib_event->setProcess(proc->proc());
+                  lib_event->setThread(thread_wrapper);
+                  lib_event->setProcess(pw);
                   lib_event->setSyncType(Event::sync_thread);
                   event->addSubservientEvent(lib_event);
                   break;
@@ -676,7 +716,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
       event = lwp_ev;
       event->setSyncType(Event::async);
-      event->setThread(thread->thread());
+      event->setThread(thread_wrapper);
       lproc->decodeTdbLWPExit(lwp_ev);
       thread->getGeneratorState().setState(int_thread::exited);
    }
@@ -710,9 +750,10 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
    {
       //Paired event decoded
       assert(!event);
-      thread = ProcPool()->findThread(parent->pid);
-      assert(thread);
-      proc = thread->llproc();
+      // Paired (fork/clone) events re-route to the parent thread, so the
+      // wrappers resolved at the top of decode (from archevent->pid) no
+      // longer apply -- re-resolve both atomically off the parent's LWP.
+      ProcPool()->findThreadAndProc(parent->pid, thread_wrapper, pw);
       if (parent->event_ext == PTRACE_EVENT_FORK)
          event = Event::ptr(new EventFork(EventType::Post, child->pid));
       else if (parent->event_ext == PTRACE_EVENT_CLONE)
@@ -734,12 +775,14 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
        assert(event);
        assert(!parent);
        assert(!child);
-       assert(proc->proc());
-       assert(thread->thread());
+       assert(thread_wrapper);
+       assert(pw);
        delete archevent;
    }
-   event->setThread(thread->thread());
-   event->setProcess(proc->proc());
+   // Top-down: both wrappers were resolved once at the top of decode and
+   // travel with the control flow -- stamp them onto the event directly.
+   event->setThread(thread_wrapper);
+   event->setProcess(pw);
    events.push_back(event);
 
    return true;
@@ -1031,11 +1074,13 @@ bool linux_process::plat_attachThreadsSync()
    while (true) {
       bool found_new_threads = false;
 
-      ProcPool()->condvar()->lock();
+      // condvar retirement: per-process bracket (option ii)
+      Process::ptr bracket_pin = proc();
+      if (bracket_pin) bracket_pin->lockImpl();
       bool result = attachThreads(found_new_threads);
       if (found_new_threads)
-         ProcPool()->condvar()->broadcast();
-      ProcPool()->condvar()->unlock();
+         wakeGenerator();
+      if (bracket_pin) bracket_pin->unlockImpl();
 
       if (!result) {
          pthrd_printf("Failed to attach to threads in %d\n", pid);
@@ -2807,7 +2852,7 @@ bool linux_thread::plat_setRegisterAsync(Dyninst::MachRegister reg,
 }
 
 bool linux_thread::plat_handle_ghost_thread() {
-	std::string loc = "/proc/" + std::to_string(proc()->getPid()) + "/task/" + std::to_string(getLWP());
+	std::string loc = "/proc/" + std::to_string(llproc()->getPid()) + "/task/" + std::to_string(getLWP());
 	struct stat dummy;
 	int res = stat(loc.c_str(), &dummy);
 	pthrd_printf("GHOST_THREAD: stat=%d, loc=%s\n", res, loc.c_str());
@@ -2824,14 +2869,14 @@ bool linux_thread::plat_handle_ghost_thread() {
 	auto *initial_thread = llproc()->threadPool()->initialThread();
 
 	// Do not create a destroy event for the thread executed from 'main'
-	if(initial_thread != thread()->llthrd()) {
+	if(initial_thread != this) {
 		EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
 		lwp_ev->setSyncType(Event::async);
 		lwp_ev->setThread(thread());
 		lwp_ev->setProcess(proc());
-		dynamic_cast<linux_process*>(proc()->llproc())->decodeTdbLWPExit(lwp_ev);
+		dynamic_cast<linux_process*>(llproc())->decodeTdbLWPExit(lwp_ev);
 		pthrd_printf("GHOST THREAD: Enqueueing event for %d/%d\n",
-				proc()->getPid(), getLWP());
+				llproc()->getPid(), getLWP());
 		mbox()->enqueue(lwp_ev, true);
 	}
 	return true;
@@ -3143,13 +3188,14 @@ Handler::handler_ret_t LinuxHandleNewThr::handleEvent(Event::ptr ev)
 {
    linux_thread *thr = NULL;
    if (ev->getEventType().code() == EventType::Bootstrap) {
-      thr = dynamic_cast<linux_thread *>(ev->getThread()->llthrd());
+      thr = dynamic_cast<linux_thread *>(ThreadImplRef(ev->getThread()).get());
    }
    else if (ev->getEventType().code() == EventType::ThreadCreate) {
       Dyninst::LWP lwp = static_cast<EventNewThread *>(ev.get())->getLWP();
-      ProcPool()->condvar()->lock();
-      thr = dynamic_cast<linux_thread *>(ProcPool()->findThread(lwp));
-      ProcPool()->condvar()->unlock();
+      // condvar retirement: the ThreadImplRef below takes the proc_lock;
+      // the pool lookup is guarded by map_lock.
+      Thread::ptr lwp_wrapper = ProcPool()->findThread(lwp);
+      thr = lwp_wrapper ? dynamic_cast<linux_thread *>(ThreadImplRef(lwp_wrapper).get()) : NULL;
    }
    assert(thr);
 
@@ -3179,7 +3225,8 @@ LinuxHandleLWPDestroy::~LinuxHandleLWPDestroy()
 }
 
 Handler::handler_ret_t LinuxHandleLWPDestroy::handleEvent(Event::ptr ev) {
-    int_thread *thrd = ev->getThread()->llthrd();
+    ThreadImplRef thrd_ref(ev->getThread());
+    int_thread *thrd = thrd_ref.get();
 
     // This handler is necessary because SIGSTOPS cannot be sent to pre-destroyed
     // threads -- these stops will never be delivered to the debugger
@@ -3214,7 +3261,8 @@ LinuxHandleForceTerminate::LinuxHandleForceTerminate() :
 LinuxHandleForceTerminate::~LinuxHandleForceTerminate() {}
 
 Handler::handler_ret_t LinuxHandleForceTerminate::handleEvent(Event::ptr ev) {
-   int_process *proc = ev->getProcess()->llproc();
+   ProcImplRef proc_ref(ev->getProcess());
+   int_process *proc = proc_ref.get();
 
    for (int_threadPool::iterator iter = proc->threadPool()->begin();
         iter != proc->threadPool()->end(); ++iter) {
@@ -3434,7 +3482,8 @@ void linux_process::plat_adjustSyncType(Event::ptr ev, bool gen_)
        ev->getEventType().time() != EventType::Pre)
       return;
 
-   int_thread *thrd = ev->getThread()->llthrd();
+   ThreadImplRef thrd_ref(ev->getThread());
+   int_thread *thrd = thrd_ref.get();
    if(!thrd) return;
    if (thrd->getGeneratorState().getState() != int_thread::running)
       return;

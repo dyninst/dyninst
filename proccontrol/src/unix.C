@@ -122,7 +122,9 @@ void unix_process::plat_execv() {
 
 bool unix_process::post_forked()
 {
-   ProcPool()->condvar()->lock();
+   // condvar retirement: per-process bracket (option ii)
+   Process::ptr bracket_pin = proc();
+   if (bracket_pin) bracket_pin->lockImpl();
 
    int_thread *thrd = threadPool()->initialThread();
    //The new process is currently stopped, but should be moved to
@@ -133,8 +135,8 @@ bool unix_process::post_forked()
    thrd->getHandlerState().setState(int_thread::stopped);
    thrd->getUserState().setState(int_thread::running);
 
-   ProcPool()->condvar()->broadcast();
-   ProcPool()->condvar()->unlock();
+   wakeGenerator();
+   if (bracket_pin) bracket_pin->unlockImpl();
 
    //TODO: Remove this and make have the translate layers' fork
    // constructors do the work.
