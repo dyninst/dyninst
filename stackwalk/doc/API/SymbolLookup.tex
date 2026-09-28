@@ -39,7 +39,7 @@ virtual bool lookupAtAddr(Address addr,
 }
 
 \begin{apient}
-Walker* getWalker();
+virtual Walker* getWalker();
 \end{apient}
 \apidesc{
     This method returns the \code{Walker} object associated with this
@@ -47,7 +47,7 @@ Walker* getWalker();
 }
 
 \begin{apient}
-ProcessState* getProcessState();
+virtual ProcessState* getProcessState();
 \end{apient}
 \apidesc{
     This method returns the \code{ProcessState} object associated with this
