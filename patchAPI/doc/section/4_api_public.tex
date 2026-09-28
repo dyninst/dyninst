@@ -25,7 +25,7 @@ the class name, e.g., PatchMgrPtr for PatchMgr.
 \subsubsection{PatchObject}
 \label{sec:patchobject}
 
-\definedin{PatchObject.h}
+\declaredin{PatchObject.h}
 
 The PatchObject class is a wrapper of ParseAPI's CodeObject class (has-a), which
 represents an individual binary code object, such as an executable or a library.
@@ -180,7 +180,7 @@ Returns the PatchCallback object associated with this PatchObject.
 \subsubsection{PatchFunction}
 \label{sec:patchfunction}
 
-\definedin{PatchCFG.h}
+\declaredin{PatchCFG.h}
 
 The PatchFunction class is a wrapper of ParseAPI's Function class (has-a), which
 represents a function.
@@ -331,7 +331,7 @@ void getAllPostDominates(PatchBlock* A, std::set<PatchBlock*>& dom);
 \subsubsection{PatchBlock}
 \label{sec:patchblock}
 
-\definedin{PatchCFG.h}
+\declaredin{PatchCFG.h}
 
 The PatchBlock class is a wrapper of ParseAPI's Block class (has-a), which
 represents a basic block.
@@ -509,7 +509,7 @@ Returns the PatchCallback object associated with this PatchBlock.
 \subsubsection{PatchEdge}
 \label{sec:patchedge}
 
-\definedin{PatchCFG.h}
+\declaredin{PatchCFG.h}
 
 The PatchEdge class is a wrapper of ParseAPI's Edge class (has-a), which joins
 two PatchBlocks in the CFG, indicating the type of control flow transfer
@@ -578,7 +578,7 @@ Returns a Patchcallback object associated with this PatchEdge.
 \subsubsection{PatchLoop}
 \label{sec:patchloop}
 
-\definedin{PatchCFG.h}
+\declaredin{PatchCFG.h}
 
 The PatchLoop class is a wrapper of ParseAPI's Loop class (has-a).
 It represents code structure that may execute repeatedly.
@@ -658,7 +658,7 @@ PatchFunction* getFunction();
 \subsubsection{PatchLoopTreeNode}
 \label{sec:patchlooptreenode}
 
-\definedin{PatchCFG.h}
+\declaredin{PatchCFG.h}
 
 The PatchLoopTreeNode class provides a tree interface to a collection of instances of class
 PatchLoop contained in a function. The structure of the tree
@@ -763,7 +763,7 @@ struct Scope {
 \subsubsection{PatchMgr}
 \label{sec:patchmgr}
 
-\definedin{PatchMgr.h}
+\declaredin{PatchMgr.h}
 
 The PatchMgr class is the top-level class for finding instrumentation \textbf{Points},
 inserting or deleting \textbf{Snippets}, and registering user-provided plugins.
@@ -1046,7 +1046,7 @@ to verify the CFG structures passed by users, which causes nontrivial overhead.
 \subsubsection{Point}
 \label{sec:point}
 
-\definedin{Point.h}
+\declaredin{Point.h}
 
 The Point class is in essence a container of a list of snippet
 instances. Therefore, the Point class has methods similar to those in STL.
@@ -1261,7 +1261,7 @@ This static method removes a specific \emph{type} from a set of \emph{types}.
 \subsubsection{Instance}
 \label{sec:instance}
 
-\definedin{Point.h}
+\declaredin{Point.h}
 
 The Instance class is a representation of a particular snippet inserted at a
 particular point. If a Snippet is inserted to N points or to the same point for
@@ -1303,7 +1303,7 @@ instances inserted at different Points or the same Point.
 \subsubsection{PatchCallback}
 \label{sec:patchcallback}
 
-\definedin{PatchCallback.h}
+\declaredin{PatchCallback.h}
 
 The PatchAPI CFG layer may change at runtime due to program events
 (e.g., a program loading additional code or overwriting its own code

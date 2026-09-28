@@ -12,7 +12,7 @@ As with the public interface, all objects and methods in this section are in the
 \subsection{AddrSpace}
 \label{sec:addrspace}
 
-\definedin{AddrSpace.h}
+\declaredin{AddrSpace.h}
 
 The AddrSpace class represents the address space of a \textbf{Mutatee}, where it
 contains a collection of \textbf{PatchObjects} that represent shared libraries
@@ -126,7 +126,7 @@ Returns the PatchMgr's pointer, where the PatchMgr contains this address space.
 \subsection{Snippet}
 \label{sec:snippet}
 
-\definedin{Snippet.h}
+\declaredin{Snippet.h}
 
 The Snippet class allows programmers to customize their own snippet
 representation and the corresponding mini-compiler to translate the
@@ -159,7 +159,7 @@ is an out-param that holds the generated code.  }
 \subsection{Command}
 \label{sec:command}
 
-\definedin{Command.h}
+\declaredin{Command.h}
 
 The Command class represents an instrumentation request (e.g., snippet insertion
 or removal), or an internal logical step in the code patching (e.g., install
@@ -208,7 +208,7 @@ if (run())  {
 \subsection{BatchCommand}
 \label{sec:batchcommand}
 
-\definedin{Command.h}
+\declaredin{Command.h}
 
 The BatchCommand class inherits from the Command class. It is actually a
 container of a list of Commands that will be executed in a transaction: all
@@ -261,7 +261,7 @@ This method removes a Command from \emph{to\_do\_}.
 \subsection{Instrumenter}
 \label{sec:instrumenter}
 
-\definedin{Command.h}
+\declaredin{Command.h}
 
 The Instrumenter class inherits BatchCommand to encapsulate the core code
 patching logic, which includes binary code generation. Instrumenter would
@@ -459,7 +459,7 @@ Returns the address space associated with this Instrumenter.
 \subsection{Patcher}
 \label{sec:patcher}
 
-\definedin{Command.h}
+\declaredin{Command.h}
 
 The class Patcher inherits from the class BatchCommand. It accepts
 instrumentation requests from users, where these instrumentation requests are
@@ -491,7 +491,7 @@ other Commands in the \emph{to\_do\_}.
 \subsection{CFGMaker}
 \label{sec:cfgmaker}
 
-\definedin{CFGMaker.h}
+\declaredin{CFGMaker.h}
 
 The CFGMaker class is a factory class that constructs the above CFG structures
 (PatchFunction, PatchBlock, and PatchEdge). The methods in this class are used
@@ -519,7 +519,7 @@ forking a new process).
 \subsection{PointMaker}
 \label{sec:pointmaker}
 
-\definedin{Point.h}
+\declaredin{Point.h}
 
 The PointMaker class is a factory class that constructs instances of the Point
 class. The methods of the PointMaker class are invoked by PatchMgr's findPoint
@@ -557,7 +557,7 @@ Point.
 \subsection{PushFrontCommand and PushBackCommand}
 \label{sec:push-commands}
 
-\definedin{Command.h}
+\declaredin{Command.h}
 
 The class PushFrontCommand and the class PushBackCommand inherit from the
 Command class. They are to insert a snippet to a point. A point maintains a
@@ -586,7 +586,7 @@ Returns a snippet instance that is inserted at the point.
 \subsection{RemoveSnippetCommand}
 \label{sec:removesnippetcommand}
 
-\definedin{Command.h}
+\declaredin{Command.h}
 
 The class RemoveSnippetCommand inherits from the Command class. It is to delete
 a snippet Instance.
@@ -603,7 +603,7 @@ This static function creates an instance of RemoveSnippetCommand.
 \subsection{RemoveCallCommand}
 \label{sec:removecallcommand}
 
-\definedin{Command.h}
+\declaredin{Command.h}
 
 The class RemoveCallCommand inherits from the class Command. It is to remove a
 function call.
@@ -627,7 +627,7 @@ only from the PatchFuncton \emph{context}.
 \subsection{ReplaceCallCommand}
 \label{sec:replacecallcommand}
 
-\definedin{Command.h}
+\declaredin{Command.h}
 
 The class ReplaceCallCommand inherits from the class Command. It is to replace a
 function call with another function.
@@ -650,7 +650,7 @@ would be replaced in all PatchFunctions that contains it.
 \subsection{ReplaceFuncCommand}
 \label{sec:replacefunccommand}
 
-\definedin{Command.h}
+\declaredin{Command.h}
 
 The class ReplaceFuncCommand inherits from the class Command. It is to replace
 an old function with the new one.

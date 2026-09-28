@@ -87,7 +87,7 @@ for (;;)  {
 
 \subsubsection{Class ProcDebug}
 \label{subsubsec:procdebug}
-\definedin{procstate.h}
+\declaredin{procstate.h}
 
 Access to StackwalkerAPI's debugger is through the \code{ProcDebug} class, which
 inherits from the \code{ProcessState} interface. The easiest way to get at a
@@ -226,7 +226,7 @@ static bool handleDebugEvent(bool block = false);
 }
 
 \subsection{FrameSteppers}\label{sec:framesteppers}
-\definedin{framestepper.h}
+\declaredin{framestepper.h}
 
 StackwalkerAPI ships with numerous default implementations of the
 \code{FrameStepper}

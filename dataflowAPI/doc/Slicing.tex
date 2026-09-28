@@ -1,7 +1,7 @@
 \subsection{Class Slicer}
 \label{sec:slicer}
 
-\definedin{slicing.h}
+\declaredin{slicing.h}
 
 Class Slicer is the main interface for performing forward and backward slicing.
 The slicing algorithm starts with a user provided Assignment and generates a
@@ -97,7 +97,7 @@ const AbsRegion& data() const;
 \subsection{Class Slicer::Predicates}
 \label{sec:slicer-predicates}
 
-\definedin{slicing.h}
+\declaredin{slicing.h}
 
 Class Predicates abstracts the stopping criteria of slicing. Users can inherit
 this class to control slicing in various situations, including whether or not to perform inter-procedural slicing, whether or not to search for control flow
