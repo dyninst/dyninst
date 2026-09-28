@@ -65,7 +65,7 @@ static AST::Ptr substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b);
 Return a new AST after the substitution.}
 
 \begin{apient}
-virtual AST::ID AST::getID() const;
+virtual AST::ID getID() const;
 \end{apient}
 \apidesc{Return the class type ID of this node.}
 
@@ -76,6 +76,6 @@ virtual Ptr accept(ASTVisitor* v);
 automatically apply the visitor to its children.}
 
 \begin{apient}
-virtual void AST::setChild(int i, AST::Ptr c);
+virtual void setChild(int i, AST::Ptr c);
 \end{apient}
 \apidesc{Set the \code{i}th child of this node to \code{c}.}

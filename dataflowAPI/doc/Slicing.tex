@@ -49,9 +49,9 @@ class SliceNode : public Node
 \begin{apient}
 typedef boost::shared_ptr<SliceNode> Ptr;
 
-static SliceNode::Ptr SliceNode::create(AssignmentPtr ptr,
-                                        ParseAPI::Block* block,
-                                        ParseAPI::Function* func);
+static SliceNode::Ptr create(AssignmentPtr ptr,
+                             ParseAPI::Block* block,
+                             ParseAPI::Function* func);
 \end{apient}
 \apidesc{Create a slice node, which represents assignment \code{ptr} in basic
 block \code{block} and function \code{func}.}
@@ -154,15 +154,6 @@ site, and \code{argument}, which represents the variable to slice with in the
 callee function. This function defaults to always returning \code{false}.
 Note that as Dyninst currently does not try to resolve indirect
 calls, the slicer will NOT call this function at an indirect call site. }
-%virtual bool followCallee(ParseAPI::Function * callee,
-
-%\begin{apient}
-%virtual bool followCall(ParseAPI::Function * /*callee*/,
-%                        CallStack_t & /*cs*/,
-%			AbsRegion /*argument*/);
-%\end{apient}
-%\apidesc{The same as \code{followCallee}. This function is going to be
-%depreciated and exists for backward compatibility.}
 
 \begin{apient}
 virtual std::vector<ParseAPI::Function*>
@@ -179,17 +170,6 @@ represents the caller functions that have been followed to this place, and
 \code{argument}, which represents the variable to slice with in the caller
 function. This function defaults to always
 returning an empty vector.}
-
-%        followCaller(ParseAPI::Block * caller,
-
-%\begin{apient}
-%virtual std::vector<ParseAPI::Function *>
-%        followCallBackward(ParseAPI::Block * /*callerB*/,
-%                           CallStack_t & /*cs*/,
-%                           AbsRegion /*argument*/)
-%\end{apient}
-%\apidesc{The same as \code{followCaller}. This function is going to be
-%depreciated and exists for backward compatibility. }
 
 \begin{apient}
 virtual bool addPredecessor(AbsRegion reg);
