@@ -77,6 +77,8 @@ We now describe data structure \code{Variable}, \code{Constant}, and
 
 \subsection{Class Variable}
 
+\declaredin{VariableAST.h}
+
 A \code{Variable} represents an abstract region at a particular
 address.
 
@@ -107,6 +109,8 @@ Address Variable::addr;
 
 \subsection{Class Constant}
 
+\declaredin{ConstantAST.h}
+
 A \code{Constant} object represents a constant value in code.
 
 \begin{apient}
@@ -135,6 +139,8 @@ size_t Constant::size;
 \apidesc{The numerical value and bit size of this value.}
 
 \subsection{Class ROSEOperation}
+
+\declaredin{RoseAST.h}
 
 \code{ROSEOperation} defines the following operations and we represent the
 semantics of all instructions with these operations.
@@ -201,6 +207,8 @@ size_t ROSEOperation::size;
 \end{apient}
 
 \subsection{Class ASTVisitor}
+
+\declaredin{ASTVisitor.h}
 
 The ASTVisitor class defines callback functions to apply during visiting an AST for
 each AST node type. Users can inherit from this class to write customized analyses

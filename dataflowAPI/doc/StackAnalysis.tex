@@ -1,6 +1,8 @@
 \subsection{Class StackAnalysis}
 \label{sec:stackanalysis}
 
+\declaredin{stackanalysis.h}
+
 The StackAnalysis interface is used to determine the possible stack heights of abstract locations at any instruction in a function.  Due to there often being many paths through the CFG to reach a given instruction, abstract locations may have different stack heights depending on the path taken to reach that instruction.  In other cases, StackAnalysis is unable to adequately determine what is contained in an abstract location.  In both situations, StackAnalysis is conservative in its reported stack heights.  The table below explains what the reported stack heights mean.
 
 \begin{tabular}{p{1.25in}p{4.25in}}

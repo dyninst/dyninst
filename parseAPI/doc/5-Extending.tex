@@ -18,6 +18,8 @@ A CodeSource, as described above, exports its own and the InstructionSource inte
 
 \subsubsection{Class InstructionSource}
 
+\declaredin{InstructionSource.h}
+
 \begin{apient}
 virtual bool isValidAddress(const Address) const;
 \end{apient}
@@ -75,6 +77,8 @@ virtual bool isAligned(const Address) const;
 
 \subsubsection{Class CodeSource}
 
+\declaredin{CodeSource.h}
+
 CodeSource implementors need to fill in several data structures in the base CodeSource class:
 
 \begin{apient}
@@ -101,6 +105,8 @@ dyn_c_vector<Hint> _hints;
 
 \subsection{Class CFGFactory}
 \label{sec:factories}
+
+\declaredin{CFGFactory.h}
 
 Users who which to incorporate the ParseAPI into large projects may need to store additional information about CFG objects like Functions, Blocks, and Edges. The simplest way to associate the ParseAPI-level CFG representation with higher-level implementation is to extend the CFG classes provided as part of the ParseAPI. Because the parser itself does not know how to construct such extended types, implementors must provide an implementation of the CFGFactory that is specialized for their CFG classes. The CFGFactory exports the following simple interface:
 

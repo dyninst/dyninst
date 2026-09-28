@@ -245,12 +245,17 @@ example). Users can further customize the behavior of a \code{FrameStepper} by
 providing their own implementation of these helper classes.
 
 \subsubsection{Class FrameFuncStepper}
+
+\declaredin{framestepper.h}
+
 This class implements stack walking through a call frame that is setup with the
 architectures standard stack frame. For example, on x86 this \code{FrameStepper} will
 be used to walk through stack frames that are setup with a \code{push \%ebp/mov
 \%esp,\%ebp} prologue.
 
 \subsubsection{Class FrameFuncHelper}
+
+\declaredin{framestepper.h}
 
 \code{FrameFuncStepper} uses a helper class, \code{FrameFuncHelper}, to get information on
 what kind of stack frame it's walking through. The \code{FrameFuncHelper} will
@@ -324,12 +329,16 @@ virtual alloc_frame_t allocatesFrame(Address addr) = 0;
 
 \subsubsection{Class SigHandlerStepper}
 
+\declaredin{framestepper.h}
+
 The \code{SigHandlerStepper} is used to walk through UNIX signal handlers as found on
 the call stack. On some systems a signal handler generates a special kind of
 stack frame that cannot be walked through using normal stack walking techniques.
 
 
 \subsubsection{Class DebugStepper}
+
+\declaredin{framestepper.h}
 
 This class uses debug information found in a binary to walk through a stack
 frame. It depends on SymtabAPI to read debug information from a binary, then
@@ -343,12 +352,16 @@ information if it is available.
 
 \subsubsection{Class AnalysisStepper}
 
+\declaredin{framestepper.h}
+
 This class uses dataflow analysis to determine possible stack sizes at
 all locations in a function as well as the location of the frame
 pointer. It is able to handle optimized code with omitted frame
 pointers and overlapping code sequences.
 
 \subsubsection{Class StepperWanderer}
+
+\declaredin{framestepper.h}
 
 This class uses a heuristic approach to find possible return addresses
 in the stack frame. If a return address is found that matches a valid
@@ -359,6 +372,8 @@ information. It has primarily been replaced by the
 \code{AnalysisStepper} described above.
 
 \subsubsection{Class BottomOfStackStepper}
+
+\declaredin{framestepper.h}
 
 The \code{BottomOfStackStepper} doesn't actually walk through any type of call frame.
 Instead it attempts to detect whether the bottom of the call stack has been
