@@ -174,6 +174,7 @@ method. The new stack walk is returned as a vector of Frame objects.
 \input{API/Frame}
 
 \subsection{Mapping Addresses to Libraries}
+\label{subsec:libmapping}
 \definedin{procstate.h}
 
 StackwalkerAPI provides an interface to access the addresses where libraries are mapped in the
@@ -190,42 +191,10 @@ A pair consisting of a library filename and its base address in the target proce
 class LibraryState;
 \end{apient}
 \apidesc{
-Class providing interfaces for library tracking. Only the public query interfaces below are user-facing; the other public
-methods are callbacks that allow StackwalkerAPI to update its internal state.
+The class through which StackwalkerAPI tracks the libraries loaded into the
+target process, documented in Section~\ref{subsubsec:librarystate}.
 }
 
-\begin{apient}
-   virtual bool getLibraryAtAddr(Address addr, LibAddrPair& lib) = 0;
-\end{apient}
-\apidesc{
-Given an address \code{addr} in the target process, returns \code{true} and sets \code{lib} to the name and base address of the library containing
-addr. Given an address outside the target process, returns \code{false}.
-}
-\begin{apient}
-   virtual bool getLibraries(std::vector<LibAddrPair>& libs, bool allow_refresh = true) = 0;
-\end{apient}
-\apidesc{
-Fills \code{libs} with the libraries loaded in the target process. If \code{allow\_refresh} is true, this method will attempt to ensure
-that this list is freshly updated via inspection of the process; if it is false, it will return a cached list.
-}
-\begin{apient}
-   bool getLibc(LibAddrPair& lc);
-\end{apient}
-\apidesc{
-Convenience function to find the name and base address of the standard C runtime, if present.
-}
-\begin{apient}
-   bool getLibthread(LibAddrPair& lt);
-\end{apient}
-\apidesc{
-Convenience function to find the name and base address of the standard thread library, if present (e.g. pthreads).
-}
-\begin{apient}
-   virtual bool getAOut(LibAddrPair& ao) = 0;
-\end{apient}
-\apidesc{
-Convenience function to find the name and base address of the executable.
-}
 \subsection{Accessing Local Variables}
 \definedin{local\_var.h}
 
@@ -240,26 +209,26 @@ local variables contained in that function and the types of those local
 variables. See the SymtabAPI Programmer's Guide for more information.
 
 \begin{apient}
-static Dyninst::SymtabAPI::Function* getFunctionForFrame(Frame f);
+Dyninst::SymtabAPI::Function* getFunctionForFrame(Frame f);
 \end{apient}
 \apidesc{
 This method returns a SymtabAPI function handle for the function that created the call stack frame, f.
 }
 
 \begin{apient}
-static int glvv_Success = 0;
-static int glvv_EParam = -1;
-static int glvv_EOutOfScope = -2;
-static int glvv_EBufferSize = -3;
-static int glvv_EUnknown = -4;
+int glvv_Success = 0;
+int glvv_EParam = -1;
+int glvv_EOutOfScope = -2;
+int glvv_EBufferSize = -3;
+int glvv_EUnknown = -4;
 \end{apient}
 
 \begin{apient}
-static int getLocalVariableValue(Dyninst::SymtabAPI::localVar* var,
-                                 std::vector<Frame>& swalk,
-                                 unsigned frame,
-                                 void* out_buffer,
-                                 unsigned out_buffer_size);
+int getLocalVariableValue(Dyninst::SymtabAPI::localVar* var,
+                          std::vector<Frame>& swalk,
+                          unsigned frame,
+                          void* out_buffer,
+                          unsigned out_buffer_size);
 \end{apient}
 \apidesc{
     Given a local variable and a stack frame from a call stack, this function

@@ -108,27 +108,23 @@ Returns the name of the executable associated with the current process state.
 }
 
 \subsubsection{Class LibraryState}
+\label{subsubsec:librarystate}
 
 \definedin{procstate.h}
 
 \code{LibraryState} is a helper class for \code{ProcessState} that provides information about
 the current DSOs (libraries and executables) that are loaded into a process'
 address space. FrameSteppers frequently use the LibraryState to get the DSO
-through which they are attempting to stack walk.
+through which they are attempting to stack walk.  The query methods below are
+the user-facing ones; the rest are callbacks through which StackwalkerAPI keeps
+its own state current.
 
-Each \code{Library} is represented using a \code{LibAddrPair} object, which is defined as
-follows:
-
-\begin{apient}
-typedef std::pair<std::string, Dyninst::Address> LibAddrPair;
-\end{apient}
-\apidesc{
-    \code{LibAddrPair.first} refers to the file path of the library that was
-    loaded, and \code{LibAddrPair.second} is the load address of that library in
-    the process' address space. The load address of a library can be added to a
-    symbol offset from the file in order to get the absolute address of a
-    symbol.
-}
+Each \code{Library} is represented using a \code{LibAddrPair} object, defined in
+Section~\ref{subsec:libmapping}.  \code{LibAddrPair.first} refers to the file path
+of the library that was loaded, and \code{LibAddrPair.second} is the load address
+of that library in the process' address space.  The load address of a library can
+be added to a symbol offset from the file in order to get the absolute address of
+a symbol.
 
 \begin{apient}
 virtual bool getLibraryAtAddr(Address addr, LibAddrPair& lib) = 0;
@@ -176,4 +172,27 @@ virtual Address getLibTrapAddress() = 0;
     notifyOfUpdate when that trap triggers.
 
     On non-System/V platforms this method should return 0.
+}
+
+\begin{apient}
+virtual bool getLibc(LibAddrPair& lc);
+\end{apient}
+\apidesc{
+    Convenience function to find the name and base address of the standard C
+    runtime, if present.
+}
+
+\begin{apient}
+virtual bool getLibthread(LibAddrPair& lt);
+\end{apient}
+\apidesc{
+    Convenience function to find the name and base address of the standard
+    thread library, if present (e.g. pthreads).
+}
+
+\begin{apient}
+virtual bool getAOut(LibAddrPair& ao) = 0;
+\end{apient}
+\apidesc{
+    Convenience function to find the name and base address of the executable.
 }
