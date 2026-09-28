@@ -2,7 +2,7 @@
 
 An \code{EventNewUserThread} triggers when a process spawns a new user-level
 thread.
-The Event class\' getThread function returns the original Thread that performed
+The Event class' getThread function returns the original Thread that performed
 the spawn operation. This thread may have already been created if the platform
 supports the EventNewLWP event. If not, the getNewThread function returns the
 newly created Thread.

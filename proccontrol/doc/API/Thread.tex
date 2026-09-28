@@ -180,7 +180,7 @@ bool haveUserThreadInfo() const;
 
 \apidesc{
 This function returns true if information about this
-Thread\'s underlying user-level thread is available.
+Thread's underlying user-level thread is available.
 }
 
 \begin{apient}
@@ -207,7 +207,7 @@ Dyninst::Address getStackBase() const;
 
 \apidesc{
 This function returns the address of the bottom of the user-level
-thread\'s stack. This value is only valid if
+thread's stack. This value is only valid if
 haveUserThreadInfo returns true.
 }
 
@@ -217,7 +217,7 @@ unsigned long getStackSize() const;
 
 \apidesc{
 This function returns the size in bytes of the user-level
-thread\'s allocated stack. This value is only valid if
+thread's allocated stack. This value is only valid if
 haveUserThreadInfo returns true.
 }
 
@@ -227,7 +227,7 @@ Dyninst::Address getTLS() const;
 
 \apidesc{
 This function returns the address of the user-level
-thread\'s thread local storage area. This value is only
+thread's thread local storage area. This value is only
 valid if haveUserThreadInfo returns true.
 }
 
@@ -241,8 +241,8 @@ bool readThreadLocalMemory(void* buffer,
 \apidesc{
 This function reads from a symbol in thread local storage (TLS) memory. TLS is
 memory that is local to a thread and has a lifetime matching the thread. The
-tls\_symbol\_offset is the TLS symbol\'s offset in lib, and
-can be found by reading a TLS symbol\'s value. The lib
+tls\_symbol\_offset is the TLS symbol's offset in lib, and
+can be found by reading a TLS symbol's value. The lib
 parameter can point to a library or the executable. The buffer parameter
 specifies an address in the controller process where ProcControlAPI should
 write the copied bytes.
@@ -263,8 +263,8 @@ bool writeThreadLocalMemory(Library::const_ptr lib,
 \apidesc{
 This function writes to a symbol in thread local storage (TLS) memory. TLS is
 memory that is local to a thread and has a lifetime matching the thread. The
-tls\_symbol\_offset is the TLS symbol\'s offset in lib, and
-can be found by reading a TLS symbol\'s value. The lib
+tls\_symbol\_offset is the TLS symbol's offset in lib, and
+can be found by reading a TLS symbol's value. The lib
 parameter can point to a library or the executable. The buffer parameter
 specifies an address in the controller process where ProcControlAPI should read
 the bytes to be copied.
@@ -283,8 +283,8 @@ bool getThreadLocalAddress(Library::const_ptr lib,
 
 \apidesc{
 This function looks up the address of a symbol in thread local storage (TLS)
-memory. The tls\_symbol\_offset is the TLS symbol\'s offset
-in lib, and can be found by reading a TLS symbol\'s value.
+memory. The tls\_symbol\_offset is the TLS symbol's offset
+in lib, and can be found by reading a TLS symbol's value.
 The lib parameter can point to a library or the executable. The result\_addr
 parameter will be set to the target address for the TLS symbol in this Thread.
 It is an error to call this function on a Thread that is not in a stopped state.
@@ -300,7 +300,7 @@ bool postIRPC(IRPC::ptr irpc) const;
 
 \apidesc{
 This function posts the given irpc to the Thread. The IRPC is put irpc into
-the Thread\'s queue of posted IRPCs and will be run when
+the Thread's queue of posted IRPCs and will be run when
 ready.
 Each instance of an IRPC object can be posted at most once. It is an error to
 attempt to post a single IRPC object multiple times.

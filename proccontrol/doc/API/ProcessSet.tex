@@ -93,7 +93,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
   Every successfully created Process will be added to a new ProcessSet that is
   returned by this function.
   In addition, the cinfo vector will be updated so that each
-  entry\' s proc field points to the Process created by that
+  entry' s proc field points to the Process created by that
   entry, and the error\_ret entry will contain an error code for any process
   launch that failed.
 }
@@ -110,7 +110,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
   Every successfully attached Process will be added to a new ProcessSet that is
   returned by this function.
   In addition, the ainfo vector will be updated so that each
-  entry\' s proc field points to the Process attached by that
+  entry' s proc field points to the Process attached by that
   entry, and the error\_ret entry will contain an error code any process attach
   that failed.
 }
@@ -442,7 +442,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
   This function allocates a block of memory of size sz in each process in this
   ProcessSet. The memory will be allocated in each process based on the
   Process/Address pairs in location.
-  This function\' s behavior is undefined if location contains
+  This function' s behavior is undefined if location contains
   processes not included in this ProcessSet.
   This function returns true if every allocation happened without
   error and false
@@ -459,7 +459,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
   ProcessSet::mallocMemory. The
   AddressSet addrs should contain a list of Process/Address pairs that point to
   the memory that should be freed.
-  This function\' s behavior is undefined if addrs contains
+  This function' s behavior is undefined if addrs contains
   processes not included in this ProcessSet.
   This function returns true if every free happened without error and false
   otherwise.
@@ -478,9 +478,9 @@ concept. It also offers the standard \code{begin/end} members for iteration.
   returned by filling in the result multimap. Each process that is read from
   will have an entry in result along with a malloc allocated buffer containing
   the results of the read.
-  It is the ProcControlAPI user\' s responsibility to free the
+  It is the ProcControlAPI user' s responsibility to free the
   memory buffers returned by this function.
-  This function\' s behavior is undefined if addrs contains
+  This function' s behavior is undefined if addrs contains
   processes not included in this ProcessSet.
   This function returns true if every read happened without error, and false
   otherwise.
@@ -501,9 +501,9 @@ concept. It also offers the standard \code{begin/end} members for iteration.
   byte-for-byte data, then those processes are grouped together in a new
   ProcessSet associated with a common malloc allocated buffer containing their
   memory contents.
-  It is the ProcControlAPI user\' s responsibility to free the
+  It is the ProcControlAPI user' s responsibility to free the
   memory buffers returned by this function.
-  This function\' s behavior is undefined if addrs contains
+  This function' s behavior is undefined if addrs contains
   processes not included in this ProcessSet.
   This function returns true if every read happened without error, and false
   otherwise.
@@ -517,7 +517,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
   This function reads memory from processes in this ProcessSet. The processes to
   read from are specified in the indexes of addr. The remote address, read size
   and local buffer are specified in the read\_t elements of addr.
-  This function\' s behavior is undefined if addr contains
+  This function' s behavior is undefined if addr contains
   processes not included in this ProcessSet.
   This function returns true if every read happened without error, and false
   otherwise. If any read results in an error, then the error\_ret field of the
@@ -531,7 +531,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 \apidesc{
   This function will write the contents of buffer of size sz into the memory of
   each process at addrs.
-  This function\' s behavior is undefined if addrs contains
+  This function' s behavior is undefined if addrs contains
   processes not included in this ProcessSet.
   This function returns true if every write happened without error, and false
   otherwise.
@@ -546,7 +546,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
   write to are specified as the indexes of addrs. The local memory buffer,
   buffer size, and target location are specified in the write\_t element of
   addrs.
-  This function\' s behavior is undefined if addrs contains
+  This function' s behavior is undefined if addrs contains
   processes not included in this ProcessSet.
   This function returns true if every write happened without error, and false
   otherwise. If any write results in an error, then the error\_ret field of the
@@ -561,7 +561,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
   This function inserts the Breakpoint bp into every process and
   address specified
   by as. It is similar to Process::addBreakpoint.
-  This function\' s behavior is undefined if addrs contains
+  This function' s behavior is undefined if addrs contains
   processes not included in this ProcessSet.
   This function returns true if every breakpoint add happened without error, and
   false otherwise.
@@ -574,7 +574,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 \apidesc{
   The function removes the Breakpoint bp from each process at the locations
   specified in as. It is similar to Process::rmBreakpoint.
-  This function\' s behavior is undefined if as contains
+  This function' s behavior is undefined if as contains
   processes not included in this ProcessSet.
   This function returns true if every breakpoint remove happened without error,
   and false otherwise.
@@ -587,7 +587,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 \apidesc{
   This function posts the IRPC objects specified in rpcs to their associated
   processes in the multimap. It is similar to Process::postIRPC.
-  This function\' s behavior is undefined if rpcs contains
+  This function' s behavior is undefined if rpcs contains
   processes not included in this ProcessSet.
   This function returns true if every post happened without error, and false
   otherwise.
@@ -619,7 +619,7 @@ concept. It also offers the standard \code{begin/end} members for iteration.
   given Address. If result is not \code{nullptr}, then the multimap will be filled with
   each newly created IRPC and the Process to which it was posted. It is similar
   to Process::postIRPC.
-  This function\' s behavior is undefined if rpcs contains
+  This function' s behavior is undefined if rpcs contains
   processes not included in this ProcessSet.
   This function returns true if every post happened without error, and false
   otherwise.

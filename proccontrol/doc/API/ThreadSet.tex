@@ -387,7 +387,7 @@ bool setRegister(Dyninst::MachRegister reg,
 This function sets the value of register reg in each Thread in this ThreadSet.
 The value set in each thread is looked up in the vals map. It is similar to
 Thread::setRegister.
-This function\'s behavior is undefined if it is passed a
+This function's behavior is undefined if it is passed a
 Thread that is not in this ThreadSet.
 This function return true if it succeeded for every Thread, and false otherwise.
 }
@@ -423,7 +423,7 @@ This function sets the values of every register in each Thread in this
 ThreadSet. The register values are extracted from the val map, with each
 Thread specifying its register values via the map. This function is similar
 to Thread::setAllRegisters.
-This function\'s behavior is undefined if it is passed a
+This function's behavior is undefined if it is passed a
 Thread that is not in this ThreadSet.
 This function return true if it succeeded for every Thread, and false otherwise.
 }

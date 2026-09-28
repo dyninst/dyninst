@@ -100,8 +100,8 @@ envp, and it returns a pointer to the new Process object upon success. The
 new process will be created with its initial thread in the stopped state.
 It is an error to call this function from a callback.
 If the fds map is not empty, then the new process will be created with the file
-descriptors from the fds\'  first elements dup2 mapped to
-the file descriptors in fds\'  second elements.
+descriptors from the fds'  first elements dup2 mapped to
+the file descriptors in fds'  second elements.
 If envp is empty, the environment will be inherited from the calling process.
 ProcControlAPI may deliver callbacks when this function is called.
 This function returns Process::ptr() on error, and a subsequent call to
@@ -116,7 +116,7 @@ static Process::ptr attachProcess(Dyninst::PID pid, std::string executable = "")
 This function creates a new Process object by attaching to the PID specified by
 pid. The new Process object will be returned from this function upon success.
 The executable argument is optional, and can be used to assist ProcControlAPI
-in finding the process\'  executable on operating systems
+in finding the process'  executable on operating systems
 where this cannot be easily determined (currently on AIX). The new process
 will be returned with all of its threads in the stopped state.
 It is an error to call this function from a callback.
@@ -294,7 +294,7 @@ int getExitCode() const;
 \apidesc{
 If a target process exited normally then this function returns its exit code.
 The return result of this function is undefined if the
-Process\' isExited function returns false.
+Process' isExited function returns false.
 }
 
 \begin{apient}
@@ -313,7 +313,7 @@ int getCrashSignal() const;
 \apidesc{
 If a target process exited because of a crash, then this function returns the
 signal that caused the target process to crash. The return result of this
-function is undefined if the Process\'  isCrashed function
+function is undefined if the Process'  isCrashed function
 returns false.
 }
 
@@ -508,7 +508,7 @@ Dyninst::Address mallocMemory(size_t size, Dyninst::Address addr);
 
 \apidesc{
 These functions allocate a region of memory in the target
-process\'  address space of size size. Upon a successful
+process'  address space of size size. Upon a successful
 call these functions will map an area of memory in the target process that is
 readable, writeable and executable. The \code{mallocMemory(size\_t)} function will
 allocate memory at any available address. The \code{mallocMemory(size\_t, Dyninst::Address)}
@@ -541,7 +541,7 @@ bool writeMemory(Dyninst::Address addr, const void* buffer, size_t size) const;
 \end{apient}
 
 \apidesc{
-This function writes to the target process\' s memory. The
+This function writes to the target process' s memory. The
 addr parameter specifies an address in the target process to which
 ProcControlAPI should write. The buffer and size parameters specify a region
 of controller process memory that will be copied into the target process.
@@ -556,7 +556,7 @@ bool readMemory(void* buffer, Dyninst::Address addr, size_t size) const;
 \end{apient}
 
 \apidesc{
-This function reads from the target process\'  memory. The
+This function reads from the target process'  memory. The
 addr and size parameters specify an address in the target process from which
 ProcControlAPI should read. The buffer parameter specifies an address in the
 controller process where ProcControlAPI should write the copied bytes.
@@ -574,7 +574,7 @@ bool setMemoryAccessRights(Dyninst::Address addr, size_t size, mem_perm rights, 
 \apidesc{
 These functions respectively get and set memory permission at the specified
 address, addr. The setMemoryAccessRights function also affects a region of
-memory in the target process\' s address space of size size.
+memory in the target process' s address space of size size.
 }
 
 \begin{apient}
@@ -617,7 +617,7 @@ bool postIRPC(IRPC::ptr irpc) const;
 \apidesc{
 This function posts the given irpc to the Process. ProcControlAPI selects a
 Thread from the Process to run the iRPC and put irpc into that
-Thread\' s queue of posted IRPCs.
+Thread' s queue of posted IRPCs.
 Each instance of an IRPC object can be posted at most once. It is an error to
 attempt to post a single IRPC object multiple times.
 This function returns true on success and false on error. Upon an error a

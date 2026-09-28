@@ -7,7 +7,7 @@ accessed through ProcControlAPI.
 
 An instance of MachRegister is defined for each register ProcControlAPI can
 name. These instances live inside a namespace that represents the
-register\'s architecture. For example, we can name a
+register's architecture. For example, we can name a
 register from an AMD64 machine with Dyninst::x86\_64::rax or a register from a
 Power machine with Dyninst::ppc32::r1.
 
@@ -18,7 +18,7 @@ typedef unsigned long MachRegisterVal;
 
 \apidesc{
 The MachRegisterVal type is used to represent the contents of a register. If a
-register\'s contents are smaller than MachRegisterVal, then
+register's contents are smaller than MachRegisterVal, then
 it will be up cast into a MachRegisterVal.
 }
 
@@ -27,7 +27,7 @@ typedef enum { Arch_none, Arch_x86, Arch_x86_64, Arch_ppc32, Arch_ppc64 } Archit
 \end{apient}
 
 \apidesc{
-The Architecture enum represents a system\'s architecture.
+The Architecture enum represents a system's architecture.
 }
 
 \begin{apient}

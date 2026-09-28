@@ -70,15 +70,15 @@ pass a \code{BPatch\_thread} object when a
 
 \apidesc{
   Register a callback at the beginning and end of overwrite events.
-  Only invoke if Dyninst\'s hybrid analysis mode is set
+  Only invoke if Dyninst's hybrid analysis mode is set
   to \code{BPatch\_defensiveMode}.
 
   The \code{BPatchCodeOverwriteBeginCallback} callback allows the
   user to remove any instrumentation when the program starts
   writing to a code page, which may be desirable as instrumentation
-  cannot be removed during the overwrite loop\'s
+  cannot be removed during the overwrite loop's
   execution, and any breakpoint instrumentation will dramatically
-  slow the loop\'s execution.
+  slow the loop's execution.
 
   The \code{BPatchCodeOverwriteEndCallback} callback delivers the
   effects of the overwrite loop when it is done executing. In
@@ -120,7 +120,7 @@ pass a \code{BPatch\_thread} object when a
 \end{apient}
 
 \apidesc{
-  Note that in versions previous to 9.1, BPatchDynLibraryCallback\'s
+  Note that in versions previous to 9.1, BPatchDynLibraryCallback's
   signature took a \code{BPatch\_module}
   instead of a \code{BPatch\_object}.
 }
@@ -333,7 +333,7 @@ pass a \code{BPatch\_thread} object when a
   stopThreadExpr snippet executes in a given thread, the
   snippet evaluates the calculation snippet that stopThreadExpr
   takes as a parameter, stops the
-  thread\'s execution and invokes this callback. The
+  thread's execution and invokes this callback. The
   \code{at\_point} parameter is the \code{BPatch\_point} at
   which the stopThreadExpr snippet was inserted, and returnValue
   contains the computation made by the calculation
