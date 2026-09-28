@@ -127,6 +127,6 @@ int main()
     exit(1);
   }
   // Finish instrumentation
-  const char* progName2 = "InterestingProgram - rewritten";
+  const char* progName2 = "InterestingProgram-rewritten";
   finishInstrumenting(app, progName2);
 }

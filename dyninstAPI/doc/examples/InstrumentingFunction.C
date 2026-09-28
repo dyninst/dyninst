@@ -148,7 +148,7 @@ int main()
   // Set up information about the program to be instrumented
   const char* progName = "InterestingProgram";
   int progPID = 42;
-  const char* progArgv[] = {"InterestingProgram", "- h", NULL};
+  const char* progArgv[] = {"InterestingProgram", "-h", NULL};
   accessType_t mode = create;
 
   // Create/attach/open a binary
@@ -183,6 +183,6 @@ int main()
     return EXIT_FAILURE;
   }
   // Finish instrumentation
-  const char* progName2 = "InterestingProgram - rewritten ";
+  const char* progName2 = "InterestingProgram-rewritten";
   finishInstrumenting(app, progName2);
 }
