@@ -121,17 +121,7 @@ instrumentation engine needs to \emph{malloc} a buffer in Mutatee's address
 space, and then \emph{write} the code snippet into this buffer.
 
 \subsubsection{Snippet Representation} \label{sec:example-snippet-representation}
-\begin{lstlisting}[caption=Example of implementing snippet plugin]
-class MySnippet : public Snippet {
-public:
-  virtual bool generate(Point* pt, Buffer& buf)
-  {
-    // Generate and store binary code in the Buffer buf
-    return true;
-  }
-};
-MySnippet::Ptr snippet = MySnippet::create(new MySnippet);
-\end{lstlisting}
+\lstinputlisting[caption=Example of implementing snippet plugin]{examples/MySnippet.C}
 
 The above code illustrates how to customize a user-defined snippet
 \emph{MySnippet} by implementing the ``mini-compiler'' in the {\em generate}
@@ -181,16 +171,7 @@ will be invoked by PatchMgr::findPoint(s).
 
 
 \subsubsection{Instrumentation Engine}
-\begin{lstlisting}[caption=Example of customizing instrumentation engine]
-class MyInstrumenter : public Instrumenter {
-public:
-  virtual bool run()
-  {
-    // Specify how to install instrumentation
-    return true;
-  }
-};
-\end{lstlisting}
+\lstinputlisting[caption=Example of customizing instrumentation engine]{examples/MyInstrumenter.C}
 Programmers can customize the instrumentation engine by extending the
 Instrumenter class, and implement the installation of instrumentation inside the
 method \emph{run()}.

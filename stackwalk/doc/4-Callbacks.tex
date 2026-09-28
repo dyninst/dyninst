@@ -18,14 +18,7 @@ To illustrate the complexities with running in 3rd party mode, consider the
 follow code snippet that uses StackwalkerAPI to collect a stack walk every five
 seconds.
 
-\begin{lstlisting}
-Walker* walker = Walker::newWalker(pid);
-std::vector<Frame> swalk;
-for (;;)  {
-  walker->walkStack(swalk);
-  sleep(5);
-}
-\end{lstlisting}
+\lstinputlisting{examples/AttachWalk.C}
 
 StackwalkerAPI is running in 3rd party mode, since it attached to the target
 process, \code{pid}. As the target process runs it may be generating debug events such
@@ -57,32 +50,7 @@ found in Section~\ref{subsubsec:procdebug}. See the UNIX man pages for more info
 \code{select} system call. Note that this example does not include all of the proper
 error handling and includes that should be present when using \code{select}.
 
-\begin{lstlisting}
-Walker* walker = Walker::newWalker(pid);
-ProcDebug* debugger = (ProcDebug *) walker->getProcessState();
-std::vector<Frame> swalk;
-for (;;)  {
-  walker->walkStack(swalk);
-  struct timeval timeout;
-  timeout.tv_sec = 5;
-  timeout.tv_usec = 0;
-  int max = ProcDebug::getNotificationFD() + 1;
-  fd_set readfds, writefds, exceptfds;
-  FD_ZERO(&readfds); FD_ZERO(&writefds); FD_ZERO(&exceptfds);
-  FD_SET(ProcDebug::getNotificationFD(), &readfds);
-  for (;;)  {
-    int result = select(max, &readfds, &writefds, &exceptfds, &timeout);
-    if (FD_ISSET(ProcDebug::getNotificationFD(), &readfds))  {
-      //Debug event
-      ProcDebug::handleDebugEvent();
-    }
-    if (result == 0)  {
-      //Timeout
-      break;
-    }
-  }
-}
-\end{lstlisting}
+\lstinputlisting{examples/NotificationLoop.C}
 
 
 \subsubsection{Class ProcDebug}
