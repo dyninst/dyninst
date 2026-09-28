@@ -35,19 +35,19 @@ if(DYNINST_ENABLE_LTO)
 endif()
 
 # Make sure we don't get something like CC=gcc CXX=clang++
-if(NOT ${CMAKE_C_COMPILER_ID} STREQUAL ${CMAKE_CXX_COMPILER_ID})
+if(NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "${CMAKE_CXX_COMPILER_ID}")
   message(FATAL_ERROR "C and C++ compilers are not the same vendor")
 endif()
 
 set(_linux_compilers "GNU" "Clang" "Intel" "IntelLLVM")
 
-if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
+if("${CMAKE_CXX_COMPILER_ID}" IN_LIST _linux_compilers)
   if(DYNINST_LINKER)
     list(APPEND DYNINST_LINK_FLAGS -fuse-ld=${DYNINST_LINKER})
   endif()
 
   if(DYNINST_ENABLE_LTO)
-    if(${DYNINST_LINKER} MATCHES "gold")
+    if("${DYNINST_LINKER}" MATCHES "gold")
       message(FATAL_ERROR "Cannot use the gold linker for LTO")
     endif()
   endif()
@@ -64,7 +64,7 @@ if(${CMAKE_CXX_COMPILER_ID} IN_LIST _linux_compilers)
   # Ensure each library is fully linked
   list(APPEND DYNINST_LINK_FLAGS -Wl,--no-undefined)
 
-  if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+  if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     if(DYNINST_CXXSTDLIB)
       list(APPEND DYNINST_CXX_FLAGS -stdlib=${DYNINST_CXXSTDLIB})
       list(APPEND DYNINST_CXX_LINK_FLAGS -stdlib=${DYNINST_CXXSTDLIB})

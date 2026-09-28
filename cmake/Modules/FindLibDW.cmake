@@ -107,9 +107,9 @@ if(LibDW_FOUND)
 
   # Some platforms explicitly list libelf as a dependency, so separate it out
   list(LENGTH LibDW_LIBRARIES _cnt)
-  if(${_cnt} GREATER 1)
+  if("${_cnt}" GREATER 1)
     foreach(_l ${LibDW_LIBRARIES})
-      if(${_l} MATCHES "libdw")
+      if("${_l}" MATCHES "libdw")
         set(_libdw ${_l})
       else()
         list(APPEND _link_libs ${_l})

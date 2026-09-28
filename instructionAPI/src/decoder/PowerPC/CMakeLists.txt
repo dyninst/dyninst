@@ -10,8 +10,8 @@ set(_headers InstructionDecoder-power.h power_opcode_tables.h)
 set(_sources InstructionDecoder-power.C power_opcode_tables.C)
 
 set(instructionDecoderPowerExtraFlags "")
-if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-  if(${CMAKE_CXX_COMPILER_VERSION} MATCHES "^([1-9]|1[01])(\.|$)")
+if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+  if("${CMAKE_CXX_COMPILER_VERSION}" MATCHES "^([1-9]|1[01])(\.|$)")
     # Disable var-tracking-assignments for InstructionDecoder-power.C for all known
     # versions of gcc..  The default max size is too small so it fails, and adjusting
     # it using
