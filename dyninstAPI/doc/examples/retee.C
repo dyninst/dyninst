@@ -247,8 +247,7 @@ int main(int argc, char* argv[])
   }
 
   fprintf(stderr,
-          "Writing returned file descriptor %d into"
-          "mutatee...\n",
+          "Writing returned file descriptor %d into mutatee...\n",
           fileDescriptor);
 
   // This was defined globally as the exit callback needs it.
