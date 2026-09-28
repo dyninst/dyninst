@@ -1096,8 +1096,8 @@ pointing to the end of the container (past the last element).
 }
 
 \begin{apient}
-InstancePtr pushBack(SnippetPtr, SnippetType type = SnippetType::REGULAR);
-InstancePtr pushFront(SnippetPtr, SnippetType type = SnippetType::REGULAR);
+virtual InstancePtr pushBack(SnippetPtr, SnippetType type = SnippetType::REGULAR);
+virtual InstancePtr pushFront(SnippetPtr, SnippetType type = SnippetType::REGULAR);
 \end{apient}
 
 
@@ -1312,10 +1312,10 @@ specify callbacks they wish to occur whenever the PatchAPI CFG
 changes.
 
 \begin{apient}
-void destroy_cb(PatchBlock *);
-void destroy_cb(PatchEdge *);
-void destroy_cb(PatchFunction *);
-void destroy_cb(PatchObject *);
+virtual void destroy_cb(PatchBlock *);
+virtual void destroy_cb(PatchEdge *);
+virtual void destroy_cb(PatchFunction *);
+virtual void destroy_cb(PatchObject *);
 \end{apient}
 
 
@@ -1325,10 +1325,10 @@ void destroy_cb(PatchObject *);
   before corresponding object destructors are called. }
 
 \begin{apient}
-void create_cb(PatchBlock *);
-void create_cb(PatchEdge *);
-void create_cb(PatchFunction *);
-void create_cb(PatchObject *);
+virtual void create_cb(PatchBlock *);
+virtual void create_cb(PatchEdge *);
+virtual void create_cb(PatchFunction *);
+virtual void create_cb(PatchObject *);
 \end{apient}
 
 
@@ -1340,7 +1340,7 @@ respectively. All the above methods will be called after the objects
 are created. }
 
 \begin{apient}
-void split_block_cb(PatchBlock* first, PatchBlock* second);
+virtual void split_block_cb(PatchBlock* first, PatchBlock* second);
 \end{apient}
 
 
@@ -1351,8 +1351,8 @@ splitting a PatchBlock as a result of a new edge being discovered. The
 above method will be called after the block is split.  }
 
 \begin{apient}
-void remove_edge_cb(PatchBlock *, PatchEdge *, edge_type_t);
-void add_edge_cb(PatchBlock *, PatchEdge *, edge_type_t);
+virtual void remove_edge_cb(PatchBlock *, PatchEdge *, edge_type_t);
+virtual void add_edge_cb(PatchBlock *, PatchEdge *, edge_type_t);
 \end{apient}
 
 
@@ -1364,8 +1364,8 @@ the event triggers.
 }
 
 \begin{apient}
-void remove_block_cb(PatchFunction *, PatchBlock *);
-void add_block_cb(PatchFunction *, PatchBlock *);
+virtual void remove_block_cb(PatchFunction *, PatchBlock *);
+virtual void add_block_cb(PatchFunction *, PatchBlock *);
 \end{apient}
 
 
@@ -1377,8 +1377,8 @@ the event triggers.
 }
 
 \begin{apient}
-void create_cb(Point* pt);
-void destroy_cb(Point* pt);
+virtual void create_cb(Point* pt);
+virtual void destroy_cb(Point* pt);
 \end{apient}
 
 
@@ -1389,7 +1389,7 @@ which will be called before the point \emph{pt} is deleted.
 }
 
 \begin{apient}
-void change_cb(Point* pt, PatchBlock* first, PatchBlock* second);
+virtual void change_cb(Point* pt, PatchBlock* first, PatchBlock* second);
 \end{apient}
 
 
