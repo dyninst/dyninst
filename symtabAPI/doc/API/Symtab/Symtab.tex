@@ -112,8 +112,23 @@ address space:
 \subsubsection{File opening/parsing}
 
 \begin{apient}
+typedef enum {
+    NotDefensive,
+    Defensive
+} def_t;
+\end{apient}
+\apidesc{
+Whether a binary is parsed defensively.  Code that defends itself against
+analysis can violate the assumptions the standard parsing algorithm makes;
+\code{Defensive} asks for the more conservative assumptions described in the
+ParseAPI Programmer's Guide, which analyze less of the binary in exchange for
+not being misled by it.
+}
+
+\begin{apient}
 static bool openFile(Symtab*& obj,
-                     std::string filename);
+                     std::string filename,
+                     def_t defensive_binary = NotDefensive);
 \end{apient}
 \apidesc{
     Creates a new \code{Symtab} object for an object file on disk. This object serves as a handle to the parsed object file. \code{filename} represents the name of the \code{Object} file to be parsed. The \code{Symtab} object is returned in \code{obj} if the parsing succeeds.
@@ -122,9 +137,10 @@ Returns \code{true} if the file is parsed without an error, else returns \code{f
 
 \begin{apient}
 static bool openFile(Symtab*& obj,
-                     char* mem_image,
+                     void* mem_image,
                      size_t size,
-                     std::string name);
+                     std::string name,
+                     def_t defensive_binary = NotDefensive);
 \end{apient}
 \apidesc{
     This factory method creates a new \code{Symtab} object for an object file in

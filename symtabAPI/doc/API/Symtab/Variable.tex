@@ -40,7 +40,8 @@ The method changes the offset of the variable. Returns \code{true} if it succeed
 
 \begin{apient}
 bool addMangledName(std::string name,
-                    bool isPrimary);
+                    bool isPrimary,
+                    bool isDebug = false);
 \end{apient}
 \apidesc{
 This method adds a mangled name \code{name} to the variable. If \code{isPrimary} is \code{true} then it becomes the default name for the variable.
