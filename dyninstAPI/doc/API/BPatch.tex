@@ -342,9 +342,11 @@ BPatch_type* createPointer(const char* name, BPatch_type* ptr,
 \end{apient}
 
 \apidesc{
-Create a new type, named name, which points to objects of type ptr. The size of
-the pointer is the value passed in the size parameter; left out, it is
-sizeof(void*) on the target platform where the muta\-tee is running.
+Create a new type, named name, which points to objects of type ptr.
+
+The size parameter is accepted and ignored.  The new type is always given
+the pointer size of the Dyninst build itself, \code{sizeof(void*)}, which is
+not necessarily the pointer size of the mutatee.
 }
 
 \begin{apient}
