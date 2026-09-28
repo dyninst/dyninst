@@ -266,7 +266,7 @@ using namespace SymtabAPI;
 
 BPatch_function* malloc = appImage->findFunction(...);
 BPatch_function* fastMalloc = appImage->findFunction(...);
-Symtab* symtab = SymtabAPI::convert(fastMalloc->getModule());
+Symtab* symtab = SymtabAPI::convert(fastMalloc->getModule()->getObject());
 std::vector<Symbol*> syms;
 symtab->findSymbol(syms, "origMalloc",
                    Symbol::ST_UNKNOWN, // Don't specify type
