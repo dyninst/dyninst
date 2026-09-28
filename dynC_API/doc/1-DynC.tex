@@ -20,79 +20,39 @@ which are then combined and inserted into the mutatee.
 
 \noindent Look up \code{printf}:
 
-\begin{lstlisting}
-std::vector<BPatch_function*> printf_func;
-appImage->findFunction("printf", printf_func);
-BPatch_function* BPF_printf = printf_func[0];
-\end{lstlisting}
+\lstinputlisting{examples/LookupPrintf.C}
 
 \noindent Create each \code{printf} pattern:
-\begin{lstlisting}
-BPatch_constExpr entryPattern("Entering %s, called %d times.\n");
-BPatch_constExpr exitPattern("Exiting %s.\n");
-\end{lstlisting}
+\lstinputlisting{examples/Patterns.C}
 
 \noindent \textbf{For each function, do the following:}
 
 Create snippet vectors:
-\begin{lstlisting}
-std::vector<BPatch_snippet*> entrySnippetVect;
-std::vector<BPatch_snippet*> exitSnippetVect;
-\end{lstlisting}
+\lstinputlisting{examples/SnippetVectors.C}
 
 Create the \code{intCounter} global variable:
-\begin{lstlisting}
-BPatch_variableExpr* intCounter =
-      appProc->malloc(*appImage->findType("int"), std::string("intCounter"));
-\end{lstlisting}
+\lstinputlisting{examples/CounterVariable.C}
 
 Get the name of the function:
-\begin{lstlisting}
-char fName[128];
-BPatch_constExpr funcName(functions[i]->getName(fName, 128));
-\end{lstlisting}
+\lstinputlisting{examples/FunctionName.C}
 
 Build the entry \code{printf}:
-\begin{lstlisting}
-std::vector<BPatch_snippet*> entryArgs;
-entryArgs.push_back(&entryPattern);
-entryArgs.push_back(&funcName);
-entryArgs.push_back(intCounter);
-\end{lstlisting}
+\lstinputlisting{examples/EntryArgs.C}
 
 Build the exit \code{printf}:
-\begin{lstlisting}
-std::vector<BPatch_snippet*> exitArgs;
-exitArgs.push_back(&exitPattern);
-exitArgs.push_back(&funcName);
-\end{lstlisting}
+\lstinputlisting{examples/ExitArgs.C}
 
 Add \code{printf} to the snippet:
-\begin{lstlisting}
-BPatch_funcCallExpr entryCall(*BPF_printf, entryArgs);
-BPatch_funcCallExpr exitCall(*BPF_printf, exitArgs);
-entrySnippetVect.push_back(&entryCall);
-exitSnippetVect.push_back(&exitCall);
-\end{lstlisting}
+\lstinputlisting{examples/PrintfCalls.C}
 
 Increment the counter:
-\begin{lstlisting}
-BPatch_arithExpr addOne(BPatch_assign, *intCounter,
-      BPatch_arithExpr(BPatch_plus, *intCounter, BPatch_constExpr(1)));
-\end{lstlisting}
+\lstinputlisting{examples/IncrementCounter.C}
 
 Add increment to the entry snippet:
-\begin{lstlisting}
-entrySnippetVect.push_back(&addOne);
-\end{lstlisting}
+\lstinputlisting{examples/AddIncrement.C}
 
 Insert the snippets:
-\begin{lstlisting}
-BPatch_sequence entrySequence(entrySnippetVect);
-BPatch_sequence exitSequence(exitSnippetVect);
-appProc->insertSnippet(entrySequence, *functions[i]->findPoint(BPatch_entry));
-appProc->insertSnippet(exitSequence, *functions[i]->findPoint(BPatch_exit));
-\end{lstlisting}
+\lstinputlisting{examples/InsertSnippets.C}
 
 \begin{center}
 %\rule{6.5in}{1pt}
