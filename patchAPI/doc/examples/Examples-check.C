@@ -11,12 +11,21 @@
 using namespace Dyninst;
 using namespace Dyninst::PatchAPI;
 
-static void mySnippet()
+// An example is an excerpt: it names a thing to show it exists and stops
+// there.  These two warnings fire on that by construction, so they are off
+// for the included text and on everywhere else.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
+void mySnippet()
 {
 #include "MySnippet.C"
 }
 
-static void myInstrumenter()
+void myInstrumenter()
 {
 #include "MyInstrumenter.C"
 }
+
+#pragma GCC diagnostic pop

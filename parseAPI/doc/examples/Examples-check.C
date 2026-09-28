@@ -21,10 +21,19 @@ static Function *func;
 // The per-edge action the example leaves to the reader.
 struct do_stuff
 {
-  void operator()(Edge *) {}
+  // An example is an excerpt: it names a thing to show it exists and stops
+// there.  These two warnings fire on that by construction, so they are off
+// for the included text and on everywhere else.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
+void operator()(Edge *) {}
 };
 
-static void filteredIteration()
+void filteredIteration()
 {
 #include "FilteredIteration.C"
 }
+
+#pragma GCC diagnostic pop

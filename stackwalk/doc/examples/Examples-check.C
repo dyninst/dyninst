@@ -22,22 +22,31 @@ using namespace Dyninst::Stackwalker;
 // The process the third-party examples attach to.
 static Dyninst::PID pid;
 
-static void firstParty()
+// An example is an excerpt: it names a thing to show it exists and stops
+// there.  These two warnings fire on that by construction, so they are off
+// for the included text and on everywhere else.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
+void firstParty()
 {
 #include "FirstParty.C"
 }
 
-static void thirdParty()
+void thirdParty()
 {
 #include "ThirdParty.C"
 }
 
-static void attachWalk()
+void attachWalk()
 {
 #include "AttachWalk.C"
 }
 
-static void notificationLoop()
+void notificationLoop()
 {
 #include "NotificationLoop.C"
 }
+
+#pragma GCC diagnostic pop

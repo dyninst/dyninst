@@ -17,45 +17,65 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 
-// The handle the first example creates; the rest take it as given.
-static Symtab *obj;
+// An example is an excerpt: it names a thing to show it exists and stops
+// there.  These two warnings fire on that by construction, so they are off
+// for the included text and on everywhere else.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 
-static void parseFile()
+void parseFile()
 {
 #include "ParseFile.C"
 }
 
-static void lookupAndUpdate()
+void lookupAndUpdate()
 {
+  Symtab *obj = nullptr;
+  (void)obj;
 #include "LookupAndUpdate.C"
 }
 
-static void addVariable()
+void addVariable()
 {
+  Symtab *obj = nullptr;
+  (void)obj;
 #include "AddVariable.C"
 }
 
-static void createType()
+void createType()
 {
+  Symtab *obj = nullptr;
+  (void)obj;
 #include "CreateType.C"
 }
 
-static void lineNumbers()
+void lineNumbers()
 {
+  Symtab *obj = nullptr;
+  (void)obj;
 #include "LineNumbers.C"
 }
 
-static void localVariables()
+void localVariables()
 {
+  Symtab *obj = nullptr;
+  (void)obj;
 #include "LocalVariables.C"
 }
 
-static void iterateLineInfo()
+void iterateLineInfo()
 {
+  Symtab *obj = nullptr;
+  (void)obj;
 #include "IterateLineInfo.C"
 }
 
-static void retrieveType()
+void retrieveType()
 {
+  Symtab *obj = nullptr;
+  (void)obj;
 #include "RetrieveType.C"
 }
+
+#pragma GCC diagnostic pop
