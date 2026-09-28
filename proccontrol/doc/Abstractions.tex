@@ -42,6 +42,7 @@ whenever a particular type of event occurs. Details about the event are
 passed to the callback function via an Event object.
 
 \subsubsection{Events}
+\label{subsubsec:events}
 Each event can be broken up into
 an EventType object and an Event
 object. The EventType describes a type of event that can happen, and Event
@@ -143,6 +144,7 @@ should be stopped or continued. More details on this can be found in the
 \code{Process::cb\_ret\_t} section of the API reference.
 
 \subsubsection{Callback Delivery}
+\label{subsubsec:callback-delivery}
 When ProcControlAPI needs to
 deliver a callback it must first gain control of a user visible thread in the
 controller process. This thread will be used to invoke the callback
