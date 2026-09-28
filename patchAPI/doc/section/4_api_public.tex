@@ -65,7 +65,7 @@ CFGMaker or PatchCallback.
 }
 
 \begin{apient}
-Address codeBase();
+Address codeBase() const;
 \end{apient}
 
 \apidesc{
@@ -186,7 +186,7 @@ The PatchFunction class is a wrapper of ParseAPI's Function class (has-a), which
 represents a function.
 
 \begin{apient}
-const std::string& name();
+const std::string& name() const;
 \end{apient}
 
 
@@ -214,7 +214,7 @@ Returns the ParseAPI::Function associated with this PatchFunction.
 }
 
 \begin{apient}
-PatchObject* obj();
+PatchObject* obj() const;
 \end{apient}
 
 \apidesc{
