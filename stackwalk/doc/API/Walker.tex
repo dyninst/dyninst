@@ -179,7 +179,10 @@ SymbolLookup* getSymbolLookup() const;
 bool addStepper(FrameStepper* stepper);
 \end{apient}
 \apidesc{
-This method adds a provided FrameStepper to those used by the Walker.
+This method adds a provided \code{FrameStepper} to those used by the
+\code{Walker}, over the whole address space.  It is a convenience for calling
+\code{registerStepper} on this \code{Walker}'s \code{StepperGroup}; to bind a
+stepper to a range of addresses instead, use \code{StepperGroup::addStepper}.
 }
 
 \begin{apient}
