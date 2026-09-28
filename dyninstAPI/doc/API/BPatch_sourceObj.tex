@@ -44,7 +44,7 @@ of a module is an image, and the children will be the functions).
 }
 
 \begin{apient}
-  void getSourceObj(std::vector<BPatch_sourceObj*>& objs);
+  bool getSourceObj(std::vector<BPatch_sourceObj*>& objs);
 \end{apient}
 
 \apidesc{
@@ -53,6 +53,7 @@ of a module is an image, and the children will be the functions).
   object this will return objects of type \code{BPatch\_sourceFunction}. When
   called on a \code{BPatch\_sourceFunction} object it may
   return \code{BPatch\_sourceOuterLoop} and \code{BPatch\_sourceStatement} objects.
+  Returns \code{true} on success and \code{false} on error.
 }
 
 \begin{apient}
