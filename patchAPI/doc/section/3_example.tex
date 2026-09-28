@@ -71,7 +71,7 @@ that connects two basic blocks.
 \subsubsection{Code Patching}
 
 \begin{lstlisting}[caption=Example of code patching]
-MySnippet::ptr snippet = MySnippet::create(new MySnippet);
+MySnippet::Ptr snippet = MySnippet::create(new MySnippet);
 
 Patcher patcher(mgr);
 for (std::vector<Point*>::iterator iter = pts.begin();
@@ -130,7 +130,7 @@ public:
     return true;
   }
 };
-MySnippet::ptr snippet = MySnippet::create(new MySnippet);
+MySnippet::Ptr snippet = MySnippet::create(new MySnippet);
 \end{lstlisting}
 
 The above code illustrates how to customize a user-defined snippet
@@ -187,6 +187,7 @@ public:
   virtual bool run()
   {
     // Specify how to install instrumentation
+    return true;
   }
 };
 \end{lstlisting}
@@ -205,7 +206,7 @@ as->loadObject(obj);
 MyInstrumenter inst = ...
 PatchMgrPtr mgr = PatchMgr::create(as, ..., inst);
 
-MySnippet::ptr snippet = MySnippet::create(new MySnippet);
+MySnippet::Ptr snippet = MySnippet::create(new MySnippet);
 \end{lstlisting}
 The above code shows how to register the above four types of plugins.  An
 instance of the factory class for creating CFG structures is registered to an
