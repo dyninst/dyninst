@@ -1,4 +1,3 @@
-\section{Introduction}
 This document describes ProcControlAPI, an API and library for controlling
 processes. ProcControlAPI runs as part of a controller process
 and manages one or more target processes. It allows the controller process
@@ -55,7 +54,8 @@ regular pointer, but a reference counted shared pointer. This means that we
 do not have to be concerned with cleaning the Event- it
 will be automatically cleaned when the last reference disappears. The
 Process::cb\_ret\_t describes what action should be taken on the process in
-response to this event, which is described in more detail in section 6.
+response to this event, which is described in more detail in
+Section~\ref{subsec:process}.
 
 \item The Event class has several child classes, one of which is EventNewThread.
 We start by casting the Event into an EventNewThread and then extract
