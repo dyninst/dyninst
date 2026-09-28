@@ -51,6 +51,17 @@ running, then this function may return 0.
 }
 
 \begin{apient}
+void* getBinaryCode() const;
+\end{apient}
+
+\apidesc{
+The getBinaryCode function returns ProcControlAPI's copy of the binary code
+blob this IRPC was created with. That copy is made when the IRPC is created
+and is freed with it, so the returned buffer belongs to ProcControlAPI and
+should not be freed by the user.
+}
+
+\begin{apient}
 unsigned int getBinaryCodeSize() const;
 \end{apient}
 
