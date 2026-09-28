@@ -744,6 +744,22 @@ PatchLoop* findLoop(const char* name);
 \subsection{Point/Snippet Interface}
 \label{sec:point-snippet-interface}
 
+\subsubsection{Scope}
+
+\begin{apient}
+struct Scope {
+  Scope(PatchBlock* b);
+  Scope(PatchFunction* f, PatchBlock* b);
+  Scope(PatchFunction* f);
+};
+\end{apient}
+
+\apidesc{ The Scope structure specifies the scope to find points, where a scope
+  could be a function, or a basic block. This is quite useful if programmers
+  don't know the exact Location, then they can use Scope as a wildcard. A basic
+  block can be contained in multiple functions. The second constructor only
+  specifies the block \emph{b} in a particular function \emph{f}.}
+
 \subsubsection{PatchMgr}
 \label{sec:patchmgr}
 
@@ -889,19 +905,6 @@ If the return value is true, then the Point being checked will be put in the STL
 inserter \emph{outputIter}; otherwise, this Point will be discarded.
 }
 
-\begin{apient}
-struct Scope {
-  Scope(PatchBlock* b);
-  Scope(PatchFunction* f, PatchBlock* b);
-  Scope(PatchFunction* f);
-};
-\end{apient}
-
-\apidesc{ The Scope structure specifies the scope to find points, where a scope
-  could be a function, or a basic block. This is quite useful if programmers
-  don't know the exact Location, then they can use Scope as a wildcard. A basic
-  block can be contained in multiple functions. The second constructor only
-  specifies the block \emph{b} in a particular function \emph{f}.}
 
 \begin{apient}
 template <class FilterFunc,
@@ -1005,13 +1008,7 @@ The above three functions return the corresponding plugin: AddrSpace,
 PointMaker, Instrumenter.
 }
 
-\subsubsection{Point}
-\label{sec:point}
-
-\textbf{Declared in}: Point.h
-
-The Point class is in essence a container of a list of snippet
-instances. Therefore, the Point class has methods similar to those in STL.
+\subsubsection{Location}
 
 \begin{apient}
 struct Location {
@@ -1045,6 +1042,15 @@ indicate PatchAPI whether the CFG structures passed in is trusted. If the
 to verify the CFG structures passed by users, which causes nontrivial overhead.
 
 }
+
+\subsubsection{Point}
+\label{sec:point}
+
+\textbf{Declared in}: Point.h
+
+The Point class is in essence a container of a list of snippet
+instances. Therefore, the Point class has methods similar to those in STL.
+
 
 
 \begin{apient}
