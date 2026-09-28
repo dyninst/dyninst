@@ -64,12 +64,13 @@ This function creates a new ThreadSet that contains all of the threads in thrds.
 }
 
 \begin{apient}
-static ThreadSet::ptr newThreadSet(ProcessSet::ptr pset);
+static ThreadSet::ptr newThreadSet(ProcessSet::ptr pset, bool initial_only = false);
 \end{apient}
 
 \apidesc{
 This function creates a new ThreadSet that contains every live thread currently
-in every process in pset.
+in every process in pset. If initial\_only is true then the new ThreadSet
+instead contains only the initial thread of each process in pset.
 }
 
 \begin{apient}
