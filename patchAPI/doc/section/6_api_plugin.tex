@@ -9,7 +9,7 @@ developers.
 As with the public interface, all objects and methods in this section are in the
 ``Dyninst::PatchAPI'' namespace.
 
-\subsection{AddrSpace}
+\subsection{Class AddrSpace}
 \label{sec:addrspace}
 
 \declaredin{AddrSpace.h}
@@ -123,7 +123,7 @@ PatchMgrPtr mgr() const;
 Returns the PatchMgr's pointer, where the PatchMgr contains this address space.
 }
 
-\subsection{Snippet}
+\subsection{Class Snippet}
 \label{sec:snippet}
 
 \declaredin{Snippet.h}
@@ -156,7 +156,7 @@ Returns false if code generation failed catastrophically. Point {\em pt} is an
 in-param that identifies where the snippet is being generated.  Buffer {\em buf}
 is an out-param that holds the generated code.  }
 
-\subsection{Command}
+\subsection{Class Command}
 \label{sec:command}
 
 \declaredin{Command.h}
@@ -205,7 +205,7 @@ if (run())  {
 }
 \end{lstlisting}
 
-\subsection{BatchCommand}
+\subsection{Class BatchCommand}
 \label{sec:batchcommand}
 
 \declaredin{Command.h}
@@ -258,7 +258,7 @@ void remove(CommandList::iterator iter);
 This method removes a Command from \emph{to\_do\_}.
 }
 
-\subsection{Instrumenter}
+\subsection{Class Instrumenter}
 \label{sec:instrumenter}
 
 \declaredin{Instrumenter.h}
@@ -456,7 +456,7 @@ AddrSpace* as() const;
 Returns the address space associated with this Instrumenter.
 }
 
-\subsection{Patcher}
+\subsection{Class Patcher}
 \label{sec:patcher}
 
 \declaredin{Command.h}
@@ -488,7 +488,7 @@ implicitly adds an internal Command -- Instrumenter, which is executed after all
 other Commands in the \emph{to\_do\_}.
 }
 
-\subsection{CFGMaker}
+\subsection{Class CFGMaker}
 \label{sec:cfgmaker}
 
 \declaredin{CFGMaker.h}
@@ -516,7 +516,7 @@ Programmers implement the above virtual methods to instantiate a CFG structure
 forking a new process).
 }
 
-\subsection{PointMaker}
+\subsection{Class PointMaker}
 \label{sec:pointmaker}
 
 \declaredin{Point.h}
@@ -583,7 +583,7 @@ InstancePtr instance();
 Returns a snippet instance that is inserted at the point.
 }
 
-\subsection{RemoveSnippetCommand}
+\subsection{Class RemoveSnippetCommand}
 \label{sec:removesnippetcommand}
 
 \declaredin{Command.h}
@@ -600,7 +600,7 @@ static RemoveSnippetCommand* create(InstancePtr instance);
 This static function creates an instance of RemoveSnippetCommand.
 }
 
-\subsection{RemoveCallCommand}
+\subsection{Class RemoveCallCommand}
 \label{sec:removecallcommand}
 
 \declaredin{Command.h}
@@ -624,7 +624,7 @@ PatchFunctions that contains it; otherwise, the \emph{call\_block} would be dele
 only from the PatchFuncton \emph{context}.
 }
 
-\subsection{ReplaceCallCommand}
+\subsection{Class ReplaceCallCommand}
 \label{sec:replacecallcommand}
 
 \declaredin{Command.h}
@@ -647,7 +647,7 @@ This Command replaces the \emph{call\_block} with the new PatchFunction
 would be replaced in all PatchFunctions that contains it.
 }
 
-\subsection{ReplaceFuncCommand}
+\subsection{Class ReplaceFuncCommand}
 \label{sec:replacefunccommand}
 
 \declaredin{Command.h}

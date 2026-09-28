@@ -36,7 +36,7 @@
   ProcControlAPI offers several facilities for interacting with processes in a
   platform-independent manner.
 
-  \subsection{Process}
+  \subsection{Class Process}
   \label{subsec:process}
 
 \declaredin{PCProcess.h}
@@ -46,103 +46,103 @@
     \subsubsection{Memory Permissions}
       \input{API/mem_perm}
 
-  \subsection{ProcessSet}
+  \subsection{Class ProcessSet}
     \input{API/ProcessSet}
 
-  \subsection{AddressSet}
+  \subsection{Class AddressSet}
     \input{API/AddressSet}
 
 \section{Threads}
   ProcControlAPI offers several facilities for interacting with threads in a
   platform-independent manner.
 
-  \subsection{Thread}
+  \subsection{Class Thread}
     \input{API/Thread}
 
-  \subsection{ThreadPool}
+  \subsection{Class ThreadPool}
     \input{API/ThreadPool}
 
-  \subsection{ThreadSet}
+  \subsection{Class ThreadSet}
     \input{API/ThreadSet}
 
 \section{Events}
   ProcControlAPI captures and delivers events from processes and threads.
 
-  \subsection{Event}
+  \subsection{Class Event}
     \input{API/Event}
 
-  \subsection{EventType}
+  \subsection{Class EventType}
     \input{API/EventType}
 
   An \code{Event} passed to a callback function can be cast to the
   appropriate child class by inspecting the \code{EventType}.
 
-  \subsection{EventBreakpoint}
+  \subsection{Class EventBreakpoint}
     \input{API/EventBreakpoint}
 
-  \subsection{EventCrash}
+  \subsection{Class EventCrash}
     \input{API/EventCrash}
 
-  \subsection{EventExec}
+  \subsection{Class EventExec}
     \input{API/EventExec}
 
-  \subsection{EventExit}
+  \subsection{Class EventExit}
     \input{API/EventExit}
 
-  \subsection{EventForceTerminate}
+  \subsection{Class EventForceTerminate}
     \input{API/EventForceTerminate}
 
-  \subsection{EventFork}
+  \subsection{Class EventFork}
     \input{API/EventFork}
 
-  \subsection{EventLWPDestroy}
+  \subsection{Class EventLWPDestroy}
     \input{API/EventLWPDestroy}
 
-  \subsection{EventLibrary}
+  \subsection{Class EventLibrary}
     \input{API/EventLibrary}
 
-  \subsection{EventNewLWP}
+  \subsection{Class EventNewLWP}
     \input{API/EventNewLWP}
 
-  \subsection{EventNewThread}
+  \subsection{Class EventNewThread}
     \input{API/EventNewThread}
 
-  \subsection{EventNewUserThread}
+  \subsection{Class EventNewUserThread}
     \input{API/EventNewUserThread}
 
-  \subsection{EventPostSyscall}
+  \subsection{Class EventPostSyscall}
     \input{API/EventPostSyscall}
 
-  \subsection{EventPreSyscall}
+  \subsection{Class EventPreSyscall}
     \input{API/EventPreSyscall}
 
-  \subsection{EventRPC}
+  \subsection{Class EventRPC}
     \input{API/EventRPC}
 
-  \subsection{EventSignal}
+  \subsection{Class EventSignal}
     \input{API/EventSignal}
 
-  \subsection{EventSingleStep}
+  \subsection{Class EventSingleStep}
     \input{API/EventSingleStep}
 
-  \subsection{EventStop}
+  \subsection{Class EventStop}
     \input{API/EventStop}
 
-  \subsection{EventTerminate}
+  \subsection{Class EventTerminate}
     \input{API/EventTerminate}
 
-  \subsection{EventThreadDestroy}
+  \subsection{Class EventThreadDestroy}
     \input{API/EventThreadDestroy}
 
-  \subsection{EventUserThreadDestroy}
+  \subsection{Class EventUserThreadDestroy}
     \input{API/EventUserThreadDestroy}
 
-  \subsection{EventNotify}
+  \subsection{Class EventNotify}
     \input{API/EventNotify}
 
 \section{Inferior Remote Procedure Calls}
 
-  \subsection{IRPC}
+  \subsection{Class IRPC}
     \input {API/IRPC}
 
 \section{Breakpoints}
@@ -191,32 +191,32 @@
   into a code sequence and can only be triggered by code execution. There are
   typically a limited number of hardware breakpoints available at the same time.
 
-  \subsection{Breakpoint}
+  \subsection{Class Breakpoint}
     \input{API/Breakpoint}
 
 \section{Registers}
 
-  \subsection{MachRegister}
+  \subsection{Class MachRegister}
     \input{API/MachRegister}
 
-  \subsection{RegisterPool}
+  \subsection{Class RegisterPool}
     \input{API/RegisterPool}
 
 \section{System Calls}
 
   System calls are currently only supported on Linux.
 
-  \subsection{MachSyscall}
+  \subsection{Class MachSyscall}
     \input{API/MachSyscall}
 
 \section{Libraries}
   ProcControlAPI offers several facilities for interacting with libraries
   both in a created address spaces as well as loading new libraries into one.
 
-  \subsection{Library}
+  \subsection{Class Library}
     \input{API/Library}
 
-  \subsection{LibraryPool}
+  \subsection{Class LibraryPool}
     \input{API/LibraryPool}
 
 \section{Platform-specific Features}
@@ -230,19 +230,19 @@
   associated process is not modified and events are handled on demand by calling
   the appropriate ``refresh'' member function.
 
-  \subsection{FollowFork}
+  \subsection{Class FollowFork}
     \input{API/FollowFork}
 
-  \subsection{LWPTracking}
+  \subsection{Class LWPTracking}
     \input{API/LWPTracking}
 
-  \subsection{LibraryTracking}
+  \subsection{Class LibraryTracking}
     \input{API/LibraryTracking}
 
-  \subsection{SignalMask}
+  \subsection{Class SignalMask}
     \input{API/SignalMask}
 
-  \subsection{ThreadTracking}
+  \subsection{Class ThreadTracking}
     \input{API/ThreadTracking}
 
 \end{document}
