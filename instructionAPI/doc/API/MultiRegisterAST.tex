@@ -59,3 +59,37 @@ We define a partial ordering on registers by their register number so that they 
 into sets or other sorted containers.
 }
 
+\begin{apient}
+RegisterAST::Ptr getBaseRegAST() const;
+\end{apient}
+\apidesc{
+Returns the first register of the collection. For a collection constructed
+from a starting register and a count, this is the register it started from.
+}
+
+\begin{apient}
+uint32_t length() const;
+\end{apient}
+\apidesc{
+Returns the number of registers in the collection.
+}
+
+\begin{apient}
+const std::vector<RegisterAST::Ptr>& getRegs() const;
+\end{apient}
+\apidesc{
+Returns the registers themselves, in the order the collection holds them.
+This is the only way to reach them individually.
+}
+
+\begin{apient}
+bool areConsecutive() const;
+\end{apient}
+\apidesc{
+Returns \code{true} if the registers are known to be consecutive, which tells
+a caller which of the two constructors produced this object. A collection
+built from a starting register and a count is consecutive by construction;
+one built from a vector of registers is not, since the registers in it are
+taken as given.
+}
+
