@@ -305,14 +305,28 @@ A handle for identifying the visibility of a certain \code{Field} in a container
 
 \begin{apient}
 Field(std::string name,
+      boost::shared_ptr<Type> typ,
+      int offsetVal = -1,
+      visibility_t vis = visUnknown);
+\end{apient}
+\apidesc{
+This constructor creates a new field with name \code{name}, type \code{typ},
+offset \code{offsetVal} within its container, and visibility \code{vis}. This
+newly created \code{Field} can be added to a container type.  Use this form when
+the type is already held as a \code{boost::shared\_ptr}, as
+\code{getType(Type::share)} returns it.
+}
+
+\begin{apient}
+Field(std::string name,
       Type* type,
       int offsetVal = -1,
       visibility_t vis = visUnknown);
 \end{apient}
 \apidesc{
-This constructor creates a new field with name \code{name}, type \code{type},
-offset \code{offsetVal} within its container, and visibility \code{vis}. This
-newly created \code{Field} can be added to a container type.
+As above, taking a plain \code{Type*}.  The type is made shared before the
+field is built, so the two constructors leave the \code{Field} in the same
+state.
 }
 
 \begin{apient}
