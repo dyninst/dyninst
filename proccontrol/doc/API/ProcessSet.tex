@@ -487,7 +487,8 @@ concept. It also offers the standard \code{begin/end} members for iteration.
 \begin{apient}
   bool readMemory(AddressSet::ptr addrs,
                   std::map<void *, ProcessSet::ptr>& result,
-                  size_t size);
+                  size_t size,
+                  bool use_checksum = true) const;
 \end{apient}
 
 \apidesc{

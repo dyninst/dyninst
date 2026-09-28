@@ -205,7 +205,7 @@ This class represents a function type, containing a list of parameters and a ret
 \begin{apient}
 static typeFunction* create(std::string& name,
                             Type* retType,
-                            std::vector<Type*>& paramTypes,
+                            dyn_c_vector<Type*>& paramTypes,
                             Symtab* obj = NULL);
 \end{apient}
 \apidesc{
@@ -425,7 +425,7 @@ applicable.
 
 \begin{apient}
 static typeStruct* create(std::string& name,
-                          std::vector<std::pair<std::string, Type*>*>& flds,
+                          dyn_c_vector<std::pair<std::string, Type*>*>& flds,
                           Symtab* obj = NULL);
 \end{apient}
 \apidesc{
@@ -435,7 +435,7 @@ The newly created type is added to the \code{Symtab} object \code{obj}. If \code
 
 \begin{apient}
 static typeStruct* create(std::string& name,
-                          std::vector<Field*>& fields,
+                          dyn_c_vector<Field*>& fields,
                           Symtab* obj = NULL);
 \end{apient}
 \apidesc{
@@ -458,7 +458,7 @@ This class represents a union type, a special case of the container type. The fi
 
 \begin{apient}
 static typeUnion* create(std::string& name,
-                         std::vector<std::pair<std::string, Type*>*>& flds,
+                         dyn_c_vector<std::pair<std::string, Type*>*>& flds,
                          Symtab* obj = NULL);
 \end{apient}
 \apidesc{
@@ -468,7 +468,7 @@ The newly created type is added to the \code{Symtab} object \code{obj}. If \code
 
 \begin{apient}
 static typeUnion* create(std::string& name,
-                         std::vector<Field*>& fields,
+                         dyn_c_vector<Field*>& fields,
                          Symtab* obj = NULL);
 \end{apient}
 \apidesc{
@@ -653,8 +653,8 @@ This class represents an \code{Array} type. As a subclass of class \code{rangedT
 \begin{apient}
 static typeArray* create(std::string& name,
                          Type* type,
-                         int low,
-                         int hi,
+                         long low,
+                         long hi,
                          Symtab* obj = NULL);
 \end{apient}
 \apidesc{

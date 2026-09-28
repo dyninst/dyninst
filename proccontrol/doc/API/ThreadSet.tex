@@ -377,7 +377,7 @@ This function return true if it succeeded for every Thread, and false otherwise.
 
 \begin{apient}
 bool setRegister(Dyninst::MachRegister reg,
-                 const std::map<ThreadSet::const_ptr, Dyninst::MachRegisterVal>& vals) const;
+                 const std::map<Thread::const_ptr, Dyninst::MachRegisterVal>& vals) const;
 \end{apient}
 
 \apidesc{
