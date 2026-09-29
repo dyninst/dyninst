@@ -5,10 +5,10 @@
 
 The following example uses ParseAPI and InstructionAPI to disassemble
 the basic blocks in a function. As an example, it can be built with
-G++ as follows: \code{g++ -std=c++11 -o code\_sample code\_sample.C -L<library
-  install path> -I<headers install path> -lparseAPI -linstructionAPI
-  -lsymtabAPI -ldynDwarf -ldynElf -lcommon -L<elfutils path> -lelf
-  -ldw}. Note: this example must be compiled with C++11 support; for
+G++ as follows: \code{g++ -std=c++11 -o code\_sample code\_sample.C
+  -I<headers install path> -I<boost include path> -I<tbb include path>
+  -L<library install path> -lparseAPI -linstructionAPI -lsymtabAPI
+  -lcommon}. Note: this example must be compiled with C++11 support; for
 G++ this is enabled with \code{-std=c++11}, and it is on by default
 for Visual Studio.
 
@@ -19,9 +19,9 @@ for Visual Studio.
 The following complete example uses the ParseAPI to parse a binary and
 dump its control flow graph in the Graphviz file format. As an
 example, it can be built with G++ as follows: \code{g++ -std=c++11 -o example
-  example.C -L<library install path> -I<headers install path>
-  -lparseAPI -linstructionAPI -lsymtabAPI -ldynDwarf -ldynElf
-  -lcommon -L<elfutils path> -lelf -ldw}. Note: this example must be
+  example.C -I<headers install path> -I<boost include path>
+  -I<tbb include path> -L<library install path> -lparseAPI
+  -linstructionAPI -lsymtabAPI -lcommon}. Note: this example must be
 compiled with C++11 support; for G++ this is enabled with
 \code{-std=c++11}, and it is on by default for Visual Studio.
 
