@@ -187,10 +187,10 @@ static bool handleDebugEvent(bool block = false);
     When this method is called StackwalkerAPI will receive and handle all
     pending debug events from each 3rd party target process to which it is
     attached. After handling debug events each target process will be continued
-    (unless it was explicitly stopped by the ProcDebug::pause method) and any
-    bytes on the notification FD will be cleared. It is generally expected that
-    users will call this method when a event is sent to the notification FD,
-    although it can be legally called at any time.
+    (unless it was explicitly stopped by the ProcDebug::pause method). Call
+    this method periodically, or when ProcControlAPI's
+    \code{evNotify()->getFD()} becomes readable; it can be legally called at
+    any time.
 
     If the \code{block} parameter is \code{true}, then \code{handleDebugEvents}
     will block until it has handled at least one debug event. If the block
