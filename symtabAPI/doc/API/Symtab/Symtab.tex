@@ -119,10 +119,13 @@ typedef enum {
 \end{apient}
 \apidesc{
 Whether a binary is parsed defensively.  Code that defends itself against
-analysis can violate the assumptions the standard parsing algorithm makes;
-\code{Defensive} asks for the more conservative assumptions described in the
-ParseAPI Programmer's Guide, which analyze less of the binary in exchange for
-not being misled by it.
+analysis can violate the assumptions the standard parsing algorithm makes.
+\code{Defensive} marks the binary as one that may modify its own code, which
+widens what is treated as code rather than narrowing it: loadable read-write
+regions join the executable ones as code regions, a \code{.text} section is no
+longer required, and \code{\_imp\_} symbols are kept out of function and
+variable aggregates.  It does not by itself turn on ParseAPI's defensive
+parsing mode, which is a separate argument to \code{CodeObject}.
 }
 
 \begin{apient}
