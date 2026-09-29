@@ -50,12 +50,14 @@ of a module is an image, and the children will be the functions).
 \end{apient}
 
 \apidesc{
-  Returns the child source objects of the current source object. For
-  example, when called on a \code{BPatch\_sourceProgram}
-  object this will return objects of type \code{BPatch\_sourceFunction}. When
-  called on a \code{BPatch\_sourceFunction} object it may
-  return \code{BPatch\_sourceOuterLoop} and \code{BPatch\_sourceStatement} objects.
+  Returns the child source objects of the current source object, one level
+  down: called on a \code{BPatch\_image} it returns that program's modules,
+  and called on a \code{BPatch\_module} it returns that module's functions.
   Returns \code{true} on success and \code{false} on error.
+
+  \code{BPatch\_function} does not implement this. It clears \code{objs} and
+  returns \code{false}, so the loops and statements within a function cannot
+  be reached this way.
 }
 
 \begin{apient}
