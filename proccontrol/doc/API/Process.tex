@@ -541,7 +541,7 @@ bool writeMemory(Dyninst::Address addr, const void* buffer, size_t size) const;
 \end{apient}
 
 \apidesc{
-This function writes to the target process' s memory. The
+This function writes to the target process's memory. The
 addr parameter specifies an address in the target process to which
 ProcControlAPI should write. The buffer and size parameters specify a region
 of controller process memory that will be copied into the target process.
@@ -574,7 +574,7 @@ bool setMemoryAccessRights(Dyninst::Address addr, size_t size, mem_perm rights, 
 \apidesc{
 These functions respectively get and set memory permission at the specified
 address, addr. The setMemoryAccessRights function also affects a region of
-memory in the target process' s address space of size size.
+memory in the target process's address space of size size.
 }
 
 \begin{apient}
@@ -617,7 +617,7 @@ bool postIRPC(IRPC::ptr irpc) const;
 \apidesc{
 This function posts the given irpc to the Process. ProcControlAPI selects a
 Thread from the Process to run the iRPC and put irpc into that
-Thread' s queue of posted IRPCs.
+Thread's queue of posted IRPCs.
 Each instance of an IRPC object can be posted at most once. It is an error to
 attempt to post a single IRPC object multiple times.
 This function returns true on success and false on error. Upon an error a
