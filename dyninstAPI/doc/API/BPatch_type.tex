@@ -26,6 +26,35 @@ BPatch_dataClass getDataClass() const;
 }
 
 \begin{apient}
+unsigned int getSize();
+\end{apient}
+
+\apidesc{
+  Return the size of the type in bytes.
+}
+
+\begin{apient}
+int getID() const;
+\end{apient}
+
+\apidesc{
+  Return the identifier Dyninst gave this type. Identifiers are unique within
+  a program. To reach other types, use \code{getConstituentType} and
+  \code{getComponents} rather than looking one up by its identifier.
+}
+
+\begin{apient}
+virtual bool operator==(const BPatch_type& otype) const;
+\end{apient}
+
+\apidesc{
+  Return \code{true} if the two are the same type: same identifier, same
+  storage class, and the same underlying \code{SymtabAPI} type. This is a
+  stricter test than \code{isCompatible}, which asks only whether a value of
+  one may be used where the other is wanted.
+}
+
+\begin{apient}
 bool isCompatible(BPatch_type* otype);
 \end{apient}
 
