@@ -44,7 +44,9 @@ graph of the containing function.
 
 \begin{apient}
   bool getInstructions(std::vector<Dyninst::InstructionAPI::Instruction>&);
-  bool getInstructions(std::vector<std::pair<Dyninst::InstructionAPI::Instruction, Dyninst::Address> >&);
+  bool getInstructions(
+      std::vector<std::pair<Dyninst::InstructionAPI::Instruction,
+                            Dyninst::Address> >&);
 \end{apient}
 
 \apidesc{
