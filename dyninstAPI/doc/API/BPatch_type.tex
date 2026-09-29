@@ -52,8 +52,9 @@ BPatch_type* getConstituentType() const;
 
 \apidesc{
   Return the type this one is built from: the target of a pointer or
-  reference, the type a typedef names, or the element type of an array.
-  Returns \code{nullptr} for a type that is not built from another.
+  reference, the type a typedef names, the underlying type of an enumeration,
+  or the element type of an array. Returns \code{nullptr} for a type that is
+  not built from another.
 }
 
 \begin{apient}
