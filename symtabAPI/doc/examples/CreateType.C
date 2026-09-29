@@ -8,7 +8,7 @@ using namespace Dyninst;
 using namespace SymtabAPI;
 
 // Find a handle to the integer type; obj is a handle to a parsed object file
-Type* lookupType;
+Type* lookupType = nullptr;
 obj->findType(lookupType, "int");
 
 // Convert the generic type object to the specific scalar type object
