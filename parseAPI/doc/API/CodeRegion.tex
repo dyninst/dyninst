@@ -17,14 +17,16 @@ virtual bool findCatchBlock(Address addr,
 \apidesc{Finds the exception handler associated with an address, if one exists. This routine is only implemented for binary code sources that support structured exception handling, such as the SymtabAPI-based SymtabCodeSource provided as part of the ParseAPI.}
 
 \begin{apient}
-virtual Address low() const;
+virtual Address low() const = 0;
 \end{apient}
-\apidesc{The lower bound of the interval of address space covered by this region.}
+\apidesc{The lower bound of the interval of address space covered by this region.
+An implementor must define this; there is no default.}
 
 \begin{apient}
-virtual Address high() const;
+virtual Address high() const = 0;
 \end{apient}
-\apidesc{The upper bound of the interval of address space covered by this region.}
+\apidesc{The upper bound of the interval of address space covered by this region.
+An implementor must define this; there is no default.}
 
 \begin{apient}
 bool contains(Address addr) const;
