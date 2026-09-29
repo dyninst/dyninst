@@ -81,12 +81,16 @@ static const int AsyncIO = 403;
 \end{apient}
 
 \apidesc{
-These codes group several of the codes above. A callback function can be
-registered against them, but an EventType with one of these codes is never
-delivered; a callback registered for Terminate receives Exit and Crash events
-instead, one registered for ThreadCreate receives UserThreadCreate and
-LWPCreate events, and one registered for ThreadDestroy receives
-UserThreadDestroy and LWPDestroy events.
+These codes group several of the codes above. A callback function registered
+against one of them is registered against the codes it stands for, and an
+EventType carrying the grouping code is never delivered: a callback registered
+for Terminate receives Exit, Crash and ForceTerminate events, one registered
+for ThreadCreate receives UserThreadCreate and LWPCreate events, and one
+registered for ThreadDestroy receives UserThreadDestroy and LWPDestroy events.
+
+AsyncIO is the exception. No handler claims it and it stands for nothing, so
+registering a callback for it fails and returns false rather than registering
+anything. Register for the individual Async codes instead.
 }
 
 \begin{apient}
