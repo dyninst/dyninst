@@ -38,8 +38,13 @@ int getID() const;
 \end{apient}
 
 \apidesc{
-  Return the identifier Dyninst gave this type. Identifiers are unique within
-  a program. To reach other types, use \code{getConstituentType} and
+  Return the identifier Dyninst gave this type. For a type read from debug
+  information the identifier is derived from the type's DWARF offset, which is
+  unique only within one module, so two modules of the same program may report
+  the same value. A type built by one of the \code{BPatch::create*} methods is
+  given a negative identifier instead, from a counter that runs for the life of
+  the process; those are distinct from each other and from anything read from
+  debug information. To reach other types, use \code{getConstituentType} and
   \code{getComponents} rather than looking one up by its identifier.
 }
 
