@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "debug.h"
 #include "InstructionDecoder-aarch64.h"
 #include "Register.h"
 #include "registers/abstract_regs.h"
@@ -35,13 +36,6 @@
 #include "unaligned_memory_access.h"
 #include <boost/make_shared.hpp>
 #include <algorithm>
-
-#if defined(__GNUC__)
-#define insn_printf(format, ...)                                                                   \
-  do {                                                                                             \
-    printf("[%s:%u]insn_debug " format, FILE__, __LINE__, ##__VA_ARGS__);                          \
-  } while(0)
-#endif
 
 #define AARCH64_INSN_LENGTH 32
 
@@ -505,6 +499,7 @@ void InstructionDecoder_aarch64::set32Mode()
 
       MachRegister reg = sysRegMap(systemRegEncoding);
       if(!reg.isValid()) {
+        decode_printf("Unknown system register encoding 0x%x for instruction 0x%x\n", systemRegEncoding, insn);
         reg = aarch64::IMPLEMENTATION_DEFINED_SYSREG;
       }
       add_operand(makeRegisterExpression(reg), !isRtRead, isRtRead);
