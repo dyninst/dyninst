@@ -30,6 +30,7 @@
 
 #include "InstructionDecoder-aarch64.h"
 #include "Register.h"
+#include "registers/abstract_regs.h"
 #include "registers/aarch64_regs.h"
 #include "unaligned_memory_access.h"
 #include <boost/make_shared.hpp>
@@ -502,11 +503,10 @@ void InstructionDecoder_aarch64::set32Mode()
       unsigned int systemRegEncoding =
           (op0Field << 14) | (op1Field << 11) | (crnField << 7) | (crmField << 3) | op2Field;
 
-      MachRegister reg;
-      if((op0Field & 0x3) == 0x3 && (crnField & 0x3) == 0x3 && (crnField & 0x8) == 0x8)
+      MachRegister reg = sysRegMap(systemRegEncoding);
+      if(!reg.isValid()) {
         reg = aarch64::IMPLEMENTATION_DEFINED_SYSREG;
-      else
-        reg = sysRegMap(systemRegEncoding);
+      }
       add_operand(makeRegisterExpression(reg), !isRtRead, isRtRead);
       add_operand(makeRtExpr(), isRtRead, !isRtRead);
       if(!isRtRead) {
