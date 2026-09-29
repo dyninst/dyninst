@@ -42,8 +42,8 @@ bool isUsed(Expression::Ptr findMe) const;
 \code{isUsed} is meant to return \code{true} if \code{findMe} is a
 \code{MultiRegisterAST} holding the same registers, in the same order, as this
 one. It compares the constituent \code{RegisterAST::Ptr} values rather than the
-registers they refer to, \code{MultiRegister.C:89}, so it holds only when the
-two objects share their element objects. A \code{MultiRegisterAST} built
+registers they refer to, so it holds only when the two objects share their
+element objects. A \code{MultiRegisterAST} built
 separately for the same registers returns \code{false}, which is why
 \code{Operand::isRead} and \code{Operand::isWritten} do not answer \code{true}
 for a candidate the caller constructed. Every other \code{Expression} in this
@@ -64,8 +64,8 @@ bool operator<(const MultiRegisterAST& rhs) const;
 \apidesc{
 Orders two \code{MultiRegisterAST} objects so that they may be placed into sets
 or other sorted containers. Like \code{isUsed} it compares the constituent
-\code{RegisterAST::Ptr} values rather than the registers, \code{MultiRegister.C:85},
-so the order is by address and does not follow the register numbers.
+\code{RegisterAST::Ptr} values rather than the registers, so the order is by
+address and does not follow the register numbers.
 }
 
 \begin{apient}

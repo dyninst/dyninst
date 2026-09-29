@@ -174,10 +174,9 @@ static int getNotificationFD();
 
 	StackwalkerAPI will only create one notification FD, even if it is attached to multiple 3rd party target processes.
 
-    \textbf{Not implemented:} this method returns $-1$ on every platform,
-    \code{sw\_pcontrol.C:372}, and no byte is ever written. Code that needs
-    this must use ProcControlAPI's notification instead, through
-    \code{evNotify()->getFD()}.
+    \textbf{Not implemented:} this method returns $-1$ on every platform, and
+    no byte is ever written. Code that needs this must use ProcControlAPI's
+    notification instead, through \code{evNotify()->getFD()}.
 }
 
 \begin{apient}

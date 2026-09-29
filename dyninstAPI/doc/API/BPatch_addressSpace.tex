@@ -175,10 +175,9 @@ between the two subclasses.
 
   The \code{modified} parameter is accepted and ignored. It was meant to be set
   to \code{true} when extra steps, such as changing the state of the process,
-  were needed to apply the insertions, but neither implementation writes to it:
-  \code{BPatch\_process.C:736} and \code{BPatch\_binaryEdit.C:283} both leave
-  the parameter unnamed. Those steps are taken whether or not a variable is
-  passed, so nothing is lost by passing \code{NULL}.
+  were needed to apply the insertions, but neither \code{BPatch\_process} nor
+  \code{BPatch\_binaryEdit} writes to it. Those steps are taken whether or not
+  a variable is passed, so nothing is lost by passing \code{NULL}.
 
   Insertion sets are unnecessary when doing static binary instrumentation. Dyninst
   uses an implicit insertion set around all instrumentation to a static binary.
