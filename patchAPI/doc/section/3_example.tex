@@ -1,4 +1,5 @@
-\section{Examples} \label{sec:examples}
+\section{Examples}
+\label{sec:examples}
 To illustrate the ideas of PatchAPI, we present some simple code examples that
 demonstrate how the API can be used.
 
@@ -35,7 +36,8 @@ ParseAPI's CodeObject. Then, we traverse all functions in that object, and print
 out each function's name. For each function, we also print out the size of each
 basic block.
 
-\subsubsection{Point Finding} \label{sec:example-point-finding}
+\subsubsection{Point Finding}
+\label{sec:example-point-finding}
 
 \begin{lstlisting}[caption=Example of point finding]
 PatchFunction* func = ...;
@@ -120,7 +122,8 @@ management methods during the code patching process. For example, the
 instrumentation engine needs to \emph{malloc} a buffer in Mutatee's address
 space, and then \emph{write} the code snippet into this buffer.
 
-\subsubsection{Snippet Representation} \label{sec:example-snippet-representation}
+\subsubsection{Snippet Representation}
+\label{sec:example-snippet-representation}
 \lstinputlisting[caption=Example of implementing snippet plugin]{examples/MySnippet.C}
 
 The above code illustrates how to customize a user-defined snippet
