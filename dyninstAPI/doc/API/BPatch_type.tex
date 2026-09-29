@@ -74,9 +74,9 @@ Dyninst::SymtabAPI::Type* getSymtabType() const;
 
 \apidesc{
   Return the \code{SymtabAPI} type this one wraps, which carries more of the
-  type's detail than \code{BPatch\_type} exposes. This is the same kind of
-  crossing to a component library that Section~\ref{sec:conversions}
-  describes, though it is a member rather than a \code{convert} overload.
+  type's detail than \code{BPatch\_type} exposes. \code{SymtabAPI::convert},
+  listed in Section~\ref{sec:conversions}, forwards to this method, so the two
+  return the same pointer.
 }
 
 \begin{apient}
