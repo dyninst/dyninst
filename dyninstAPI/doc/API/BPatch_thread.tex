@@ -110,9 +110,9 @@ execution that is running in a process.
 
 \apidesc{
   This function sets up the snippet expr to be evaluated by this
-  thread at the next available opportunity. When the
-  snippet finishes running, Dyninst will callback any function
-  registered through BPatch::registerOneTimeCodeCallback,
+  thread at the next available opportunity. When the snippet finishes
+  running, Dyninst calls \code{cb}, if one is given here, and then any
+  function registered through \code{BPatch::registerOneTimeCodeCallback},
   with userData passed as a parameter. This function returns true if
   expr was posted or false otherwise.
   This is similar to the  \code{BPatch\_process::oneTimeCodeAsync}
