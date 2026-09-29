@@ -10,6 +10,7 @@
 #include "steppergroup.h"
 
 #include <sys/select.h>
+#include <unistd.h>
 
 #include <iostream>
 #include <string>
