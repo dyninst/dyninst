@@ -39,24 +39,33 @@ The registers given need not be consecutive.
 bool isUsed(Expression::Ptr findMe) const;
 \end{apient}
 \apidesc{
-\code{isUsed} returns \code{true} if \code{findMe} is a \code{MultiRegisterAST}
-that represents the same registers, in the same order, as this
-\code{MultiRegisterAST}, and \code{false} otherwise.
+\code{isUsed} is meant to return \code{true} if \code{findMe} is a
+\code{MultiRegisterAST} holding the same registers, in the same order, as this
+one. It compares the constituent \code{RegisterAST::Ptr} values rather than the
+registers they refer to, \code{MultiRegister.C:89}, so it holds only when the
+two objects share their element objects. A \code{MultiRegisterAST} built
+separately for the same registers returns \code{false}, which is why
+\code{Operand::isRead} and \code{Operand::isWritten} do not answer \code{true}
+for a candidate the caller constructed. Every other \code{Expression} in this
+interface compares by value.
 }
 
 \begin{apient}
 std::string format(formatStyle how = defaultStyle) const;
 \end{apient}
 \apidesc{
-The format method on a \code{MultiRegisterAST} object returns the name associated with its ID.
+Returns the constituent registers, each formatted in turn, separated by commas
+and enclosed in brackets, as in \code{[RAX,RBX]}.
 }
 
 \begin{apient}
 bool operator<(const MultiRegisterAST& rhs) const;
 \end{apient}
 \apidesc{
-We define a partial ordering on registers by their register number so that they may be placed
-into sets or other sorted containers.
+Orders two \code{MultiRegisterAST} objects so that they may be placed into sets
+or other sorted containers. Like \code{isUsed} it compares the constituent
+\code{RegisterAST::Ptr} values rather than the registers, \code{MultiRegister.C:85},
+so the order is by address and does not follow the register numbers.
 }
 
 \begin{apient}
