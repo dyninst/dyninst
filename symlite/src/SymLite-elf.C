@@ -29,6 +29,8 @@
  */
 
 #include "SymLite-elf.h"
+
+#include <cstring>
 #include "common/src/headers.h"
 #include "unaligned_memory_access.h"
 #include <sys/types.h>
@@ -260,17 +262,30 @@ std::string SymElf::getSOName()
       if (!dyns.isValid())
          continue;
 
-      // sh_link of a SHT_DYNAMIC section names the string table its entries index into
-      Elf_X_Shdr &strshdr = elf->get_shdr(shdr.sh_link());
+      // sh_link of a SHT_DYNAMIC section names the string table its entries index into.
+      // Both it and the DT_SONAME offset below come from the file being inspected, which
+      // for ProcControl is a library in the traced process, so neither can be trusted:
+      // Elf_X::get_shdr() indexes its vector without a bounds check, and the string table
+      // need not be NUL-terminated.
+      unsigned long const strtab_idx = shdr.sh_link();
+      if (strtab_idx >= elf->e_shnum())
+         continue;
+      Elf_X_Shdr &strshdr = elf->get_shdr(strtab_idx);
       if (!strshdr.isValid())
          continue;
-      const char *strs = strshdr.get_data().get_string();
-      if (!strs)
+      Elf_X_Data strdata = strshdr.get_data();
+      const char *strs = strdata.get_string();
+      size_t const strsz = strdata.d_size();
+      if (!strs || strsz == 0)
          continue;
 
       for (unsigned j = 0; j < dyns.count(); j++) {
-         if (dyns.d_tag(j) == DT_SONAME)
-            return std::string(&strs[dyns.d_ptr(j)]);
+         if (dyns.d_tag(j) != DT_SONAME)
+            continue;
+         unsigned long const off = dyns.d_ptr(j);
+         if (off >= strsz)
+            break;
+         return std::string(&strs[off], strnlen(&strs[off], strsz - off));
       }
    }
 
