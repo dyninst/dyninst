@@ -3806,6 +3806,7 @@ MachRegister InstructionDecoder_aarch64::sysRegMap(unsigned int m) {
     case 0x7438: return aarch64::tlbi_alle3;
     case 0xf200: return aarch64::spsr_el3;
     case 0x443d: return aarch64::tlbi_vale1;
+    case 0xde85: return aarch64::tpidr2_el0;
     default: assert(!"tried to access system register not accessible in EL0");
     };
 }  // end sysRegMap
