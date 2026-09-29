@@ -7,14 +7,20 @@ struct target_block
 
 
 std::vector<Block*> work;
+std::set<Block*> seen;
 Intraproc epred; // ignore calls, returns
 
 work.push_back(func->entry()); // assuming `func' is a Function*
 
-// do_stuff is a functor taking a Block* as its argument
+// do_stuff is a functor taking an Edge* as its argument
 while (!work.empty())  {
   Block* b = work.back();
   work.pop_back();
+
+  // a back edge pushes a block already walked; without this the
+  // traversal of any function containing a loop does not end
+  if (!seen.insert(b).second)
+    continue;
 
   const Block::edgelist& targets = b->targets();
   // Do stuff for each out edge

@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <set>
 #include <vector>
 
 using namespace Dyninst;
