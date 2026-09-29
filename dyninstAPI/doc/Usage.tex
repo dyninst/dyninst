@@ -17,7 +17,7 @@ The following \code{CMakeLists.txt} shows how create your mutator program with D
 
   find_package(Dyninst REQUIRED)
 
-  add_executable(retee retee.cpp)
+  add_executable(retee retee.C)
   target_link_libraries(retee PUBLIC Dyninst::dyninstAPI)
 \end{lstlisting}
 
@@ -43,7 +43,9 @@ ${DYNINST_LIB}/libdyninstAPI_RT.so (UNIX)
 
 \subsection{Running the Mutator}
 
-At this point, you should be ready to run your application program with your mutator. For example,
-to start the sample program shown in Section~\ref{subsec:retee}:
+At this point, you should be ready to run your mutator against your
+application program. The sample program of Section~\ref{subsec:retee} attaches
+to a process that is already running, so start the application first and give
+its process id to the mutator:
 
 \code{retee <pid> foo}
