@@ -21,13 +21,6 @@ static BPatch_image *appImage;
 static std::vector<BPatch_function *> functions;
 static unsigned i;
 
-// An example is an excerpt: it names a thing to show it exists and stops
-// there.  These two warnings fire on that by construction, so they are off
-// for the included text and on everywhere else.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-
 void rawSnippetWalkthrough()
 {
 #include "LookupPrintf.C"
@@ -42,5 +35,3 @@ void rawSnippetWalkthrough()
 #include "AddIncrement.C"
 #include "InsertSnippets.C"
 }
-
-#pragma GCC diagnostic pop

@@ -17,12 +17,11 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 
-// An example is an excerpt: it names a thing to show it exists and stops
-// there.  These two warnings fire on that by construction, so they are off
-// for the included text and on everywhere else.
+// An example is an excerpt: it names a variable to show it exists and stops
+// there.  That warning fires on it by construction, so it is off for the
+// included text and on everywhere else.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 
 void parseFile()
 {
