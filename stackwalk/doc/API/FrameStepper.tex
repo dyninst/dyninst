@@ -95,10 +95,19 @@ and the stack walk should be aborted.
 virtual void registerStepperGroup(StepperGroup* steppergroup);
 \end{apient}
 \apidesc{
-This method is used to notify a \code{FrameStepper} when StackwalkerAPI adds it to a
-\code{StepperGroup}. The \code{StepperGroup} to which this \code{FrameStepper} is being added is
-passed in parameter steppergroup. This method can be used to initialize the
-\code{FrameStepper} (in addition to any \code{FrameStepper} constructor).
+This method is used to notify a \code{FrameStepper} when it is added to a
+group by \code{registerStepper}. The \code{StepperGroup} to which this
+\code{FrameStepper} is being added is passed in parameter steppergroup. This
+method can be used to initialize the \code{FrameStepper} (in addition to any
+\code{FrameStepper} constructor).
+
+The default implementation is what gives a stepper its address range: it calls
+\code{addStepper} on the group for the whole of the target's address space.
+An override that does not call the base implementation must register a range
+itself, or the stepper is never selected for any address.
+
+Note that \code{addStepper} does not call this method, so a stepper added that
+way is not notified.
 }
 
 \begin{apient}

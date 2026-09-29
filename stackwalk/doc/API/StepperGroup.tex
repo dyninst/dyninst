@@ -35,8 +35,9 @@ virtual bool addStepper(FrameStepper* stepper,
     This method returns \code{true} if it successfully added the
     \code{FrameStepper}, and \code{false} on error.
 
-    Use \code{registerStepper} below to add a stepper over the whole address
-    space rather than a range of it.
+    This method registers the range directly and does not call the stepper's
+    \code{registerStepperGroup}. Use \code{registerStepper} below to add a
+    stepper over the whole address space rather than a range of it.
 }
 
 \begin{apient}
@@ -44,8 +45,12 @@ virtual void registerStepper(FrameStepper* stepper);
 \end{apient}
 
 \apidesc{Add the specified \code{FrameStepper} to the list of known
-  steppers and use it over the entire address space.  This is the whole-address-space
-  form of \code{addStepper} above, and is what \code{Walker::addStepper} calls.}
+  steppers. Its own \code{registerStepperGroup} is then called; the default
+  implementation claims the entire address space, so this is the
+  whole-address-space form of \code{addStepper} above. It is what
+  \code{Walker::addStepper} calls.
+
+  A stepper that overrides that method chooses its own range instead.}
 
 \begin{apient}
 virtual bool findStepperForAddr(Address addr, FrameStepper* &out,
