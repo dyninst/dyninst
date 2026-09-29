@@ -1,34 +1,86 @@
 \declaredin{BPatch\_snippet.h}
 
+A \code{BPatch\_variableExpr} is not constructed directly. Its constructors are
+private to the class, reachable only by the \code{BPatch} classes named as its
+friends. Obtain one instead from:
+
+\begin{itemize}
+  \item \code{BPatch\_addressSpace::malloc}, for a variable allocated in the
+        mutatee, or \code{createVariable} on the same class, to wrap memory
+        that is already there;
+  \item \code{BPatch\_image::findVariable}, \code{getGlobalVariables} or
+        \code{getVariables}, for the variables of the program;
+  \item \code{BPatch\_function::findVariable} or \code{getVariables}, for
+        those local to a function.
+\end{itemize}
+
 \begin{apient}
-  BPatch_variableExpr(const char* in_name,
-                      BPatch_addressSpace* in_addSpace,
-                      AddressSpace* as,
-                      Dyninst::BPatch_codeGenASTPtr ast_wrapper_,
-                      BPatch_type* type,
-                      void* in_address);
-  BPatch_variableExpr(BPatch_addressSpace* in_addSpace,
-                      AddressSpace* as,
-                      void* in_address,
-                      int in_register,
-                      BPatch_type* type,
-                      BPatch_storageClass storage = BPatch_storageAddr,
-                      BPatch_point* scp = NULL);
-  BPatch_variableExpr(BPatch_addressSpace* in_addSpace,
-                      AddressSpace* as,
-                      BPatch_localVar* lv,
-                      BPatch_type* type,
-                      BPatch_point* scp);
-  BPatch_variableExpr(BPatch_addressSpace* in_addSpace,
-                      AddressSpace* ll_addSpace,
-                      int_variable* iv,
-                      BPatch_type* type);
+  const char* getName();
 \end{apient}
 
 \apidesc{
-  Define a variable snippet of the appropriate type. The first
-  constructor is used to get function pointers; the second
-  is used to get forked copies of variable expression, used by
-  malloc; the third is used for local variables; and the
-  last is used by \code{BPatch\_addressSpace::findOrCreateVariable().}
+  Return the name of the variable.
+}
+
+\begin{apient}
+  unsigned int getSize() const;
+  bool setSize(int sz);
+\end{apient}
+
+\apidesc{
+  Return, or set, the size of the variable in bytes.
+}
+
+\begin{apient}
+  const BPatch_type* getType();
+  bool setType(BPatch_type* t);
+\end{apient}
+
+\apidesc{
+  Return, or set, the type of the variable. Setting the type also sets the
+  size to that of the new type.
+}
+
+\begin{apient}
+  void* getBaseAddr();
+\end{apient}
+
+\apidesc{
+  Return the address of the variable in the mutatee.
+}
+
+\begin{apient}
+  bool readValue(void* dst);
+  bool readValue(void* dst, int len);
+\end{apient}
+
+\apidesc{
+  Copy the value of the variable out of the mutatee into \code{dst}, which the
+  caller supplies. The first form copies as many bytes as the variable is
+  wide; the second copies \code{len} of them.
+
+  Both work only on a variable with an address of its own. A variable local to
+  a function has none, so for one of those they report a warning and return
+  \code{false} without reading anything.
+}
+
+\begin{apient}
+  bool writeValue(const void* src, bool saveWorld = false);
+  bool writeValue(const void* src, int len, bool saveWorld = false);
+\end{apient}
+
+\apidesc{
+  Copy \code{src} into the variable in the mutatee, as many bytes as the
+  variable is wide, or \code{len} of them for the second form. As with
+  \code{readValue}, a variable local to a function cannot be written this way
+  and the call returns \code{false}.
+}
+
+\begin{apient}
+  std::vector<BPatch_variableExpr*>* getComponents();
+\end{apient}
+
+\apidesc{
+  For a variable of structure or union type, return a variable expression for
+  each of its fields.
 }
