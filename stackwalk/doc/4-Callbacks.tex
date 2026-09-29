@@ -156,9 +156,10 @@ bool isTerminated();
     Attempting to collect stack walks or perform other operations on a
     terminated process is illegal an will lead to undefined behavior.
 
-    A process termination will also be signaled through the notification FD.
-Users should check processes for the isTerminated state after returning from
-handleDebugEvent.
+    A process termination would also be signaled through the notification FD,
+    which is not implemented (see \code{getNotificationFD} below). Users
+    should check processes for the isTerminated state after returning from
+    handleDebugEvent.
 }
 
 \begin{apient}
