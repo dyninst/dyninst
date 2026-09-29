@@ -5,10 +5,16 @@
 
 THIS CLASS IS ONLY PARTIALLY IMPLEMENTED.
 
+A \code{TernaryAST} object represents a conditional expression
+\code{cond ? first : second}, whose three operands are themselves
+\code{Expression}s and are reachable as the public members \code{cond},
+\code{first} and \code{second}.
 
-A \code{TernaryAST} object represents the value of a ternary assignment. As a \code{TernaryAST}
-is an \code{Expression}, it may contain the physical register's contents if they
-are known.
+Only \code{format} does anything. The rest of the \code{Expression} interface
+is stubbed: \code{isUsed}, \code{bind} and \code{isStrictEqual} return
+\code{false} whatever they are given, and \code{apply} ignores its visitor, so
+a \code{Visitor} walking an instruction never reaches the operands of a
+\code{TernaryAST}.
 
 \begin{apient}
   typedef boost::shared_ptr<TernaryAST> Ptr;
@@ -16,28 +22,38 @@ are known.
 \apidesc{ A type definition for a reference-counted pointer to a \code{TernaryAST}. }
 
 \begin{apient}
-  TernaryAST(Expression::Ptr cond, Expression::Ptr first, Expression::Ptr second, Result_Type result_type);
+  TernaryAST(Expression::Ptr cond,
+             Expression::Ptr first,
+             Expression::Ptr second,
+             Result_Type result_type);
 \end{apient}
 \apidesc{
-  Construct a register, assigning it the ID id.
+  Construct the conditional expression \code{cond ? first : second}, whose
+  result has type \code{result\_type}.
 }
 
 \begin{apient}
   bool isUsed(Expression::Ptr findMe) const;
 \end{apient}
 \apidesc{
-  Checks if findMe is a TernaryAST that represents the same register as this TernaryAST.
+  Not implemented; returns \code{false} for any \code{findMe}.
 }
 
 \begin{apient}
   std::string format(formatStyle how = defaultStyle) const;
 \end{apient}
-\apidesc{ The format method on a \code{TernaryAST} object returns the name associated with its ID. }
+\apidesc{
+  Returns the expression written as \code{(COND?FIRST:SECOND)}, with each
+  operand formatted in turn and the whole converted to upper case.
+}
 
 \begin{apient}
   bool operator<(const TernaryAST& rhs) const;
 \end{apient}
-\apidesc{ We define a partial ordering on registers by their register number so that they may be placed into
-sets or other sorted containers. }
+\apidesc{
+  Not implemented; returns \code{false} for any \code{rhs}, so
+  \code{TernaryAST} objects cannot be ordered and must not be put into sets or
+  other sorted containers that rely on this operator.
+}
 
 
