@@ -42,6 +42,12 @@ that it needs to let StackwalkerAPI receive and handle debug events. The user
 code can use system calls such as select to watch for events on the notification
 file descriptor.
 
+The notification file descriptor is not implemented: \code{getNotificationFD}
+returns $-1$ whatever the platform, so the example below stands as a
+description of the intended arrangement rather than something that can be run
+as it is. ProcControlAPI provides the same facility through
+\code{evNotify()->getFD()}.
+
 The following example illustrates how to properly use StackwalkerAPI to collect
 a stack walk from another process at a five second interval. Details on the
 \code{ProcDebug} class, \code{getNotificationFD} method, and
@@ -167,6 +173,11 @@ static int getNotificationFD();
     Section~\ref{subsec:debugger}.
 
 	StackwalkerAPI will only create one notification FD, even if it is attached to multiple 3rd party target processes.
+
+    \textbf{Not implemented:} this method returns $-1$ on every platform,
+    \code{sw\_pcontrol.C:372}, and no byte is ever written. Code that needs
+    this must use ProcControlAPI's notification instead, through
+    \code{evNotify()->getFD()}.
 }
 
 \begin{apient}
