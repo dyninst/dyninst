@@ -228,14 +228,18 @@ between the two subclasses.
 }
 
 \begin{apient}
-  bool wrapFunction(BPatch_function* old, BPatch_function* new, Dyninst::SymtabAPI::Symbol* sym);
-  bool revertWrapFunction(BPatch_function* old);
+  bool wrapFunction(BPatch_function* oldFunc,
+                    BPatch_function* newFunc,
+                    Dyninst::SymtabAPI::Symbol* clone);
+  bool revertWrapFunction(BPatch_function* wrappedFunc);
 \end{apient}
 
 \apidesc{
-  Replaces all calls to function old with calls to function new. Unlike replaceFunction
-  above, the old function can still be reached via the name specified by the
-  provided symbol sym. Function wrapping allows existing code to be extended by new
+  Replaces all calls to \code{oldFunc} with calls to \code{newFunc}. Unlike
+  replaceFunction above, the old function can still be reached via the name
+  specified by \code{clone}. \code{revertWrapFunction} undoes this, and takes
+  the function that was wrapped, \code{oldFunc}.
+  Function wrapping allows existing code to be extended by new
   code. Consider the following code that implements a fast memory allocator for a
   particular size of memory allocation, but falls back to the original memory allocator
   (referenced by origMalloc) for all others.
