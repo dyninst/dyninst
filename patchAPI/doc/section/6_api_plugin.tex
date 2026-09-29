@@ -449,11 +449,25 @@ Returns the CallModMap for function call replacement / removal.
 
 \begin{apient}
 AddrSpace* as() const;
+void setAs(AddrSpace* as);
 \end{apient}
 
 
 \apidesc{
-Returns the address space associated with this Instrumenter.
+Returns, or sets, the address space associated with this Instrumenter.
+}
+
+\begin{apient}
+virtual bool isInstrumentable(PatchFunction* func);
+\end{apient}
+
+
+\apidesc{
+Decides whether \code{func} may be instrumented. The default accepts every
+function. An \code{Instrumenter} that refuses one returns \code{false}, and
+that answer is what Dyninst acts on: \code{func\_instance::isInstrumentable}
+asks the manager's \code{Instrumenter}, and instrumentation of a function it
+refuses does not go in.
 }
 
 \subsection{Class Patcher}
