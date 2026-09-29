@@ -165,13 +165,16 @@ between the two subclasses.
 \end{apient}
 
 \apidesc{
-  Inserts all snippets accumulated since a call to beginInsertionSet. If the atomic
-  parameter is true, then a failure to insert any snippet results in all snippets
-  being removed; effectively, the insertion is all-or-nothing. If the atomic parameter
-  is false, then snippets are inserted individually. This function also fills in the
-  BPatchSnippetHandle structures returned by the insertSnippet calls comprising this
-  insertion set. It returns true on success and false if there was an error
-  inserting any snippets.
+  Inserts all snippets accumulated since a call to beginInsertionSet, as a single
+  batch: if any snippet fails to insert, the whole batch is undone. This function
+  also fills in the BPatchSnippetHandle structures returned by the insertSnippet
+  calls comprising this insertion set. It returns true on success and false if
+  there was an error inserting any snippets.
+
+  The \code{atomic} parameter is accepted and ignored. It was meant to choose
+  between that all-or-nothing batch and inserting the snippets individually, but
+  neither \code{BPatch\_process} nor \code{BPatch\_binaryEdit} reads it, and a
+  failed batch is rolled back whichever value is passed.
 
   The \code{modified} parameter is accepted and ignored. It was meant to be set
   to \code{true} when extra steps, such as changing the state of the process,
