@@ -130,6 +130,14 @@ virtual bool widenAtPoint(AssignmentPtr);
 \apidesc{The default behavior is to return \code{false}.}
 
 \begin{apient}
+virtual bool widenAtAssignment(const AbsRegion& in,
+                               const AbsRegion& out);
+\end{apient}
+\apidesc{The default behavior is to return \code{false}. The slicer does not
+call this function; it is declared for subclasses that were written against an
+earlier interface, and overriding it has no effect on a slice.}
+
+\begin{apient}
 virtual bool endAtPoint(AssignmentPtr);
 \end{apient}
 \apidesc{In backward slicing, after we find a match for an assignment, we pass
@@ -193,4 +201,47 @@ wants to continue slicing. If this function returns \code{false}, the Slicer
 will not continue to search along the path. The default behavior of this
 function is to always return \code{true}.}
 
+\begin{apient}
+virtual bool modifyCurrentFrame(SliceFrame& frame,
+                                GraphPtr graph,
+                                Slicer* slicer);
+\end{apient}
+\apidesc{This function is called after the slicer has added a node, and any
+edges reaching it, to the slice. \code{frame} is the frame the slicer is about
+to continue from, whose \code{active} member maps each AbsRegion still being
+searched for to the elements that want it; \code{graph} is the slice built so
+far; and \code{slicer} is the slicer itself. Erasing an entry from
+\code{frame.active} drops that AbsRegion from the search, and adding one
+introduces a new AbsRegion to follow, so a user can narrow or extend the slice
+in light of what it already contains. This function should return \code{true}
+if the user wants to continue slicing; returning \code{false} abandons the
+current path. The default behavior of this function is to always return
+\code{true}.}
 
+\begin{apient}
+virtual bool ignoreEdge(ParseAPI::Edge* edge);
+\end{apient}
+\apidesc{In backward slicing, this function is called for each control flow
+edge \code{edge} entering the block the slicer is leaving. It should return
+\code{true} if the user does not want the slice to continue across that edge.
+The default behavior of this function is to always return \code{false}.
+Forward slicing does not consult this function.}
+
+\begin{apient}
+virtual int slicingSizeLimitFactor();
+\end{apient}
+\apidesc{This function bounds the work the slicer will do. If it returns a
+positive value \code{n}, then once the slicer has crossed more than \code{n}
+times as many control flow edges as the slice has nodes, it stops descending
+and instead widens every AbsRegion still active, giving an imprecise slice
+rather than an expensive one. Because the bound is measured against the slice
+built so far, it grows as the slice does. A value of zero or less leaves the
+slice unbounded. The default behavior of this function is to return
+\code{-1}.}
+
+\begin{apient}
+virtual bool allowImprecision();
+\end{apient}
+\apidesc{The default behavior is to return \code{false}. The slicer does not
+call this function; it once guarded the use of imprecise AbsRegions, and
+overriding it has no effect on a slice.}
