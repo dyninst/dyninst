@@ -21,7 +21,7 @@ public:
 
   virtual void visit(Immediate* imm)
   {
-    if (imm != 0)
+    if (imm->eval().convert<long>() != 0)
       isNop = false;
     foundImm = true;
   }
