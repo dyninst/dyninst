@@ -8,4 +8,4 @@ std::string file = "libfoo.so";
 Symtab* obj = NULL;
 
 // Parse the object file
-bool err = Symtab::openFile(obj, file);
+bool ok = Symtab::openFile(obj, file);
