@@ -84,7 +84,7 @@ address.
 
 \begin{apient}
 Variable();
-Variable(AbsRegion r);
+explicit Variable(AbsRegion r);
 Variable(AbsRegion r, Address a);
 \end{apient}
 \apidesc{The constructors of class Variable.}
@@ -115,7 +115,7 @@ A \code{Constant} object represents a constant value in code.
 
 \begin{apient}
 Constant();
-Constant(uint64_t v);
+explicit Constant(uint64_t v);
 Constant(uint64_t v, size_t s);
 \end{apient}
 \apidesc{Construct Constant objects.}
