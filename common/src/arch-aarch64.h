@@ -146,13 +146,14 @@ public:
     static insn_mask CB =      0x34000000; // Compare & B
     static insn_mask TB =      0x36000000; // Test & B
 
-    static insn_mask CB_OFFSET_MASK = 0x07fffff0;
-    static insn_mask TB_OFFSET_MASK = 0x0007fff0;
-    static insn_mask BR_OFFSET_MASK = 0x07fffff0;
+    // imm19 (CB, BR) is bits [23:5] and imm14 (TB) is bits [18:5]
+    static insn_mask CB_OFFSET_MASK = 0x00ffffe0;
+    static insn_mask TB_OFFSET_MASK = 0x0007ffe0;
+    static insn_mask BR_OFFSET_MASK = 0x00ffffe0;
 
-    static insn_mask CB_OFFSHIFT = 4;
-    static insn_mask TB_OFFSHIFT = 4;
-    static insn_mask BR_OFFSHIFT = 4;
+    static insn_mask CB_OFFSHIFT = 5;
+    static insn_mask TB_OFFSHIFT = 5;
+    static insn_mask BR_OFFSHIFT = 5;
 };
 
 typedef union {
