@@ -1,5 +1,4 @@
 Walker* walker = Walker::newWalker(pid);
-ProcDebug* debugger = (ProcDebug *) walker->getProcessState();
 std::vector<Frame> swalk;
 for (;;)  {
   walker->walkStack(swalk);
