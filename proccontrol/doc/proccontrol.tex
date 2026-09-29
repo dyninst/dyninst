@@ -64,15 +64,14 @@
 
 \section{Events}
   ProcControlAPI captures and delivers events from processes and threads.
+  An \code{Event} passed to a callback function can be cast to the
+  appropriate child class by inspecting the \code{EventType}.
 
   \subsection{Class Event}
     \input{API/Event}
 
   \subsection{Class EventType}
     \input{API/EventType}
-
-  An \code{Event} passed to a callback function can be cast to the
-  appropriate child class by inspecting the \code{EventType}.
 
   \subsection{Class EventBreakpoint}
     \input{API/EventBreakpoint}
