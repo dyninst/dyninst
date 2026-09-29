@@ -31,49 +31,42 @@ void parseFile()
 void lookupAndUpdate()
 {
   Symtab *obj = nullptr;
-  (void)obj;
 #include "LookupAndUpdate.C"
 }
 
 void addVariable()
 {
   Symtab *obj = nullptr;
-  (void)obj;
 #include "AddVariable.C"
 }
 
 void createType()
 {
   Symtab *obj = nullptr;
-  (void)obj;
 #include "CreateType.C"
 }
 
 void lineNumbers()
 {
   Symtab *obj = nullptr;
-  (void)obj;
 #include "LineNumbers.C"
 }
 
 void localVariables()
 {
   Symtab *obj = nullptr;
-  (void)obj;
 #include "LocalVariables.C"
 }
 
 void iterateLineInfo()
 {
   Symtab *obj = nullptr;
-  (void)obj;
 #include "IterateLineInfo.C"
 }
 
 void retrieveType()
 {
   Symtab *obj = nullptr;
-  (void)obj;
 #include "RetrieveType.C"
 }
 
