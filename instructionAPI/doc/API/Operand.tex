@@ -16,12 +16,12 @@ knowledge about the state of the processor at the time the Instruction is
 executed.
 
 \begin{apient}
-Operand(Expression::Ptr val = {},
-        bool read = false,
-        bool written = false,
-        bool implicit = false,
-        bool trueP = false,
-        bool falseP = false);
+explicit Operand(Expression::Ptr val = {},
+                 bool read = false,
+                 bool written = false,
+                 bool implicit = false,
+                 bool trueP = false,
+                 bool falseP = false);
 \end{apient}
 \apidesc{
     Create an operand from an \code{Expression} and flags describing whether the
