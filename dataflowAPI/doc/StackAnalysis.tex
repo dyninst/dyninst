@@ -34,7 +34,7 @@ StackAnalysis(ParseAPI::Function* f,
               const std::set<Address>& toppable = std::set<Address>());
 \end{apient}
 \apidesc{
-	Constructs a StackAnalysis object for function \code{f} with interprocedural analysis activated. A call resolution map is passed in \code{crm} mapping addresses of call sites to the resolved inter-module target address of the call.  Generally the call resolution map is created with DyninstAPI where PLT resolution is done.  Function summaries are passed in \code{fs} which maps function entry addresses to summaries.  The function summaries are then used at all call sites to those functions.  Addresses in \code{toppable} are analyzed as though their stack height were unknown.
+	Constructs a StackAnalysis object for function \code{f} with interprocedural analysis activated. A call resolution map is passed in \code{crm} mapping addresses of call sites to the resolved inter-module target address of the call.  Generally the call resolution map is created with DyninstAPI where PLT resolution is done.  Function summaries are passed in \code{fs} which maps function entry addresses to summaries.  The function summaries are then used at all call sites to those functions.  Calls to functions whose entry address is in \code{toppable} set their return registers to TOP rather than BOTTOM: such a function is taken to return a value that does not point to the stack, instead of one whose relationship to the stack could not be determined. For a call resolved through \code{crm}, it is the resolved address that is looked up.
 }
 
 \begin{apient}
