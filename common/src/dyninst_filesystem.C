@@ -72,11 +72,11 @@ namespace Dyninst { namespace filesystem {
     // If no name is given, use current effective user
     if(username.empty()) {
       if(getpwuid_r(geteuid(), &pwd, buf.data(), size, &result) != 0) {
-    	  return {};
+        return {};
       }
     } else {
       if(getpwnam_r(username.c_str(), &pwd, buf.data(), size, &result) != 0) {
-    	  return {};
+        return {};
       }
     }
 
