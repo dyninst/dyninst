@@ -72,17 +72,7 @@ that connects two basic blocks.
 
 \subsubsection{Code Patching}
 
-\begin{lstlisting}[caption=Example of code patching]
-MySnippet::Ptr snippet = MySnippet::create(new MySnippet);
-
-Patcher patcher(mgr);
-for (std::vector<Point*>::iterator iter = pts.begin();
-      iter != pts.end(); ++iter)  {
-  Point* pt = *iter;
-  patcher.add(PushBackCommand::create(pt, snippet));
-}
-patcher.commit();
-\end{lstlisting}
+\lstinputlisting[caption=Example of code patching]{examples/CodePatching.C}
 
 The above code is to insert the same code \emph{snippet} to all points
 \emph{pts} found in Section~\ref{sec:example-point-finding}. We'll explain the snippet

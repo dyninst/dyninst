@@ -1,7 +1,6 @@
-// Not typeset.  FilteredIteration.C is printed as the body of a walk, so it
-// names two things the surrounding text describes rather than defines: the
-// function to start from, and the do_stuff functor a reader supplies.  This
-// gives it those and pulls it in for the docs build to compile.
+// Not typeset.  The examples beside this file are printed without the
+// headers and declarations they assume, so this supplies them and pulls
+// each one in for the docs build to compile.
 
 #include "CFG.h"
 #include "CodeObject.h"
@@ -25,7 +24,18 @@ struct do_stuff
   void operator()(Edge *) {}
 };
 
+// The block whose functions the getFuncs example asks for.
+static Block *block;
+
+// GetLoopInFunc is printed whole, so it is a definition rather than a body.
+#include "LoopAnalysis.C"
+
 void filteredIteration()
 {
 #include "FilteredIteration.C"
+}
+
+void blockFuncs()
+{
+#include "BlockFuncs.C"
 }
