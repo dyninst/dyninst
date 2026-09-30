@@ -1,6 +1,8 @@
+\declaredin{Event.h}
+
 An \code{EventNewUserThread} triggers when a process spawns a new user-level
 thread.
-The Event class\' getThread function returns the original Thread that performed
+The Event class' getThread function returns the original Thread that performed
 the spawn operation. This thread may have already been created if the platform
 supports the EventNewLWP event. If not, the getNewThread function returns the
 newly created Thread.
@@ -11,7 +13,7 @@ of \code{Process::cb\_ret\_t}  to control the parent and child thread.
 Associated EventType Code: \code{UserThreadCreate}
 
 \begin{apient}
-Thread::const_ptr getNewThread() const
+Thread::const_ptr getNewThread() const;
 \end{apient}
 
 \apidesc{

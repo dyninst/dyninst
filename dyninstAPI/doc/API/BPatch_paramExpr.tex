@@ -1,5 +1,7 @@
+\declaredin{BPatch\_snippet.h}
+
 \begin{apient}
-  BPatch_paramExpr(int paramNum)
+  BPatch_paramExpr(int paramNum, BPatch_ploc loc = BPatch_ploc_guess);
 \end{apient}
 
 \apidesc{
@@ -10,4 +12,9 @@
   execution, this snippet type is only valid at points that are
   entries to subroutines, or when inserted at a call point
   with the when parameter set to \code{BPatch\_callBefore.}
+
+  \code{loc} says whether the parameter is read at the call or at the
+  function's entry point.  The default, \code{BPatch\_ploc\_guess},
+  leaves Dyninst to decide from the point type; that is error-prone and
+  deprecated, so name the location where you can.
 }

@@ -1,16 +1,18 @@
+\declaredin{PCProcess.h}
+
 A Library represents a single shared library (frequently
 referred to as a DLL or DSO, depending on the OS) that has been loaded into the
 target process. In addition, a Library will be used to represent the
-process\' executable. Process\' with statically linked executables
+process' executable. Processes with statically linked executables
 will only contain the single Library that
 represents the executable.
 
 Each Library contains a load address and a file
 name. The load address is the address at which the OS loaded the library, and
-the file name is the path to the library\'s file. Note
+the file name is the path to the library's file. Note
 that on some operating systems (e.g., Linux and FreeBSD) the load
 address does not necessarily represent the beginning of the library in memory;
-instead it is a value that can be added to a library\'s
+instead it is a value that can be added to a library's
 symbol offsets to compute the dynamic address of a symbol.
 
 Libraries may be loaded and unloaded by the process during execution. A
@@ -19,8 +21,8 @@ The current list of libraries loaded into a process can be accessed via the
 \code{LibraryPool} of a \code{Process}.
 
 \begin{apient}
-  Library::ptr
-  Library::const_ptr
+  Library::ptr;
+  Library::const_ptr;
 \end{apient}
 
 \apidesc{
@@ -28,7 +30,7 @@ The current list of libraries loaded into a process can be accessed via the
 }
 
 \begin{apient}
-  std::string getName() const
+  std::string getName() const;
 \end{apient}
 
 \apidesc{
@@ -36,7 +38,7 @@ The current list of libraries loaded into a process can be accessed via the
 }
 
 \begin{apient}
-  std::string getAbsoluteName() const
+  std::string getAbsoluteName() const;
 \end{apient}
 
 \apidesc{
@@ -45,7 +47,7 @@ The current list of libraries loaded into a process can be accessed via the
 }
 
 \begin{apient}
-  Dyninst::Address getLoadAddress() const
+  Dyninst::Address getLoadAddress() const;
 \end{apient}
 
 \apidesc{
@@ -53,7 +55,7 @@ The current list of libraries loaded into a process can be accessed via the
 }
 
 \begin{apient}
-  Dyninst::Address getDataLoadAddress() const
+  Dyninst::Address getDataLoadAddress() const;
 \end{apient}
 
 \apidesc{
@@ -66,17 +68,17 @@ The current list of libraries loaded into a process can be accessed via the
 }
 
 \begin{apient}
-  Dyninst::Address getDynamicAddress() const
+  Dyninst::Address getDynamicAddress() const;
 \end{apient}
 
 \apidesc{
   On ELF based systems (FreeBSD, Linux) this function will return the
-  address of the Library\'s dynamic section. On other
+  address of the Library's dynamic section. On other
   systems this function returns 0.
 }
 
 \begin{apient}
-  bool isSharedLib() const
+  bool isSharedLib() const;
 \end{apient}
 
 \apidesc{
@@ -85,7 +87,7 @@ The current list of libraries loaded into a process can be accessed via the
 }
 
 \begin{apient}
-  void *getData() const
+  void* getData() const;
 \end{apient}
 
 \apidesc{
@@ -94,7 +96,7 @@ The current list of libraries loaded into a process can be accessed via the
 }
 
 \begin{apient}
-  void setData(void *p) const
+  void setData(void* p) const;
 \end{apient}
 
 \apidesc{

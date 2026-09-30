@@ -1,72 +1,104 @@
-\subsection{MultiRegister Class}
-\label{sec:MultiRegister}
+\subsection{Class MultiRegisterAST}
+\label{sec:MultiRegisterAST}
 
-A \code{MultiMultiRegister} object represents a ordered collection of registers as a single operand
-As a \code{MultiMultiRegister} is a \code{Expression}, it may contain the physical register\'s contents if
-they are known.
- 
+\declaredin{MultiRegister.h}
+
+A \code{MultiRegisterAST} object represents an ordered collection of registers
+as a single operand. As a \code{MultiRegisterAST} is an \code{Expression}, it
+may contain the physical registers' contents if they are known.
+
 
 \begin{apient}
-typedef dyn\_detail::boost::shared\_ptr<MultiRegister> Ptr
+typedef boost::shared_ptr<MultiRegisterAST> Ptr;
 \end{apient}
 \apidesc{
-A type definition for a reference-counted pointer to a \code{MultiRegister}.
+A type definition for a reference-counted pointer to a \code{MultiRegisterAST}.
 }
 
 \begin{apient}
-MultiRegister (MachRegister r)
+MultiRegisterAST(MachRegister r, uint32_t num_elements = 1);
 \end{apient}
 \apidesc{
-Construct a register using the provided register object \code{r}. The
-\code{MachRegister} datatype is Dyninst's register representation and
-should not be constructed manually. 
+Construct a collection of \code{num\_elements} consecutive registers beginning
+at \code{r}. The registers after the first are formed by incrementing the
+register number of \code{r}, so a collection built this way is always
+consecutive. The \code{MachRegister} datatype is Dyninst's register
+representation and should not be constructed manually.
 }
 
 \begin{apient}
 MultiRegisterAST(std::vector<RegisterAST::Ptr> _in);
 \end{apient}
-
-\begin{apient}
-bool isUsed (Expression::Ptr findMe) const
-\end{apient}
 \apidesc{
-\code{isUsed} returns \code{true} if \code{findMe} is a \code{MultiRegister} that represents the same register as this \code{MultiRegister}, and \code{false} otherwise.
+Construct a collection from the registers in \code{\_in}, keeping their order.
+\code{\_in} must not be empty, as its first element supplies the base register.
+The registers given need not be consecutive.
 }
 
 \begin{apient}
-std::string format (formatStyle how = defaultStyle) const
+bool isUsed(Expression::Ptr findMe) const;
 \end{apient}
 \apidesc{
-The format method on a \code{MultiRegister} object returns the name associated with its ID.
+\code{isUsed} is meant to return \code{true} if \code{findMe} is a
+\code{MultiRegisterAST} holding the same registers, in the same order, as this
+one. It compares the constituent \code{RegisterAST::Ptr} values rather than the
+registers they refer to, so it holds only when the two objects share their
+element objects. A \code{MultiRegisterAST} built
+separately for the same registers returns \code{false}, which is why
+\code{Operand::isRead} and \code{Operand::isWritten} do not answer \code{true}
+for a candidate the caller constructed. Every other \code{Expression} in this
+interface compares by value.
 }
 
 \begin{apient}
-MultiRegister makePC (Dyninst::Architecture arch) [static]
+std::string format(formatStyle how = defaultStyle) const;
 \end{apient}
 \apidesc{
-Utility function to get a \code{Register} object that represents the program counter.
-\code{makePC} is provided to support platform-independent control flow analysis.
+Returns the constituent registers, each formatted in turn, separated by commas
+and enclosed in brackets, as in \code{[RAX,RBX]}.
 }
 
 \begin{apient}
-bool operator< (const MultiRegister & rhs) const
+bool operator<(const MultiRegisterAST& rhs) const;
 \end{apient}
 \apidesc{
-We define a partial ordering on registers by their register number so that they may be placed
-into sets or other sorted containers.
+Orders two \code{MultiRegisterAST} objects so that they may be placed into sets
+or other sorted containers. Like \code{isUsed} it compares the constituent
+\code{RegisterAST::Ptr} values rather than the registers, so the order is by
+address and does not follow the register numbers.
 }
 
 \begin{apient}
-MachRegister getID () const
+RegisterAST::Ptr getBaseRegAST() const;
 \end{apient}
 \apidesc{
-The \code{getID} function returns underlying register represented by
-this AST. 
+Returns the first register of the collection. For a collection constructed
+from a starting register and a count, this is the register it started from.
 }
 
 \begin{apient}
-MultiRegister::Ptr promote (const Expression::Ptr reg) [static]
+uint32_t length() const;
 \end{apient}
 \apidesc{
-Utility function to hide aliasing complexity on platforms (IA-32) that allow addressing part or all of a register
+Returns the number of registers in the collection.
 }
+
+\begin{apient}
+const std::vector<RegisterAST::Ptr>& getRegs() const;
+\end{apient}
+\apidesc{
+Returns the registers themselves, in the order the collection holds them.
+This is the only way to reach them individually.
+}
+
+\begin{apient}
+bool areConsecutive() const;
+\end{apient}
+\apidesc{
+Returns \code{true} if the registers are known to be consecutive, which tells
+a caller which of the two constructors produced this object. A collection
+built from a starting register and a count is consecutive by construction;
+one built from a vector of registers is not, since the registers in it are
+taken as given.
+}
+

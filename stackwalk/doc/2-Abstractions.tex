@@ -6,14 +6,14 @@ Callback Interface. The stackwalking interface is used to walk the call stack,
 query information about stack frames, and collect basic information about
 threads. The Callback Interface is used to provide custom mechanisms for walking
 a call stack. Users who operate in one of StackwalkerAPI's standard
-configurations do not need to use the Callback Interface. 
-    
+configurations do not need to use the Callback Interface.
+
 Figure~\ref{fig:object-ownership} shows the ownership hierarchy for
-StackwalkerAPI's classes. Ownership is a "contains" relationship; if one class
+StackwalkerAPI's classes. Ownership is a ``contains'' relationship; if one class
 owns another, then instances of the owner class maintain an exclusive instance
 of the other. For example, in Figure~\ref{fig:object-ownership} the each Walker
 instance contains exactly one instance of a ProcessState object.  No other
-instance of Walker uses that instance of ProcessState.  
+instance of Walker uses that instance of ProcessState.
 
 This remainder of this
 section briefly describes the six classes that make up StackwalkerAPI's two
@@ -33,13 +33,13 @@ Section~\ref{sec:api}.
         about the stack frame and basic information about the function, signal
         handler or other mechanism that created it. Users can request
         information such as the symbolic name associated with the Frame object,
-        and values of its saved registers. 
+        and values of its saved registers.
 \end{description}
 
 \subsection{Callback Interface}
 StackwalkerAPI includes default implementations of the Callback Interface on
 each of its supported platforms. These default implementations allow
-StackwalkerAPI to work "out of the box" in a standard configuration on each
+StackwalkerAPI to work ``out of the box'' in a standard configuration on each
 platform. Users can port StackwalkerAPI to new platforms or customize its call
 stack walking behavior by implementing their own versions of the classes in the
 Callback Interface.

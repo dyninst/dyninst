@@ -1,9 +1,9 @@
 \section{Abstractions}
-\label{sec-abs}
+\label{sec:abstractions}
 
 \begin{figure}[ht!]
 \centerline{\includegraphics[width=0.85\textwidth]{./figure/abstraction/img.pdf}}
-\caption{\label{fig:abs}Object Ownership}
+\caption{\label{fig:object-ownership}Object Ownership}
 \end{figure}
 
 
@@ -14,20 +14,20 @@ interface is used to customize different aspects in the binary code patching.
 PatchAPI provides a set of default plugins for first party code patching, which
 is easy to extend to meet different requirements in practice.
 
-Figure \ref{fig:abs} shows the ownership hierarchy for PatchAPI's classes.
+Figure~\ref{fig:object-ownership} shows the ownership hierarchy for PatchAPI's classes.
 Ownership is a ``contains'' relationship. If one class owns another, then
 instances of the owner class maintain exactly one or possibly more than one
 instances of the other, which depends on whether the relationship is a ``1:1''
-or a ``1:n'' relationship. In Figure \ref{fig:abs}, for example, each PatchMgr
+or a ``1:n'' relationship. In Figure~\ref{fig:object-ownership}, for example, each PatchMgr
 instance contains exactly one instance of a AddrSpace object, while a PatchMgr
 instance may contains more than one instances of a Point object.
 
 The remainder of this section briefly describes the classes that make up
 PatchAPI's two interfaces. For more details, see the class descriptions in
-Section~\ref{sec-public-api} and Section~\ref{sec-plugin-api}.
+Section~\ref{sec:public-api} and Section~\ref{sec:plugin-api}.
 
 \subsection{Public Interface}
-\label{sec-2.1}
+\label{sec:public-interface}
 
 PatchMgr, Point, and Snippet are used to perform the main process of binary code
 patching: 1) find some \textbf{Point}; 2) insert or delete \textbf{Snippet} at some \textbf{Point}.
@@ -54,12 +54,12 @@ patching: 1) find some \textbf{Point}; 2) insert or delete \textbf{Snippet} at s
 \item \emph{PatchLoop} - The PatchLoop class is a wrapper of ParseAPI's Loop class,
     which repreents a piece of code that may execute repeatedly.
 \item \emph{PatchLoopTreeNode} - The PatchLoopTreeNode class is a wrapper of ParseAPI's LoopTreeNode class,
-    which provides a tree interface to a collection of instances of class PatchLoop contained in a function. 
-    The structure of the tree follows the nesting relationship of the loops in a function. 
+    which provides a tree interface to a collection of instances of class PatchLoop contained in a function.
+    The structure of the tree follows the nesting relationship of the loops in a function.
 
 \end{itemize}
 \subsection{Plugin Interface}
-\label{sec-2.2}
+\label{sec:plugin-interface}
 
 The address space abstraction determines whether the code patching is 1st party,
 3rd party or binary rewriting.
@@ -101,7 +101,7 @@ Point class by extending it.
 
 \begin{figure}[ht!]
 \centerline{\includegraphics[width=0.85\textwidth]{./figure/command/img.pdf}}
-\caption{\label{fig:inh}Inheritance Hierarchy}
+\caption{\label{fig:inheritance-hierarchy}Inheritance Hierarchy}
 \end{figure}
 
 The implementation of an instrumentation engine may be very sophisticated (e.g.,
@@ -114,7 +114,7 @@ requests should succeed or all should fail. In our framework, the
 \textbf{Command} abstraction represents an instrumentation request or a logical
 step in the code patching process. We accumulate a list of \textbf{Commands},
 and execute them one by one. If one \textbf{Command} fails, we undo all
-preceding finished \textbf{Commands}. Figure \ref{fig:inh} illustrates the
+preceding finished \textbf{Commands}. Figure~\ref{fig:inheritance-hierarchy} illustrates the
 inheritance hierarchy for related classes. There is a default implementation of
 instrumentation engine in PatchAPI for 1st party code patching.
 

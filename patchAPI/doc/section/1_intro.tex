@@ -1,5 +1,5 @@
 \section{Introduction}
-\label{sec-intro}
+\label{sec:intro}
 
 This manual describes PatchAPI, a programming interface and library
 for binary code patching. A programmer uses PatchAPI to instrument
@@ -12,11 +12,11 @@ with PatchAPI, is designed to be flexible and extensible. First, users
 may \emph{inherit} from PatchAPI abstractions in order to store their
 own data. Second, users may create \emph{plugins} to extend PatchAPI
 to handle new types of instrumentation, different binary types, or
-different patching techniques. 
+different patching techniques.
 
 PatchAPI represents the binary as an annotatable and modifiable CFG. The CFG
 consists of abstractions for binary objects, functions, basic blocks, edges
-connecting basic blocks, and loops representing code that may execute repeatedly, 
+connecting basic blocks, and loops representing code that may execute repeatedly,
 which are similar to the CFG abstractions used by the
 \href{ftp://ftp.cs.wisc.edu/paradyn/releases/release7.0/doc/parseapi.pdf}{ParseAPI}
 component.
@@ -50,10 +50,10 @@ generation techniques. These capabilities are provided by a plugin
 interface; by implementing a plugin a developer may extend PatchAPI's
 capabilities.
 
-This manual is structured as follows. Section~\ref{sec-abs} presents the core
+This manual is structured as follows. Section~\ref{sec:abstractions} presents the core
 abstractions in the public and plugin interface of
-PatchAPI. Section~\ref{sec-example} shows several examples in C++ to illustrate
+PatchAPI. Section~\ref{sec:examples} shows several examples in C++ to illustrate
 the usage of PatchAPI. Detailed API reference can be found in
-Section~\ref{sec-public-api} and Section~\ref{sec-plugin-api}. Finally,
-Appendix~\ref{sec-dyn} provides a quick tutorial of PatchAPI to those who are
+Section~\ref{sec:public-api} and Section~\ref{sec:plugin-api}. Finally,
+Appendix~\ref{sec:dyninst-programmers} provides a quick tutorial of PatchAPI to those who are
 already familiar with DyninstAPI.

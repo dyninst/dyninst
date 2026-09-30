@@ -53,18 +53,18 @@ The following definitions deal with the type and the local variable interface.
 \subsection{Basic Types}
 
 \begin{apient}
-typedef unsigned long Offset
+typedef unsigned long Offset;
 \end{apient}
 \apidesc{An integer value that contains an offset from base address of the object file.}
 \begin{apient}
-typedef int typeId_t
+typedef int typeId_t;
 \end{apient}
 \apidesc{A unique handle for identifying a type. Each of types is assigned a globally unique ID. This way it is easier to identify any data type of a variable or a parameter.}
 \begin{apient}
-typedef ... PID
+typedef ... PID;
 \end{apient}
 \apidesc{A handle for identifying a process that is used by the dynamic components of SymtabAPI. On UNIX platforms PID is a int, on Windows it is a HANDLE that refers to a process.}
 \begin{apient}
-typedef unsigned long Address
+typedef unsigned long Address;
 \end{apient}
 \apidesc{An integer value that represents an address in a process. This is used by the dynamic components of SymtabAPI.}

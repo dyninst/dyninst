@@ -1,10 +1,12 @@
+\declaredin{BPatch\_image.h}
+
 This class defines a program image (the executable associated with a
 process). The only way to get a handle to a
 \code{BPatch\_image} is via the \code{BPatch\_process} member
 function \code{getImage}.
 
 \begin{apient}
-  bool findPoints(Dyninst::Address addr, std::vector<BPatch_point *> &points)
+  bool findPoints(Dyninst::Address addr, std::vector<BPatch_point*>& points);
 \end{apient}
 
 \apidesc{
@@ -15,7 +17,7 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  std::vector<BPatch_variableExpr *> *getGlobalVariables()
+  std::vector<BPatch_variableExpr*>* getGlobalVariables();
 \end{apient}
 
 \apidesc{
@@ -23,7 +25,7 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  BPatch_process *getProcess()
+  BPatch_process* getProcess();
 \end{apient}
 
 \apidesc{
@@ -31,7 +33,7 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  char *getProgramFileName(char *name, unsigned int len)
+  char* getProgramFileName(char* name, unsigned int len);
 \end{apient}
 
 \apidesc{
@@ -41,7 +43,7 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  bool getSourceObj(std::vector<BPatch_sourceObj *> &sources)
+  bool getSourceObj(std::vector<BPatch_sourceObj*>& sources);
 \end{apient}
 
 \apidesc{
@@ -51,7 +53,7 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  std::vector<BPatch_function *> *getProcedures(bool incUninstrumentable = false)
+  std::vector<BPatch_function*>* getProcedures(bool incUninstrumentable = false);
 \end{apient}
 
 \apidesc{
@@ -62,7 +64,7 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  void getObjects(std::vector<BPatch_object *> &objs)
+  void getObjects(std::vector<BPatch_object*>& objs);
 \end{apient}
 
 \apidesc{
@@ -70,7 +72,7 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  std::vector<BPatch_module *> *getModules()
+  std::vector<BPatch_module*>* getModules();
 \end{apient}
 
 \apidesc{
@@ -78,7 +80,7 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  bool getVariables(std::vector<BPatch_variableExpr *> &vars)
+  bool getVariables(std::vector<BPatch_variableExpr*>& vars);
 \end{apient}
 
 \apidesc{
@@ -89,14 +91,14 @@ function \code{getImage}.
 
 \begin{apient}
   std::vector<BPatch_function*> *
-  findFunction(const char *name, std::vector<BPatch_function*> &funcs,
+  findFunction(const char* name, std::vector<BPatch_function*>& funcs,
                bool showError = true, bool regex_case_sensitive = true,
-               bool incUninstrumentable = false)
+               bool incUninstrumentable = false);
 \end{apient}
 
 \apidesc{
   Return a vector of \code{BPatch\_function}s corresponding to name,
-  or NULL if the function does not exist. If name contains a
+  or \code{nullptr} if the function does not exist. If name contains a
   POSIX-extended regular expression, and \code{dont\_use\_regex} is
   false, a regular expression search will be performed on
   function names and matching \code{BPatch\_function}s returned. If
@@ -105,7 +107,7 @@ function \code{getImage}.
   If the incUninstrumentable flag is set, the returned table of
   procedures will include uninstrumentable functions. The
   default behavior is to omit these functions.
-  
+
   [NOTE: If name is not found to match any demangled function names
     in the module, the search is repeated as if name is a
     mangled function name. If this second search succeeds, functions
@@ -114,22 +116,21 @@ function \code{getImage}.
 }
 
 \begin{apient}
-
-  bool (*BPatchFunctionNameSieve) (
-    const char *name,
+  typedef bool (*BPatchFunctionNameSieve)(
+    const char* name,
     void* sieve_data
-  )  
-  
+  );
+
   std::vector<BPatch_function*>*
-  findFunction(std::vector<BPatch_function*> &funcs, BPatchFunctionNameSieve bpsieve,
-               void *sieve_data = NULL, int showError = 0,
-               bool incUninstrumentable = false)
+  findFunction(std::vector<BPatch_function*>& funcs, BPatchFunctionNameSieve bpsieve,
+               void* sieve_data = NULL, int showError = 0,
+               bool incUninstrumentable = false);
 \end{apient}
 
 \apidesc{
   Return a vector of \code{BPatch\_function} s according to the generalized
   user\-specified filter function bpsieve.
-  
+
   This permits users to easily build sets of functions according to
   their own specific criteria.
   Internally, for each \code{BPatch\_function} \code{f} in the image,
@@ -147,7 +148,7 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  bool findFunction(Dyninst::Address addr, std::vector<BPatch_function *> &funcs)
+  bool findFunction(Dyninst::Address addr, std::vector<BPatch_function*>& funcs);
 \end{apient}
 
 \apidesc{
@@ -159,8 +160,8 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  BPatch_variableExpr *findVariable(const char *name, bool showError = true)
-  BPatch_variableExpr *findVariable(BPatch_point &scope, const char *name)
+  BPatch_variableExpr* findVariable(const char* name, bool showError = true);
+  BPatch_variableExpr* findVariable(BPatch_point& scope, const char* name);
 \end{apient}
 
 \apidesc{
@@ -177,7 +178,7 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  BPatch_type *findType(const char *name)
+  BPatch_type* findType(const char* name);
 \end{apient}
 
 \apidesc{
@@ -188,30 +189,30 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  BPatch_module *findModule(const char *name, bool substring_match = false)
+  BPatch_module* findModule(const char* name, bool substring_match = false);
 \end{apient}
 
 \apidesc{
   Returns a module named name if present in the image. If the match
-  fails, NULL is returned. If \code{substring\_match} is
+  fails, \code{nullptr} is returned. If \code{substring\_match} is
   true, the first module that has name as a substring of its name is
   returned (e.g. to find libpthread.so.1, search for
   libpthread with \code{substring\_match} set to true).
 }
 
 \begin{apient}
-  bool getSourceLines(unsigned long addr, std::vector<BPatch_statement> & lines)
+  bool getSourceLines(unsigned long addr, std::vector<BPatch_statement>& lines);
 \end{apient}
 
 \apidesc{
   Given an address addr, this function returns a vector of pairs of
   filenames and line numbers at that address. This
-  function is an alias for \code{BPatch\_­process::getSourceLines}.
+  function is an alias for \code{BPatch\_\-process::getSourceLines}.
 }
 
 \begin{apient}
-  bool getAddressRanges(const char *fileName, unsigned int lineNo,
-                        std::vector<std::pair< unsigned long, unsigned long>> &ranges )
+  bool getAddressRanges(const char* fileName, unsigned int lineNo,
+                        std::vector<Dyninst::SymtabAPI::AddressRange>& ranges);
 \end{apient}
 
 \apidesc{
@@ -222,8 +223,8 @@ function \code{getImage}.
 }
 
 \begin{apient}
-  bool parseNewFunctions(std::vector<BPatch_module*> &newModules,
-                         const std::vector<Dyninst::Address> &funcEntryAddrs)
+  bool parseNewFunctions(std::vector<BPatch_module*>& newModules,
+                         const std::vector<Dyninst::Address>& funcEntryAddrs);
 \end{apient}
 
 \apidesc{

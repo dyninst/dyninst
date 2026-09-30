@@ -1,3 +1,5 @@
+\declaredin{StackMod.h}
+
 Stack modifications are based on the
 abstraction of stack locations, not the contents of these locations.
 All stack offsets are with respect to the original
@@ -9,10 +11,12 @@ Only implemented on x86 and x86-64.
   This class defines modifications to the stack frame layout of a function.
 }
 
-\subsubsection{Insert}
+\subsubsection{Class Insert}
+
+\declaredin{StackMod.h}
 
 \begin{apient}
-  Insert(int low, int high)
+  Insert(int low, int high);
 \end{apient}
 
 \apidesc{
@@ -24,10 +28,12 @@ Only implemented on x86 and x86-64.
   be non-contiguous after [low,high) is inserted.
 }
 
-\subsubsection{Remove}
+\subsubsection{Class Remove}
+
+\declaredin{StackMod.h}
 
 \begin{apient}
-  Remove(int low, int high)
+  Remove(int low, int high);
 \end{apient}
 
 \apidesc{
@@ -39,10 +45,12 @@ Only implemented on x86 and x86-64.
   [low,high).
 }
 
-\subsubsection{Move}
+\subsubsection{Class Move}
+
+\declaredin{StackMod.h}
 
 \begin{apient}
-  Move(int sLow, int sHigh, int dLow)
+  Move(int sLow, int sHigh, int dLow);
 \end{apient}
 
 \apidesc{
@@ -53,16 +61,18 @@ Only implemented on x86 and x86-64.
   sHigh)} are unsafe.
 }
 
-\subsubsection{Canary}
+\subsubsection{Class Canary}
+
+\declaredin{StackMod.h}
 
 \begin{apient}
-  Canary()
-  Canary(BPatch_function* failFunc)
+  Canary();
+  Canary(BPatch_function* failFunc);
 \end{apient}
 
 \apidesc{
   implemented on Linux, GCC only
-  
+
   This constructor creates a stack modification that inserts a stack
   canary at function entry and a corresponding canary
   check at function exit(s).
@@ -80,11 +90,13 @@ Only implemented on x86 and x86-64.
   compiled with \code{-fstack-protector}.
 }
 
-\subsubsection{Randomize}
+\subsubsection{Class Randomize}
+
+\declaredin{StackMod.h}
 
 \begin{apient}
-  Randomize()
-  Randomize(int seed)
+  Randomize();
+  Randomize(int seed);
 \end{apient}
 
 \apidesc{

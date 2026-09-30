@@ -1,3 +1,5 @@
+\declaredin{BPatch\_snippet.h}
+
 \begin{apient}
   enum BPatch_relOp {
     BPatch_lt,  // Return lOperand < rOperand
@@ -6,9 +8,9 @@
     BPatch_le,  // Return lOperand <= rOperand
     BPatch_ne,  // Return lOperand != rOperand
     BPatch_ge,  // Return lOperand >= rOperand
-    BPatch_and, // Return lOperand && rOperand (Boolean and)
-    BPatch_or,  // Return lOperand || rOperand (Boolean or)
-  }
+    BPatch_and, // Return lOperand && rOperand
+    BPatch_or,  // Return lOperand || rOperand
+  };
 \end{apient}
 
 \apidesc{
@@ -16,8 +18,8 @@
 }
 
 \begin{apient}
-  BPatch_boolExpr(BPatch_relOp op, const BPatch_snippet &lOperand,
-                  const BPatch_snippet &rOperand)}
+  BPatch_boolExpr(BPatch_relOp op, const BPatch_snippet& lOperand,
+                  const BPatch_snippet& rOperand);
 \end{apient}
 
 \apidesc{

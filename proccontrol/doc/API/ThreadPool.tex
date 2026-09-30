@@ -1,3 +1,5 @@
+\declaredin{PCProcess.h}
+
 A \code{ThreadPool} is a collection of threads that make up a
 process. Each \code{Process} has one \code{ThreadPool}. A \code{ThreadPool}
 is typically used to iterate over or search the set of Threads. It satisfies the C++
@@ -14,8 +16,8 @@ do not guarantee that the Thread objects will refer to live threads or that
 they return all Threads.
 
 \begin{apient}
-ThreadPool::iterator find(Dyninst::LWP lwp)
-ThreadPool::const_iterator find(Dyninst::LWP lwp) const
+ThreadPool::iterator find(Dyninst::LWP lwp);
+ThreadPool::const_iterator find(Dyninst::LWP lwp) const;
 \end{apient}
 
 \apidesc{
@@ -25,7 +27,7 @@ this function returns end().
 }
 
 \begin{apient}
-size_t size() const
+size_t size() const;
 \end{apient}
 
 \apidesc{
@@ -33,8 +35,8 @@ This function returns the number of Threads in the Process.
 }
 
 \begin{apient}
-Process::ptr getProcess()
-Process::const_ptr getProcess() const 
+Process::ptr getProcess();
+Process::const_ptr getProcess() const;
 \end{apient}
 
 \apidesc{
@@ -43,8 +45,8 @@ that owns this ThreadPool.
 }
 
 \begin{apient}
-Thread::ptr getInitialThread()
-Thread::const_ptr getInitialThread() const
+Thread::ptr getInitialThread();
+Thread::const_ptr getInitialThread() const;
 \end{apient}
 
 \apidesc{

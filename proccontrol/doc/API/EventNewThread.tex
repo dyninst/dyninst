@@ -1,6 +1,8 @@
+\declaredin{Event.h}
+
 An \code{EventNewThread} triggers when a process spawns a new thread. The Event
-class\' getThread function returns the original Thread that performed the spawn
-operation, while \code{EventNewThread}\'s getNewThread returns the newly created
+class' getThread function returns the original Thread that performed the spawn
+operation, while \code{EventNewThread}'s getNewThread returns the newly created
 Thread.
 
 This event is never instantiated by ProcControlAPI and simply serves as a
@@ -14,7 +16,7 @@ Associated EventType Codes: \code{ThreadCreate}, \code{UserThreadCreate}, and
 \code{LWPCreate}
 
 \begin{apient}
-Thread::const_ptr getNewThread() const
+Thread::const_ptr getNewThread() const;
 \end{apient}
 
 \apidesc{

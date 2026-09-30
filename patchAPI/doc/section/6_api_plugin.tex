@@ -1,5 +1,5 @@
 \section{Plugin API Reference}
-\label{sec-plugin-api}
+\label{sec:plugin-api}
 
 This section describes the various plugin interfaces for extending PatchAPI. We
 expect that most users should not have to ever explicitly use an interface from
@@ -9,10 +9,10 @@ developers.
 As with the public interface, all objects and methods in this section are in the
 ``Dyninst::PatchAPI'' namespace.
 
-\subsection{AddrSpace}
-\label{sec-3.2.1}
+\subsection{Class AddrSpace}
+\label{sec:addrspace}
 
-\textbf{Declared in}: AddrSpace.h
+\declaredin{AddrSpace.h}
 
 The AddrSpace class represents the address space of a \textbf{Mutatee}, where it
 contains a collection of \textbf{PatchObjects} that represent shared libraries
@@ -54,7 +54,7 @@ If this method succeeds, it returns a non-zero address; otherwise, it returns 0.
 }
 
 \begin{apient}
-virtual Address realloc(PatchObject* obj, Address orig, size_t size);
+virtual bool realloc(PatchObject* obj, Address orig, size_t size);
 \end{apient}
 
 
@@ -65,7 +65,7 @@ buffer near the address \emph{orig}, where \emph{orig} is a relative address in 
 PatchObject \emph{obj} if the instrumentation is for binary rewriting; otherwise,
 \emph{orig} is an absolute address.
 
-If this method succeeds, it returns a non-zero address; otherwise, it returns 0.
+If this method succeeds, it returns true; otherwise, it returns false.
 }
 
 \begin{apient}
@@ -115,7 +115,7 @@ Returns the PatchObject of the executable of the \textbf{Mutatee}.
 }
 
 \begin{apient}
-PatchMgrPtr mgr();
+PatchMgrPtr mgr() const;
 \end{apient}
 
 
@@ -123,10 +123,10 @@ PatchMgrPtr mgr();
 Returns the PatchMgr's pointer, where the PatchMgr contains this address space.
 }
 
-\subsection{Snippet}
-\label{sec-3.2.2}
+\subsection{Class Snippet}
+\label{sec:snippet}
 
-\textbf{Declared in}: Snippet.h
+\declaredin{Snippet.h}
 
 The Snippet class allows programmers to customize their own snippet
 representation and the corresponding mini-compiler to translate the
@@ -143,7 +143,7 @@ Creates an object of the Snippet.
 }
 
 \begin{apient}
-virtual bool generate(Point *pt, Buffer &buf);
+virtual bool generate(Point* pt, Buffer& buf) = 0;
 \end{apient}
 
 
@@ -156,10 +156,10 @@ Returns false if code generation failed catastrophically. Point {\em pt} is an
 in-param that identifies where the snippet is being generated.  Buffer {\em buf}
 is an out-param that holds the generated code.  }
 
-\subsection{Command}
-\label{sec-3.2.3}
+\subsection{Class Command}
+\label{sec:command}
 
-\textbf{Declared in}: Command.h
+\declaredin{Command.h}
 
 The Command class represents an instrumentation request (e.g., snippet insertion
 or removal), or an internal logical step in the code patching (e.g., install
@@ -196,21 +196,19 @@ Implements the transactional semantics: all succeed, or all fail. Basically, it
 performs such logic:
 }
 
-\lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
-\lstset{numbers=none}
 \begin{lstlisting}
-if (run()) {
+if (run())  {
   return true;
-} else {
+}  else  {
   undo();
   return false;
 }
 \end{lstlisting}
 
-\subsection{BatchCommand}
-\label{sec-3.2.4}
+\subsection{Class BatchCommand}
+\label{sec:batchcommand}
 
-\textbf{Declared in}: Command.h
+\declaredin{Command.h}
 
 The BatchCommand class inherits from the Command class. It is actually a
 container of a list of Commands that will be executed in a transaction: all
@@ -218,7 +216,7 @@ Commands will succeed, or all will fail.
 
 
 \begin{apient}
-typedef std::list<CommandPtr> CommandList;
+typedef std::list<Command*> CommandList;
 
 CommandList to_do_;
 CommandList done_;
@@ -244,7 +242,7 @@ order.
 }
 
 \begin{apient}
-void add(CommandPtr command);
+void add(Command* command);
 \end{apient}
 
 
@@ -260,10 +258,10 @@ void remove(CommandList::iterator iter);
 This method removes a Command from \emph{to\_do\_}.
 }
 
-\subsection{Instrumenter}
-\label{sec-3.2.5}
+\subsection{Class Instrumenter}
+\label{sec:instrumenter}
 
-\textbf{Declared in}: Command.h
+\declaredin{Instrumenter.h}
 
 The Instrumenter class inherits BatchCommand to encapsulate the core code
 patching logic, which includes binary code generation. Instrumenter would
@@ -282,7 +280,7 @@ implementation of the instrumentation engine.
 }
 
 \begin{apient}
-static InstrumenterPtr create(AddrSpacePtr as);
+static Instrumenter* create(AddrSpace* as);
 \end{apient}
 
 \apidesc{
@@ -330,7 +328,7 @@ new function, where the old function is replaced by the new function.
 }
 
 \begin{apient}
-virtual bool wrapFunction(PatchFunction* oldfunc, PatchFunction* newfunc, string name);
+virtual bool wrapFunction(PatchFunction* oldfunc, PatchFunction* newfunc, std::string name);
 \end{apient}
 
 
@@ -341,12 +339,11 @@ virtual bool wrapFunction(PatchFunction* oldfunc, PatchFunction* newfunc, string
   look like follows:
 }
 
-\lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
-\lstset{numbers=none}
 \begin{lstlisting}
-void *malloc_wrapper(int size) {
+void* malloc_wrapper(int size)
+{
   // do stuff
-  void *ret = malloc_clone(size);
+  void* ret = malloc_clone(size);
   // do more stuff
   return ret;
 }
@@ -370,8 +367,7 @@ It returns true on success; otherwise, it returns false.
 }
 
 \begin{apient}
-virtual FuncModMap& funcWrapMap();
-
+virtual FuncWrapMap& funcWrapMap();
 \end{apient}
 
 
@@ -381,8 +377,8 @@ wrapper PatchFunction.
 }
 
 \begin{apient}
-bool modifyCall(PatchBlock *callBlock, PatchFunction *newCallee,
-                PatchFunction *context = NULL);
+virtual bool modifyCall(PatchBlock* callBlock, PatchFunction* newCallee,
+                        PatchFunction* context = NULL);
 \end{apient}
 
 
@@ -390,36 +386,36 @@ bool modifyCall(PatchBlock *callBlock, PatchFunction *newCallee,
 Replaces the function that is invoked in the basic block \emph{callBlock} with the
 function \emph{newCallee}. There may be multiple functions containing the same
 \emph{callBlock}, so the \emph{context} parameter specifies in which function the
-\emph{callBlock} should be modified. If \emph{context} is NULL, then the \emph{callBlock} would
-be modified in all PatchFunctions that contain it. If the \emph{newCallee} is NULL,
+\emph{callBlock} should be modified. If \emph{context} is \code{nullptr}, then the \emph{callBlock} would
+be modified in all PatchFunctions that contain it. If the \emph{newCallee} is \code{nullptr},
 then the \emph{callBlock} is removed.
 
 It returns true on success; otherwise, it returns false.
 }
 
 \begin{apient}
-bool revertModifiedCall(PatchBlock *callBlock, PatchFunction *context = NULL);
+virtual bool revertModifiedCall(PatchBlock* callBlock, PatchFunction* context = NULL);
 \end{apient}
 
 
 \apidesc{
 Undoes the function call modification for \emph{oldfunc}. There may be multiple
 functions containing the same \emph{callBlock}, so the \emph{context} parameter specifies
-in which function the \emph{callBlock} should be modified. If \emph{context} is NULL, then
+in which function the \emph{callBlock} should be modified. If \emph{context} is \code{nullptr}, then
 the \emph{callBlock} would be modified in all PatchFunctions that contain it.
 
 It returns true on success; otherwise, it returns false.
 }
 
 \begin{apient}
-bool removeCall(PatchBlock *callBlock, PatchFunction *context = NULL);
+virtual bool removeCall(PatchBlock* callBlock, PatchFunction* context = NULL);
 \end{apient}
 
 
 \apidesc{
 Removes the \emph{callBlock}, where a function is invoked. There may be multiple
 functions containing the same \emph{callBlock}, so the \emph{context} parameter specifies
-in which function the \emph{callBlock} should be modified. If \emph{context} is NULL, then
+in which function the \emph{callBlock} should be modified. If \emph{context} is \code{nullptr}, then
 the \emph{callBlock} would be modified in all PatchFunctions that contain it.
 
 It returns true on success; otherwise, it returns false.
@@ -427,8 +423,8 @@ It returns true on success; otherwise, it returns false.
 
 
 \begin{apient}
-typedef map<PatchBlock*,        // B  : A call block
-            map<PatchFunction*, // F_c: Function context
+typedef std::map<PatchBlock*,        // B  : A call block
+            std::map<PatchFunction*, // F_c: Function context
                 PatchFunction*> // F  : The function to be replaced
            > CallModMap;
 \end{apient}
@@ -438,12 +434,12 @@ typedef map<PatchBlock*,        // B  : A call block
 
 The type CallModMap maps from B -> F$_c$ -> F, where B identifies a call block,
 and F$_c$ identifies an (optional) function context for the replacement. If F$_c$ is
-not specified, we use NULL. F specifies the replacement callee; if we want to
-remove the call entirely, we use NULL.
+not specified, we use \code{nullptr}. F specifies the replacement callee; if we want to
+remove the call entirely, we use \code{nullptr}.
 }
 
 \begin{apient}
-CallModMap& callModMap();
+virtual CallModMap& callModMap();
 \end{apient}
 
 
@@ -452,18 +448,32 @@ Returns the CallModMap for function call replacement / removal.
 }
 
 \begin{apient}
-AddrSpacePtr as() const;
+AddrSpace* as() const;
+void setAs(AddrSpace* as);
 \end{apient}
 
 
 \apidesc{
-Returns the address space associated with this Instrumenter.
+Returns, or sets, the address space associated with this Instrumenter.
 }
 
-\subsection{Patcher}
-\label{sec-3.2.6}
+\begin{apient}
+virtual bool isInstrumentable(PatchFunction* func);
+\end{apient}
 
-\textbf{Declared in}: Command.h
+
+\apidesc{
+Decides whether \code{func} may be instrumented. The default accepts every
+function. An \code{Instrumenter} that refuses one returns \code{false}, and
+that answer is what Dyninst acts on: \code{func\_instance::isInstrumentable}
+asks the manager's \code{Instrumenter}, and instrumentation of a function it
+refuses does not go in.
+}
+
+\subsection{Class Patcher}
+\label{sec:patcher}
+
+\declaredin{Command.h}
 
 The class Patcher inherits from the class BatchCommand. It accepts
 instrumentation requests from users, where these instrumentation requests are
@@ -473,7 +483,7 @@ and install the instrumentation.
 
 
 \begin{apient}
-Patcher(PatchMgrPtr mgr)
+Patcher(PatchMgrPtr mgr);
 \end{apient}
 
 
@@ -492,10 +502,10 @@ implicitly adds an internal Command -- Instrumenter, which is executed after all
 other Commands in the \emph{to\_do\_}.
 }
 
-\subsection{CFGMaker}
-\label{sec-3.2.12}
+\subsection{Class CFGMaker}
+\label{sec:cfgmaker}
 
-\textbf{Declared in}: CFGMaker.h
+\declaredin{CFGMaker.h}
 
 The CFGMaker class is a factory class that constructs the above CFG structures
 (PatchFunction, PatchBlock, and PatchEdge). The methods in this class are used
@@ -507,10 +517,8 @@ structures.
 \begin{apient}
 virtual PatchFunction* makeFunction(ParseAPI::Function* func, PatchObject* obj);
 virtual PatchFunction* copyFunction(PatchFunction* func, PatchObject* obj);
-
 virtual PatchBlock* makeBlock(ParseAPI::Block* blk, PatchObject* obj);
 virtual PatchBlock* copyBlock(PatchBlock* blk, PatchObject* obj);
-
 virtual PatchEdge* makeEdge(ParseAPI::Edge* edge, PatchBlock* src,
                             PatchBlock* trg, PatchObject* obj);
 virtual PatchEdge* copyEdge(PatchEdge* edge, PatchObject* obj);
@@ -522,10 +530,10 @@ Programmers implement the above virtual methods to instantiate a CFG structure
 forking a new process).
 }
 
-\subsection{PointMaker}
-\label{sec-3.2.13}
+\subsection{Class PointMaker}
+\label{sec:pointmaker}
 
-\textbf{Declared in}: Point.h
+\declaredin{Point.h}
 
 The PointMaker class is a factory class that constructs instances of the Point
 class. The methods of the PointMaker class are invoked by PatchMgr's findPoint
@@ -542,12 +550,12 @@ The constructor takes input the relevant PatchMgr \emph{mgr}.
 }
 
 \begin{apient}
-virtual Point *mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f);
-virtual Point *mkFuncSitePoint(Point::Type t, PatchMgrPtr m, PatchFunction *f, PatchBlock *b);
-virtual Point *mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock *b, PatchFunction *context);
-virtual Point *mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, Address a,
-                           InstructionAPI::Instruction::Ptr i, PatchFunction *context);
-virtual Point *mkEdgePoint(Point::Type t, PatchMgrPtr m, PatchEdge *e, PatchFunction *context);
+virtual Point* mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction* f);
+virtual Point* mkFuncSitePoint(Point::Type t, PatchMgrPtr m, PatchFunction* f, PatchBlock* b);
+virtual Point* mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock* b, PatchFunction* context);
+virtual Point* mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, Address a,
+                           InstructionAPI::Instruction i, PatchFunction* context);
+virtual Point* mkEdgePoint(Point::Type t, PatchMgrPtr m, PatchEdge* e, PatchFunction* context);
 \end{apient}
 
 \apidesc{
@@ -558,12 +566,12 @@ Point.
 }
 
 \subsection{Default Plugin}
-\label{sec-3.3}
+\label{sec:default-plugin}
 
-\subsection{PushFrontCommand and PushBackCommand}
-\label{sec-3.3.1}
+\subsection{Classes PushFrontCommand and PushBackCommand}
+\label{sec:push-commands}
 
-\textbf{Declared in}: Command.h
+\declaredin{Command.h}
 
 The class PushFrontCommand and the class PushBackCommand inherit from the
 Command class. They are to insert a snippet to a point. A point maintains a
@@ -573,7 +581,8 @@ list.
 
 
 \begin{apient}
-static Ptr create(Point* pt, SnippetPtr snip);
+static PushFrontCommand* create(Point* pt, SnippetPtr snip);
+static PushBackCommand* create(Point* pt, SnippetPtr snip);
 \end{apient}
 
 \apidesc{
@@ -588,34 +597,35 @@ InstancePtr instance();
 Returns a snippet instance that is inserted at the point.
 }
 
-\subsection{RemoveSnippetCommand}
-\label{sec-3.3.2}
+\subsection{Class RemoveSnippetCommand}
+\label{sec:removesnippetcommand}
 
-\textbf{Declared in}: Command.h
+\declaredin{Command.h}
 
 The class RemoveSnippetCommand inherits from the Command class. It is to delete
 a snippet Instance.
 
 
 \begin{apient}
-static Ptr create(InstancePtr instance);
+static RemoveSnippetCommand* create(InstancePtr instance);
 \end{apient}
 
 \apidesc{
 This static function creates an instance of RemoveSnippetCommand.
 }
 
-\subsection{RemoveCallCommand}
-\label{sec-3.3.3}
+\subsection{Class RemoveCallCommand}
+\label{sec:removecallcommand}
 
-\textbf{Declared in}: Command.h
+\declaredin{Command.h}
 
 The class RemoveCallCommand inherits from the class Command. It is to remove a
 function call.
 
 
 \begin{apient}
-static Ptr create(PatchMgrPtr mgr, PatchBlock* call_block, PatchFunction* context = NULL);
+static RemoveCallCommand* create(PatchMgrPtr mgr, PatchBlock* call_block,
+                                 PatchFunction* context = NULL);
 \end{apient}
 
 
@@ -623,44 +633,46 @@ static Ptr create(PatchMgrPtr mgr, PatchBlock* call_block, PatchFunction* contex
 This static method takes input the relevant PatchMgr \emph{mgr}, the \emph{call\_block}
 that contains the function call to be removed, and the PatchFunction \emph{context}.
 There may be multiple PatchFunctions containing the same \emph{call\_block}. If the
-\emph{context} is NULL, then the \emph{call\_block} would be deleted from all
+\emph{context} is \code{nullptr}, then the \emph{call\_block} would be deleted from all
 PatchFunctions that contains it; otherwise, the \emph{call\_block} would be deleted
 only from the PatchFuncton \emph{context}.
 }
 
-\subsection{ReplaceCallCommand}
-\label{sec-3.3.4}
+\subsection{Class ReplaceCallCommand}
+\label{sec:replacecallcommand}
 
-\textbf{Declared in}: Command.h
+\declaredin{Command.h}
 
 The class ReplaceCallCommand inherits from the class Command. It is to replace a
 function call with another function.
 
 
 \begin{apient}
-static Ptr create(PatchMgrPtr mgr, PatchBlock* call_block,
-                  PatchFunction* new_callee, PatchFunction* context);
+static ReplaceCallCommand* create(PatchMgrPtr mgr, PatchBlock* call_block,
+                                  PatchFunction* new_callee,
+                                  PatchFunction* context);
 \end{apient}
 
 \apidesc{
 This Command replaces the \emph{call\_block} with the new PatchFunction
 \emph{new\_callee}. There may be multiple functions containing the same
 \emph{call\_block}, so the \emph{context} parameter specifies in which function the
-\emph{call\_block} should be replaced. If \emph{context} is NULL, then the \emph{call\_block}
+\emph{call\_block} should be replaced. If \emph{context} is \code{nullptr}, then the \emph{call\_block}
 would be replaced in all PatchFunctions that contains it.
 }
 
-\subsection{ReplaceFuncCommand}
-\label{sec-3.3.5}
+\subsection{Class ReplaceFuncCommand}
+\label{sec:replacefunccommand}
 
-\textbf{Declared in}: Command.h
+\declaredin{Command.h}
 
 The class ReplaceFuncCommand inherits from the class Command. It is to replace
 an old function with the new one.
 
 
 \begin{apient}
-static Ptr create(PatchMgrPtr mgr, PatchFunction* old_func, PatchFunction* new_func);
+static ReplaceFuncCommand* create(PatchMgrPtr mgr, PatchFunction* old_func,
+                                  PatchFunction* new_func);
 \end{apient}
 
 \apidesc{

@@ -1,3 +1,5 @@
+\declaredin{BPatch\_basicBlock.h}
+
 The \code{BPatch\_basicBlock} class represents a basic block in the application being
 instrumented. Objects of this class representing the blocks within a function
 can be obtained using the \code{BPatch\_flowGraph} object for the function.
@@ -5,7 +7,7 @@ can be obtained using the \code{BPatch\_flowGraph} object for the function.
 graph of the containing function.
 
 \begin{apient}
-  void getSources(std::vector<BPatch_basicBlock*>&)
+  void getSources(std::vector<BPatch_basicBlock*>&);
 \end{apient}
 
 \apidesc{
@@ -15,7 +17,7 @@ graph of the containing function.
 }
 
 \begin{apient}
-  void getTargets(std::vector<BPatch_basicBlock*>&)
+  void getTargets(std::vector<BPatch_basicBlock*>&);
 \end{apient}
 
 \apidesc{
@@ -25,7 +27,7 @@ graph of the containing function.
 }
 
 \begin{apient}
-  void getOutgoingEdges(std::vector<BPatch_edge *> &out)
+  void getOutgoingEdges(std::vector<BPatch_edge*>& out);
 \end{apient}
 
 \apidesc{
@@ -33,7 +35,7 @@ graph of the containing function.
 }
 
 \begin{apient}
-  void getIncomingEdges(std::vector<BPatch_edge *> &inc)
+  void getIncomingEdges(std::vector<BPatch_edge*>& inc);
 \end{apient}
 
 \apidesc{
@@ -41,9 +43,10 @@ graph of the containing function.
 }
 
 \begin{apient}
-  bool getInstructions(std::vector<Dyninst::InstructionAPI::Instruction>&)
-  
-  bool getInstructions(std::vector<std::pair<Dyninst::InstructionAPI::Instruction, Address> >&)
+  bool getInstructions(std::vector<Dyninst::InstructionAPI::Instruction>&);
+  bool getInstructions(
+      std::vector<std::pair<Dyninst::InstructionAPI::Instruction,
+                            Dyninst::Address> >&);
 \end{apient}
 
 \apidesc{
@@ -53,7 +56,7 @@ graph of the containing function.
 }
 
 \begin{apient}
-  bool dominates(BPatch_basicBlock*)
+  bool dominates(BPatch_basicBlock*);
 \end{apient}
 
 \apidesc{
@@ -62,7 +65,7 @@ graph of the containing function.
 }
 
 \begin{apient}
-  BPatch_basicBlock* getImmediateDominator()
+  BPatch_basicBlock* getImmediateDominator();
 \end{apient}
 
 \apidesc{
@@ -70,7 +73,7 @@ graph of the containing function.
 }
 
 \begin{apient}
-  void getImmediateDominates(std::vector<BPatch_basicBlock*>&)
+  void getImmediateDominates(std::vector<BPatch_basicBlock*>&);
 \end{apient}
 
 \apidesc{
@@ -78,7 +81,7 @@ graph of the containing function.
   immediately dominated by this basic block in the control flow graph.
 }
 \begin{apient}
-  void getAllDominates(std::set<BPatch_basicBlock*>&)
+  void getAllDominates(std::set<BPatch_basicBlock*>&);
 \end{apient}
 
 \apidesc{
@@ -87,15 +90,15 @@ graph of the containing function.
 }
 
 \begin{apient}
-  bool getSourceBlocks(std::vector<BPatch_sourceBlock*>&)
+  bool getSourceBlocks(std::vector<BPatch_sourceBlock*>&);
 \end{apient}
 
 \apidesc{
   Fill the given vector with pointers to the source blocks contributing to this
-  basic block\'s instruction sequence.
+  basic block's instruction sequence.
 }
 \begin{apient}
-  int getBlockNumber()
+  int getBlockNumber();
 \end{apient}
 
 \apidesc{
@@ -104,15 +107,15 @@ graph of the containing function.
   block belongs.
 }
 \begin{apient}
-  std::vector<BPatch_point *> findPoint(const std::set<BPatch_opCode> &ops)
+  std::vector<BPatch_point*>* findPoint(const std::set<BPatch_opCode>& ops);
 \end{apient}
 
 \apidesc{
   Find all points in the basic block that match the given operation.
 }
 \begin{apient}
-  BPatch_point *findEntryPoint(
-  BPatch_point *findExitPoint()
+  BPatch_point* findEntryPoint();
+  BPatch_point* findExitPoint();
 \end{apient}
 
 \apidesc{
@@ -120,7 +123,7 @@ graph of the containing function.
 }
 
 \begin{apient}
-  unsigned long getStartAddress()
+  unsigned long getStartAddress() const;
 \end{apient}
 
 \apidesc{
@@ -128,7 +131,7 @@ graph of the containing function.
   is an absolute address.
 }
 \begin{apient}
-  unsigned long getEndAddress()
+  unsigned long getEndAddress() const;
 \end{apient}
 
 \apidesc{
@@ -136,28 +139,28 @@ graph of the containing function.
   an absolute address.
 }
 \begin{apient}
-  unsigned long getLastInsnAddress()
+  unsigned long getLastInsnAddress() const;
 \end{apient}
 
 \apidesc{
   Return the address of the last instruction in a basic block.
 }
 \begin{apient}
-  bool isEntryBlock()
+  bool isEntryBlock() const;
 \end{apient}
 
 \apidesc{
   This function returns true if this basic block is an entry block into a function.
 }
 \begin{apient}
-  bool isExitBlock()
+  bool isExitBlock() const;
 \end{apient}
 
 \apidesc{
   This function returns true if this basic block is an exit block of a function.
 }
 \begin{apient}
-  unsigned size()
+  unsigned size() const;
 \end{apient}
 
 \apidesc{

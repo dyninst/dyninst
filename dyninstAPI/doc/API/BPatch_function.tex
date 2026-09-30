@@ -1,3 +1,5 @@
+\declaredin{BPatch\_function.h}
+
 An object of this class represents a function in the application. A
 \code{BPatch\_image} object (see description below) can
 be used to retrieve a \code{BPatch\_function} object representing a
@@ -8,10 +10,10 @@ given function.
   std::string getDemangledName();
   std::string getMangledName();
   std::string getTypedName();
-  void getNames(std::vector<std::string> &names);
-  void getDemangledNames(std::vector<std::string> &names);
-  void getMangledNames(std::vector<std::string> &names)
-  void getTypedNames(std::vector<std::string> &names);
+  bool getNames(std::vector<std::string>& names);
+  bool getDemangledNames(std::vector<std::string>& names);
+  bool getMangledNames(std::vector<std::string>& names);
+  bool getTypedNames(std::vector<std::string>& names);
 \end{apient}
 
 \apidesc{
@@ -23,7 +25,7 @@ given function.
 }
 
 \begin{apient}
-  bool getAddressRange(Dyninst::Address &start, Dyninst::Address &end)
+  bool getAddressRange(Dyninst::Address& start, Dyninst::Address& end);
 \end{apient}
 
 \apidesc{
@@ -33,7 +35,7 @@ given function.
 }
 
 \begin{apient}
-  std::vector<BPatch_localVar *> *getParams()
+  std::vector<BPatch_localVar*>* getParams();
 \end{apient}
 
 \apidesc{
@@ -45,7 +47,7 @@ given function.
 }
 
 \begin{apient}
-  BPatch_type *getReturnType()
+  BPatch_type* getReturnType();
 \end{apient}
 
 \apidesc{
@@ -53,7 +55,7 @@ given function.
 }
 
 \begin{apient}
-  BPatch_variableExpr *getFunctionRef()
+  BPatch_variableExpr* getFunctionRef();
 \end{apient}
 
 \apidesc{
@@ -62,7 +64,7 @@ given function.
 }
 
 \begin{apient}
-  std::vector<BPatch_localVar *> *getVars()
+  std::vector<BPatch_localVar*>* getVars();
 \end{apient}
 
 \apidesc{
@@ -76,7 +78,7 @@ given function.
 }
 
 \begin{apient}
-  bool isInstrumentable()
+  bool isInstrumentable();
 \end{apient}
 
 \apidesc{
@@ -88,7 +90,7 @@ given function.
 }
 
 \begin{apient}
-  bool isSharedLib()
+  bool isSharedLib();
 \end{apient}
 
 \apidesc{
@@ -96,19 +98,19 @@ given function.
 }
 
 \begin{apient}
-  BPatch_module *getModule()
+  BPatch_module* getModule();
 \end{apient}
 
 \apidesc{
   Return the module that contains this function. Depending on whether
   the program was compiled for debugging or the
   symbol table stripped, this information may not be available. This
-  function returns NULL if module information was
+  function returns \code{nullptr} if module information was
   not found.
 }
 
 \begin{apient}
-  char *getModuleName(char *name, int maxLen)
+  char* getModuleName(char* name, int maxLen);
 \end{apient}
 
 \apidesc{
@@ -129,13 +131,13 @@ given function.
     BPatch_locLoopStartIter,
     BPatch_locLoopStartExit,
     BPatch_allLocations
-  }
+  };
 \end{apient}
 
 \apidesc{}
 
 \begin{apient}
-  const std::vector<BPatch_point *> *findPoint(const BPatch_procedureLocation loc)
+  std::vector<BPatch_point*>* findPoint(const BPatch_procedureLocation loc);
 \end{apient}
 
 \apidesc{
@@ -146,7 +148,7 @@ given function.
   and exit points of the subroutine. \code{BPatch\_subroutine}
   returns the list of points where the procedure calls other
   procedures. If the lookup fails to locate any points of the
-  requested type, NULL is returned.
+  requested type, \code{nullptr} is returned.
 }
 
 \begin{apient}
@@ -154,13 +156,13 @@ given function.
     BPatch_opLoad,
     BPatch_opStore,
     BPatch_opPrefetch
-  }
+  };
 \end{apient}
 
 \apidesc{}
 
 \begin{apient}
-  std::vector<BPatch_point *> *findPoint(const std::set<BPatch_opCode> &ops)
+  std::vector<BPatch_point*>* findPoint(const std::set<BPatch_opCode>& ops);
 \end{apient}
 
 \apidesc{
@@ -177,58 +179,58 @@ given function.
 }
 
 \begin{apient}
-  BPatch_localVar *findLocalVar(const char *name)
+  BPatch_localVar* findLocalVar(const char* name);
 \end{apient}
 
 \apidesc{
-  Search the function\'s local variable collection for name. This
+  Search the function's local variable collection for name. This
   returns a pointer to the local
-  variable if a match is found. This function returns NULL if it
+  variable if a match is found. This function returns \code{nullptr} if it
   fails to find any variables.
 }
 
 \begin{apient}
-  std::vector<BPatch_variableExpr *> *findVariable(const char *name)
-  bool findVariable(const char *name, std::vector<BPatch_variableExpr> &vars)
+  std::vector<BPatch_variableExpr*>* findVariable(const char* name);
+  bool findVariable(const char* name, std::vector<BPatch_variableExpr>& vars);
 \end{apient}
 
 \apidesc{
   Return a set of variables matching name at the scope of this
   function. If no variables match in the local scope, then
   the global scope will be searched for matches. This function
-  returns NULL if it fails to find any variables.
+  returns \code{nullptr} if it fails to find any variables.
 }
 
 \begin{apient}
-  BPatch_localVar *findLocalParam(const char *name)
+  BPatch_localVar* findLocalParam(const char* name);
 \end{apient}
 
 \apidesc{
-  Search the function\'s parameters for a given name. A
+  Search the function's parameters for a given name. A
   \code{BPatch\_localVar} pointer is returned if a
-  match is found, and NULL is returned otherwise.
+  match is found, and \code{nullptr} is returned otherwise.
 }
 
 \begin{apient}
-  void *getBaseAddr()
+  void* getBaseAddr();
 \end{apient}
 
 \apidesc{
-  Return the starting address of the function in the mutatee\'s address space.
+  Return the starting address of the function in the mutatee's address space.
 }
 
 \begin{apient}
-  BPatch_flowGraph *getCFG()
+  BPatch_flowGraph* getCFG();
 \end{apient}
 
 \apidesc{
-  Return the control flow graph for the function, or NULL if this
+  Return the control flow graph for the function, or \code{nullptr} if this
   information is not available. The \code{BPatch\_flowGraph} is
   described in section.
 }
 
 \begin{apient}
-  bool findOverlapping(std::vector<BPatch_function *> &funcs)
+  bool findOverlapping(std::vector<BPatch_function*>& funcs);
 \end{apient}
 
 \apidesc{
@@ -240,7 +242,7 @@ given function.
 }
 
 \begin{apient}
-  bool addMods(std::set<StackMod *> mods)
+  bool addMods(std::set<StackMod*> mods);
 \end{apient}
 
 \apidesc{

@@ -1,10 +1,17 @@
+\declaredin{BPatch\_snippet.h}
+
 \begin{apient}
-  BPatch_effectiveAddressExpr()
+  BPatch_effectiveAddressExpr(int which = 0, int size = 8);
 \end{apient}
 
 \apidesc{
   Define an expression that contains the effective address of a
-  memory operation. For a multi-word memory operation (i.e. more
-  than the "natural" operation size of the machine), the
+  memory operation.  An instruction may make more than one access;
+  \code{which} selects among them.  \code{size} chooses the integer type
+  the expression has: 1, 2 and 4 give \code{char}, \code{short} and
+  \code{int}, and any other value gives \code{long}, which is what the
+  default of 8 selects.
+  For a multi-word memory operation (i.e. more
+  than the ``natural'' operation size of the machine), the
   effective address is the base address of the operation.
 }

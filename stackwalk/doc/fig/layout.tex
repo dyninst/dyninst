@@ -38,7 +38,7 @@ fill=white, draw=white]
         \hspace{1cm}...\\
         \}
     };
-    
+
     \node [code, below=3cm of main.west,anchor=west] (foo) {void foo(int b) \{\\
         \hspace{1cm}int c;\\
         \hspace{1cm}bar();\\
@@ -97,7 +97,7 @@ fill=white, draw=white]
     \node [annotate, right of=la1] (lb1) {B};
     \path [line] (la1) -- (lb1);
     \node [annotate, right=1cm of lb1] (l1) {A contains B's address};
-    
+
     \node [annotate, below=.5cm of la1] (la2) {A};
     \node [annotate, right of=la2] (lb2) {B};
     \path [line, dashed] (la2) -- (lb2);

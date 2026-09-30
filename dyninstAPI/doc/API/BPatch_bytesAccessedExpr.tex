@@ -1,10 +1,14 @@
+\declaredin{BPatch\_snippet.h}
+
 \begin{apient}
-  BPatch_bytesAccessedExpr()
+  BPatch_bytesAccessedExpr(int which = 0);
 \end{apient}
 
 \apidesc{
   This expression returns the number of bytes accessed by a memory
-  operation. For most load/store architecture machines
+  operation.  An instruction may make more than one access; \code{which}
+  selects among them, as it does for \code{BPatch\_memoryAccess}.
+  For most load/store architecture machines
   it is a constant expression returning the number of bytes for the
   particular style of load or store. This snippet is
   only valid at a memory operation instrumentation point.

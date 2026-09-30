@@ -1,6 +1,6 @@
 \subsubsection{Class ProcessState}
 \label{subsec:processstate}
-\definedin{procstate.h}
+\declaredin{procstate.h}
 
 The ProcessState class is a virtual class that defines an interface through
 which StackwalkerAPI can access the target process. It allows access to
@@ -10,10 +10,10 @@ objects: \code{ProcSelf} does a first party stackwalk, and \code{ProcDebug} does
 stackwalk.
 
 A new \code{ProcessState} class can be created by inheriting from this class and
-implementing the necessary methods. 
+implementing the necessary methods.
 
 \begin{apient}
-static ProcessState *getProcessStateByPid(Dyninst::PID pid)
+static ProcessState* getProcessStateByPid(Dyninst::PID pid);
 \end{apient}
 \apidesc{Given a \code{PID}, return the corresponding
   \code{ProcessState} object.}
@@ -27,27 +27,27 @@ virtual unsigned getAddressWidth() = 0;
   8 for 64-bit platforms (x86-64, PowerPC-64).}
 
 \begin{apient}
- typedef enum { Arch_x86, Arch_x86_64, Arch_ppc32, Arch_ppc64 }
- Architecture;
+ typedef enum { Arch_x86, Arch_x86_64, Arch_ppc32, Arch_ppc64 } Architecture;
+
  virtual Dyninst::Architecture getArchitecture() = 0;
 \end{apient}
 \apidesc{Return the appropriate architecture for the target
 process.}
 
 \begin{apient}
-virtual bool getRegValue(Dyninst::MachRegister reg, 
-                         Dyninst::THR_ID thread, 
-                         Dyninst::MachRegisterVal &val) = 0
+virtual bool getRegValue(Dyninst::MachRegister reg,
+                         Dyninst::THR_ID thread,
+                         Dyninst::MachRegisterVal& val) = 0;
 \end{apient}
 \apidesc{
     This method takes a register name as input, \code{reg}, and returns the
     value in that register in \code{val} in the thread thread.
-	
-    This method returns \code{true} on success and \code{false} on error.  
+
+    This method returns \code{true} on success and \code{false} on error.
 }
 
 \begin{apient}
-virtual bool readMem(void *dest, Address source, size_t size) = 0
+virtual bool readMem(void* dest, Address source, size_t size) = 0;
 \end{apient}
 \apidesc{
     This method reads memory from the target process. Parameter \code{dest} should
@@ -60,33 +60,33 @@ virtual bool readMem(void *dest, Address source, size_t size) = 0
 }
 
 \begin{apient}
-virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads) = 0
+virtual bool getThreadIds(std::vector<Dyninst::THR_ID>& threads) = 0;
 \end{apient}
 \apidesc{
     This method returns a list of threads whose call stacks can be walked in the
     target process. Thread are returned in the \code{threads} vector. In some cases,
     such as with the default \code{ProcDebug}, this method returns all of the threads
     in the target process. In other cases, such as with \code{ProcSelf}, this method
-    returns only the calling thread. 
+    returns only the calling thread.
 
     The first thread in the \code{threads} vector (index 0) will be used as the default
     thread if the user requests a stackwalk without specifying an thread (see
     \code{Walker::WalkStack}).
-    
+
     This method returns \code{true} on success and \code{false} on error.  }
 
 \begin{apient}
-virtual bool getDefaultThread(Dyninst::THR_ID &default_tid) = 0
+virtual bool getDefaultThread(Dyninst::THR_ID& default_tid) = 0;
 \end{apient}
 \apidesc{
 	This method returns the thread representing the initial process in the
     \code{default\_tid} output parameter.
-    
-    This method returns \code{true} on success and \code{false} on error.  
+
+    This method returns \code{true} on success and \code{false} on error.
 }
 
 \begin{apient}
-virtual Dyninst::PID getProcessId()
+virtual Dyninst::PID getProcessId();
 \end{apient}
 \apidesc{
     This method returns a process ID for the target process. The default
@@ -95,11 +95,11 @@ virtual Dyninst::PID getProcessId()
 }
 
 \begin{apient}
-Walker *getWalker() const;
+Walker* getWalker() const;
 \end{apient}
 \apidesc{Return the \code{Walker} associated with the current process
   state. }
-   
+
 \begin{apient}
 std::string getExecutablePath();
 \end{apient}
@@ -107,31 +107,68 @@ std::string getExecutablePath();
 Returns the name of the executable associated with the current process state.
 }
 
-\paragraph{Class LibraryState}
+\begin{apient}
+virtual bool isFirstParty() = 0;
+\end{apient}
+\apidesc{
+    Returns \code{true} if this \code{ProcessState} walks the stack of the
+    process it runs in, and \code{false} if it walks another process through a
+    debugger interface.  Of the two implementations StackwalkerAPI provides,
+    \code{ProcSelf} returns \code{true} and \code{ProcDebug} returns
+    \code{false}.
+}
 
-\definedin{procstate.h}
+\begin{apient}
+void setDefaultLibraryTracker();
+\end{apient}
+\apidesc{
+    Gives this \code{ProcessState} the default \code{LibraryState}, unless one
+    has already been set.  An implementation that does not supply its own
+    library tracking should call this.
+}
+
+\begin{apient}
+virtual LibraryState* getLibraryTracker();
+\end{apient}
+\apidesc{
+    Returns the \code{LibraryState} this \code{ProcessState} uses to find the
+    libraries loaded into the target process; see
+    Section~\ref{subsubsec:librarystate}.  Returns \code{nullptr} if none has been
+    set.
+}
+
+\begin{apient}
+virtual bool preStackwalk(Dyninst::THR_ID tid);
+virtual bool postStackwalk(Dyninst::THR_ID tid);
+\end{apient}
+\apidesc{
+    Called before and after each walk of thread \code{tid}, so that an
+    implementation can prepare the target process and afterwards release
+    whatever it took.  Both return \code{true} on success and \code{false} on
+    error; a \code{false} from \code{preStackwalk} abandons the walk.
+}
+
+\subsubsection{Class LibraryState}
+\label{subsubsec:librarystate}
+
+\declaredin{procstate.h}
 
 \code{LibraryState} is a helper class for \code{ProcessState} that provides information about
 the current DSOs (libraries and executables) that are loaded into a process'
 address space. FrameSteppers frequently use the LibraryState to get the DSO
-through which they are attempting to stack walk.
+through which they are attempting to stack walk.  The query methods below are
+the user-facing ones; the rest are callbacks through which StackwalkerAPI keeps
+its own state current.
 
-Each \code{Library} is represented using a \code{LibAddrPair} object, which is defined as
-follows:
-
-\begin{apient}
-typedef std::pair<std::string, Dyninst::Address> LibAddrPair
-\end{apient}
-\apidesc{
-    \code{LibAddrPair.first} refers to the file path of the library that was
-    loaded, and \code{LibAddrPair.second} is the load address of that library in
-    the process' address space. The load address of a library can be added to a
-    symbol offset from the file in order to get the absolute address of a
-    symbol.
-}
+Each \code{Library} is represented using a \code{LibAddrPair} object, defined in
+Section~\ref{subsec:libmapping}.  \code{LibAddrPair.first} refers to the file path
+of the library that was loaded, and \code{LibAddrPair.second} is the load address
+of that library in the process' address space.  The load address of a library can
+be added to a symbol offset from the file in order to get the absolute address of
+a symbol.
 
 \begin{apient}
-virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib) = 0
+virtual bool getLibraryAtAddr(Address addr, LibAddrPair& lib) = 0;
 \end{apient}
 \apidesc{
     This method returns a DSO, using the \code{lib} output parameter, that is
@@ -142,17 +179,18 @@ virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib) = 0
 }
 
 \begin{apient}
-virtual bool getLibraries(std::vector<LibAddrPair> &libs) = 0
+virtual bool getLibraries(std::vector<LibAddrPair>& libs,
+                          bool allow_refresh = true) = 0;
 \end{apient}
 \apidesc{
 	This method returns all DSOs that are loaded into the process' address space
-    in the output vector parameter, \code{libs}. 
-    
-    This method returns \code{true} on success and \code{false} on error.  
+    in the output vector parameter, \code{libs}.
+
+    This method returns \code{true} on success and \code{false} on error.
 }
 
 \begin{apient}
-virtual void notifyOfUpdate() = 0
+virtual void notifyOfUpdate() = 0;
 \end{apient}
 \apidesc{
     This method is called by the \code{ProcessState} when it detects a change in
@@ -161,18 +199,41 @@ virtual void notifyOfUpdate() = 0
 }
 
 \begin{apient}
-virtual Address getLibTrapAddress() = 0
+virtual Address getLibTrapAddress() = 0;
 \end{apient}
 \apidesc{
     Some platforms that implement the System/V standard (Linux)
     use a trap event to determine when a process loads a library. A
     trap instruction is inserted into a certain address, and that trap will
-    execute whenever the list of loaded libraries change. 
-	
+    execute whenever the list of loaded libraries change.
+
     On System/V platforms this method should return the address where a trap
     should be inserted to watch for libraries loading and unloading. The
     ProcessState object will insert a trap at this address and then call
     notifyOfUpdate when that trap triggers.
-	
-    On non-System/V platforms this method should return 0.  
+
+    On non-System/V platforms this method should return 0.
+}
+
+\begin{apient}
+virtual bool getLibc(LibAddrPair& lc);
+\end{apient}
+\apidesc{
+    Convenience function to find the name and base address of the standard C
+    runtime, if present.
+}
+
+\begin{apient}
+virtual bool getLibthread(LibAddrPair& lt);
+\end{apient}
+\apidesc{
+    Convenience function to find the name and base address of the standard
+    thread library, if present (e.g. pthreads).
+}
+
+\begin{apient}
+virtual bool getAOut(LibAddrPair& ao) = 0;
+\end{apient}
+\apidesc{
+    Convenience function to find the name and base address of the executable.
 }

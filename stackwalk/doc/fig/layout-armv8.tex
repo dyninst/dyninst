@@ -52,7 +52,7 @@ fill=white, draw=white]
     \node [code, above=1.5cm of callmain.west, anchor=west](codeTitle){
         pseudo line number\\and code\\
     };
-    
+
     \node [code, below=3cm of main.west,anchor=west] (foo) {
         0x4000200\hspace{0.5cm}void foo(int b) \{\\
         0x4000204\hspace{1cm}int c;\\
@@ -116,7 +116,7 @@ fill=white, draw=white]
     \node [annotate, right of=la1] (lb1) {B};
     \path [line] (la1) -- (lb1);
     \node [annotate, right=1cm of lb1] (l1) {A contains B's address};
-    
+
     \node [annotate, below=.5cm of la1] (la2) {A};
     \node [annotate, right of=la2] (lb2) {B};
     \path [line, dashed] (la2) -- (lb2);

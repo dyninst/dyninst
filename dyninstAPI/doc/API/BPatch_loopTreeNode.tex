@@ -1,30 +1,33 @@
+\declaredin{BPatch\_loopTreeNode.h}
+
 The \code{BPatch\_loopTreeNode} class provides a tree interface to a
 collection of instances of \code{BPatch\_basicBlockLoop}
 contained in a \code{BPatch\_flowGraph}. The structure of the tree
 follows the nesting relationship of the loops in a
-function's flow graph. Each \code{BPatch\_­loopTreeNode} contains a
+function's flow graph. Each \code{BPatch\_\-loopTreeNode} contains a
 pointer to a loop (represented by
 \code{BPatch\_basicBlockLoop}), and a set of sub-loops (represented
 by other \code{BPatch\_loopTreeNode} objects). The root
-\code{BPatch\_­loopTreeNode} instance has a null loop member since a
+\code{BPatch\_\-loopTreeNode} instance has a null loop member since a
 function may contain multiple outer loops. The outer
 loops are contained in the root instance's vector of children.
 
-\begin{lstlisting}[language=C]
-  void foo() {
-    for(int x=0; x<10; x++) {
+\begin{lstlisting}
+void foo()
+{
+  for (int x=0; x<10; x++)  {
+    // ...
+    for (int y = 0; y<10; y++)  {
       // ...
-      for(int y = 0; y<10; y++) {
+      for (int z = 0; z<10; z++)  {
         // ...
-        for(int z = 0; z<10; z++) {
-          // ...
-        }
       }
     }
-    for(int i = 0; i<10; i++) {
-      // ...
-    }
   }
+  for (int i = 0; i<10; i++)  {
+    // ...
+  }
+}
 \end{lstlisting}
 
 Each instance of \code{BPatch\_loopTreeNode} is given a name that
@@ -36,7 +39,7 @@ the function. Each sub-loop has the name of its parent, followed by a
 sub-loops under the outer loop.
 
 The \code{foo} function will have a root \code{BPatch\_loopTreeNode},
-containing a \code{NULL} loop entry and two \code{BPatch\_loopTreeNode}
+containing a \code{nullptr} loop entry and two \code{BPatch\_loopTreeNode}
 children representing the functions outer loops. These children would
 have names \code{loop\_1} and \code{loop\_2}, respectively
 representing the x and i loops. \code{loop\_2} has no children.
@@ -45,7 +48,7 @@ representing the x and i loops. \code{loop\_2} has no children.
 y and z loops.
 
 \begin{apient}
-  BPatch_basicBlockLoop *loop
+  BPatch_basicBlockLoop* loop;
 \end{apient}
 
 \apidesc{
@@ -54,7 +57,7 @@ y and z loops.
 }
 
 \begin{apient}
-  std::vector<BPatch_loopTreeNode *> children()
+  std::vector<BPatch_loopTreeNode*> children;
 \end{apient}
 
 \apidesc{
@@ -62,7 +65,7 @@ y and z loops.
 }
 
 \begin{apient}
-  const char *name()
+  const char* name();
 \end{apient}
 
 \apidesc{
@@ -71,7 +74,7 @@ y and z loops.
 }
 
 \begin{apient}
-  bool getCallees(std::vector<BPatch_function *> &v, BPatch_addressSpace *p)
+  bool getCallees(std::vector<BPatch_function*>& v, BPatch_addressSpace* p);
 \end{apient}
 
 \apidesc{
@@ -80,23 +83,23 @@ y and z loops.
 }
 
 \begin{apient}
-  const char *getCalleeName(unsigned int i)
+  std::string getCalleeName(unsigned int i);
 \end{apient}
 
 \apidesc{
-  This function return the name of the ith function called in the loop\'s body.
+  This function return the name of the ith function called in the loop's body.
 }
 
 \begin{apient}
-  unsigned int numCallees()
+  unsigned int numCallees();
 \end{apient}
 
 \apidesc{
-  Returns the number of callees contained in this loop\'s body.
+  Returns the number of callees contained in this loop's body.
 }
 
 \begin{apient}
-  BPatch_basicBlockLoop *findLoop(const char *name)
+  BPatch_basicBlockLoop* findLoop(const char* name);
 \end{apient}
 
 \apidesc{

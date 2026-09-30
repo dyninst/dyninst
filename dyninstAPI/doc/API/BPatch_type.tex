@@ -1,0 +1,128 @@
+\declaredin{BPatch\_type.h}
+
+This class represents a type in the mutatee. Anything that reports the type
+of something returns one, such as \code{getReturnType} on a
+\code{BPatch\_function} or \code{getType} on a \code{BPatch\_variableExpr}, and
+the \code{BPatch::create*} factory methods build them. The rules Dyninst uses
+to decide whether two types are compatible are given in
+Section~\ref{sec:typesystem}.
+
+\begin{apient}
+const char* getName() const;
+\end{apient}
+
+\apidesc{
+  Return the name of the type.
+}
+
+\begin{apient}
+BPatch_dataClass getDataClass() const;
+\end{apient}
+
+\apidesc{
+  Return the data class of the type, which is what decides how it may be
+  used and which of the methods below apply to it. The values are listed in
+  Section~\ref{sec:typesystem}.
+}
+
+\begin{apient}
+unsigned int getSize();
+\end{apient}
+
+\apidesc{
+  Return the size of the type in bytes.
+}
+
+\begin{apient}
+int getID() const;
+\end{apient}
+
+\apidesc{
+  Return the identifier Dyninst gave this type. For a type read from debug
+  information the identifier is derived from the type's DWARF offset, which is
+  unique only within one module, so two modules of the same program may report
+  the same value. A type built by one of the \code{BPatch::create*} methods is
+  given a negative identifier instead, from a counter that runs for the life of
+  the process; those are distinct from each other and from anything read from
+  debug information. To reach other types, use \code{getConstituentType} and
+  \code{getComponents} rather than looking one up by its identifier.
+}
+
+\begin{apient}
+virtual bool operator==(const BPatch_type& otype) const;
+\end{apient}
+
+\apidesc{
+  Return \code{true} if the two are the same type: same identifier, same
+  data class, and the same underlying \code{SymtabAPI} type. This is a
+  stricter test than \code{isCompatible}, which asks only whether a value of
+  one may be used where the other is wanted.
+}
+
+\begin{apient}
+bool isCompatible(BPatch_type* otype);
+\end{apient}
+
+\apidesc{
+  Return \code{true} if this type is compatible with \code{otype} under the
+  rules in Section~\ref{sec:typesystem}.
+}
+
+\begin{apient}
+unsigned long getLow() const;
+unsigned long getHigh() const;
+\end{apient}
+
+\apidesc{
+  Return the lower and upper bounds of a ranged type, such as an array or a
+  subrange. Both return 0 for a type that has no range, so a 0 does not
+  distinguish a bound of zero from a type these do not apply to; use
+  \code{getDataClass} to tell the two apart.
+}
+
+\begin{apient}
+BPatch_type* getConstituentType() const;
+\end{apient}
+
+\apidesc{
+  Return the type this one is built from: the target of a pointer or
+  reference, the type a typedef names, the underlying type of an enumeration,
+  or the element type of an array. Returns \code{nullptr} for a type that is
+  not built from another.
+}
+
+\begin{apient}
+std::vector<BPatch_field*>* getComponents() const;
+\end{apient}
+
+\apidesc{
+  Return the fields of a structure, union or common block. For an enumerated
+  type the identifiers are returned as fields, each carrying its value. For a
+  pointer, reference or typedef the fields of the constituent type are
+  returned. Returns \code{nullptr} for any other type. The vector is newly
+  allocated for the caller.
+}
+
+\begin{apient}
+Dyninst::SymtabAPI::Type* getSymtabType() const;
+\end{apient}
+
+\apidesc{
+  Return the \code{SymtabAPI} type this one wraps, which carries more of the
+  type's detail than \code{BPatch\_type} exposes. \code{SymtabAPI::convert},
+  listed in Section~\ref{sec:conversions}, forwards to this method, so the two
+  return the same pointer.
+}
+
+\begin{apient}
+std::vector<BPatch_cblock*>* getCblocks() const;
+\end{apient}
+
+\apidesc{
+  Intended to return the common block objects for a common block type, the
+  way \code{typeCommon} does in SymtabAPI. It does not. For anything that is
+  not a common block type it returns \code{nullptr}, and for one that is it
+  returns a vector it never puts anything into, so the result is always empty.
+  Until that is fixed, reach the common blocks through \code{getSymtabType}
+  and ask \code{typeCommon} for them.
+}

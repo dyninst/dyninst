@@ -1,3 +1,5 @@
+\declaredin{Event.h}
+
 An \code{EventBreakpoint} triggers when the target process encounters
 a breakpoint
 inserted by ProcControlAPI.
@@ -10,7 +12,7 @@ rather than restore it to the pre-event state.
 Associated EventType Code: \code{Breakpoint}
 
 \begin{apient}
-  Dyninst::Address getAddress() const
+  Dyninst::Address getAddress() const;
 \end{apient}
 
 \apidesc{
@@ -18,11 +20,11 @@ Associated EventType Code: \code{Breakpoint}
 }
 
 \begin{apient}
-  void getBreakpoints(std::vector<Breakpoint::const_ptr> &b) const
+  void getBreakpoints(std::vector<Breakpoint::const_ptr>& b) const;
 \end{apient}
 
 \apidesc{
-  This function returns a vector of pointers to the Breakpoints that were hit.
-  Since it is possible to insert multiple Breakpoints at the same location, it
-  is possible for this function to return more than one Breakpoint.
+  This function fills b with pointers to the Breakpoints that were hit. Since
+  it is possible to insert multiple Breakpoints at the same location, it is
+  possible for this function to add more than one Breakpoint to b.
 }
