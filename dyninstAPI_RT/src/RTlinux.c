@@ -194,15 +194,12 @@ static int get_dlopen_error(void) {
    err_str = dlerror();
    if (err_str) {
      const size_t max_len = (size_t) ERROR_STRING_LENGTH;
-     strncpy(gLoadLibraryErrorString, err_str, max_len);
+     strncpy(gLoadLibraryErrorString, err_str, max_len-1);
 
-     size_t len = strlen(err_str);
-     if(len >= max_len) {
-       // strncpy doesn't add a NULL terminator if the input string
-       // is longer than `max_len`, so make sure it's terminated even
-       // if it truncates the string.
-       gLoadLibraryErrorString[max_len-1] = '\0';
-     }
+     // strncpy doesn't add a NULL terminator if the input string
+     // is longer than `max_len`, so make sure it's terminated even
+     // if it truncates the string.
+     gLoadLibraryErrorString[max_len-1] = '\0';
      return 1;
    }
    else {
