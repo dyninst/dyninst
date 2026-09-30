@@ -44,7 +44,7 @@ PatchFunction* func = ...;
 PatchBlock* block = ...;
 PatchEdge* edge = ...;
 
-PatchMgr* mgr = ...;
+PatchMgrPtr mgr = ...;
 
 std::vector<Point*> pts;
 mgr->findPoints(Scope(func),
@@ -55,7 +55,7 @@ mgr->findPoints(Scope(func),
 mgr->findPoints(Scope(block),
                 Point::BlockEntry,
                 back_inserter(pts));
-mgr->findPoints(Scope(edge),
+mgr->findPoints(Location::Edge(edge),
                 Point::EdgeDuring,
                 back_inserter(pts));
 \end{lstlisting}
