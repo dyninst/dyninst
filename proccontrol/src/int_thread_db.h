@@ -197,6 +197,12 @@ private:
 
     std::set<int_library *> libs_with_cached_tls_areas;
 
+    // DT_SONAME of each loaded object we have had to look up, keyed by the path the
+    // loader reported.  Reading a SONAME means parsing the file, so only the libraries
+    // an actual lookup walked over are ever in here, and each is parsed at most once.
+    std::map<std::string, std::string> soname_cache;
+    const std::string &getLibSOName(int_library *lib);
+
     async_ret_t ll_fetchThreadInfo(td_thrhandle_t *th, td_thrinfo_t *info);
 };
 

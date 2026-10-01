@@ -91,6 +91,10 @@ class DYNINST_EXPORT SymReader
    virtual Symbol_t getSymbolByName(std::string symname) = 0;
    virtual Symbol_t getContainingSymbol(Dyninst::Offset offset) = 0;
    virtual std::string getInterpreterName() = 0;
+   // The object's DT_SONAME, or an empty string when it has none or this reader
+   // cannot supply one.  Deliberately NOT pure virtual: a symbol reader implemented
+   // outside this tree keeps compiling and simply reports "no SONAME".
+   virtual std::string getSOName() { return std::string(); }
    virtual unsigned getAddressWidth() = 0;
    virtual bool getABIVersion(int &major, int &minor) const = 0;
    virtual bool isBigEndianDataEncoding() const = 0;

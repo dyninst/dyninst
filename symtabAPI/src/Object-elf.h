@@ -328,7 +328,7 @@ public:
     Offset getRelrDynAddr() const { return relr_addr_; }
     Offset getRelrDynSize() const { return relr_size_; }
     Offset getRelrDynEntrySize() const { return relr_entry_size_; }
-    const char* getSoname() const { return soname_; }
+    const char* getSOName() const override { return soname_; }
     bool hasPieFlag() const { return hasPieFlag_; }
     bool hasProgramLoad() const { return hasProgramLoad_; }
     bool hasDtDebug() const { return hasDtDebug_; }

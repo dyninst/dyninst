@@ -4232,7 +4232,7 @@ bool ObjectELF::isExecutable() const
 	return true;
     }  else  {
 	auto entry = getEntryAddress();
-	auto soname = getSoname();
+	auto soname = getSOName();
 	const char ldSonamePrefix[] = "ld-linux";
 	const auto ldSonamePrefixLen = sizeof(ldSonamePrefix) - 1;
 	if (entry == getTextAddr())  {
@@ -4294,7 +4294,7 @@ bool ObjectELF::isOnlySharedLibrary() const
 	return false;
     }  else if (hasPieFlag())  {
 	return false;
-    }  else if (getSoname())  {
+    }  else if (getSOName())  {
 	return true;
     }  else if (interpreter_name())  {
 	return false;

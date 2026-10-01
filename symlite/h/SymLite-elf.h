@@ -75,6 +75,7 @@ class DYNINST_EXPORT SymElf : public Dyninst::SymReader
    virtual Symbol_t getSymbolByName(std::string symname);
    virtual Symbol_t getContainingSymbol(Dyninst::Offset offset);
    virtual std::string getInterpreterName();
+   virtual std::string getSOName();
 
    virtual unsigned numSegments();
    virtual bool getSegment(unsigned num, SymSegment &reg); 
