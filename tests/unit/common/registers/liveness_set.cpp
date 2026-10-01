@@ -190,6 +190,8 @@ int main() {
   check_convention(Dyninst::Arch_x86, Dyninst::x86::ecx, Dyninst::x86::esi, Dyninst::x86::eax);
   check_convention(Dyninst::Arch_ppc64, Dyninst::ppc64::r3, Dyninst::ppc64::r14,
                    Dyninst::ppc64::r11);
+  check_convention(Dyninst::Arch_aarch64, Dyninst::aarch64::x0, Dyninst::aarch64::x19,
+                   Dyninst::aarch64::x9);
 
   // The decoder reports PowerPC registers in either namespace.
   auto const& ppc = Dyninst::ABI::get(Dyninst::Arch_ppc64);
