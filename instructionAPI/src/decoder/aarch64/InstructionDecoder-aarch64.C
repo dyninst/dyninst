@@ -497,7 +497,16 @@ void InstructionDecoder_aarch64::set32Mode()
       unsigned int systemRegEncoding =
           (op0Field << 14) | (op1Field << 11) | (crnField << 7) | (crmField << 3) | op2Field;
 
-      MachRegister reg = sysRegMap(systemRegEncoding);
+      MachRegister reg = [&]() {
+        // Implementation-defined by the ISA spec
+        if((op0Field & 0x3) == 0x3 && (crnField & 0x3) == 0x3 && (crnField & 0x8) == 0x8) {
+          return aarch64::IMPLEMENTATION_DEFINED_SYSREG;
+        }
+
+        // Check which ones we know about
+        return sysRegMap(systemRegEncoding);
+      }();
+
       if(!reg.isValid()) {
         decode_printf("Unknown system register encoding 0x%x for instruction 0x%x\n", systemRegEncoding, insn);
         reg = aarch64::IMPLEMENTATION_DEFINED_SYSREG;
