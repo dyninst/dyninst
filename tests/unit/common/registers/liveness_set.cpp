@@ -32,6 +32,8 @@
 #include "registers/abi.h"
 #include "registers/abstract_regs.h"
 #include "registers/aarch64_regs.h"
+#include "registers/ppc32_regs.h"
+#include "registers/ppc64_regs.h"
 #include "registers/x86_64_regs.h"
 #include "registers/x86_regs.h"
 
@@ -186,6 +188,13 @@ int main() {
   check_convention(Dyninst::Arch_x86_64, Dyninst::x86_64::rdi, Dyninst::x86_64::rbx,
                    Dyninst::x86_64::r11);
   check_convention(Dyninst::Arch_x86, Dyninst::x86::ecx, Dyninst::x86::esi, Dyninst::x86::eax);
+  check_convention(Dyninst::Arch_ppc64, Dyninst::ppc64::r3, Dyninst::ppc64::r14,
+                   Dyninst::ppc64::r11);
+
+  // The decoder reports PowerPC registers in either namespace.
+  auto const& ppc = Dyninst::ABI::get(Dyninst::Arch_ppc64);
+  expect(ppc.getIndex(Dyninst::ppc32::r3) == ppc.getIndex(Dyninst::ppc64::r3),
+         "ppc32 and ppc64 names share a bit");
 
   return failed ? EXIT_FAILURE : EXIT_SUCCESS;
 }

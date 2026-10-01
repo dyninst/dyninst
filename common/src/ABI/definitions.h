@@ -31,6 +31,7 @@
 #ifndef DYNINST_COMMON_ABI_DEFINITIONS_H
 #define DYNINST_COMMON_ABI_DEFINITIONS_H
 
+#include "Architecture.h"
 #include "registers/register_set.h"
 
 namespace Dyninst { namespace abi {
@@ -55,12 +56,19 @@ namespace Dyninst { namespace abi {
   };
 
   struct definition {
+    // The register namespace the rest of Dyninst uses for this architecture,
+    // if it is not the architecture's own: the liveness layout is built from
+    // this namespace's registers, and registers of the architecture's own
+    // namespace are mapped onto them. See ppc64.
+    Architecture register_namespace{Arch_none};
+
     convention function;
     convention syscall;
   };
 
   // The register usage rules of each modelled architecture, one translation
   // unit per architecture.
+  definition make_ppc64();
   definition make_x86();
   definition make_x86_64();
 
