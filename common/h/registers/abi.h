@@ -123,6 +123,7 @@ namespace Dyninst {
     static ABI const& instance();
 
     Architecture arch_;
+    Architecture namespace_;
     std::vector<MachRegister> layout_;
     std::unordered_map<int32_t, int> index_;
 
