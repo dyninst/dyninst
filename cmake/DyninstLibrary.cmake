@@ -144,11 +144,41 @@ function(dyninst_library _target)
   foreach(t ${_all_targets})
     message(STATUS "Adding library '${t}'")
 
-    # Depending on another Dyninst library is always public
-    target_link_libraries(${t} PUBLIC ${_target_DYNINST_DEPS})
+    if(_target_INTERNAL_LIBRARY)
+      # An internal library's objects end up in the shared or static library
+      # that uses it, and that library links the matching variant of every
+      # real Dyninst library. Linking one here would leak its shared variant
+      # into static consumers, so only another internal library is linked;
+      # for the rest, take what is needed to compile.
+      foreach(d ${_target_DYNINST_DEPS} ${_target_DYNINST_INTERNAL_DEPS})
+        get_target_property(_dep_type ${d} TYPE)
+        if(_dep_type STREQUAL "OBJECT_LIBRARY")
+          target_link_libraries(${t} PUBLIC ${d})
+        else()
+          # A proxy that carries only the library's compile requirements.
+          # Linking it keeps them after the target's own include directories.
+          if(NOT TARGET ${d}_compile_only)
+            add_library(${d}_compile_only INTERFACE)
+            target_include_directories(${d}_compile_only INTERFACE
+              $<TARGET_PROPERTY:${d},INTERFACE_INCLUDE_DIRECTORIES>)
+            target_compile_definitions(${d}_compile_only INTERFACE
+              $<TARGET_PROPERTY:${d},INTERFACE_COMPILE_DEFINITIONS>)
+          endif()
+          target_link_libraries(${t} PUBLIC $<BUILD_INTERFACE:${d}_compile_only>)
+          add_dependencies(${t} ${d})
+        endif()
+      endforeach()
+      unset(_dep_type)
+    else()
+      # Depending on another Dyninst library is always public. The static
+      # variant already links the static variants of these libraries above.
+      if(NOT "${t}" MATCHES "_static$")
+        target_link_libraries(${t} PUBLIC ${_target_DYNINST_DEPS})
+      endif()
 
-    # Internal library dependencies are NOT public
-    target_link_libraries(${t} PRIVATE ${_target_DYNINST_INTERNAL_DEPS})
+      # Internal library dependencies are NOT public
+      target_link_libraries(${t} PRIVATE ${_target_DYNINST_INTERNAL_DEPS})
+    endif()
 
     target_link_options(${t} PRIVATE $<$<COMPILE_LANGUAGE:C>:${DYNINST_LINK_FLAGS}>
                         $<$<COMPILE_LANGUAGE:CXX>:${DYNINST_CXX_LINK_FLAGS}>)
