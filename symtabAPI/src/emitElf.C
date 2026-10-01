@@ -198,7 +198,7 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
                     } else {
                         // The library's own SONAME version is the base definition,
                         // which must use VER_NDX_GLOBAL rather than a sequential index
-                        const char *soname = object->getSoname();
+                        const char *soname = object->getSOName();
                         bool isBase = (soname && (*vers)[0] == soname);
                         unsigned short verndx = isBase ? VER_NDX_GLOBAL
                                                        : (unsigned short) curVersionNum;
@@ -2283,7 +2283,7 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
     // A shared object that defines versions must have a BASE definition: its
     // SONAME at VER_NDX_GLOBAL, flagged VER_FLG_BASE. The versions collected from
     // symbols lack it when no symbol carries the SONAME version (e.g. libc).
-    const char *soname = object->getSoname();
+    const char *soname = object->getSOName();
     if (soname && !verdefEntries.empty() &&
         verdefEntries.find(soname) == verdefEntries.end()) {
         verdefEntries[soname] = VER_NDX_GLOBAL;
