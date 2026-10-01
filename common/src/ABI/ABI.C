@@ -33,6 +33,7 @@
 #include "registers/abstract_regs.h"
 
 #include <cassert>
+#include <cstdint>
 #include <set>
 
 namespace Dyninst {
@@ -58,11 +59,11 @@ namespace Dyninst {
       switch(arch) {
         case Arch_x86: return abi::make_x86();
         case Arch_x86_64: return abi::make_x86_64();
+        case Arch_ppc64: return abi::make_ppc64();
 
         // Architectures whose ABI is not modelled.
         case Arch_none:
         case Arch_ppc32:
-        case Arch_ppc64:
         case Arch_aarch32:
         case Arch_aarch64:
         case Arch_riscv64:
@@ -110,9 +111,11 @@ namespace Dyninst {
     return instance<Arch_none>();
   }
 
-  ABI::ABI(Architecture arch, abi::definition const& def) : arch_(arch) {
+  ABI::ABI(Architecture arch, abi::definition const& def)
+      : arch_(arch),
+        namespace_(def.register_namespace == Arch_none ? arch : def.register_namespace) {
     std::set<MachRegister> bases;
-    for(auto r : MachRegister::getAllRegistersForArch(arch_)) {
+    for(auto r : MachRegister::getAllRegistersForArch(namespace_)) {
       auto const base = r.getBaseRegister();
       if(base.isValid()) {
         bases.insert(base);
@@ -147,7 +150,12 @@ namespace Dyninst {
   }
 
   MachRegister ABI::canonicalize(MachRegister reg) const {
-    if(reg.getArchitecture() != arch_) {
+    auto const ns = reg.getArchitecture();
+    if(ns == arch_ && ns != namespace_) {
+      // The two namespaces encode the same register with the same low bits.
+      auto const regBits = static_cast<uint32_t>(reg.val()) & ~static_cast<uint32_t>(ns);
+      reg = MachRegister(static_cast<int32_t>(regBits | static_cast<uint32_t>(namespace_)));
+    } else if(ns != namespace_) {
       return InvalidReg;
     }
     return reg.getBaseRegister();
