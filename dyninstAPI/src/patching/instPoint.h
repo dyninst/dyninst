@@ -39,7 +39,7 @@
 #include <stdlib.h>
 #include "dyninstAPI/src/codeRange.h"
 #include "common/src/stats.h"
-#include "bitArray.h"
+#include "registers/LivenessSet.h"
 
 #include "trampolines/baseTramp.h"
 
@@ -134,7 +134,7 @@ class instPoint : public Dyninst::PatchAPI::Point {
     block_instance *block_compat() const;
     Address addr_compat() const;
 
-    bitArray liveRegisters();
+    LivenessSet liveRegisters();
 
     std::string format() const;
 
@@ -147,7 +147,7 @@ class instPoint : public Dyninst::PatchAPI::Point {
 
  private:
 
-    bitArray liveRegs_;
+    LivenessSet liveRegs_;
     void calcLiveness();
     // Will fill in insn if it's NULL-equivalent
     static bool checkInsn(block_instance *,

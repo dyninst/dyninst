@@ -45,7 +45,7 @@
 #include "CFG.h"
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"
-#include "ABI.h"
+#include "registers/abi.h"
 #include "slicing.h"
 #include "SymEval.h"
 
@@ -288,12 +288,10 @@ bool getAccesses(ParseAPI::Function *func,
     // access through that pointer and need to return false.
     if (insn.isCall()) {
         // Check parameter registers for stack pointers
-        ABI *abi = ABI::getABI(word_size);
-        const bitArray &callParamRegs = abi->getParameterRegisters();
-        for (auto iter = abi->getIndexMap()->begin();
-            iter != abi->getIndexMap()->end(); iter++) {
-            const MachRegister &reg = iter->first;
-            if (reg.regClass() == gpr && callParamRegs.test(iter->second)) {
+        ABI const& abi = ABI::get(func->isrc()->getArch());
+        const LivenessSet &callParamRegs = abi.getParameterRegisters();
+        for (MachRegister const& reg : abi.getRegisters()) {
+            if (reg.regClass() == gpr && callParamRegs.contains(reg)) {
                 // This register is used as a parameter. Check if it contains a
                 // stack pointer.
                 const StackAnalysis::DefHeightSet &dhSet =
