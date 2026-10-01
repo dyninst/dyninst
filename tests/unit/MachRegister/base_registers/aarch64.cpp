@@ -89,5 +89,27 @@ int main() {
   BASEREG_CHECK(aarch64::x17, aarch64::Ip1);
   BASEREG_CHECK(aarch64::x17, aarch64::x17);
 
+  // SVE vectors -> FPR 128
+  BASEREG_CHECK(aarch64::z0, aarch64::q0);
+  BASEREG_CHECK(aarch64::z8, aarch64::q8);
+  BASEREG_CHECK(aarch64::z31, aarch64::q31);
+
+  // SVE, SVE2 and SME registers that alias no FPR
+  BASEREG_CHECK(aarch64::p0, aarch64::p0);
+  BASEREG_CHECK(aarch64::p15, aarch64::p15);
+  BASEREG_CHECK(aarch64::ffr, aarch64::ffr);
+  BASEREG_CHECK(aarch64::vg, aarch64::vg);
+  BASEREG_CHECK(aarch64::zt0, aarch64::zt0);
+  BASEREG_CHECK(aarch64::za, aarch64::za);
+
+  // Every base register is itself a register
+  for(auto r : Dyninst::MachRegister::getAllRegistersForArch(Dyninst::Arch_aarch64)) {
+    auto const base = r.getBaseRegister();
+    if(base.name() == "<INVALID_REG>") {
+      std::cerr << "FAILED " << r.name() << " has no valid base register: " << base;
+      return EXIT_FAILURE;
+    }
+  }
+
   return EXIT_SUCCESS;
 }
