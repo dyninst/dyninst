@@ -62,16 +62,16 @@ namespace Dyninst {
         case Arch_ppc64: return abi::make_ppc64();
         case Arch_aarch64: return abi::make_aarch64();
         case Arch_riscv64: return abi::make_riscv64();
+        case Arch_amdgpu_gfx908:
+        case Arch_amdgpu_gfx90a:
+        case Arch_amdgpu_gfx940:
+        case Arch_amdgpu_gfx950: return abi::make_amdgpu(arch);
 
         // Architectures whose ABI is not modelled.
         case Arch_none:
         case Arch_ppc32:
         case Arch_aarch32:
         case Arch_cuda:
-        case Arch_amdgpu_gfx908:
-        case Arch_amdgpu_gfx90a:
-        case Arch_amdgpu_gfx940:
-        case Arch_amdgpu_gfx950:
         case Arch_intelGen9:
           break;
       }
