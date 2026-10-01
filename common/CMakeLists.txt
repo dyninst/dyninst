@@ -137,6 +137,7 @@ set(
   src/registers/MachRegister.C
   src/registers/LivenessSet.C
   src/ABI/ABI.C
+  src/ABI/aarch64.C
   src/ABI/ppc64.C
   src/ABI/x86.C
   src/ABI/x86_64.C

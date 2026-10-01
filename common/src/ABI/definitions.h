@@ -68,6 +68,7 @@ namespace Dyninst { namespace abi {
 
   // The register usage rules of each modelled architecture, one translation
   // unit per architecture.
+  definition make_aarch64();
   definition make_ppc64();
   definition make_x86();
   definition make_x86_64();
