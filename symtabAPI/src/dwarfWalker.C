@@ -55,6 +55,23 @@ using namespace SymtabAPI;
 using namespace DwarfDyninst;
 using namespace std;
 
+namespace {
+    /* dwarf_getlocations caches its results in a tsearch tree belonging to the
+     * unit that owns the attribute, and libdw does not lock that tree.
+     * DwarfWalker::parse walks units in parallel on one Dwarf handle, and a
+     * DW_TAG_partial_unit (dwz output) is walked by every unit that imports it,
+     * so without this lock two threads can rebalance the same tree at once. */
+    dyn_mutex libdw_locs_lock;
+
+    ptrdiff_t getlocations_locked(Dwarf_Attribute *attr, ptrdiff_t offset,
+            Dwarf_Addr *basep, Dwarf_Addr *startp, Dwarf_Addr *endp,
+            Dwarf_Op **expr, size_t *exprlen)
+    {
+        boost::unique_lock<dyn_mutex> l(libdw_locs_lock);
+        return dwarf_getlocations(attr, offset, basep, startp, endp, expr, exprlen);
+    }
+}
+
 #define DWARF_FAIL_RET_VAL(x, v) do  {                                  \
       int dwarf_fail_ret_val_status = (x);                              \
       if (dwarf_fail_ret_val_status != 0) {                             \
@@ -1936,7 +1953,7 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
         Dwarf_Addr basep, start, end;
 
         do {
-            offset = dwarf_getlocations(&locationAttribute, offset, &basep,
+            offset = getlocations_locked(&locationAttribute, offset, &basep,
                     &start, &end, &exprs, &exprlen);
             if(offset==-1){
                 dwarf_printf("err message: %s\n", dwarf_errmsg(dwarf_errno()));
@@ -2304,7 +2321,7 @@ bool DwarfWalker::decodeExpression(Dwarf_Attribute &locationAttribute,
     ptrdiff_t offset = 0;
     Dwarf_Addr basep, start, end;
     do {
-        offset = dwarf_getlocations(&locationAttribute, offset, &basep,
+        offset = getlocations_locked(&locationAttribute, offset, &basep,
                 &start, &end, &exprs, &exprlen);
         if(offset==-1) return false;
         LocDesc ld;
