@@ -138,6 +138,7 @@ set(
   src/registers/LivenessSet.C
   src/ABI/ABI.C
   src/ABI/aarch64.C
+  src/ABI/amdgpu.C
   src/ABI/ppc64.C
   src/ABI/riscv64.C
   src/ABI/x86.C
