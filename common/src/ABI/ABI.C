@@ -56,9 +56,11 @@ namespace Dyninst {
 
     abi::definition definitionFor(Architecture arch) {
       switch(arch) {
+        case Arch_x86_64: return abi::make_x86_64();
+
+        // Architectures whose ABI is not modelled.
         case Arch_none:
         case Arch_x86:
-        case Arch_x86_64:
         case Arch_ppc32:
         case Arch_ppc64:
         case Arch_aarch32:
