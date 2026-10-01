@@ -8721,6 +8721,7 @@ async_ret_t emulated_singlestep::add(Address addr) {
    int_process *proc = thr->llproc();
    proc->addBreakpoint(addr, bp);
    addrs.insert(addr);
+   proc->addEmulatedSingleStepAddr(addr);
 
    return aret_success;
 }

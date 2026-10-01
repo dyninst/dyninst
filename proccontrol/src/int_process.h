@@ -503,6 +503,8 @@ class int_process
    virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Dyninst::Address> &result);
    virtual bool plat_convertToBreakpointAddress(Address &, int_thread *) { return true; }
    virtual void plat_getEmulatedSingleStepAsyncs(int_thread *thr, std::set<response::ptr> resps);
+   void addEmulatedSingleStepAddr(Dyninst::Address addr) { emulated_ss_addrs.insert(addr); }
+   bool wasEmulatedSingleStepAddr(Dyninst::Address addr) const { return emulated_ss_addrs.count(addr) != 0; }
    virtual bool plat_needsThreadForMemOps() const { return true; }
    virtual unsigned int plat_getCapabilities();
    virtual Event::ptr plat_throwEventsBeforeContinue(int_thread *thr);
@@ -572,6 +574,10 @@ class int_process
    static bool in_callback;
    mem_state::ptr mem;
    std::map<Dyninst::Address, unsigned> exec_mem_cache;
+   // Every address that has held an emulated single-step breakpoint. Those breakpoints are
+   // removed while the process's other threads keep running, so a thread can trap on one
+   // and have its SIGTRAP decoded only after the breakpoint is gone.
+   std::set<Dyninst::Address> emulated_ss_addrs;
    int continueSig;
    bool createdViaAttach;
    memCache mem_cache;

@@ -285,6 +285,16 @@ Dyninst::Address DecoderLinux::adjustTrapAddr(Dyninst::Address addr, Dyninst::Ar
   return addr;
 }
 
+// True if the thread's current SIGTRAP stop came from a breakpoint instruction, as opposed to a
+// SIGTRAP sent with kill/tgkill or raised by the mutatee.
+static bool isBreakpointTrap(int_thread *thread)
+{
+   siginfo_t info;
+   if (do_ptrace((pt_req) PTRACE_GETSIGINFO, (pid_t) thread->getLWP(), NULL, &info) == -1)
+      return false;
+   return info.si_signo == SIGTRAP && info.si_code == TRAP_BRKPT;
+}
+
 bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 {
    bool result;
@@ -631,6 +641,17 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 
                break;
             }
+            if (!ibp && !proc->plat_breakpointAdvancesPC() &&
+                proc->wasEmulatedSingleStepAddr(adjusted_addr) && isBreakpointTrap(thread)) {
+               // This thread hit another thread's emulated single-step breakpoint, which that
+               // thread's handler removed before this trap was decoded. The original instruction
+               // is back at the PC, so resume the thread there instead of delivering the SIGTRAP.
+               pthrd_printf("Decoded stale emulated single-step breakpoint hit on %d/%d at %lx\n",
+                            proc->getPid(), thread->getLWP(), adjusted_addr);
+               event = EventNop::ptr(new EventNop());
+               break;
+            }
+
             response::ptr resp;
             EventBreakpoint::ptr evhwbp = thread->decodeHWBreakpoint(resp);
             if (evhwbp) {
