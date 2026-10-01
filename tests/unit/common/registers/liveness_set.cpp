@@ -150,6 +150,19 @@ namespace {
            name + ": a return reads the callee-saved registers");
   }
 
+  // Spot checks of each architecture's calling convention: a parameter, a
+  // callee-saved register and a scratch register.
+  void check_convention(Dyninst::Architecture arch, Dyninst::MachRegister param,
+                        Dyninst::MachRegister saved, Dyninst::MachRegister scratch) {
+    auto const& abi = Dyninst::ABI::get(arch);
+    std::string const name = Dyninst::getArchitectureName(arch);
+
+    expect(abi.getParameterRegisters().contains(param), name + ": parameter " + param.name());
+    expect(abi.getCalleeSavedRegisters().contains(saved), name + ": callee-saved " + saved.name());
+    expect(!abi.getCallWrittenRegisters().contains(saved), name + ": call preserves " + saved.name());
+    expect(abi.getCallWrittenRegisters().contains(scratch), name + ": caller-saved " + scratch.name());
+  }
+
 }
 
 int main() {
@@ -169,6 +182,8 @@ int main() {
   expect(cuda.size() > 0, "cuda tracks registers");
   expect(cuda.getCallReadRegisters() == cuda.getAllRegs(), "unmodelled: a call reads every register");
   expect(cuda.getReturnReadRegisters() == cuda.getAllRegs(), "unmodelled: a return reads every register");
+  check_convention(Dyninst::Arch_x86_64, Dyninst::x86_64::rdi, Dyninst::x86_64::rbx,
+                   Dyninst::x86_64::r11);
 
   return failed ? EXIT_FAILURE : EXIT_SUCCESS;
 }
