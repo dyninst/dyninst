@@ -33,6 +33,7 @@
 #include "registers/abstract_regs.h"
 #include "registers/aarch64_regs.h"
 #include "registers/x86_64_regs.h"
+#include "registers/x86_regs.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -184,6 +185,7 @@ int main() {
   expect(cuda.getReturnReadRegisters() == cuda.getAllRegs(), "unmodelled: a return reads every register");
   check_convention(Dyninst::Arch_x86_64, Dyninst::x86_64::rdi, Dyninst::x86_64::rbx,
                    Dyninst::x86_64::r11);
+  check_convention(Dyninst::Arch_x86, Dyninst::x86::ecx, Dyninst::x86::esi, Dyninst::x86::eax);
 
   return failed ? EXIT_FAILURE : EXIT_SUCCESS;
 }
