@@ -34,6 +34,7 @@
 #include "registers/aarch64_regs.h"
 #include "registers/ppc32_regs.h"
 #include "registers/ppc64_regs.h"
+#include "registers/riscv64_regs.h"
 #include "registers/x86_64_regs.h"
 #include "registers/x86_regs.h"
 
@@ -192,6 +193,8 @@ int main() {
                    Dyninst::ppc64::r11);
   check_convention(Dyninst::Arch_aarch64, Dyninst::aarch64::x0, Dyninst::aarch64::x19,
                    Dyninst::aarch64::x9);
+  check_convention(Dyninst::Arch_riscv64, Dyninst::riscv64::a0, Dyninst::riscv64::s1,
+                   Dyninst::riscv64::t0);
 
   // The decoder reports PowerPC registers in either namespace.
   auto const& ppc = Dyninst::ABI::get(Dyninst::Arch_ppc64);
