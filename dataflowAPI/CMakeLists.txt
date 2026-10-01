@@ -97,7 +97,6 @@ set_source_files_properties(${_rose_headers} PROPERTIES COMPILE_FLAGS -w)
 
 set(
   _dataflow_sources
-  ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ABI.C
   ${PROJECT_SOURCE_DIR}/dataflowAPI/src/Absloc.C
   ${PROJECT_SOURCE_DIR}/dataflowAPI/src/AbslocInterface.C
   ${PROJECT_SOURCE_DIR}/dataflowAPI/src/AST.C
@@ -106,7 +105,6 @@ set(
   ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ExpressionConversionVisitor.C
   ${PROJECT_SOURCE_DIR}/dataflowAPI/src/InstructionCache.C
   ${PROJECT_SOURCE_DIR}/dataflowAPI/src/liveness.C
-  ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RegisterMap.C
   ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RoseImpl.C
   ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RoseInsnFactory.C
   ${PROJECT_SOURCE_DIR}/dataflowAPI/src/slicing.C
@@ -122,7 +120,6 @@ set(
   _dataflow_private_headers
   ${PROJECT_SOURCE_DIR}/dataflowAPI/src/debug_dataflow.h
   ${PROJECT_SOURCE_DIR}/dataflowAPI/src/ExpressionConversionVisitor.h
-  ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RegisterMap.h
   ${PROJECT_SOURCE_DIR}/dataflowAPI/src/RoseInsnFactory.h
   ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymbolicExpansion.h
   ${PROJECT_SOURCE_DIR}/dataflowAPI/src/SymEvalPolicy.h

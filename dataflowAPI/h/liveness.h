@@ -38,7 +38,7 @@
 #include "InstructionDecoder.h"
 #include "InstructionCache.h"
 #include "bitArray.h"
-#include "ABI.h"
+#include "registers/abi.h"
 #include <map>
 #include <set>
 #include "Register.h"
@@ -46,30 +46,27 @@
 
 
 struct livenessData{
-	bitArray in, out, use, def;
+	Dyninst::LivenessSet in, out, use, def;
 };
 
 class DYNINST_EXPORT LivenessAnalyzer{
 	std::map<Dyninst::ParseAPI::Block*, livenessData> blockLiveInfo;
 	std::map<Dyninst::ParseAPI::Function*, bool> liveFuncCalculated;
-        std::map<Dyninst::ParseAPI::Function*, bitArray> funcRegsDefined;
+        std::map<Dyninst::ParseAPI::Function*, Dyninst::LivenessSet> funcRegsDefined;
 	InstructionCache cachedLivenessInfo;
 
-	const bitArray& getLivenessIn(Dyninst::ParseAPI::Block *block);
-	const bitArray& getLivenessOut(Dyninst::ParseAPI::Block *block, bitArray &allRegsDefined);
-	void processEdgeLiveness(Dyninst::ParseAPI::Edge* e, livenessData& data, Dyninst::ParseAPI::Block* block, const bitArray& allRegsDefined);
+	const Dyninst::LivenessSet& getLivenessIn(Dyninst::ParseAPI::Block *block);
+	const Dyninst::LivenessSet& getLivenessOut(Dyninst::ParseAPI::Block *block, Dyninst::LivenessSet &allRegsDefined);
+	void processEdgeLiveness(Dyninst::ParseAPI::Edge* e, livenessData& data, Dyninst::ParseAPI::Block* block, const Dyninst::LivenessSet& allRegsDefined);
 	
-	void summarizeBlockLivenessInfo(Dyninst::ParseAPI::Function* func, Dyninst::ParseAPI::Block *block, bitArray &allRegsDefined);
-	bool updateBlockLivenessInfo(Dyninst::ParseAPI::Block *block, bitArray &allRegsDefined);
+	void summarizeBlockLivenessInfo(Dyninst::ParseAPI::Function* func, Dyninst::ParseAPI::Block *block, Dyninst::LivenessSet &allRegsDefined);
+	bool updateBlockLivenessInfo(Dyninst::ParseAPI::Block *block, Dyninst::LivenessSet &allRegsDefined);
 	
 	ReadWriteInfo calcRWSets(Dyninst::InstructionAPI::Instruction curInsn, Dyninst::ParseAPI::Block *blk, Dyninst::Address a);
 
 	void* getPtrToInstruction(Dyninst::ParseAPI::Block *block, Dyninst::Address addr) const;	
 	bool isExitBlock(Dyninst::ParseAPI::Block *block);
-	bool isMMX(Dyninst::MachRegister machReg);
-	Dyninst::MachRegister changeIfMMX(Dyninst::MachRegister machReg);
-	int width;
-	ABI* abi;
+	Dyninst::ABI const* abi;
 
 public:
 	typedef enum {Before, After} Type;
@@ -79,6 +76,11 @@ public:
 	void analyze(Dyninst::ParseAPI::Function *func);
 
 	bool query(Dyninst::ParseAPI::Location loc, Type type, const Dyninst::MachRegister &machReg, bool& live);
+	bool query(Dyninst::ParseAPI::Location loc, Type type, Dyninst::LivenessSet &live);
+
+	// The live registers as raw bits, indexed by getIndex(). The bits follow
+	// the ABI's layout, not the per-architecture index tables of earlier
+	// releases.
 	bool query(Dyninst::ParseAPI::Location loc, Type type, bitArray &bitarray);
 
 	ErrorType getLastError(){ return errorno; }
@@ -87,7 +89,7 @@ public:
 	void clean();
 
 	int getIndex(Dyninst::MachRegister machReg);
-	ABI* getABI() { return abi;}
+	Dyninst::ABI const* getABI() const { return abi; }
 
 private:
 	ErrorType errorno;

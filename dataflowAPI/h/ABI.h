@@ -30,76 +30,10 @@
 #ifndef ABI_H
 #define ABI_H
 
-#include "dyntypes.h"
-#include "registers/MachRegister.h"
-#include "bitArray.h"
-#include <map>
+// Compatibility header: use registers/abi.h.
+#include "registers/abi.h"
 
-class ABI{
-
-    static dyn_tls ABI* globalABI_; 
-    static dyn_tls ABI* globalABI64_;
-    std::map<Dyninst::MachRegister,int> *index;
-    int addr_width;
-
- public:
-    DYNINST_EXPORT const bitArray &getCallReadRegisters() const;
-    DYNINST_EXPORT const bitArray &getCallWrittenRegisters() const;
-    DYNINST_EXPORT const bitArray &getReturnReadRegisters() const;
-    DYNINST_EXPORT const bitArray &getReturnRegisters() const;
-    DYNINST_EXPORT const bitArray &getParameterRegisters() const;
-    // No such thing as return written...
-
-    // Syscall!
-    DYNINST_EXPORT const bitArray &getSyscallReadRegisters() const;
-    DYNINST_EXPORT const bitArray &getSyscallWrittenRegisters() const;
-
-    DYNINST_EXPORT const bitArray &getAllRegs() const;
-
-    DYNINST_EXPORT int getIndex(Dyninst::MachRegister machReg);
-    DYNINST_EXPORT std::map<Dyninst::MachRegister,int>* getIndexMap();
-
-    DYNINST_EXPORT static void initialize32();
-    DYNINST_EXPORT static void initialize64();
-    DYNINST_EXPORT static void initialize64(Dyninst::Architecture arch);
-    // Warning: the architecture is fixed on first use and cannot be reset
-    //
-    // if not set, set the architecture to the host, return addr_width ABI.
-    DYNINST_EXPORT static ABI* getABI(int addr_width);
-    // if not set, set the architecture to arch. return the 64-bit ABI.
-    DYNINST_EXPORT static ABI* getABI(Dyninst::Architecture arch);
-    DYNINST_EXPORT bitArray getBitArray();
- private:
-    static dyn_tls bitArray* callRead_;
-    static dyn_tls bitArray* callRead64_;
-
-    static dyn_tls bitArray* callWritten_;
-    static dyn_tls bitArray* callWritten64_;
-
-    static dyn_tls bitArray* returnRead_;
-    static dyn_tls bitArray* returnRead64_;
-
-    static dyn_tls bitArray* returnRegs_;
-    static dyn_tls bitArray* returnRegs64_;
-
-    static dyn_tls bitArray* callParam_;
-    static dyn_tls bitArray* callParam64_;
-
-    static dyn_tls bitArray* syscallRead_;
-    static dyn_tls bitArray* syscallRead64_;
-
-    static dyn_tls bitArray* syscallWritten_;
-    static dyn_tls bitArray* syscallWritten64_;
-
-    static dyn_tls bitArray* allRegs_;
-    static dyn_tls bitArray* allRegs64_;
-
-    static bitArray * getBitArray(int size){
-        return new bitArray(size);
-    }
-
-    ABI(): index(NULL), addr_width(0) {}
-};
-
+// The class used to be ::ABI; keep that name for existing code.
+using ABI = Dyninst::ABI;
 
 #endif //ABI_H
