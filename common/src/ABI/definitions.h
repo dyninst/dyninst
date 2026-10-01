@@ -70,6 +70,7 @@ namespace Dyninst { namespace abi {
   // unit per architecture.
   definition make_aarch64();
   definition make_ppc64();
+  definition make_riscv64();
   definition make_x86();
   definition make_x86_64();
 
