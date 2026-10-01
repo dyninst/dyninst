@@ -26,6 +26,11 @@ option(DYNINST_BUILD_DOCS
 option(DYNINST_DOCS_FORCE_VALIDATE
        "Require Ghostscript and check that no manual prints past the paper's edge" OFF)
 
+option(
+  DYNINST_DOCS_VALIDATE_LISTINGS
+  "Compile the example sources the manuals typeset as part of 'all', with the warning flags the library itself uses"
+  ON)
+
 option(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS
        "Disable all warning suppressions and frame size overrides." OFF)
 
