@@ -59,6 +59,10 @@ namespace Dyninst { namespace abi {
     convention syscall;
   };
 
+  // The register usage rules of each modelled architecture, one translation
+  // unit per architecture.
+  definition make_x86_64();
+
 }}
 
 #endif
