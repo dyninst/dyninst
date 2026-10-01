@@ -372,7 +372,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
         // Grab the register space, and see if LR or CTR are free.
         // What we are going to do here is use the LR/CTR as temporary store for an existing register value
         std::vector<Dyninst::Register> potentialRegisters = {registerSpace::r3, registerSpace::r4, registerSpace::r5, registerSpace::r6, registerSpace::r7, registerSpace::r8, registerSpace::r9, registerSpace::r10};
-        bitArray liveRegs = point->liveRegisters();
+        LivenessSet const liveRegs = point->liveRegisters();
         registerSpace *rs = registerSpace::getRegisterSpace(point->proc());
 
         for (int iter =  potentialRegisters.size() - 1; iter >= 0; iter = iter - 1) {
