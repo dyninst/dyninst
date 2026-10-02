@@ -28,19 +28,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "debug.h"
 #include "InstructionDecoder-aarch64.h"
 #include "Register.h"
+#include "registers/abstract_regs.h"
 #include "registers/aarch64_regs.h"
 #include "unaligned_memory_access.h"
 #include <boost/make_shared.hpp>
 #include <algorithm>
-
-#if defined(__GNUC__)
-#define insn_printf(format, ...)                                                                   \
-  do {                                                                                             \
-    printf("[%s:%u]insn_debug " format, FILE__, __LINE__, ##__VA_ARGS__);                          \
-  } while(0)
-#endif
 
 #define AARCH64_INSN_LENGTH 32
 
@@ -502,11 +497,20 @@ void InstructionDecoder_aarch64::set32Mode()
       unsigned int systemRegEncoding =
           (op0Field << 14) | (op1Field << 11) | (crnField << 7) | (crmField << 3) | op2Field;
 
-      MachRegister reg;
-      if((op0Field & 0x3) == 0x3 && (crnField & 0x3) == 0x3 && (crnField & 0x8) == 0x8)
+      MachRegister reg = [&]() {
+        // Implementation-defined by the ISA spec
+        if((op0Field & 0x3) == 0x3 && (crnField & 0x3) == 0x3 && (crnField & 0x8) == 0x8) {
+          return aarch64::IMPLEMENTATION_DEFINED_SYSREG;
+        }
+
+        // Check which ones we know about
+        return sysRegMap(systemRegEncoding);
+      }();
+
+      if(!reg.isValid()) {
+        decode_printf("Unknown system register encoding 0x%x for instruction 0x%x\n", systemRegEncoding, insn);
         reg = aarch64::IMPLEMENTATION_DEFINED_SYSREG;
-      else
-        reg = sysRegMap(systemRegEncoding);
+      }
       add_operand(makeRegisterExpression(reg), !isRtRead, isRtRead);
       add_operand(makeRtExpr(), isRtRead, !isRtRead);
       if(!isRtRead) {
