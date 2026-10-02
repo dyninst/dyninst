@@ -32,55 +32,23 @@ jobs:
     - name: gersemi
       shell: bash
       run: |
-        function PrintHeader()
-        {
-          delim='----------------------------------------'
-          printf '\n\n%s\n' "$delim"
-          printf '%s\n' "$@"
-          printf '%s\n' "$delim"
+        # The cmake-check and cmake-reformat-diff targets drive this same
+        # script, so a contributor's build and this job share one file list
+        # and one report.  Calling it directly rather than through the
+        # targets keeps the job on a bare runner: 'cmake -P' wants no
+        # configured build tree, and so none of Dyninst's dependencies.
+        run() {
+          cmake -DGERSEMI="$(command -v gersemi)" \
+                -DMODE="$1" \
+                -DSOURCE_DIR="${GITHUB_WORKSPACE}" \
+                -P "${GITHUB_WORKSPACE}/cmake/DyninstRunGersemi.cmake"
         }
 
-        # use process substitution to avoid early exit if grep or git fail
-        # store the cmake files into cmakeFiles array
-        mapfile -t cmakeFiles < <( git ls-files | grep -E '(^|/)CMakeLists\.txt$|\.cmake$' )
-
-        # store stdout and stderr lines of 'gersemi --check' into gersemiCheck array
-        # adding a line '@@@rc=<RETURN_CODE>' to get the rc from the gersemi process substitution
-        mapfile -t gersemiCheck < <( rc=0; gersemi --check "${cmakeFiles[@]}" 2>&1|| rc=$?; echo "@@@rc=$rc" )
-        gersemiRc=${gersemiCheck[-1]#@@@rc=}
-        unset "gersemiCheck[-1]"
-
-        reformatFiles=( )
-        warnings=( )
-        reformats=( )
-        for line in "${gersemiCheck[@]}"; do
-          case "$line" in
-            *' would be reformatted')
-              reformats+=( "$line" )
-              path=${line% would be reformatted}
-              reformatFiles+=( "${path#"$PWD"/}" )
-              ;;
-            *)
-              warnings+=( "$line" )
-              ;;
-          esac
-        done
-
-        PrintHeader "Reformatting required from:  gersemi --check ..."
-        if [ ${#reformats[@]} -gt 0 ]; then
-            printf '%s\n' "${reformats[@]}"
-        fi
-
-        PrintHeader "Warnings from:  gersemi --check ..."
-        if [ ${#warnings[@]} -gt 0 ]; then
-          printf '%s\n' "${warnings[@]}"
-        fi
-
-        if [ "$gersemiRc" != 0 ]; then
-          PrintHeader "ERROR: gersemi --check failed with rc=$gersemiRc" \
-                      "To fix run the following command:"
-          printf '%s\n' "gersemi --in-place ${reformatFiles[*]}"
-          PrintHeader "gersemi --diff ${reformatFiles[*]}"
-          gersemi --diff "${reformatFiles[@]}"
+        # An 'if' reports the status of the branch it took, not of the
+        # condition, so the explicit exit is what makes the step fail.
+        if ! run check; then
+          echo
+          echo
+          run diff
           exit 1
         fi
