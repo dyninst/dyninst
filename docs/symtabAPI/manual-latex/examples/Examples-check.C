@@ -23,50 +23,48 @@ using namespace SymtabAPI;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
+// Every example after the first works through a handle that the first one
+// opens.  It arrives as a parameter rather than a local because a local
+// would need a value, and a null one lets an optimising compiler see a null
+// 'this' at each call through it and report -Wnonnull.  A parameter is
+// opaque: there is no caller in this file to give it a value.
 void parseFile()
 {
 #include "ParseFile.C"
 }
 
-void lookupAndUpdate()
+void lookupAndUpdate(Symtab *obj)
 {
-  Symtab *obj = nullptr;
 #include "LookupAndUpdate.C"
 }
 
-void addVariable()
+void addVariable(Symtab *obj)
 {
-  Symtab *obj = nullptr;
 #include "AddVariable.C"
 }
 
-void createType()
+void createType(Symtab *obj)
 {
-  Symtab *obj = nullptr;
 #include "CreateType.C"
 }
 
-void lineNumbers()
+void lineNumbers(Symtab *obj)
 {
-  Symtab *obj = nullptr;
 #include "LineNumbers.C"
 }
 
-void localVariables()
+void localVariables(Symtab *obj)
 {
-  Symtab *obj = nullptr;
 #include "LocalVariables.C"
 }
 
-void iterateLineInfo()
+void iterateLineInfo(Symtab *obj)
 {
-  Symtab *obj = nullptr;
 #include "IterateLineInfo.C"
 }
 
-void retrieveType()
+void retrieveType(Symtab *obj)
 {
-  Symtab *obj = nullptr;
 #include "RetrieveType.C"
 }
 
