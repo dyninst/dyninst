@@ -594,7 +594,10 @@ int tc_lock_init(tc_lock_t *t)
 int tc_lock_unlock(tc_lock_t *t)
 {
   t->tid = (dyntid_t) DYNINST_INITIAL_LOCK_PID;
-  t->mutex = 0;
+  /* Must be a release store: writes made while holding the lock have to be
+     visible before the lock reads as free.  A plain store lets the compiler
+     and weakly-ordered CPUs move those writes past it. */
+  __atomic_store_n(&t->mutex, 0, __ATOMIC_RELEASE);
   return 0;
 }
 
