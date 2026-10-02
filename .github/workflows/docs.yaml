@@ -116,7 +116,6 @@ jobs:
           set -ex
 
           build="${GITHUB_WORKSPACE}/build"
-          src="${GITHUB_WORKSPACE}/src"
 
           # Ask the build tree where the manuals went rather than assuming
           # it: the prefix is the caller's to choose, DYNINST_DOCS_INSTALL_DIR
@@ -132,26 +131,28 @@ jobs:
 
           set +x
 
-          # An unmatched glob has to vanish rather than come through as its
-          # own pattern, or a tree with no manuals reads as one named '*'.
-          shopt -s nullglob
+          # The manuals a complete install contains, one per line.  The build
+          # writes this from the same install() rules that do the installing,
+          # so it cannot disagree with what docs-install produces -- which a
+          # list rebuilt here from the source tree could.
+          manifest="${build}/docs-manuals.txt"
+          if ! test -s "${manifest}"; then
+            echo "::error::${manifest} is missing or empty; did cmake configure the docs?"
+            exit 1
+          fi
 
-          # One manual per docs/<module>/manual-latex/<module>.tex, installed
-          # as <module>.pdf.  Deriving the list from the source tree means a
-          # manual added later is checked without editing this workflow.
           missing=()
           found=0
-          for tex in "${src}"/docs/*/manual-latex/*.tex; do
-            m=$(basename "${tex}" .tex)
-            test "${tex}" = "${src}/docs/${m}/manual-latex/${m}.tex" || continue
-            if test -s "${dest}/${m}.pdf"; then
+          while IFS= read -r pdf; do
+            test -n "${pdf}" || continue
+            if test -s "${dest}/${pdf}"; then
               found=$((found + 1))
-              printf '  ok       %s\n' "${m}.pdf"
+              printf '  ok       %s\n' "${pdf}"
             else
-              missing+=("${m}.pdf")
-              printf '  MISSING  %s\n' "${m}.pdf"
+              missing+=("${pdf}")
+              printf '  MISSING  %s\n' "${pdf}"
             fi
-          done
+          done < "${manifest}"
 
           if test ${#missing[@]} -ne 0; then
             echo "::error::not installed in ${dest}: ${missing[*]}"
@@ -162,7 +163,7 @@ jobs:
           # install(FILES ... OPTIONAL) says nothing when a PDF is absent, so
           # an empty install directory would otherwise look like success.
           if test "${found}" -eq 0; then
-            echo "::error::no manuals found under ${src}/docs to check"
+            echo "::error::${manifest} named no manuals to check"
             exit 1
           fi
 

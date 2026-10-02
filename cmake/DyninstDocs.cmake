@@ -167,6 +167,14 @@ function(dyninst_add_latex_document)
       DESTINATION "${LTX_INSTALL_DESTINATION}"
       COMPONENT docs
       OPTIONAL)
+
+    # Record what a complete install contains.  install(FILES ... OPTIONAL)
+    # says nothing about a PDF that was never built, so an empty install
+    # directory is indistinguishable from a full one unless the expected set
+    # was written down.  Recording it here, beside the install() rule that
+    # creates the expectation, is what keeps the two from drifting apart.
+    # docs/CMakeLists.txt writes the finished list out for CI to check.
+    set_property(GLOBAL APPEND PROPERTY DYNINST_DOCS_INSTALLED_FILES "${_stem}.pdf")
   endif()
 endfunction()
 
