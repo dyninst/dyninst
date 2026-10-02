@@ -15,27 +15,27 @@
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-// The function whose blocks the example walks.
-static Function *func;
-
 // The per-edge action the example leaves to the reader.
 struct do_stuff
 {
   void operator()(Edge *) {}
 };
 
-// The block whose functions the getFuncs example asks for.
-static Block *block;
-
 // GetLoopInFunc is printed whole, so it is a definition rather than a body.
 #include "LoopAnalysis.C"
 
-void filteredIteration()
+// The handles the examples take as given arrive as parameters rather than as
+// file-scope variables: nothing here gives them a value, and a compiler that
+// can see a null one reports every call through it as -Wnonnull.
+
+// func is the function whose blocks the example walks.
+void filteredIteration(Function *func)
 {
 #include "FilteredIteration.C"
 }
 
-void blockFuncs()
+// block is the one whose functions the getFuncs example asks for.
+void blockFuncs(Block *block)
 {
 #include "BlockFuncs.C"
 }

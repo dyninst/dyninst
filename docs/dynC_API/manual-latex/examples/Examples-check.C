@@ -15,13 +15,12 @@
 #include <vector>
 
 // The address space the prose has already attached to, and the functions it
-// is walking when the steps below run.
-static BPatch_process *appProc;
-static BPatch_image *appImage;
-static std::vector<BPatch_function *> functions;
-static unsigned i;
-
-void rawSnippetWalkthrough()
+// is walking when the steps below run.  They are parameters rather than
+// file-scope variables because nothing here gives them a value: a compiler
+// that can see a null one reports every call through it as -Wnonnull.
+void rawSnippetWalkthrough(BPatch_process *appProc, BPatch_image *appImage,
+                           std::vector<BPatch_function *> &functions,
+                           unsigned i)
 {
 #include "LookupPrintf.C"
 #include "Patterns.C"
