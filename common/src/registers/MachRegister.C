@@ -113,6 +113,18 @@ namespace Dyninst {
             return *this;
           }
 
+          // The vector registers of the SVE, SVE2 and SME extensions are not
+          // FPRs. Each z<N> contains q<N> in its low 128 bits; the predicate,
+          // ZT0, ZA and vector-length registers alias nothing.
+          if(category != aarch64::FPR) {
+            if(category == aarch64::SVE && lengthID == aarch64::SVES) {
+              auto const offset = getID(*this) - getID(aarch64::z0);
+              auto const id = getID(aarch64::q0) + offset;
+              return MachRegister(id | aarch64::Q_REG | aarch64::FPR | Arch_aarch64);
+            }
+            return *this;
+          }
+
           // This is an 8-bit b<N>, 16-bit h<N>, 32-bit s<N>, or 64-bit d<N> register
           auto const first_of_len = [&]() -> MachRegister {
             switch(lengthID) {
