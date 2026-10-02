@@ -27,10 +27,17 @@ project(
   VERSION ${DYNINST_VERSION}
   DESCRIPTION "Tools for binary instrumentation, analysis, and modification"
   HOMEPAGE_URL "https://github.com/dyninst/dyninst"
-  LANGUAGES C CXX ASM)
+  LANGUAGES C CXX ASM
+)
 
-list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/cmake"
-     "${PROJECT_SOURCE_DIR}/cmake/tpls" "${PROJECT_SOURCE_DIR}/cmake/Modules")
+list(
+  INSERT
+  CMAKE_MODULE_PATH
+  0
+  "${PROJECT_SOURCE_DIR}/cmake"
+  "${PROJECT_SOURCE_DIR}/cmake/tpls"
+  "${PROJECT_SOURCE_DIR}/cmake/Modules"
+)
 
 # These need to be done before anything else
 include(DyninstLibrarySettings)
@@ -88,3 +95,7 @@ if(DYNINST_ENABLE_TESTS)
 endif()
 
 include(DyninstInstall)
+
+# The cmake-check, cmake-reformat and cmake-reformat-diff targets.  Nothing in
+# the build depends on them.
+include(DyninstCMakeFormat)
