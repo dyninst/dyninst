@@ -197,7 +197,7 @@ static int get_dlopen_error(void) {
      strncpy(gLoadLibraryErrorString, err_str, max_len-1);
 
      // strncpy doesn't add a NULL terminator if the input string
-     // is longer than `max_len`, so make sure it's terminated even
+     // is longer than `max_len-1`, so make sure it's terminated even
      // if it truncates the string.
      gLoadLibraryErrorString[max_len-1] = '\0';
      return 1;
