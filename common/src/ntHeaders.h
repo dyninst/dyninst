@@ -173,8 +173,6 @@ inline char * P_strstr (char *HAYSTACK, const char *NEEDLE) {return (strstr(HAYS
 
 inline double P_strtod (const char *STRING, char **TAILPTR) {
   return (strtod(STRING, TAILPTR));}
-inline char * P_strtok (char *NEWSTRING, const char *DELIMITERS) {
-  return (strtok(NEWSTRING, DELIMITERS));}
 inline long int P_strtol (const char *STRING, char **TAILPTR, int BASE) {
   return (strtol(STRING, TAILPTR, BASE));}
 inline unsigned long int P_strtoul(const char *STRING, char **TAILPTR, int BASE) { 
@@ -189,8 +187,6 @@ inline int P_connect(int socket, struct sockaddr *addr, size_t len) {
   return (connect(socket, addr, len));}
 inline struct hostent * P_gethostbyname (const char *NAME) {
   return (gethostbyname(NAME));}
-inline struct servent * P_getservbyname (const char *NAME, const char *PROTO) {
-  return (getservbyname(NAME, PROTO));}
 inline int P_getsockname (int SOCKET, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
   return (getsockname(SOCKET, ADDR, (int*) LENGTH_PTR));}
 inline int P_listen (int socket, unsigned int n) { return (listen(socket, n));}

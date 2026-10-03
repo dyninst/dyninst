@@ -227,13 +227,14 @@ bool runHunt_binaryEdit()
             char *args = strchr(config.binary_args, ':');
             args++;
                 
-            char *p = strtok(args, ",");
+            char *strtok_save{};
+            char *p = strtok_r(args, ",", &strtok_save);
             int i = 1;
             while ( p != NULL && i <= numargs ) {
                 fprintf(stderr," %s", p);
                 arg[i] = p;
                 i++;
-                p = strtok(NULL, ",");
+                p = strtok_r(NULL, ",", &strtok_save);
             }
             if (i <= numargs) {
                 dlog(ERR, "\nWrong number of arguments specified for executing binary. Expected %d but got only %d arguments\n", numargs, i-1);

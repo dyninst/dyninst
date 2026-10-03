@@ -193,8 +193,14 @@ static int get_dlopen_error(void) {
    char *err_str;
    err_str = dlerror();
    if (err_str) {
-      strncpy(gLoadLibraryErrorString, err_str, (size_t) ERROR_STRING_LENGTH);
-      return 1;
+     const size_t max_len = (size_t) ERROR_STRING_LENGTH;
+     strncpy(gLoadLibraryErrorString, err_str, max_len-1);
+
+     // strncpy doesn't add a NULL terminator if the input string
+     // is longer than `max_len-1`, so make sure it's terminated even
+     // if it truncates the string.
+     gLoadLibraryErrorString[max_len-1] = '\0';
+     return 1;
    }
    else {
       sprintf(gLoadLibraryErrorString,"unknown error with dlopen");

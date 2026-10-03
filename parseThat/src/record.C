@@ -263,8 +263,9 @@ bool record_search(record_t *newRecord)
 
     char timestr[STRING_MAX];
     time_t timestamp = time(NULL);
+    struct tm tmv;
 
-    strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S %Z", localtime(&timestamp));
+    strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S %Z", localtime_r(&timestamp, &tmv));
     fprintf(newRecord->fd, "Log start: %s\n", timestr);
     fprintf(newRecord->fd, "--------------------------------------------------------------------------------\n");
 

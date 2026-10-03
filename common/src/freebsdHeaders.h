@@ -170,8 +170,6 @@ inline char * P_strstr (char *HAYSTACK, const char *NEEDLE) {return (strstr(HAYS
 
 inline double P_strtod (const char *P_STRING, char **TAILPTR) {
   return (strtod(P_STRING, TAILPTR));}
-inline char * P_strtok (char *NEWP_STRING, const char *DELIMITERS) {
-  return (strtok(NEWP_STRING, DELIMITERS));}
 inline long int P_strtol (const char *P_STRING, char **TAILPTR, int BASE) {
   return (strtol(P_STRING, TAILPTR, BASE));}
 inline unsigned long int P_strtoul(const char *P_STRING, char **TAILPTR, int BASE) { 
@@ -190,8 +188,6 @@ inline struct hostent * P_gethostbyname (const char *NAME) {
    return (gethostname(name, size));} */
 /* inline int P_getrusage(int i, struct rusage *ru) { 
    return (getrusage(i, ru));} */
-inline struct servent * P_getservbyname (const char *NAME, const char *PROTO) {
-  return (getservbyname(NAME, PROTO));}
 inline int P_getsockname (int SOCKET, struct sockaddr *ADDR, socklen_t *LENGTH_PTR) {
   return (getsockname(SOCKET, ADDR, LENGTH_PTR));}
 inline int P_getsockopt(int s, int level, int optname, void *optval, int *optlen) {

@@ -635,9 +635,10 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
 
     time_t tstruct;
     struct tm * tmstruct;
+    struct tm tmv;
     char timeStr[64];
     time( &tstruct );
-    tmstruct = localtime( &tstruct );
+    tmstruct = localtime_r( &tstruct, &tmv );
     strftime(timeStr, 64, "%X", tmstruct);
 
     mal_printf("badTransferCB %lx=>%lx %s\n\n", pointAddr, target, timeStr);

@@ -69,12 +69,14 @@ bool BinaryEdit::getResolvedLibraryPath(const std::string &filename, std::vector
         paths.push_back(filename);
     }
 
+    char *strtok_save{};
+
     // search paths from environment variables
     libPathStr = strdup(getenv("LD_LIBRARY_PATH"));
-    libPath = strtok(libPathStr, ":");
+    libPath = strtok_r(libPathStr, ":", &strtok_save);
     while (libPath != NULL) {
         libPaths.push_back(std::string(libPath));
-        libPath = strtok(NULL, ":");
+        libPath = strtok_r(NULL, ":", &strtok_save);
     }
     free(libPathStr);
 
