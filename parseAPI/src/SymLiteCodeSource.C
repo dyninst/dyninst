@@ -44,6 +44,8 @@
 
 #include "symlite/h/SymLite-elf.h"
 
+#include <sys/mman.h>
+
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;

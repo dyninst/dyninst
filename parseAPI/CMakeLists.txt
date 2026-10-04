@@ -37,7 +37,6 @@ set(_parseapi_sources
     src/ProbabilisticParser.C
     src/StackTamperVisitor.C
     src/SymbolicExpression.C
-    src/SymtabCodeSource.C
     src/ThunkData.C)
 
 set(_parseapi_public_headers
