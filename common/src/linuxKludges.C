@@ -137,7 +137,7 @@ bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int 
       /* Read the segment containing the unaligned portion, and
          copy what was requested to DP. */
       errno = 0;
-      w = P_ptrace(PTRACE_PEEKDATA, pid, (Dyninst::Address) (ap-cnt), w, len);
+      w = ptrace(PTRACE_PEEKDATA, pid, ap-cnt, w);
       if (errno) {
          return false;
       }
@@ -155,7 +155,7 @@ bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int 
    /* Copy aligned portion */
    while (size >= (u_int)len) {
       errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Dyninst::Address) ap, 0, len);
+      w = ptrace(PTRACE_PEEKTEXT, pid, ap, 0);
       if (errno) {
          return false;
       }
@@ -172,7 +172,7 @@ bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int 
       /* Read the segment containing the unaligned portion, and
          copy what was requested to DP. */
       errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Dyninst::Address) ap, 0, len);
+      w = ptrace(PTRACE_PEEKTEXT, pid, ap, 0);
       if (errno) {
          return false;
       }
@@ -229,7 +229,7 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
       /* Read the segment containing the unaligned portion, edit
          in the data from DP, and write the segment back. */
       errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Dyninst::Address) (ap-cnt), 0);
+      w = ptrace(PTRACE_PEEKTEXT, pid, ap-cnt, 0);
 
       if (errno) {
          return false;
@@ -238,7 +238,7 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
       for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
          p[cnt+i] = dp[i];
 
-      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Dyninst::Address) (ap-cnt), w)) {
+      if (0 > ptrace(PTRACE_POKETEXT, pid, ap-cnt, w)) {
          return false;
       }
 
@@ -255,7 +255,7 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
    while (nbytes >= (u_int)len) {
       assert(0 == ((Dyninst::Address)ap) % len);
       memcpy(&w, dp, len);
-      int retval =  P_ptrace(PTRACE_POKETEXT, pid, (Dyninst::Address) ap, w);
+      int retval =  ptrace(PTRACE_POKETEXT, pid, ap, w);
       if (retval < 0) {
          return false;
       }
@@ -273,7 +273,7 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
       /* Read the segment containing the unaligned portion, edit
          in the data from DP, and write it back. */
       errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Dyninst::Address) ap, 0);
+      w = ptrace(PTRACE_PEEKTEXT, pid, ap, 0);
 
       if (errno) {
          return false;
@@ -283,7 +283,7 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
       for (unsigned i = 0; i < nbytes; i++)
          p[i] = dp[i];
 
-      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Dyninst::Address) ap, w)) {
+      if (0 > ptrace(PTRACE_POKETEXT, pid, ap, w)) {
          return false;
       }
    }

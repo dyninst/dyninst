@@ -65,10 +65,6 @@
 #include "dyntypes.h"
 #include "dyninst_visibility.h"
 
-/* BSD */
-
-inline long int P_ptrace(int req, pid_t pid, Dyninst::Address addr, Dyninst::Address data, int = -1) {
-	return (ptrace((enum __ptrace_request)req, pid, addr, data));}
 
 extern DYNINST_EXPORT std::string P_cplus_demangle( const std::string &symbol,
 				bool includeTypes = false );
