@@ -48,7 +48,6 @@
 #include <iostream>
 
 #include "common/src/AuxvParser.h"
-#include "common/src/headers.h"
 #include "common/src/dyninst_filesystem.h"
 #include "common/src/vm_maps.h"
 #include "common/src/addrtranslate.h"

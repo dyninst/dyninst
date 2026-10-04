@@ -31,7 +31,6 @@
 #include "SymLite-elf.h"
 
 #include <cstring>
-#include "common/src/headers.h"
 #include "unaligned_memory_access.h"
 #include <sys/types.h>
 #include <sys/stat.h>

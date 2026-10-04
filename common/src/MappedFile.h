@@ -30,8 +30,6 @@
 #ifndef __MAPPEDFILE_H__
 #define __MAPPEDFILE_H__
 
-#include "headers.h"
-
 #include <string>
 #include "dyninst_visibility.h"
 

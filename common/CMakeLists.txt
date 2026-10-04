@@ -68,7 +68,6 @@ set(_private_headers
     src/dthread.h
     src/dyn_register.h
     src/freebsdKludges.h
-    src/headers.h
     src/ia32_entry.h
     src/ia32_locations.h
     src/ia32_memacc.h

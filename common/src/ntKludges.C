@@ -32,7 +32,6 @@
 // The argument given is returned here
 
 #include <stdio.h>
-#include "common/src/headers.h"
 
 /*
  * stripAtSuffix

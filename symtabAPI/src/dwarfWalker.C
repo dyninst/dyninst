@@ -31,7 +31,6 @@
 #include "common/src/vgannotations.h"
 #include "compiler_diagnostics.h"
 #include "dwarfWalker.h"
-#include "headers.h"
 #include "Module.h"
 #include "Symtab.h"
 #include "Collections.h"

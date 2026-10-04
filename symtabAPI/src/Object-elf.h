@@ -50,7 +50,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "headers.h"
 #include "MappedFile.h"
 #include "IntervalTree.h"
 #include "Module.h"

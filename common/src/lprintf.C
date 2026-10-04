@@ -37,11 +37,11 @@
  * header files.
 ************************************************************************/
 
-#include "common/src/headers.h"
 #include "common/src/lprintf.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <string.h>
 
 /************************************************************************
  * void log_msg(const char* msg)

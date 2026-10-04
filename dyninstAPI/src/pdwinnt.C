@@ -30,7 +30,6 @@
 
 #include <iomanip>
 #include <string>
-#include "common/src/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "binaryEdit.h"
