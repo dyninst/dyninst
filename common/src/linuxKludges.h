@@ -45,8 +45,5 @@ DYNINST_EXPORT bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps);
 
 DYNINST_EXPORT map_entries *getVMMaps(int pid, unsigned &maps_size);
 
-#define getVMMaps getLinuxMaps
-DYNINST_EXPORT map_entries *getLinuxMaps(int pid, unsigned &maps_size);
-
 #endif
 
