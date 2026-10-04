@@ -718,7 +718,7 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
         }
 
         // section-specific processing
-        if (P_strcmp(name, EDITED_TEXT_NAME) == 0) {
+        if (strcmp(name, EDITED_TEXT_NAME) == 0) {
             // EEL rewritten executable
             EEL = true;
             if (txtaddr == 0)

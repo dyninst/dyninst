@@ -66,8 +66,6 @@
 #include "dyninst_visibility.h"
 
 /* ANSI */
-inline int P_strcmp (const char *S1, const char *S2) {
-  return (strcmp(S1, S2));}
 inline char *P_strdup(const char *S) DYNINST_MALLOC_ANNOTATION;
 inline char *P_strdup(const char *S) { return (strdup(S));}
 
