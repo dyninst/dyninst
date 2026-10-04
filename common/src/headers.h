@@ -42,13 +42,4 @@
 #define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 #endif
 
-/*
- * Kludges to handle broken system includes and such...
- */
-
-#if defined(os_windows)
-#include "common/src/ntHeaders.h"
-
-#endif  /* architecture specific */
-
 #endif /* KLUDGES_H */
