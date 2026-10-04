@@ -46,10 +46,7 @@
  * Kludges to handle broken system includes and such...
  */
 
-#if defined(os_freebsd)
-#include "common/src/freebsdHeaders.h"
-
-#elif defined(os_windows)
+#if defined(os_windows)
 #include "common/src/ntHeaders.h"
 
 #endif  /* architecture specific */
