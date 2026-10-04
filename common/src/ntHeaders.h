@@ -94,9 +94,6 @@ typedef int pid_t;
 typedef int key_t;
 typedef unsigned int socklen_t;
 
-/* POSIX */
-inline int P_getpid () { return (_getpid());}
-
 /* ANSI */
 inline void * P_memcpy (void *A1, const void *A2, size_t SIZE) { return memcpy(A1, A2, SIZE); }
 inline int P_getpagesize() { 

@@ -63,8 +63,6 @@
 
 
 /* POSIX */
-inline pid_t P_getpid () { return (getpid());}
-
 inline int P_getpagesize() { return getpagesize(); }
 
 /* ANSI */
