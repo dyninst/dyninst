@@ -61,6 +61,14 @@ namespace DwarfDyninst {
 static dwarf_result upper_bound(Dwarf_Die *die) {
   Dwarf_Attribute attr;
   if (dwarf_attr_integrate(die, DW_AT_upper_bound, &attr)) {
+    // Block and exprloc forms are location expressions encoding dynamic (runtime)
+    // bounds, e.g., for Fortran assumed-shape or allocatable arrays. These cannot
+    // be statically evaluated, so treat them as "unknown bound" (no value, no error).
+    {
+      Dwarf_Block block;
+      if (dwarf_formblock(&attr, &block) == 0)
+        return dwarf_result{};
+    }
     if (is_signed(die)) {
       Dwarf_Sword upper;
       if (dwarf_formsdata(&attr, &upper) != 0)
@@ -80,6 +88,14 @@ static dwarf_result upper_bound(Dwarf_Die *die) {
 static dwarf_result lower_bound(Dwarf_Die *die) {
   Dwarf_Attribute attr;
   if (dwarf_attr_integrate(die, DW_AT_lower_bound, &attr)) {
+    // Block and exprloc forms are location expressions encoding dynamic (runtime)
+    // bounds, e.g., for Fortran assumed-shape or allocatable arrays. These cannot
+    // be statically evaluated, so treat them as "unknown bound" (no value, no error).
+    {
+      Dwarf_Block block;
+      if (dwarf_formblock(&attr, &block) == 0)
+        return dwarf_result{};
+    }
     if (is_signed(die)) {
       Dwarf_Sword lower;
       if (dwarf_formsdata(&attr, &lower) != 0)
