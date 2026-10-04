@@ -437,7 +437,7 @@ bool PCProcess::getExecFileDescriptor(string filename,
 {
    Address base = 0;
 
-    desc = fileDescriptor(filename.c_str(),
+    desc = fileDescriptor(std::move(filename),
                           base,  // code
                           base); // data
     return true;

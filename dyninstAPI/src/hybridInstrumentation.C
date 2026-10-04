@@ -499,13 +499,14 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 BPatch_stopThreadExpr *returnSnippet;
                 BPatch_snippet * calcSnippet = NULL;
                 BPatch_stInterpret interp;
+                BPatch_constExpr bad_addr{0xbaadc0de};
                 if (isHandler) {
                     // case 0: signal handler return address
                     // for handlers, instrument their exit point with a snippet 
                     // that reads the address to which the program will return 
                     // from the CONTEXT of the exception, which is the 3rd argument
                     // to windows structured exception handlers
-                    calcSnippet = new BPatch_constExpr(0xbaadc0de);
+                    calcSnippet = &bad_addr;
                     interp = BPatch_noInterp;
                 }
                 else if (curPoint->isReturnInstruction()) {
@@ -552,9 +553,6 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 
                 // clean up
                 delete returnSnippet;
-                if (dynamic_cast<BPatch_arithExpr*>(calcSnippet)) {
-                    delete calcSnippet;
-                }
             }
         }
 	}

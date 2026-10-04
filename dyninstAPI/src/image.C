@@ -78,6 +78,15 @@ using Dyninst::SymtabAPI::Region;
 using Dyninst::SymtabAPI::Variable;
 using Dyninst::SymtabAPI::Module;
 
+namespace {
+  //Optionally eliminate some hints in which Dyninst is not interested
+  struct filt_heap : SymtabCodeSource::hint_filt {
+    bool operator()(SymtabAPI::Function *f) {
+      return f && f->getModule() && f->getModule()->fileName() == "DYNINSTheap";
+    }
+  } nuke_heap;
+}
+
 fileDescriptor::fileDescriptor():
         code_(0), data_(0),
         pid_(0), length_(0)
@@ -1396,7 +1405,7 @@ image::image(fileDescriptor &desc,
 #endif
    obj_(NULL),
    cs_(NULL),
-   filt(NULL),
+   filt(&nuke_heap),
    img_fact_(NULL),
    parse_cb_(NULL),
    cb_arg0_(NULL),
@@ -1496,17 +1505,6 @@ image::image(fileDescriptor &desc,
    }
 
    // Initialize ParseAPI 
-   filt = NULL;
-
-   /** Optionally eliminate some hints in which Dyninst is not
-       interested **/
-   struct filt_heap : SymtabCodeSource::hint_filt {
-        bool operator()(SymtabAPI::Function * f) {
-            return f && f->getModule() && f->getModule()->fileName() == "DYNINSTheap";
-        }
-    } nuke_heap;
-    filt = &nuke_heap;
-
    bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
    cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
 
