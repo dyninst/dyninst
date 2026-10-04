@@ -46,10 +46,7 @@
  * Kludges to handle broken system includes and such...
  */
 
-#if defined(os_linux)
-#include "common/src/linuxHeaders.h"
-
-#elif defined(os_freebsd)
+#if defined(os_freebsd)
 #include "common/src/freebsdHeaders.h"
 
 #elif defined(os_windows)

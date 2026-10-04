@@ -70,7 +70,6 @@
 #include "snippets.h"
 
 #include "common/src/linuxKludges.h"
-#include "linuxHeaders.h"
 #include "common/src/AuxvParser.h"
 
 #include "boost/shared_ptr.hpp"

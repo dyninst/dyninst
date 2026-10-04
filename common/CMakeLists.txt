@@ -77,7 +77,6 @@ set(_private_headers
     src/instruction-x86.h
     src/IntervalTree.h
     src/LinearVariable.h
-    src/linuxHeaders.h
     src/linuxKludges.h
     src/lprintf.h
     src/lru_cache.h
