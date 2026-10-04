@@ -1,8 +1,9 @@
 include_guard(GLOBAL)
 
+# Stack modification is only supported where cap_stack_mods is defined; elsewhere
+# there is no dyninstAPI_stackmod target.
 list(FIND DYNINST_PLATFORM_CAPABILITIES "-Dcap_stack_mods" cap_stack_mods_found)
 if(cap_stack_mods_found EQUAL -1)
-  add_library(dyninstAPI_stackmod INTERFACE)
   return()
 endif()
 

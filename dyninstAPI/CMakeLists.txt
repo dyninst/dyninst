@@ -28,8 +28,11 @@ set(_subprojects
     dyninstAPI_dynproc
     dyninstAPI_registerSpace
     dyninstAPI_relocation
-    dyninstAPI_stackmod
     dyninstAPI_trampolines)
+
+if(TARGET dyninstAPI_stackmod)
+  list(APPEND _subprojects dyninstAPI_stackmod)
+endif()
 
 set(_public_headers ${_BPatch_public_headers})
 
