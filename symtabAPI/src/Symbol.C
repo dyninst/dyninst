@@ -37,7 +37,7 @@
 #include "Variable.h"
 #include <string>
 #include "annotations.h"
-
+#include "symbolDemangleWithCache.h"
 #include "common/src/headers.h"
 
 #include <iostream>
@@ -63,12 +63,12 @@ Symbol *Symbol::magicEmitElfSymbol() {
     
 DYNINST_EXPORT string Symbol::getPrettyName() const 
 {
-  return P_cplus_demangle(mangledName_, false);
+  return symbol_demangle_with_cache(mangledName_, false);
 }
 
 DYNINST_EXPORT string Symbol::getTypedName() const 
 {
-  return P_cplus_demangle(mangledName_, true);
+  return symbol_demangle_with_cache(mangledName_, true);
 }
 
 // Return a pair containing the clone suffix and the version suffix of s.

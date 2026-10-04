@@ -40,12 +40,6 @@
 #include <map>
 using std::map;
 
-#include "symbolDemangleWithCache.h"
-
-std::string P_cplus_demangle( const std::string &symbol, bool includeTypes )
-{
-    return symbol_demangle_with_cache(symbol, includeTypes);
-} /* end P_cplus_demangle() */
 
 // Process Information Queries //
 // No procfs mounted by default -- need to rely on sysctl //

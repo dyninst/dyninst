@@ -66,7 +66,4 @@
 #include "dyninst_visibility.h"
 
 
-extern DYNINST_EXPORT std::string P_cplus_demangle( const std::string &symbol,
-				bool includeTypes = false );
-
 #endif

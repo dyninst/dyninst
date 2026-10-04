@@ -62,7 +62,4 @@
 #include <sys/syscall.h>
 
 
-extern std::string DYNINST_EXPORT P_cplus_demangle( const std::string &symbol,
-				bool includeTypes = false );
-
 #endif

@@ -39,6 +39,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <iostream>
+#include "symbolDemangleWithCache.h"
 
 namespace {
   std::map<std::string, Dyninst::SymElf*> symelf_cache;
@@ -424,7 +425,7 @@ std::string SymElf::getDemangledName(const Symbol_t &sym)
    if (cache[cache_index].demangled_name)
       return std::string(cache[cache_index].demangled_name);
 
-   std::string res = P_cplus_demangle(name, true);
+   std::string res = symbol_demangle_with_cache(name, true);
    cache[cache_index].demangled_name = strdup(res.c_str());
    return cache[cache_index].demangled_name;
 }

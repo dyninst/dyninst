@@ -83,14 +83,6 @@ static ssize_t process_vm_writev(pid_t pid,
 #endif /* !__GLIBC_PREREQ(2,15) */
 
 
-#include "symbolDemangleWithCache.h"
-
-std::string P_cplus_demangle( const std::string &symbol, bool includeTypes )
-{
-    return symbol_demangle_with_cache(symbol, includeTypes);
-} /* end P_cplus_demangle() */
-
-
 bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid)
 {
    static bool have_process_vm_readv = true;
