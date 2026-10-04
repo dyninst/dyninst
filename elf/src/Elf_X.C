@@ -389,8 +389,8 @@ Elf_X *Elf_X::e_rand(unsigned offset)
 // Write Interface
 void Elf_X::e_ident(unsigned char *input)
 {
-    if (!is64) P_memcpy(ehdr32->e_ident, input, EI_NIDENT);
-    else       P_memcpy(ehdr64->e_ident, input, EI_NIDENT);
+    if (!is64) memcpy(ehdr32->e_ident, input, EI_NIDENT);
+    else       memcpy(ehdr64->e_ident, input, EI_NIDENT);
 }
 
 void Elf_X::e_type(unsigned short input)
