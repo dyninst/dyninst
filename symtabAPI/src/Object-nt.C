@@ -1698,12 +1698,12 @@ static Type *getUDTType(HANDLE p, Offset base, int typeIndex, Module *mod) {
         childName = NULL;
         result = SymGetTypeInfo(p, base, children->ChildId[i], TI_GET_SYMTAG, &symtag);
         if (result && symtag == SymTagBaseClass) {
-            childName = P_strdup("{superclass}");
+            childName = strdup("{superclass}");
         }
         if (!childName)
             childName = getTypeName(p, base, children->ChildId[i]);
         if (!childName) 
-            childName = P_strdup(child_type->getName().c_str());
+            childName = strdup(child_type->getName().c_str());
 
         // Find the offset of this member in the structure
         result = SymGetTypeInfo(p, base, children->ChildId[i], TI_GET_OFFSET, &child_offset);

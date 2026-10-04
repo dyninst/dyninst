@@ -94,9 +94,6 @@ typedef int pid_t;
 typedef int key_t;
 typedef unsigned int socklen_t;
 
-/* ANSI */
-inline char *P_strdup(const char *S) { return (_strdup(S));}
-
 /* BSD */
 extern char *cplus_demangle(const char *, int, bool);
 /* We can't export this, it's inline. */

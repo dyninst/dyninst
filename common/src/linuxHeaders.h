@@ -65,10 +65,6 @@
 #include "dyntypes.h"
 #include "dyninst_visibility.h"
 
-/* ANSI */
-inline char *P_strdup(const char *S) DYNINST_MALLOC_ANNOTATION;
-inline char *P_strdup(const char *S) { return (strdup(S));}
-
 /* BSD */
 
 inline long int P_ptrace(int req, pid_t pid, Dyninst::Address addr, Dyninst::Address data, int = -1) {

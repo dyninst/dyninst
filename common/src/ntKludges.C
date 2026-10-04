@@ -73,19 +73,19 @@ char *cplus_demangle(const char *c, int, bool includeTypes) {
        stripAtSuffix(buf);
        if (buf[0] == '\0')
           return 0; // avoid null names which seem to annoy Paradyn
-       return P_strdup(buf);
+       return strdup(buf);
     } else {
        if (includeTypes) {
           if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE| UNDNAME_NO_ACCESS_SPECIFIERS|UNDNAME_NO_MEMBER_TYPE|UNDNAME_NO_MS_KEYWORDS)) {
             //   printf("Undecorate with types: %s = %s\n", c, buf);
             stripAtSuffix(buf);
-            return P_strdup(buf);
+            return strdup(buf);
           }
        }  else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_NAME_ONLY)) {
          //     else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE|UNDNAME_32_BIT_DECODE)) {
          //     printf("Undecorate: %s = %s\n", c, buf);
          stripAtSuffix(buf);
-         return P_strdup(buf);
+         return strdup(buf);
        }
     }
     return 0;

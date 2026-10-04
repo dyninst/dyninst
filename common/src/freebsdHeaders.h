@@ -62,9 +62,6 @@
 #include <sys/syscall.h>
 
 
-/* ANSI */
-inline char *P_strdup(const char *S) { return (strdup(S));}
-
 /* BSD */
 
 inline long int P_ptrace(int req, pid_t pid, Address addr, Address data, int = -1) {
