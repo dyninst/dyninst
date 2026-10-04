@@ -34,8 +34,6 @@
 #ifndef KLUDGES_H
 #define KLUDGES_H
 
-#include <sys/types.h>
-#include <stddef.h>
 #include <string.h>
 
 #ifndef FILE__
