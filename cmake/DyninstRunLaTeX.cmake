@@ -264,6 +264,16 @@ function(_dyninst_latex_validate _pdf _log)
     list(GET _edges 2 _urx)
     list(GET _edges 3 _ury)
 
+    # Ghostscript reports a page with no ink as 0 0 0 0.  A page is blank on
+    # purpose often enough -- \cleardoublepage leaves one -- and reading that
+    # as ink at the origin says it reaches the left and bottom edges.
+    if(_llx EQUAL 0
+       AND _lly EQUAL 0
+       AND _urx EQUAL 0
+       AND _ury EQUAL 0)
+      continue()
+    endif()
+
     # pdfTeX puts the page's origin at the corner of the paper, so the ink's
     # lower-left coordinates are already its clearances from those two sides.
     set(_left "${_llx}")
