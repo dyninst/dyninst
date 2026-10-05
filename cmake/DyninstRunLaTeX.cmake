@@ -367,7 +367,8 @@ function(_dyninst_latex_report _unsettled)
              " manual-latex/CMakeLists.txt")
     endif()
     if(_unsettled)
-      string(APPEND _hint " or raise MAX_PASSES if the document is simply large")
+      string(APPEND _hint " or raise MAX_PASSES in cmake/DyninstRunLaTeX.cmake"
+             " if the document is simply large")
     endif()
     message(
       FATAL_ERROR

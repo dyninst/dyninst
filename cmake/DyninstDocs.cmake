@@ -83,8 +83,6 @@ add_dependencies(docs-install docs)
 #     TARGET       <name>        target to create
 #     SOURCE_DIR   <dir>         directory to run pdflatex in
 #     MAIN         <file.tex>    document, relative to SOURCE_DIR
-#     [OUTPUT_DIR  <dir>]        defaults to CMAKE_CURRENT_BINARY_DIR
-#     [MAX_PASSES  <n>]          defaults to 5
 #     [ALLOW_WARNINGS <regex>]   log warnings matching this are not errors
 #     [MAX_OVERFULL_PT <n>]      overfull boxes wider than this are errors
 #     [DEPENDS     <files>...]   rebuild when any of these change
@@ -96,15 +94,7 @@ add_dependencies(docs-install docs)
 # ---------------------------------------------------------------------------
 function(dyninst_add_latex_document)
   set(_opts "")
-  set(_one
-      TARGET
-      SOURCE_DIR
-      MAIN
-      OUTPUT_DIR
-      MAX_PASSES
-      INSTALL_DESTINATION
-      ALLOW_WARNINGS
-      MAX_OVERFULL_PT)
+  set(_one TARGET SOURCE_DIR MAIN INSTALL_DESTINATION ALLOW_WARNINGS MAX_OVERFULL_PT)
   set(_many DEPENDS)
   cmake_parse_arguments(LTX "${_opts}" "${_one}" "${_many}" ${ARGN})
 
@@ -118,15 +108,15 @@ function(dyninst_add_latex_document)
       FATAL_ERROR "dyninst_add_latex_document: unrecognised: ${LTX_UNPARSED_ARGUMENTS}")
   endif()
 
-  if(NOT LTX_OUTPUT_DIR)
-    set(LTX_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
-  endif()
-  if(NOT LTX_MAX_PASSES)
-    set(LTX_MAX_PASSES 5)
-  endif()
+  # The PDF is built beside the CMakeLists.txt that asked for it.  Not an
+  # argument: the one caller passed exactly this, and a second output
+  # directory is a thing to keep in step for no one's benefit.  The pass cap
+  # is not an argument either -- DyninstRunLaTeX owns it, so there is one
+  # default rather than two to drift apart.
+  set(_out_dir "${CMAKE_CURRENT_BINARY_DIR}")
 
   get_filename_component(_stem "${LTX_MAIN}" NAME_WE)
-  set(_pdf "${LTX_OUTPUT_DIR}/${_stem}.pdf")
+  set(_pdf "${_out_dir}/${_stem}.pdf")
 
   if(NOT LATEX_PDFLATEX_FOUND)
     # Keep the target so the name always works; explain rather than fail
@@ -144,12 +134,12 @@ function(dyninst_add_latex_document)
 
   add_custom_command(
     OUTPUT "${_pdf}"
-    BYPRODUCTS "${LTX_OUTPUT_DIR}/${_stem}.aux" "${LTX_OUTPUT_DIR}/${_stem}.log"
-               "${LTX_OUTPUT_DIR}/${_stem}.toc" "${LTX_OUTPUT_DIR}/${_stem}.out"
+    BYPRODUCTS "${_out_dir}/${_stem}.aux" "${_out_dir}/${_stem}.log"
+               "${_out_dir}/${_stem}.toc" "${_out_dir}/${_stem}.out"
     COMMAND
       ${CMAKE_COMMAND} -DPDFLATEX=${PDFLATEX_COMPILER} -DSOURCE_DIR=${LTX_SOURCE_DIR}
-      -DOUTPUT_DIR=${LTX_OUTPUT_DIR} -DMAIN=${LTX_MAIN} -DMAX_PASSES=${LTX_MAX_PASSES}
-      -DALLOW_WARNINGS=${LTX_ALLOW_WARNINGS} -DMAX_OVERFULL_PT=${LTX_MAX_OVERFULL_PT}
+      -DOUTPUT_DIR=${_out_dir} -DMAIN=${LTX_MAIN} -DALLOW_WARNINGS=${LTX_ALLOW_WARNINGS}
+      -DMAX_OVERFULL_PT=${LTX_MAX_OVERFULL_PT}
       -DWARNINGS_AS_ERRORS=${DYNINST_WARNINGS_AS_ERRORS}
       -DDISABLE_SUPPRESSIONS=${DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS}
       -DGHOSTSCRIPT=${Ghostscript_EXECUTABLE} -P
@@ -219,7 +209,6 @@ function(dyninst_add_manual _module)
     TARGET ${_module}.pdf
     SOURCE_DIR "${_src}"
     MAIN "${_module}.tex"
-    OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}"
     DEPENDS ${_deps}
     ALLOW_WARNINGS "${M_ALLOW_WARNINGS}"
     MAX_OVERFULL_PT "${M_MAX_OVERFULL_PT}"

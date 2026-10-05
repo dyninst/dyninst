@@ -32,8 +32,6 @@ parse:
         TARGET: '*'
         SOURCE_DIR: '*'
         MAIN: '*'
-        OUTPUT_DIR: '*'
-        MAX_PASSES: '*'
         INSTALL_DESTINATION: '*'
         ALLOW_WARNINGS: '*'
         MAX_OVERFULL_PT: '*'
