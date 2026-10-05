@@ -124,7 +124,7 @@ Block::getFuncs(vector<Function *> & funcs)
     _obj->findFuncsByBlock(region(),this,stab);
     set<Function *>::iterator sit = stab.begin();
     for( ; sit != stab.end() ;++sit) {
-        if(((const Function*)(*sit))->contains(this))
+        if((*sit)->contains(this))
             funcs.push_back(*sit);
     }
 }
