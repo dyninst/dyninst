@@ -1,8 +1,6 @@
-# Build the LaTeX manuals.
-#
-# Nothing is written into the source tree: pdflatex reads the document in
-# place and -output-directory sends every file it produces into the build
-# tree.  See cmake/DyninstRunLaTeX.cmake for the fixed-point driver.
+# Build the LaTeX manuals.  Nothing is written into the source tree.  The
+# driver that runs pdflatex to a fixed point and checks what it produced is
+# cmake/DyninstRunLaTeX.cmake.
 #
 # Targets
 #   docs                    every manual
@@ -10,29 +8,18 @@
 #   docs-install            install the manuals under CMAKE_INSTALL_DOCDIR
 #   <module>-doc-listings   the example sources that manual typesets
 #
-# DYNINST_BUILD_DOCS
-#   ON   pdflatex is required; the manuals build as part of 'all' and are
-#        installed by 'install'
-#   OFF  the manuals build only when asked for by name; if pdflatex is
-#        missing the targets still exist and fail with an explanation
-#
-# DYNINST_DOCS_VALIDATE_LISTINGS is independent of that.  It governs the
-# <module>-doc-listings targets, which are in 'all' either way, so a build
-# that never goes near LaTeX still catches an example the library has
-# outgrown.
-#
-# The log is checked after the build.  DYNINST_WARNINGS_AS_ERRORS decides
-# whether what it reports fails the target or is only printed, and
-# DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS reports everything rather than only
-# what is not already known, exactly as they do for the C++ build.
-#
-# When Ghostscript is available the finished PDF is measured as well, because
-# the log alone cannot prove a page is clean: pdflatex reports a box's overflow
-# relative to whatever box encloses it, never its position on the page, so
-# overflows that compose - an over-wide table whose cell also overflows - can
-# each stay under the threshold while their sum prints past the trim.
-# Measuring the ink settles it.  DYNINST_DOCS_FORCE_VALIDATE makes Ghostscript
-# a hard requirement rather than letting the measurement be skipped silently.
+# Options
+#   DYNINST_BUILD_DOCS      ON requires pdflatex and puts the manuals in 'all'
+#                           and 'install'; OFF builds them by name only, and
+#                           a missing pdflatex is reported by the target
+#   DYNINST_DOCS_VALIDATE_LISTINGS
+#                           governs <module>-doc-listings, which are in 'all'
+#                           whether or not DYNINST_BUILD_DOCS is set
+#   DYNINST_DOCS_FORCE_VALIDATE
+#                           require Ghostscript rather than skip the page
+#                           measurement when it is absent
+#   DYNINST_WARNINGS_AS_ERRORS, DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS
+#                           govern the log check as they do the C++ build
 
 include_guard(GLOBAL)
 include(GNUInstallDirs)
@@ -108,11 +95,8 @@ function(dyninst_add_latex_document)
       FATAL_ERROR "dyninst_add_latex_document: unrecognised: ${LTX_UNPARSED_ARGUMENTS}")
   endif()
 
-  # The PDF is built beside the CMakeLists.txt that asked for it.  Not an
-  # argument: the one caller passed exactly this, and a second output
-  # directory is a thing to keep in step for no one's benefit.  The pass cap
-  # is not an argument either -- DyninstRunLaTeX owns it, so there is one
-  # default rather than two to drift apart.
+  # Beside the CMakeLists.txt that asked for it.  The pass cap is not settable
+  # here either; DyninstRunLaTeX owns it, so there is one default.
   set(_out_dir "${CMAKE_CURRENT_BINARY_DIR}")
 
   get_filename_component(_stem "${LTX_MAIN}" NAME_WE)
@@ -158,12 +142,9 @@ function(dyninst_add_latex_document)
       COMPONENT docs
       OPTIONAL)
 
-    # Record what a complete install contains.  install(FILES ... OPTIONAL)
-    # says nothing about a PDF that was never built, so an empty install
-    # directory is indistinguishable from a full one unless the expected set
-    # was written down.  Recording it here, beside the install() rule that
-    # creates the expectation, is what keeps the two from drifting apart.
-    # docs/CMakeLists.txt writes the finished list out for CI to check.
+    # install(FILES ... OPTIONAL) is silent about a PDF that was never built,
+    # so record what a complete install holds; docs/CMakeLists.txt writes the
+    # list out for CI.  Keep this beside the install() rule it describes.
     set_property(GLOBAL APPEND PROPERTY DYNINST_DOCS_INSTALLED_FILES "${_stem}.pdf")
   endif()
 endfunction()
@@ -218,30 +199,21 @@ endfunction()
 # ---------------------------------------------------------------------------
 # dyninst_validate_listings(<module> SOURCES <file>... [USES <target>...])
 #
-# Compiles the sources a manual typesets with \lstinputlisting, so an example
-# that stops matching the API it documents fails a build rather than the
-# reader's first attempt.
+# Compiles the sources a manual typesets, so an example that stops matching
+# the API it documents fails a build rather than the reader's first attempt.
+# In 'all' whether or not DYNINST_BUILD_DOCS is set, because the change that
+# breaks an example is a change to the library; <module>.pdf depends on it too,
+# and DYNINST_DOCS_VALIDATE_LISTINGS turns it off.
 #
-# The check is part of 'all', independent of DYNINST_BUILD_DOCS: the change
-# that breaks an example is a change to the library, not to the manual, and it
-# should fail for whoever made it.  <module>.pdf also depends on it, so asking
-# for a manual still compiles that manual's examples first.
-# DYNINST_DOCS_VALIDATE_LISTINGS turns the whole thing off.
+# USES names the library targets whose headers the examples include, default
+# <module>.  Borrow their usage requirements; do not link them, or "make docs"
+# builds all of Dyninst to typeset a manual.
 #
-# USES names the library targets whose headers the examples include; it
-# defaults to <module>.  Their usage requirements are borrowed rather than
-# linked, because target_link_libraries would make the check depend on the
-# library being *built* and "make docs" would compile all of Dyninst to
-# typeset a manual.
-#
-# Borrowing keeps the distinction that matters.  A dependency found by
-# find_package is an imported target, and CMake puts an imported target's
-# headers behind -isystem; without that, Boost and oneTBB report warnings
-# against these files that Dyninst never sees compiling its own sources.  The
-# include directories have to be borrowed as $<TARGET_PROPERTY:...> rather
-# than read with get_target_property: they hold $<BUILD_INTERFACE:a;b;c>, and
-# any list operation splits that on its semicolons into fragments that are no
-# longer a generator expression.
+# Borrow include directories as $<TARGET_PROPERTY:...>, never with
+# get_target_property: the value holds $<BUILD_INTERFACE:a;b;c>, and any list
+# operation splits it on those semicolons into fragments that are no longer a
+# generator expression.  Borrowing also keeps an imported target's headers
+# behind -isystem, without which Boost and oneTBB warn about these files.
 # ---------------------------------------------------------------------------
 function(_dyninst_listing_targets _roots _out_local _out_imported)
   set(_seen "")
@@ -295,11 +267,9 @@ function(dyninst_validate_listings _module)
   _dyninst_listing_targets("${V_USES}" _local _imported)
 
   set(_check ${_module}-doc-listings)
-  # Deliberately in 'all'.  An example stops compiling when the API it
-  # documents changes, which is work done by someone who has no reason to
-  # build a manual, so the check has to reach them: the ordinary build, and
-  # every CI job that already runs it, compiles these.  They are nine small
-  # object libraries and need no LaTeX.
+  # Deliberately in 'all': the change that breaks an example is made by
+  # someone with no reason to build a manual, so the check has to reach them.
+  # Nine small object libraries, and no LaTeX involved.
   add_library(${_check} OBJECT ${V_SOURCES})
   set_target_properties(${_check} PROPERTIES POSITION_INDEPENDENT_CODE ON)
   target_compile_options(${_check} PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})

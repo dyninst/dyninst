@@ -1,13 +1,10 @@
 # Run pdflatex until the document reaches a fixed point.
 #
-# LaTeX resolves the table of contents, cross references and page numbers
-# through the .aux/.toc/.out files, which are written by one pass and read by
-# the next, so a single pass is not enough and a fixed number of passes is
-# either wasteful or wrong.  Repeat until those files stop changing and the log
-# stops asking, then stop.
+# The .aux/.toc/.out files are written by one pass and read by the next, so a
+# fixed number of passes is either wasteful or wrong: repeat until they stop
+# changing and the log stops asking.
 #
-# After the last pass the log is checked, so that a document which builds but
-# has started warning does not pass silently.  Reported are
+# The log is then checked.  Reported are
 #
 #   LaTeX Warning        \\@latex@warning, the kernel's own
 #   LaTeX Font Warning   \\@font@warning, a shape that had to be substituted
@@ -21,26 +18,18 @@
 # stops protruding into the margin and starts running off the paper - and every
 # overfull \vbox, whatever its size.
 #
-# Two project options change that, matching what they mean for the C++ build:
+# Two project options change that, as they do for the C++ build:
 #
-#   DISABLE_SUPPRESSIONS  report everything.  ALLOW_WARNINGS is ignored, and
-#                         every overfull and underfull box is listed however
-#                         small, not just the ones that leave the paper.
-#
-# A box that does leave the paper is tagged [RENDERS OFF PAGE], so it stands
-# out among the many harmless ones that DISABLE_SUPPRESSIONS brings with it.
-#
+#   DISABLE_SUPPRESSIONS  report everything: ALLOW_WARNINGS ignored, and every
+#                         box however small.  A box that leaves the paper is
+#                         tagged [RENDERS OFF PAGE] so it still stands out.
 #   WARNINGS_AS_ERRORS    fail the target on whatever was reported.  Off, the
-#                         diagnostics are printed and the build carries on, so
-#                         a warning that only appears on some other TeX
-#                         installation does not stop everything else building.
+#                         diagnostics are printed and the build carries on.
 #
-# A pdflatex failure is always fatal, whichever way those are set.
-#
-# ALLOW_WARNINGS is a regular expression for the warnings a manual is known to
-# produce.  Overfull \hboxes narrower than MAX_OVERFULL_PT are not reported by
-# default: they are invisible, and their number moves with any edit that
-# reflows a paragraph.
+# A pdflatex failure is always fatal.  ALLOW_WARNINGS is a regular expression
+# for the warnings a manual is known to produce.  Overfull \hboxes narrower
+# than MAX_OVERFULL_PT are not reported by default: they are invisible, and
+# their number moves with any edit that reflows a paragraph.
 #
 # Driven as: cmake -DPDFLATEX=... -DSOURCE_DIR=... -DOUTPUT_DIR=... -DMAIN=...
 #                  [-DMAX_PASSES=n] [-DALLOW_WARNINGS=regex]
@@ -112,17 +101,15 @@ function(_dyninst_latex_check _log)
   string(REPLACE ";" "\\;" _txt "${_txt}")
   string(ASCII 10 _nl)
 
-  # One warning per match.  The run sets max_print_line, so a warning is not
-  # wrapped and the keyword line holds all of it; taking the following line
-  # too -- as this did while pdfTeX still wrapped -- merged two adjacent
-  # warnings into one match, and ALLOW_WARNINGS matching the first then hid
-  # the second.
+  # One warning per match: the run sets max_print_line, so the keyword line
+  # holds all of it.  Do not take the following line as well -- MATCHALL does
+  # not overlap, so two adjacent warnings would merge into one match and
+  # ALLOW_WARNINGS matching the first would hide the second.
   #
-  # LaTeX does continue some warnings onto further lines of its own accord,
-  # tagged with the package that raised them: "(Font)", "(hyperref)".  Those
-  # are taken as well, and are told from a file-open line like "(./3-API.tex"
-  # by the closing parenthesis after a bare name.  Start at the keyword,
-  # because pdfTeX prints warnings in the middle of its page-progress output.
+  # LaTeX continues some warnings itself, tagging each line with the package
+  # that raised it: "(Font)", "(hyperref)".  Those are taken too, told from a
+  # file-open line like "(./3-API.tex" by the closing paren after a bare name.
+  # Start at the keyword; pdfTeX prints warnings amid its page progress.
   string(
     REGEX
       MATCHALL
@@ -148,23 +135,18 @@ function(_dyninst_latex_check _log)
       set(_report TRUE)
     endif()
 
-    # A box overflowing by more than the margin does not merely reach into it,
-    # it prints past the trim.  Say so: with suppressions off that is the only
-    # reason an overfull \hbox is listed, and with them on it is what
-    # distinguishes the few that matter from the many that do not.  The margin
-    # is the same in both directions at margin=1in, so one threshold serves.
+    # Overflowing by more than the margin means printing past the trim, not
+    # merely into the margin.  One threshold serves both directions at
+    # margin=1in.
     if(_b MATCHES "^Overfull .[hv]box \\(([0-9.]+)pt" AND CMAKE_MATCH_1 GREATER
                                                           MAX_OVERFULL_PT)
       set(_off " [RENDERS OFF PAGE]")
       set(_report TRUE)
     endif()
 
-    # An overfull \vbox is reported however small.  Horizontally the trim is
-    # the only thing a line can run into, so a box that stays within the
-    # margin is invisible; vertically the page number sits \footskip (30pt)
-    # below the text block, so vertical overflow collides with the footer well
-    # before it reaches the paper's edge.  There is no width below which one
-    # is harmless, and they are rare enough to report unconditionally.
+    # An overfull \vbox is reported however small: the page number sits
+    # \footskip (30pt) below the text block, so vertical overflow hits the
+    # footer long before the trim.  There is no harmless width.
     if(_b MATCHES "^Overfull .vbox")
       set(_report TRUE)
     endif()
@@ -215,21 +197,16 @@ function(_dyninst_pt_to_bp _pt _out)
       PARENT_SCOPE)
 endfunction()
 
-# Measure where the ink actually lands.  The log cannot settle this on its own:
-# pdflatex reports a box's overflow relative to whatever box encloses it and
-# never its position on the page, so overflows that compose - an over-wide
-# table whose cell also overflows - can each stay under the threshold while
-# their sum prints past the trim.
+# Measure where the ink lands.  The log cannot settle it: pdflatex reports a
+# box's overflow relative to its enclosing box, never its position on the page,
+# so overflows that compose - an over-wide table whose cell also overflows -
+# each stay under the threshold while their sum prints past the trim.
 #
-# Ghostscript clips at the page box, so a page whose content runs off the paper
-# reports a bounding box that reaches the edge.  That is the signal.  It cannot
-# say how far past the edge the content went, only that it got there, which is
-# all this needs to decide.
-#
-# The measurement is weakest vertically, where lines sit at discrete baseline
-# intervals: the last one above the edge can stop short of it and leave the box
-# looking healthy.  That is why an overfull \vbox is reported unconditionally
-# by _dyninst_latex_check rather than being left to this one.
+# Ghostscript clips at the page box, so ink that runs off the paper gives a
+# bounding box reaching the edge.  It cannot say how far past, only that it got
+# there, which is all this decides.  Weakest vertically, where the last line
+# above the edge can stop short of it and leave the box looking healthy -- why
+# an overfull \vbox is reported unconditionally by _dyninst_latex_check.
 function(_dyninst_latex_validate _pdf _log)
   set(_p "")
 
@@ -240,14 +217,10 @@ function(_dyninst_latex_validate _pdf _log)
     set(MIN_TRIM_CLEARANCE_BP 3)
   endif()
 
-  # The page box comes from the log rather than from the PDF.  geometry
-  # records it in every one, and the alternative means asking Ghostscript,
-  # which has no answer that spans its releases: -dPDFINFO exists only from
-  # 9.56, and reading the PDF from PostScript instead needs the file operator
-  # on a path that was never a command-line argument, which -dSAFER - the
-  # default since 9.50 - refuses.  The log has it, already on disk, in every
-  # version.  pdfTeX writes the PDF's MediaBox from these same lengths, so
-  # the box measured against is the box the pages were made with.
+  # The page box comes from the log, not from the PDF: Ghostscript has no way
+  # of reporting it that works across its releases, and geometry records it in
+  # every log.  pdfTeX writes the MediaBox from these same lengths, so the box
+  # measured against is the box the pages were made with.
   file(READ "${_log}" _ltxt)
   set(_px1 "")
   set(_py1 "")
@@ -323,10 +296,8 @@ function(_dyninst_latex_validate _pdf _log)
       PARENT_SCOPE)
 endfunction()
 
-# Reporting what the finished document is guilty of.  Called for a document
-# that settled and for one that ran out of passes, because the unsettled one
-# is if anything the more likely to be wrong, and checking only the settled
-# ones gave it the least scrutiny of any outcome.
+# Called for a document that settled and for one that ran out of passes: the
+# unsettled one is the more likely to be wrong, so it is checked like any other.
 function(_dyninst_latex_report _unsettled)
   set(_check_problems "")
   set(_validate_problems "")
@@ -382,11 +353,9 @@ _dyninst_latex_state(_previous)
 set(_pass 1)
 while(_pass LESS_EQUAL MAX_PASSES)
   execute_process(
-    # max_print_line stops pdfTeX wrapping its own output at 79 columns, which
-    # it otherwise does in the middle of a word, splitting a warning across
-    # two lines.  Reading them back then needs a rule for rejoining, and any
-    # such rule also joins two warnings that happen to be adjacent.  Not
-    # wrapping in the first place leaves one warning per line.
+    # max_print_line stops pdfTeX wrapping its output at 79 columns, mid-word,
+    # which would split a warning across two lines.  The log scan depends on
+    # one warning per line.
     COMMAND
       ${CMAKE_COMMAND} -E env max_print_line=10000 "${PDFLATEX}" -interaction=nonstopmode
       -file-line-error -output-directory=${OUTPUT_DIR} ${MAIN}
