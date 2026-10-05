@@ -83,7 +83,19 @@ function(dyninst_add_latex_document)
   set(_opts "")
   set(_one TARGET SOURCE_DIR MAIN INSTALL_DESTINATION ALLOW_WARNINGS MAX_OVERFULL_PT)
   set(_many DEPENDS)
-  cmake_parse_arguments(LTX "${_opts}" "${_one}" "${_many}" ${ARGN})
+  # PARSE_ARGV, not ${ARGN}: expanding ARGN re-splits every argument on its
+  # semicolons, so a regex containing one reaches here already truncated.
+  #
+  # It also keeps the empty arguments that expanding ARGN would have dropped,
+  # and dyninst_add_manual forwards ALLOW_WARNINGS and MAX_OVERFULL_PT whether
+  # or not the manual set them.  A single-value keyword followed by an empty
+  # string is what CMP0174 is about; say which reading is meant rather than
+  # leave CMake to warn about the ambiguity.  Either answer suits this code --
+  # unset and "" both interpolate to nothing -- so take the new one.
+  if(POLICY CMP0174)
+    cmake_policy(SET CMP0174 NEW)
+  endif()
+  cmake_parse_arguments(PARSE_ARGV 0 LTX "${_opts}" "${_one}" "${_many}")
 
   foreach(_r TARGET SOURCE_DIR MAIN)
     if(NOT LTX_${_r})
@@ -120,14 +132,19 @@ function(dyninst_add_latex_document)
     OUTPUT "${_pdf}"
     BYPRODUCTS "${_out_dir}/${_stem}.aux" "${_out_dir}/${_stem}.log"
                "${_out_dir}/${_stem}.toc" "${_out_dir}/${_stem}.out"
+    # Quote each -D.  Unquoted, a semicolon in the value is a list separator:
+    # the argument is cut at it and the remainder handed to cmake as a stray
+    # argument it ignores.  ALLOW_WARNINGS is a regular expression, so that
+    # would silently widen it -- a shorter pattern matches more -- and
+    # suppress warnings nobody allowed.
     COMMAND
-      ${CMAKE_COMMAND} -DPDFLATEX=${PDFLATEX_COMPILER} -DSOURCE_DIR=${LTX_SOURCE_DIR}
-      -DOUTPUT_DIR=${_out_dir} -DMAIN=${LTX_MAIN} -DALLOW_WARNINGS=${LTX_ALLOW_WARNINGS}
-      -DMAX_OVERFULL_PT=${LTX_MAX_OVERFULL_PT}
-      -DWARNINGS_AS_ERRORS=${DYNINST_WARNINGS_AS_ERRORS}
-      -DDISABLE_SUPPRESSIONS=${DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS}
-      -DGHOSTSCRIPT=${Ghostscript_EXECUTABLE} -P
-      ${PROJECT_SOURCE_DIR}/cmake/DyninstRunLaTeX.cmake
+      ${CMAKE_COMMAND} "-DPDFLATEX=${PDFLATEX_COMPILER}" "-DSOURCE_DIR=${LTX_SOURCE_DIR}"
+      "-DOUTPUT_DIR=${_out_dir}" "-DMAIN=${LTX_MAIN}"
+      "-DALLOW_WARNINGS=${LTX_ALLOW_WARNINGS}" "-DMAX_OVERFULL_PT=${LTX_MAX_OVERFULL_PT}"
+      "-DWARNINGS_AS_ERRORS=${DYNINST_WARNINGS_AS_ERRORS}"
+      "-DDISABLE_SUPPRESSIONS=${DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS}"
+      "-DGHOSTSCRIPT=${Ghostscript_EXECUTABLE}" -P
+      "${PROJECT_SOURCE_DIR}/cmake/DyninstRunLaTeX.cmake"
     DEPENDS ${LTX_DEPENDS} ${PROJECT_SOURCE_DIR}/cmake/DyninstRunLaTeX.cmake
     COMMENT "Building ${_stem}.pdf"
     VERBATIM)
@@ -157,7 +174,7 @@ endfunction()
 # docs/common/manual-latex.  The module name is all that is needed.
 # ---------------------------------------------------------------------------
 function(dyninst_add_manual _module)
-  cmake_parse_arguments(M "" "ALLOW_WARNINGS;MAX_OVERFULL_PT" "" ${ARGN})
+  cmake_parse_arguments(PARSE_ARGV 1 M "" "ALLOW_WARNINGS;MAX_OVERFULL_PT" "")
   set(_src "${PROJECT_SOURCE_DIR}/docs/${_module}/manual-latex")
   if(NOT EXISTS "${_src}/${_module}.tex")
     message(FATAL_ERROR "dyninst_add_manual: no ${_src}/${_module}.tex")
