@@ -71,7 +71,8 @@ add_dependencies(docs-install docs)
 #     SOURCE_DIR   <dir>         directory to run pdflatex in
 #     MAIN         <file.tex>    document, relative to SOURCE_DIR
 #     [ALLOW_WARNINGS <regex>]   log warnings matching this are not errors
-#     [MAX_OVERFULL_PT <n>]      overfull boxes wider than this are errors
+#     [MAX_OVERFULL_PT <n>]      report an overfull box wider than this;
+#                                defaults to 72.27, the margin at margin=1in
 #     [DEPENDS     <files>...]   rebuild when any of these change
 #     [INSTALL_DESTINATION <d>]  install the PDF there, under component 'docs'
 # )
@@ -168,6 +169,9 @@ endfunction()
 
 # ---------------------------------------------------------------------------
 # dyninst_add_manual(<module> [ALLOW_WARNINGS <regex>] [MAX_OVERFULL_PT <n>])
+#
+# MAX_OVERFULL_PT defaults to 72.27, the width of the margin at margin=1in:
+# a box narrower than that reaches into the margin rather than off the page.
 #
 # The manuals all share a layout: docs/<module>/manual-latex/<module>.tex,
 # with its inputs beside it and the shared preamble and title page in

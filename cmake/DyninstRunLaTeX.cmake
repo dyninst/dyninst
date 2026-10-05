@@ -86,10 +86,10 @@ function(_dyninst_latex_check _log)
   endif()
   if(DISABLE_SUPPRESSIONS)
     set(_allow "") # report the warnings a manual is otherwise allowed
-    set(_box_limit 0) # and every box, not only those off the paper
+    set(_every_box TRUE) # and every box, not only those off the paper
   else()
     set(_allow "${ALLOW_WARNINGS}")
-    set(_box_limit "${MAX_OVERFULL_PT}")
+    set(_every_box FALSE)
   endif()
 
   set(_problems "")
@@ -123,7 +123,7 @@ function(_dyninst_latex_check _log)
     endif()
   endforeach()
 
-  if(_box_limit EQUAL 0)
+  if(_every_box)
     string(REGEX MATCHALL "(Overfull|Underfull) [^${_nl}]*" _boxes "${_txt}")
   else()
     string(REGEX MATCHALL "Overfull .[hv]box \\([0-9.]+pt[^${_nl}]*" _boxes "${_txt}")
@@ -131,7 +131,7 @@ function(_dyninst_latex_check _log)
   foreach(_b ${_boxes})
     set(_off "")
     set(_report FALSE)
-    if(_box_limit EQUAL 0)
+    if(_every_box)
       set(_report TRUE)
     endif()
 
