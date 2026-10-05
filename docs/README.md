@@ -79,6 +79,9 @@ runs.
 `<module>-doc-listings` is in `all` when `DYNINST_DOCS_VALIDATE_LISTINGS` is
 on, which it is by default, and whether or not `DYNINST_BUILD_DOCS` is set --
 so an ordinary build with no LaTeX anywhere still compiles the examples.
+The same option makes it a prerequisite of `<module>.pdf`, so asking for one
+manual compiles that manual's examples first.  With the option off there is
+no such edge, and `<module>.pdf` builds without them.
 
 ### What gets checked
 

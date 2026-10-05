@@ -216,6 +216,15 @@ function(dyninst_add_manual _module)
     ALLOW_WARNINGS "${M_ALLOW_WARNINGS}"
     MAX_OVERFULL_PT "${M_MAX_OVERFULL_PT}"
     INSTALL_DESTINATION "${DYNINST_DOCS_INSTALL_DIR}")
+
+  # dyninst_validate_listings adds this edge when it runs after this function,
+  # and cannot when it runs before -- the target it would hang the dependency
+  # on does not exist yet.  Add it from this end too, so a manual's
+  # CMakeLists.txt may call the two in either order and get the same build.
+  # Whichever runs second finds the other's target and adds the edge once.
+  if(DYNINST_DOCS_VALIDATE_LISTINGS AND TARGET ${_module}-doc-listings)
+    add_dependencies(${_module}.pdf ${_module}-doc-listings)
+  endif()
 endfunction()
 
 # ---------------------------------------------------------------------------
