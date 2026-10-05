@@ -112,13 +112,21 @@ function(_dyninst_latex_check _log)
   string(REPLACE ";" "\\;" _txt "${_txt}")
   string(ASCII 10 _nl)
 
-  # A warning's text wraps at the log's line width, so take the line that
-  # follows as well; and start at the keyword, because pdfTeX prints its
-  # warnings in the middle of the page-progress output.
+  # One warning per match.  The run sets max_print_line, so a warning is not
+  # wrapped and the keyword line holds all of it; taking the following line
+  # too -- as this did while pdfTeX still wrapped -- merged two adjacent
+  # warnings into one match, and ALLOW_WARNINGS matching the first then hid
+  # the second.
+  #
+  # LaTeX does continue some warnings onto further lines of its own accord,
+  # tagged with the package that raised them: "(Font)", "(hyperref)".  Those
+  # are taken as well, and are told from a file-open line like "(./3-API.tex"
+  # by the closing parenthesis after a bare name.  Start at the keyword,
+  # because pdfTeX prints warnings in the middle of its page-progress output.
   string(
     REGEX
       MATCHALL
-      "(LaTeX Warning|LaTeX Font Warning|(Package|Class|Module) [A-Za-z0-9@._-]+ Warning|pdfTeX warning|Missing character)[^${_nl}]*${_nl}[^${_nl}]*"
+      "(LaTeX Warning|LaTeX Font Warning|(Package|Class|Module) [A-Za-z0-9@._-]+ Warning|pdfTeX warning|Missing character)[^${_nl}]*(${_nl}\\([A-Za-z][A-Za-z0-9@._-]*\\)[^${_nl}]*)*"
       _warnings
       "${_txt}")
   foreach(_w ${_warnings})
@@ -375,8 +383,14 @@ _dyninst_latex_state(_previous)
 set(_pass 1)
 while(_pass LESS_EQUAL MAX_PASSES)
   execute_process(
-    COMMAND "${PDFLATEX}" -interaction=nonstopmode -file-line-error
-            -output-directory=${OUTPUT_DIR} ${MAIN}
+    # max_print_line stops pdfTeX wrapping its own output at 79 columns, which
+    # it otherwise does in the middle of a word, splitting a warning across
+    # two lines.  Reading them back then needs a rule for rejoining, and any
+    # such rule also joins two warnings that happen to be adjacent.  Not
+    # wrapping in the first place leaves one warning per line.
+    COMMAND
+      ${CMAKE_COMMAND} -E env max_print_line=10000 "${PDFLATEX}" -interaction=nonstopmode
+      -file-line-error -output-directory=${OUTPUT_DIR} ${MAIN}
     WORKING_DIRECTORY "${SOURCE_DIR}"
     RESULT_VARIABLE _rc
     OUTPUT_QUIET ERROR_QUIET)
