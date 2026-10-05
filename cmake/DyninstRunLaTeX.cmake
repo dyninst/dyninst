@@ -179,24 +179,9 @@ function(_dyninst_latex_check _log)
       PARENT_SCOPE)
 endfunction()
 
-# Measure where the ink actually lands.  The log cannot settle this on its own:
-# pdflatex reports a box's overflow relative to whatever box encloses it and
-# never its position on the page, so overflows that compose - an over-wide
-# table whose cell also overflows - can each stay under the threshold while
-# their sum prints past the trim.
-#
-# Ghostscript clips at the page box, so a page whose content runs off the paper
-# reports a bounding box that reaches the edge.  That is the signal.  It cannot
-# say how far past the edge the content went, only that it got there, which is
-# all this needs to decide.
-#
-# The measurement is weakest vertically, where lines sit at discrete baseline
-# intervals: the last one above the edge can stop short of it and leave the box
-# looking healthy.  That is why an overfull \vbox is reported unconditionally
-# above rather than being left to this check.
-# Pull the numbers out of a line Ghostscript printed, as whole points.
+# Pull the numbers out of a line Ghostscript printed, as whole big points.
 # Truncating sidesteps arithmetic CMake 3.14's math() cannot do on decimals,
-# and a point of precision is far finer than any clearance being tested for.
+# and a whole bp is far finer than any clearance being tested for.
 function(_dyninst_points _text _out)
   string(REGEX MATCHALL "-?[0-9]+(\\.[0-9]+)?" _tokens "${_text}")
   set(_r "")
@@ -230,14 +215,27 @@ function(_dyninst_pt_to_bp _pt _out)
       PARENT_SCOPE)
 endfunction()
 
+# Measure where the ink actually lands.  The log cannot settle this on its own:
+# pdflatex reports a box's overflow relative to whatever box encloses it and
+# never its position on the page, so overflows that compose - an over-wide
+# table whose cell also overflows - can each stay under the threshold while
+# their sum prints past the trim.
+#
+# Ghostscript clips at the page box, so a page whose content runs off the paper
+# reports a bounding box that reaches the edge.  That is the signal.  It cannot
+# say how far past the edge the content went, only that it got there, which is
+# all this needs to decide.
+#
+# The measurement is weakest vertically, where lines sit at discrete baseline
+# intervals: the last one above the edge can stop short of it and leave the box
+# looking healthy.  That is why an overfull \vbox is reported unconditionally
+# by _dyninst_latex_check rather than being left to this one.
 function(_dyninst_latex_validate _pdf _log)
   set(_p "")
 
   # How close the ink may come to the edge of the paper before the page is
   # called a defect -- its clearance to the trim.  In big points: 1/72in, what
   # Ghostscript reports, as against TeX's pt of 1/72.27in.  3bp is about 1mm.
-  # Comparing truncated integers avoids arithmetic CMake 3.14's math() cannot
-  # do, and a whole bp is far finer than the clearance being tested for.
   if(NOT DEFINED MIN_TRIM_CLEARANCE_BP OR MIN_TRIM_CLEARANCE_BP STREQUAL "")
     set(MIN_TRIM_CLEARANCE_BP 3)
   endif()
