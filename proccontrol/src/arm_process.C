@@ -414,6 +414,80 @@ async_ret_t arm_process::plat_needsEmulatedSingleStep(int_thread *thr, std::vect
     return aret_success;
 }
 
+bool arm_process::plat_supportsDisplacedSingleStep() const
+{
+   return true;
+}
+
+/**
+ * Encodings used when copying an atomic sequence out of line.  Everything
+ * that is not listed is position independent on AArch64.
+ **/
+namespace {
+   // B (0x14...) and BL (0x94...) share the imm26 form; BL is excluded because
+   // it would leave the copy's address in the link register.
+   const unsigned int BL_MASK        = 0xfc000000, BL        = 0x94000000;
+   const unsigned int ADR_MASK       = 0x1f000000, ADR       = 0x10000000;  // ADR, ADRP
+   const unsigned int LDR_LIT_MASK   = 0x3b000000, LDR_LIT   = 0x18000000;  // LDR/LDRSW/PRFM (literal)
+   const unsigned int EXCEPTION_MASK = 0xff000000, EXCEPTION = 0xd4000000;  // SVC, HVC, SMC, BRK, HLT
+   const unsigned int B_IMM26_MASK   = 0x03ffffff;                          // B
+   const unsigned int IMM19_MASK     = 0x00ffffe0;                          // B.cond, CBZ, CBNZ: bits [23:5]
+   const unsigned int IMM14_MASK     = 0x0007ffe0;                          // TBZ, TBNZ: bits [18:5]
+   const unsigned int IMM_SHIFT      = 5;
+   const int          INSN_SIZE_LOG2 = 2;
+
+   bool matches(unsigned int raw, unsigned int mask, unsigned int value) {
+      return (raw & mask) == value;
+   }
+}
+
+void arm_process::plat_classifyInsnForDisplacedStep(unsigned int raw, Address addr, displaced_insn &info)
+{
+   instruction insn(raw);
+   info.kind = displaced_insn::unrelocatable;
+   info.target = 0;
+
+   if (insn.isBranchReg() ||
+       matches(raw, BL_MASK, BL) ||
+       matches(raw, ADR_MASK, ADR) ||
+       matches(raw, LDR_LIT_MASK, LDR_LIT) ||
+       matches(raw, EXCEPTION_MASK, EXCEPTION)) {
+      return;
+   }
+   if (insn.isUncondBranch() || insn.isCondBranch()) {
+      info.kind = displaced_insn::rel_branch;
+      info.target = insn.getTarget(addr);
+      return;
+   }
+   info.kind = displaced_insn::plain;
+}
+
+bool arm_process::plat_retargetBranchForDisplacedStep(unsigned int &raw, Address copy_addr, Address new_target)
+{
+   long offset = (long) new_target - (long) copy_addr;
+   if (offset & ((1 << INSN_SIZE_LOG2) - 1))
+      return false;
+   long imm = offset >> INSN_SIZE_LOG2;
+
+   if (matches(raw, UNCOND_BR_t::IMM_MASK, UNCOND_BR_t::IMM) && !matches(raw, BL_MASK, BL)) {
+      raw = (raw & ~B_IMM26_MASK) | (((unsigned int) imm) & B_IMM26_MASK);
+      return true;
+   }
+   if (matches(raw, COND_BR_t::BR_MASK, COND_BR_t::BR) || matches(raw, COND_BR_t::CB_MASK, COND_BR_t::CB)) {
+      if (imm < -(1 << 18) || imm >= (1 << 18))
+         return false;
+      raw = (raw & ~IMM19_MASK) | ((((unsigned int) imm) << IMM_SHIFT) & IMM19_MASK);
+      return true;
+   }
+   if (matches(raw, COND_BR_t::TB_MASK, COND_BR_t::TB)) {
+      if (imm < -(1 << 13) || imm >= (1 << 13))
+         return false;
+      raw = (raw & ~IMM14_MASK) | ((((unsigned int) imm) << IMM_SHIFT) & IMM14_MASK);
+      return true;
+   }
+   return false;
+}
+
 void arm_process::plat_getEmulatedSingleStepAsyncs(int_thread *, std::set<response::ptr> resps)
 {
    map<int_thread *, reg_response::ptr>::iterator i;
