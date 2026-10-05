@@ -54,8 +54,8 @@
 # Nothing is written outside OUTPUT_DIR: pdflatex reads the document in place
 # from SOURCE_DIR and -output-directory sends every file it creates elsewhere.
 
-# Blank lines in the log are empty list elements; CMP0007 keeps them rather
-# than silently dropping them, which is what the line indexing below needs.
+# Match the project's minimum, so this script sees the same policy defaults
+# as the build that invokes it.
 cmake_minimum_required(VERSION 3.14.0)
 
 foreach(_v PDFLATEX SOURCE_DIR OUTPUT_DIR MAIN)
