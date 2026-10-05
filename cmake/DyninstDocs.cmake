@@ -13,8 +13,9 @@
 #                           and 'install'; OFF builds them by name only, and
 #                           a missing pdflatex is reported by the target
 #   DYNINST_DOCS_VALIDATE_LISTINGS
-#                           governs <module>-doc-listings, which are in 'all'
-#                           whether or not DYNINST_BUILD_DOCS is set
+#                           put <module>-doc-listings in 'all', whether or not
+#                           DYNINST_BUILD_DOCS is set, and make <module>.pdf
+#                           wait for it.  The targets exist either way
 #   DYNINST_DOCS_FORCE_VALIDATE
 #                           require Ghostscript rather than skip the page
 #                           measurement when it is absent
@@ -223,8 +224,9 @@ endfunction()
 # Compiles the sources a manual typesets, so an example that stops matching
 # the API it documents fails a build rather than the reader's first attempt.
 # In 'all' whether or not DYNINST_BUILD_DOCS is set, because the change that
-# breaks an example is a change to the library; <module>.pdf depends on it too,
-# and DYNINST_DOCS_VALIDATE_LISTINGS turns it off.
+# breaks an example is a change to the library; <module>.pdf depends on it too.
+# Turning DYNINST_DOCS_VALIDATE_LISTINGS off takes it out of 'all' and off
+# <module>.pdf, leaving the target to be asked for by name.
 #
 # USES names the library targets whose headers the examples include, default
 # <module>.  Borrow their usage requirements; do not link them, or "make docs"
@@ -278,9 +280,6 @@ function(dyninst_validate_listings _module)
   if(NOT V_SOURCES)
     message(FATAL_ERROR "dyninst_validate_listings: SOURCES is required")
   endif()
-  if(NOT DYNINST_DOCS_VALIDATE_LISTINGS)
-    return()
-  endif()
   if(NOT V_USES)
     set(V_USES ${_module})
   endif()
@@ -288,10 +287,18 @@ function(dyninst_validate_listings _module)
   _dyninst_listing_targets("${V_USES}" _local _imported)
 
   set(_check ${_module}-doc-listings)
-  # Deliberately in 'all': the change that breaks an example is made by
-  # someone with no reason to build a manual, so the check has to reach them.
-  # Nine small object libraries, and no LaTeX involved.
-  add_library(${_check} OBJECT ${V_SOURCES})
+
+  # The target exists either way, so it can always be asked for by name --
+  # the same bargain <module>.pdf makes with DYNINST_BUILD_DOCS.  What
+  # DYNINST_DOCS_VALIDATE_LISTINGS decides is whether an ordinary build runs
+  # it.  On, it joins 'all': the change that breaks an example is made by
+  # someone with no reason to build a manual, so the check has to reach them,
+  # and nine small object libraries needing no LaTeX is a cheap way to do it.
+  if(DYNINST_DOCS_VALIDATE_LISTINGS)
+    add_library(${_check} OBJECT ${V_SOURCES})
+  else()
+    add_library(${_check} OBJECT EXCLUDE_FROM_ALL ${V_SOURCES})
+  endif()
   set_target_properties(${_check} PROPERTIES POSITION_INDEPENDENT_CODE ON)
   target_compile_options(${_check} PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
 
@@ -309,7 +316,10 @@ function(dyninst_validate_listings _module)
       ${_check} PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_COMPILE_DEFINITIONS>)
   endforeach()
 
-  if(TARGET ${_module}.pdf)
+  # Asking for a manual compiles its examples first, but only when the check
+  # is on; off, <module>.pdf does not wait for a target the build was told
+  # not to run.
+  if(DYNINST_DOCS_VALIDATE_LISTINGS AND TARGET ${_module}.pdf)
     add_dependencies(${_module}.pdf ${_check})
   endif()
 endfunction()
