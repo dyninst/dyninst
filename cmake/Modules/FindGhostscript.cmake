@@ -8,11 +8,13 @@ Ghostscript is used to measure a finished PDF: its ``bbox`` device reports
 the extent of the ink on each page, which is how the manuals are checked for
 content that runs off the paper.
 
-The version matters to callers.  Ghostscript 10 replaced the PostScript
-implementation of its PDF interpreter with one written in C, and the
-``runpdfbegin`` and ``pdfgetpage`` operators that the older releases exposed
-went with it; ``-dPDFINFO``, added in 9.56, is the replacement.  A caller that
-reads a page's geometry has to pick its method accordingly.
+The version is reported because Ghostscript's PDF interpreter changed
+incompatibly: version 10 replaced the PostScript implementation with one
+written in C, taking the ``runpdfbegin`` and ``pdfgetpage`` operators with it,
+and ``-dPDFINFO`` -- the replacement -- exists only from 9.56.  A caller that
+needs a page's geometry must choose between them, and can ask for a version
+here.  Dyninst does not: it takes the page size from the LaTeX log and asks
+Ghostscript only for the ``bbox`` device, which every release accepts.
 
 Result variables
 ^^^^^^^^^^^^^^^^
