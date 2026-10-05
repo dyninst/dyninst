@@ -44,7 +44,7 @@
 #include "image.h"
 #include "common/src/headers.h"
 #include "common/src/dyninst_filesystem.h"
-
+#include <unistd.h>
 #include "PCErrors.h"
 #include <boost/tuple/tuple.hpp>
 
@@ -880,7 +880,7 @@ bool PCProcess::setRTLibInitParams() {
     startup_printf("%s[%d]: welcome to PCProcess::setRTLibInitParams\n",
             FILE__, __LINE__);
 
-    int pid = P_getpid();
+    int pid = getpid();
 
 
     // Now we write these variables into the following global vrbles

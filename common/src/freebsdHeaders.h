@@ -62,24 +62,6 @@
 #include <sys/syscall.h>
 
 
-/* POSIX */
-inline pid_t P_getpid () { return (getpid());}
-
-inline int P_getpagesize() { return getpagesize(); }
-
-/* ANSI */
-inline void * P_memcpy (void *A1, const void *A2, size_t SIZE)
-    { return memcpy( A1, A2, SIZE ); }
-inline int P_strcmp (const char *S1, const char *S2) {
-  return (strcmp(S1, S2));}
-inline char *P_strdup(const char *S) { return (strdup(S));}
-
-/* BSD */
-
-inline long int P_ptrace(int req, pid_t pid, Address addr, Address data, int = -1) {
-    return ((long int)ptrace(req, pid, (caddr_t)addr, (int)data));
-}
-
 extern std::string DYNINST_EXPORT P_cplus_demangle( const std::string &symbol,
 				bool includeTypes = false );
 

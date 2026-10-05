@@ -37,7 +37,7 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
-
+#include <unistd.h>
 #include "common/src/Timer.h"
 #include "common/src/dyninst_filesystem.h"
 
@@ -1864,7 +1864,7 @@ DYNINST_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 	return newaddr;
 
 #else
-	unsigned pgSize = P_getpagesize();
+	unsigned pgSize = getpagesize();
 
 #if defined(os_linux)
 	Object *obj = getObject();

@@ -43,7 +43,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <iostream>
-
+#include <unistd.h>
 #include <algorithm>
 
 #include "emitElfStatic.h"
@@ -1569,8 +1569,9 @@ emitElfUtils::orderLoadableSections(Symtab *obj, vector<Region*> & sections)
         ret = nonzero[0]->getMemOffset();
     else {
         // find a `hole' of appropriate size
-        unsigned pgSize = P_getpagesize();
+        unsigned pgSize = getpagesize();
         sz = (sz + pgSize - 1) & ~(pgSize-1);
+
         ret = obj->getFreeOffset(sz);
     }
     return ret;

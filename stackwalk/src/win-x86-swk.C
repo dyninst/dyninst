@@ -34,7 +34,7 @@
 #include "stackwalk/h/steppergroup.h"
 #include "stackwalk/h/swk_errors.h"
 #include "common/src/ntHeaders.h"
-
+#include <unistd.h>
 #include <windows.h>
 
 
@@ -102,7 +102,7 @@ bool ProcSelf::readMem(void *dest, Address source, size_t size)
 }
 
 ProcSelf::ProcSelf(std::string exe_path) :
-   ProcessState(P_getpid(), exe_path)
+   ProcessState(getpid(), exe_path)
 {
 }
 

@@ -24,7 +24,7 @@ std::map<std::string, int> operandAST::allocTable = {{"--init--", -1}};
 operandAST::operandAST(operandType ot, void *arg) : oType(ot), oVar(NULL), operand_() {
 
   if(ot == operandType::ConstantString) {
-    oValue = (void *)P_strdup((char *)arg);
+    oValue = (void *)strdup((char *)arg);
   } else {
     oValue = (void *)arg;
   }
