@@ -325,6 +325,7 @@ async_ret_t arm_process::plat_needsEmulatedSingleStep(int_thread *thr, std::vect
    async_ret_t aresult = readPCForSS(thr, pc);
    if (aresult == aret_error || aresult == aret_async)
       return aresult;
+   const Address seq_start = pc;
 
     // Check if the next instruction is a lwarx
     // If it is, scan forward until the terminating stwcx.
@@ -387,6 +388,19 @@ async_ret_t arm_process::plat_needsEmulatedSingleStep(int_thread *thr, std::vect
 
     // The breakpoint should be set at the instruction following the sequence
     if( foundEnd ) {
+        // A branch whose target is inside the sequence (a retry edge before the
+        // store) does not leave it.  A breakpoint there would sit on an
+        // instruction the thread is about to execute, and the thread would
+        // trap without making progress.
+        vector<Address> exits;
+        for (vector<Address>::iterator i = addrResult.begin(); i != addrResult.end(); i++) {
+            if (*i >= seq_start && *i < pc) {
+                pthrd_printf("Branch target 0x%lx is inside the atomic sequence, no breakpoint\n", *i);
+                continue;
+            }
+            exits.push_back(*i);
+        }
+        addrResult.swap(exits);
         addrResult.push_back(pc);
         pthrd_printf("Atomic instruction sequence ends at 0x%lx\n", pc);
     }else if( sequenceStarted || addrResult.size() ) {
