@@ -20,7 +20,12 @@ add_subdirectory(symtabAPI/manual-latex)
 get_property(_installed GLOBAL PROPERTY DYNINST_DOCS_INSTALLED_FILES)
 list(SORT _installed)
 list(JOIN _installed "\n" _installed)
+# No trailing newline when nothing registered: an empty manifest has to be an
+# empty file, or a lone newline makes it look like it says something.
+if(_installed)
+  string(APPEND _installed "\n")
+endif()
 file(
   GENERATE
   OUTPUT "${PROJECT_BINARY_DIR}/docs-manuals.txt"
-  CONTENT "${_installed}\n")
+  CONTENT "${_installed}")

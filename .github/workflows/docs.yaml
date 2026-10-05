@@ -137,7 +137,7 @@ jobs:
           # list rebuilt here from the source tree could.
           manifest="${build}/docs-manuals.txt"
           if ! test -s "${manifest}"; then
-            echo "::error::${manifest} is missing or empty; did cmake configure the docs?"
+            echo "::error::${manifest} is missing or lists no manuals; did cmake configure the docs?"
             exit 1
           fi
 
@@ -157,13 +157,6 @@ jobs:
           if test ${#missing[@]} -ne 0; then
             echo "::error::not installed in ${dest}: ${missing[*]}"
             ls -l "${dest}" || true
-            exit 1
-          fi
-
-          # install(FILES ... OPTIONAL) says nothing when a PDF is absent, so
-          # an empty install directory would otherwise look like success.
-          if test "${found}" -eq 0; then
-            echo "::error::${manifest} named no manuals to check"
             exit 1
           fi
 
