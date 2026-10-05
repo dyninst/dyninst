@@ -63,6 +63,73 @@ slot. On the stub hit the PC is moved to the original address the stub stands
 for (exit target or the instruction after the sequence), stepping is restored
 and a `SingleStep` event is delivered, exactly as the in-place emulation does.
 
+### 2.1 Picture: one sequence, its copy, the stubs and the PC mappings
+
+A typical compare-and-swap helper, as it sits in shared text (addresses are
+`A+offset`; the thread is stopped at `A+0` with single-step requested):
+
+```
+shared text (executed by every thread)              classification
+----------------------------------------------      ----------------------------------------------
+A+0   ldaxr  w0, [x1]       <- sequence start       plain (exclusive load)
+A+4   cmp    w0, w2                                 plain
+A+8   b.ne   A+28           compare failed          rel_branch, target A+28 is OUTSIDE [A+0, A+24)
+A+12  cbz    w5, A+20                               rel_branch, target A+20 is INSIDE  -> keep offset
+A+16  add    w4, w4, #1                             plain
+A+20  stlxr  w3, w4, [x1]   <- sequence end         plain (store-conditional; the scan stops here)
+A+24  cbnz   w3, A+0        retry edge              NOT copied: it follows the store. end = A+24
+A+28  ret
+```
+
+The copy in the thread's slot `S` (`S` = pool page + slot index * 256):
+
+```
+slot S (executed only by this thread)
+----------------------------------------------
+S+0   ldaxr  w0, [x1]       copy of A+0                      <- PC is moved here
+S+4   cmp    w0, w2
+S+8   b.ne   S+28           RETARGETED: A+28 -> stub #2 (plat_retargetBranchForDisplacedStep)
+S+12  cbz    w5, S+20       unchanged word: same +8 displacement lands on the copy of A+20
+S+16  add    w4, w4, #1
+S+20  stlxr  w3, w4, [x1]
+S+24  BRK                   stub #1: fall-through, stands for A+24  (emulated_singlestep breakpoint)
+S+28  BRK                   stub #2: exit target,  stands for A+28  (emulated_singlestep breakpoint)
+```
+
+Both stubs are thread-specific one-time breakpoints owned by the thread's
+`emulated_singlestep`; `stub_to_orig = {S+24: A+24, S+28: A+28}`.
+
+How the PC moves:
+
+```
+                 setup                        run                        stub hit
+  A+0  ---------------------------->  S+0 ... S+20 --+-- stlxr ok  -->  trap at S+24  --> PC := A+24, SingleStep event
+  (PC at ldaxr, step requested)        (no single step)   \
+                                                           +-- b.ne taken -->  trap at S+28  --> PC := A+28, SingleStep event
+
+  any other stop while inside the copy (signal, SIGSTOP, detach, ...):   cancel
+      body  S+k   -->  A+k          (1:1, the copy keeps the layout)
+      stub  S+24  -->  A+24         (what the stub stands for)
+      stub  S+28  -->  A+28
+  never  S+k  -->  A+0  (a restart would redo the read-modify-write if the store had committed)
+```
+
+After the stub hit the user's callback sees the thread at `A+24` with
+single-step mode on. ProcControl then hardware-steps `cbnz` as usual; if the
+store-conditional had failed and the branch goes back to `A+0`, the next
+continue finds the thread at an exclusive load again and starts a new
+displaced step, reusing the slot.
+
+Several threads on the same helper:
+
+```
+      shared text                   pool page
+   A+0  ldaxr ...   <-- T1,T2,T3     S1 = page+0     T1's copy + stubs     } each slot is written, armed,
+   A+4  cmp   ...   run it as is,    S2 = page+256   T2's copy + stubs     } run and freed by one thread;
+   ...              no breakpoint    S3 = page+512   T3's copy + stubs     } no stub is ever foreign-hit
+   A+24 cbnz  ...   anywhere         ...             (16 slots per 4 KiB page)
+```
+
 ## 3. Life of a displaced step
 
 `int_thread::intCont` → `handleSingleStepContinue` runs for every continue of
