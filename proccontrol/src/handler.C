@@ -1761,6 +1761,11 @@ Handler::handler_ret_t HandleEmulatedSingleStep::handleEvent(Event::ptr ev)
       return ret_async;
    }
 
+   if (em_singlestep->holdsProcess()) {
+      pthrd_printf("In-place emulated single step done on %d/%d, releasing the other threads\n",
+                   proc->getPid(), thrd->getLWP());
+      em_singlestep->releaseProcess();
+   }
    if (em_singlestep->isDisplaced()) {
       // The stub stands for an address in the original text: the instruction
       // after the sequence, or the target of the exit branch that reached it.
@@ -1798,6 +1803,97 @@ Handler::handler_ret_t HandleEmulatedSingleStep::handleEvent(Event::ptr ev)
 int HandleEmulatedSingleStep::getPriority() const
 {
    return PostPlatformPriority;
+}
+
+/**
+ * Second half of an in-place emulated single step.  handleSingleStepContinue
+ * asked for the whole process to stop (BreakpointState); this event is held
+ * until that has happened.  Now install the emulation breakpoints in the
+ * sequence's text and let only the stepping thread run, holding the others on
+ * the BreakpointResume state until HandleEmulatedSingleStep releases them.
+ **/
+HandleEmulatedSingleStepStart::HandleEmulatedSingleStepStart() :
+   Handler("Emulated Single Step Start")
+{
+}
+
+HandleEmulatedSingleStepStart::~HandleEmulatedSingleStepStart()
+{
+}
+
+void HandleEmulatedSingleStepStart::getEventTypesHandled(vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::None, EventType::EmulatedSingleStepStart));
+}
+
+Handler::handler_ret_t HandleEmulatedSingleStepStart::handleEvent(Event::ptr ev)
+{
+   int_process *proc = ev->getProcess()->llproc();
+   int_thread *thrd = ev->getThread()->llthrd();
+   assert(proc->threadPool()->allStopped(int_thread::BreakpointStateID));
+
+   if (!thrd) {
+      // The requesting thread is gone; just let the process go again.
+      proc->setInplaceSingleStepOwner(NULL);
+      proc->threadPool()->initialThread()->getBreakpointState().restoreStateProc();
+      return ret_success;
+   }
+
+   if (!thrd->getEmulatedSingleStep()) {
+      // The thread has not moved since the stop was requested (it was never
+      // continued), so the sequence is still under its PC.
+      vector<Address> addrs;
+      async_ret_t aresult = proc->plat_needsEmulatedSingleStep(thrd, addrs);
+      if (aresult == aret_async) {
+         set<response::ptr> resps;
+         proc->plat_getEmulatedSingleStepAsyncs(thrd, resps);
+         proc->handlerPool()->notifyOfPendingAsyncs(resps, ev);
+         return ret_async;
+      }
+      if (aresult == aret_error || addrs.empty()) {
+         pthrd_printf("No emulated single step to set up for %d/%d after all\n",
+                      proc->getPid(), thrd->getLWP());
+         proc->setInplaceSingleStepOwner(NULL);
+         thrd->getBreakpointState().restoreStateProc();
+         return aresult == aret_error ? ret_error : ret_success;
+      }
+
+      emulated_singlestep *es = new emulated_singlestep(thrd);
+      for (vector<Address>::iterator j = addrs.begin(); j != addrs.end(); j++) {
+         pthrd_printf("Installing emulated single-step breakpoint for %d/%d at %lx\n",
+                      proc->getPid(), thrd->getLWP(), *j);
+         if (es->add(*j) != aret_success) {
+            pthrd_printf("Error installing breakpoint for emulated_singlestep\n");
+            thrd->rmEmulatedSingleStep(es);
+            proc->setInplaceSingleStepOwner(NULL);
+            thrd->getBreakpointState().restoreStateProc();
+            return ret_error;
+         }
+      }
+
+      // Hold everyone else at the BreakpointResume level; threads created
+      // meanwhile start stopped.  Unlike a breakpoint step-over, the stepping
+      // thread itself is not pinned to running: that level outranks the user's,
+      // and the sequence can take a while (a loop that spins inside the
+      // exclusive window until another thread writes something), so a stopProc
+      // during it must really stop this thread.  Its own continue-or-stop is
+      // left to the lower levels; the hold stays in force until it exits the
+      // sequence, across any stop and continue in between.
+      int_threadPool *pool = proc->threadPool();
+      for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
+         if (*i == thrd)
+            continue;
+         (*i)->getBreakpointResumeState().desyncState(int_thread::stopped);
+      }
+      // A local copy: map::operator[] takes a reference, and the state id has
+      // no out-of-line definition to bind one to.
+      int bpr_stateid = int_thread::BreakpointResumeStateID;
+      proc->getProcDesyncdStates()[bpr_stateid]++;
+      es->setHoldsProcess(true);
+   }
+
+   thrd->getBreakpointState().restoreStateProc();
+   return ret_success;
 }
 
 /**
@@ -2679,6 +2775,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static HandleDetach *hdetach = NULL;
    static HandleEmulatedSingleStep *hemulatedsinglestep = NULL;
    static HandleDisplacedStepCancel *hdisplacedcancel = NULL;
+   static HandleEmulatedSingleStepStart *hemulatedsinglestepstart = NULL;
    static iRPCHandler *hrpc = NULL;
    static iRPCPreCallbackHandler *hprerpc = NULL;
    static HandlePreBootstrap* hprebootstrap = NULL;
@@ -2718,6 +2815,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hdetach = new HandleDetach();
       hemulatedsinglestep = new HandleEmulatedSingleStep();
       hdisplacedcancel = new HandleDisplacedStepCancel();
+      hemulatedsinglestepstart = new HandleEmulatedSingleStepStart();
       hasyncfileread = new HandleAsyncFileRead();
       hppsyscall = new HandlePostponedSyscall();
       initialized = true;
@@ -2755,6 +2853,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hdetach);
    hpool->addHandler(hemulatedsinglestep);
    hpool->addHandler(hdisplacedcancel);
+   hpool->addHandler(hemulatedsinglestepstart);
    hpool->addHandler(hasyncfileread);
    hpool->addHandler(hppsyscall);
    plat_createDefaultHandlerPool(hpool);

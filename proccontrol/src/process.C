@@ -585,6 +585,7 @@ bool int_process::execed()
    arch = Dyninst::Arch_none;
    exec_mem_cache.clear();
    resetDisplacedSlotPool();
+   inplace_ss_owner = NULL;
 
    int_thread::State user_initial_thrd_state = threadpool->initialThread()->getUserState().getState();
    int_thread::State gen_initial_thrd_state = threadpool->initialThread()->getGeneratorState().getState();
@@ -1355,6 +1356,7 @@ int_process::int_process(Dyninst::PID p, std::string e,
    dstep_pool_rpc_saved_user_ss(false),
    dstep_pool_rpc_saved_ss(false),
    dstep_pool_failed(false),
+   inplace_ss_owner(NULL),
    continueSig(0),
    mem_cache(this),
    async_event_count(Counter::AsyncEvents),
@@ -1409,6 +1411,7 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    dstep_pool_rpc_saved_user_ss(false),
    dstep_pool_rpc_saved_ss(false),
    dstep_pool_failed(false),
+   inplace_ss_owner(NULL),
    continueSig(p->continueSig),
    mem_cache(this),
    async_event_count(Counter::AsyncEvents),
@@ -2546,6 +2549,16 @@ void int_process::displacedSlotPoolThreadGone(int_thread *thr)
    dstep_pool_rpc_thread = NULL;
 }
 
+int_thread *int_process::inplaceSingleStepOwner() const
+{
+   return inplace_ss_owner;
+}
+
+void int_process::setInplaceSingleStepOwner(int_thread *thr)
+{
+   inplace_ss_owner = thr;
+}
+
 void int_process::resetDisplacedSlotPool()
 {
    dstep_pool_base = 0;
@@ -3090,8 +3103,11 @@ int_thread::~int_thread()
       delete em_singlestep;
       em_singlestep = NULL;
    }
-   if (proc_)
+   if (proc_) {
       proc_->displacedSlotPoolThreadGone(this);
+      if (proc_->inplaceSingleStepOwner() == this)
+         proc_->setInplaceSingleStepOwner(NULL);
+   }
 
    thread_exitstate *tes = new thread_exitstate();
    tes->lwp = lwp;
@@ -3235,6 +3251,17 @@ async_ret_t int_thread::handleSingleStepContinue()
                       llproc()->getPid(), thr->getLWP());
          continue;
       }
+      if (thr->getEmulatedSingleStep()) {
+         // Stopped in the middle of an emulated step and continued (the user
+         // turned stepping back on meanwhile, or this is the in-place kind
+         // and the user stopped the process while the thread was in the
+         // sequence).  Its breakpoints are still installed and, for the
+         // in-place kind, its hold on the other threads still stands; setting
+         // up a second one would wait on this thread's own hold.
+         pthrd_printf("Thread %d/%d already has an emulated single step in flight\n",
+                      llproc()->getPid(), thr->getLWP());
+         continue;
+      }
       vector<Address> addrs;
       async_ret_t aresult = llproc()->plat_needsEmulatedSingleStep(thr, addrs);
       if (aresult == aret_async) {
@@ -3278,25 +3305,32 @@ async_ret_t int_thread::handleSingleStepContinue()
       if (displaced)
          continue;
 
-      emulated_singlestep *new_es = thr->getEmulatedSingleStep();
-      if (!new_es)
-         new_es = new emulated_singlestep(thr);
-      for (vector<Address>::iterator j = addrs.begin(); j != addrs.end(); j++) {
-         Address addr = *j;
-         pthrd_printf("Installing emulated single-step breakpoint for %d/%d at %lx\n",
-                      llproc()->getPid(), thr->getLWP(), addr);
-         aresult = new_es->add(addr);
-         if (aresult == aret_async) {
-            pthrd_printf("Async return while installing breakpoint for emulated_singlestep\n");
-            ret = aret_async;
-            goto done;
-         }
-         if (aresult == aret_error) {
-            pthrd_printf("Error return while installing breakpoint for emulated_singlestep\n");
-            ret = aret_error;
-            goto done;
-         }
+      // In-place emulation: the breakpoints go into the text of the sequence,
+      // which other threads execute too.  Stop the rest of the process first,
+      // the way a breakpoint step-over does, so that no thread but this one
+      // can reach them; HandleEmulatedSingleStepStart installs them and
+      // releases this thread once every other thread is stopped.  One such
+      // step at a time per process: a second requester (this pass computed its
+      // target state before the first one stopped the process) stays stopped
+      // and is retried when the first completes.
+      if (llproc()->inplaceSingleStepOwner()) {
+         pthrd_printf("Holding %d/%d until the in-place emulated single step of thread %d completes\n",
+                      llproc()->getPid(), thr->getLWP(), llproc()->inplaceSingleStepOwner()->getLWP());
+         ret = aret_async;
+         goto done;
       }
+      pthrd_printf("Stopping process %d for an in-place emulated single step of thread %d\n",
+                   llproc()->getPid(), thr->getLWP());
+      llproc()->setInplaceSingleStepOwner(thr);
+      thr->getBreakpointState().desyncStateProc(int_thread::stopped);
+      EventEmulatedSingleStepStart::ptr start_ev(new EventEmulatedSingleStepStart());
+      start_ev->setProcess(proc());
+      start_ev->setThread(thr->thread());
+      start_ev->setSyncType(Event::async);
+      start_ev->setSuppressCB(true);
+      mbox()->enqueue(start_ev);
+      ret = aret_async;
+      goto done;
    }
 
    ret = aret_success;
@@ -4474,11 +4508,25 @@ emulated_singlestep *int_thread::getEmulatedSingleStep()
    return em_singlestep;
 }
 
+// DYNINST_DISABLE_DISPLACED_SINGLESTEP=1 makes every emulated single step take
+// the in-place path, which is how that path gets exercised: no sequence in the
+// testsuite's mutatees needs it otherwise.
+static bool displacedSingleStepDisabled()
+{
+   static int disabled = -1;
+   if (disabled == -1) {
+      const char *e = getenv("DYNINST_DISABLE_DISPLACED_SINGLESTEP");
+      disabled = (e && atoi(e)) ? 1 : 0;
+   }
+   return disabled == 1;
+}
+
 async_ret_t int_thread::setupDisplacedSingleStep(Address seq_end, bool &displaced)
 {
    displaced = false;
    int_process *proc = llproc();
-   if (!proc->plat_supportsDisplacedSingleStep() || proc->displacedSlotPoolFailed())
+   if (!proc->plat_supportsDisplacedSingleStep() || displacedSingleStepDisabled() ||
+       proc->displacedSlotPoolFailed())
       return aret_success;
 
    if (!proc->displacedSlotPoolReady()) {
@@ -9092,6 +9140,7 @@ bool ProcStopEventManager::threadStoppedTo(int_thread *thr, int state_id)
 
 emulated_singlestep::emulated_singlestep(int_thread *thr_) :
    thr(thr_),
+   holds_process(false),
    displaced(false),
    copy_base(0),
    copy_end(0),
@@ -9112,10 +9161,40 @@ emulated_singlestep::emulated_singlestep(int_thread *thr_) :
 
 emulated_singlestep::~emulated_singlestep()
 {
+   if (holds_process && thr->llproc()->getState() != int_process::exited)
+      releaseProcess();
    if (displaced)
       thr->llproc()->releaseDisplacedSlot(copy_base);
    delete bp;
    bp = NULL;
+}
+
+void emulated_singlestep::setHoldsProcess(bool b)
+{
+   holds_process = b;
+}
+
+bool emulated_singlestep::holdsProcess() const
+{
+   return holds_process;
+}
+
+void emulated_singlestep::releaseProcess()
+{
+   assert(holds_process);
+   holds_process = false;
+   // The stepping thread was never desynced (HandleEmulatedSingleStepStart),
+   // so this is restoreStateProc minus that thread.
+   int_process *proc = thr->llproc();
+   int_threadPool *pool = proc->threadPool();
+   for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
+      if (*i == thr)
+         continue;
+      (*i)->getBreakpointResumeState().restoreState();
+   }
+   int bpr_stateid = int_thread::BreakpointResumeStateID;
+   proc->getProcDesyncdStates()[bpr_stateid]--;
+   proc->setInplaceSingleStepOwner(NULL);
 }
 
 void emulated_singlestep::setDisplaced(Address copy_base_, Address copy_end_, Address orig_start_,
