@@ -316,6 +316,65 @@ async_ret_t ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Ad
     return aret_success;
 }
 
+bool ppc_process::plat_supportsDisplacedSingleStep() const
+{
+   return true;
+}
+
+/**
+ * Encodings used when copying an atomic sequence out of line.  Everything
+ * that is not listed is position independent on Power.
+ **/
+namespace {
+   // addpcis is DX-form with a 5-bit XO in bits [5:1]; the other opcode-19
+   // instructions that must stay in place (bclr, bcctr, bctar) are XL-form.
+   const unsigned int ADDPCISxop = 2;
+   unsigned int dxform_xo(unsigned int raw) { return (raw >> 1) & 0x1f; }
+}
+
+void ppc_process::plat_classifyInsnForDisplacedStep(unsigned int raw, Address addr, displaced_insn &info)
+{
+   instruction insn(raw);
+   info.kind = displaced_insn::unrelocatable;
+   info.target = 0;
+
+   unsigned int op = GENERIC_OP(insn);
+   if (op == Bop || op == BCop) {
+      // Absolute and linking branches keep their meaning only in place.
+      bool aa = (op == Bop) ? IFORM_AA(insn) : BFORM_AA(insn);
+      bool lk = (op == Bop) ? IFORM_LK(insn) : BFORM_LK(insn);
+      if (aa || lk)
+         return;
+      info.kind = displaced_insn::rel_branch;
+      info.target = insn.getTarget(addr);
+      return;
+   }
+   if (op == SVCop)
+      return;
+   if (op == BCLRop) {
+      unsigned int xo = XFORM_XO(insn);
+      if (xo == BCLRxop || xo == BCCTRxop || xo == BCTARxop || dxform_xo(raw) == ADDPCISxop)
+         return;
+   }
+   info.kind = displaced_insn::plain;
+}
+
+bool ppc_process::plat_retargetBranchForDisplacedStep(unsigned int &raw, Address copy_addr, Address new_target)
+{
+   instruction insn(raw);
+   if (!insn.isUncondBranch() && !insn.isCondBranch())
+      return false;
+   long offset = (long) new_target - (long) copy_addr;
+   if (offset & 0x3)
+      return false;
+   long limit = insn.isUncondBranch() ? MAX_BRANCH : MAX_CBRANCH;
+   if (offset <= -limit || offset >= limit)
+      return false;
+   insn.setBranchOffset(offset);
+   raw = insn.asInt();
+   return true;
+}
+
 void ppc_process::plat_getEmulatedSingleStepAsyncs(int_thread *, std::set<response::ptr> resps)
 {
    map<int_thread *, reg_response::ptr>::iterator i;
