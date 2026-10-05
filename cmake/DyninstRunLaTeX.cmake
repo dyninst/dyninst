@@ -233,9 +233,11 @@ endfunction()
 function(_dyninst_latex_validate _pdf _log)
   set(_p "")
 
-  # Ghostscript prints in points, and comparing truncated integers avoids
-  # needing arithmetic CMake 3.14's math() cannot do.  A point of precision is
-  # far finer than the clearance being tested for.
+  # How close the ink may come to the edge of the paper before the page is
+  # called a defect -- its clearance to the trim.  In big points: 1/72in, what
+  # Ghostscript reports, as against TeX's pt of 1/72.27in.  3bp is about 1mm.
+  # Comparing truncated integers avoids arithmetic CMake 3.14's math() cannot
+  # do, and a whole bp is far finer than the clearance being tested for.
   if(NOT DEFINED MIN_TRIM_CLEARANCE_BP OR MIN_TRIM_CLEARANCE_BP STREQUAL "")
     set(MIN_TRIM_CLEARANCE_BP 3)
   endif()
@@ -316,7 +318,7 @@ function(_dyninst_latex_validate _pdf _log)
     if(_sides)
       string(REPLACE ";" ", " _sides "${_sides}")
       string(APPEND _p "\n    page ${_pageno}: ink reaches the ${_sides} edge"
-             " (clearance L${_left} R${_right} T${_top} B${_bottom} pt)")
+             " (clearance L${_left} R${_right} T${_top} B${_bottom} bp)")
     endif()
   endforeach()
 
