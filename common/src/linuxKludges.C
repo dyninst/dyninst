@@ -43,7 +43,8 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <string.h>
-
+#include <cassert>
+#include <fcntl.h>
 
 /**** process_vm_readv / process_vm_writev
  * Added in kernel 3.2 and some backports -- try it and check ENOSYS.

@@ -30,6 +30,12 @@
 #include "common/src/MappedFile.h"
 #include "common/src/dyninst_filesystem.h"
 #include <iostream>
+#include <sys/stat.h>
+#include <stdarg.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
 using namespace std;
 
 dyn_hash_map<std::string, MappedFile *> MappedFile::mapped_files;

@@ -32,6 +32,7 @@
 
 #include <string>
 #include "dyninst_visibility.h"
+#include "dyntypes.h"
 
 class MappedFile {
      static dyn_hash_map<std::string, MappedFile *> mapped_files;
