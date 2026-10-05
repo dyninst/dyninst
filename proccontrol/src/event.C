@@ -188,6 +188,7 @@ std::string EventType::name() const
       STR_CASE(Library);
       STR_CASE(BreakpointClear);
       STR_CASE(BreakpointRestore);
+      STR_CASE(EmulatedSingleStepStart);
       STR_CASE(RPCLaunch);
       STR_CASE(Async);
       STR_CASE(ChangePCStop);
@@ -766,6 +767,23 @@ bool EventBreakpointClear::procStopper() const
    if (!handled_by.empty())
       return false;
 
+   int_process *p = getProcess()->llproc();
+   return !p->getProcStopManager().processStoppedTo(int_thread::BreakpointStateID);
+}
+
+EventEmulatedSingleStepStart::EventEmulatedSingleStepStart() :
+   Event(EventType(EventType::None, EventType::EmulatedSingleStepStart))
+{
+}
+
+EventEmulatedSingleStepStart::~EventEmulatedSingleStepStart()
+{
+}
+
+bool EventEmulatedSingleStepStart::procStopper() const
+{
+   if (!handled_by.empty())
+      return false;
    int_process *p = getProcess()->llproc();
    return !p->getProcStopManager().processStoppedTo(int_thread::BreakpointStateID);
 }
@@ -1435,6 +1453,7 @@ DEFN_EVENT_CAST(EventRPC, RPC)
 DEFN_EVENT_CAST(EventSingleStep, SingleStep)
 DEFN_EVENT_CAST(EventBreakpointClear, BreakpointClear)
 DEFN_EVENT_CAST(EventBreakpointRestore, BreakpointRestore)
+DEFN_EVENT_CAST(EventEmulatedSingleStepStart, EmulatedSingleStepStart)
 DEFN_EVENT_CAST(EventLibrary, Library)
 DEFN_EVENT_CAST(EventRPCLaunch, RPCLaunch)
 DEFN_EVENT_CAST(EventAsync, Async)

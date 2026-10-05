@@ -543,6 +543,12 @@ class int_process
    Dyninst::Address acquireDisplacedSlot();
    void releaseDisplacedSlot(Dyninst::Address slot);
    void displacedSlotPoolThreadGone(int_thread *thr);
+
+   // The thread whose in-place emulated single step currently owns the
+   // process stop (see HandleEmulatedSingleStepStart), or NULL.  Only one at
+   // a time: the BreakpointResume holds it uses do not nest.
+   int_thread *inplaceSingleStepOwner() const;
+   void setInplaceSingleStepOwner(int_thread *thr);
    unsigned displacedSlotSize() const;
    void resetDisplacedSlotPool();
    virtual bool plat_needsThreadForMemOps() const { return true; }
@@ -623,6 +629,7 @@ class int_process
    bool dstep_pool_rpc_saved_user_ss;
    bool dstep_pool_rpc_saved_ss;
    bool dstep_pool_failed;
+   int_thread *inplace_ss_owner;
    int continueSig;
    bool createdViaAttach;
    memCache mem_cache;
@@ -1540,6 +1547,10 @@ class emulated_singlestep {
    int_thread *thr;
    std::set<Address> addrs;
 
+   // Set when the breakpoints sit in the original text and every other
+   // thread of the process is held (BreakpointResume state) until they hit.
+   bool holds_process;
+
    // Set when the sequence runs out of line in a scratch slot.  The
    // breakpoints then sit in the slot, not in the original text.
    bool displaced;
@@ -1556,6 +1567,12 @@ class emulated_singlestep {
    async_ret_t add(Address addr);
    async_ret_t clear();
    void restoreSSMode();
+
+   void setHoldsProcess(bool b);
+   bool holdsProcess() const;
+   // Let the other threads go again (the counterpart of the hold set up by
+   // HandleEmulatedSingleStepStart).
+   void releaseProcess();
 
    void setDisplaced(Address copy_base_, Address copy_end_, Address orig_start_,
                      const std::map<Address, Address> &stub_to_orig_);
