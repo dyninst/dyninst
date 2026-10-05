@@ -36,6 +36,7 @@
 #include "registers/MachRegister.h"
 #include "registers/x86_regs.h"
 
+#include <algorithm>
 #include <boost/make_shared.hpp>
 #include <set>
 #include <sstream>
@@ -57,7 +58,10 @@ namespace Dyninst { namespace InstructionAPI {
       : Expression(inputRegASTs[0]->getID(), inputRegASTs.size()), m_Regs{std::move(inputRegASTs)} {
   }
 
-  bool MultiRegisterAST::isUsed(Expression::Ptr findMe) const { return isStrictEqual(*findMe); }
+  bool MultiRegisterAST::isUsed(Expression::Ptr findMe) const {
+    return std::any_of(m_Regs.begin(), m_Regs.end(),
+                       [&findMe](const RegisterAST::Ptr& r) { return r->isUsed(findMe); });
+  }
 
   std::string MultiRegisterAST::format(Architecture arch, formatStyle) const {
     if(arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940 || arch == Arch_amdgpu_gfx950) {
@@ -83,16 +87,16 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   bool MultiRegisterAST::operator<(const MultiRegisterAST& rhs) const {
-    return m_Regs < rhs.m_Regs;
+    return std::lexicographical_compare(
+        m_Regs.begin(), m_Regs.end(), rhs.m_Regs.begin(), rhs.m_Regs.end(),
+        [](const RegisterAST::Ptr& a, const RegisterAST::Ptr& b) { return *a < *b; });
   }
 
   bool MultiRegisterAST::isStrictEqual(const Expression& rhs) const {
-    try {
-      const MultiRegisterAST& rhs_reg = dynamic_cast<const MultiRegisterAST&>(rhs);
-      return m_Regs == rhs_reg.m_Regs;
-    } catch(bad_cast& b) {
-      return false;
-    }
+    const auto* rhs_reg = dynamic_cast<const MultiRegisterAST*>(&rhs);
+    return rhs_reg && m_Regs.size() == rhs_reg->m_Regs.size() &&
+           std::equal(m_Regs.begin(), m_Regs.end(), rhs_reg->m_Regs.begin(),
+                      [](const RegisterAST::Ptr& a, const RegisterAST::Ptr& b) { return *a == *b; });
   }
 
   bool MultiRegisterAST::isFlag() const {
