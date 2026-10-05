@@ -317,6 +317,58 @@ function(_dyninst_latex_validate _pdf _log)
       PARENT_SCOPE)
 endfunction()
 
+# Reporting what the finished document is guilty of.  Called for a document
+# that settled and for one that ran out of passes, because the unsettled one
+# is if anything the more likely to be wrong, and checking only the settled
+# ones gave it the least scrutiny of any outcome.
+function(_dyninst_latex_report _unsettled)
+  set(_check_problems "")
+  set(_validate_problems "")
+  _dyninst_latex_check("${OUTPUT_DIR}/${_stem}.log")
+  if(GHOSTSCRIPT)
+    _dyninst_latex_validate("${OUTPUT_DIR}/${_stem}.pdf" "${OUTPUT_DIR}/${_stem}.log")
+  endif()
+
+  set(_report "")
+  if(_unsettled)
+    string(APPEND _report "\n  it never settled: ${MAX_PASSES} passes left the"
+           " cross references or page numbers still moving, so the table of"
+           " contents and every \\ref may name the wrong page")
+  endif()
+  if(_check_problems)
+    string(APPEND _report "\n  the log is not clean:${_check_problems}"
+           "\n  full log: ${OUTPUT_DIR}/${_stem}.log")
+  endif()
+  if(_validate_problems)
+    string(APPEND _report "\n  the page does not hold its content:${_validate_problems}")
+  endif()
+  if(NOT _report)
+    return()
+  endif()
+
+  if(WARNINGS_AS_ERRORS)
+    # ALLOW_WARNINGS only ever silences a log warning, so offer it only when
+    # one is what failed.  A page that does not hold its content, or a
+    # document that never settled, has to be fixed in the document --
+    # or, for the latter, given more passes.
+    set(_hint "")
+    if(_check_problems)
+      string(APPEND _hint " or add one to ALLOW_WARNINGS in the manual's"
+             " manual-latex/CMakeLists.txt")
+    endif()
+    if(_unsettled)
+      string(APPEND _hint " or raise MAX_PASSES if the document is simply large")
+    endif()
+    message(
+      FATAL_ERROR
+        "${MAIN}: the document built but${_report}\n"
+        "  Set -DDYNINST_WARNINGS_AS_ERRORS=OFF to report these "
+        "without failing${_hint}.")
+  else()
+    message(WARNING "${MAIN}: the document built but${_report}")
+  endif()
+endfunction()
+
 # Seed the comparison with whatever a previous build left behind, so a
 # document that is already settled needs one confirming pass, not two.
 _dyninst_latex_state(_previous)
@@ -357,41 +409,7 @@ while(_pass LESS_EQUAL MAX_PASSES)
   endif()
 
   if(_current STREQUAL _previous AND NOT _rerun)
-    set(_check_problems "")
-    set(_validate_problems "")
-    _dyninst_latex_check("${OUTPUT_DIR}/${_stem}.log")
-    if(GHOSTSCRIPT)
-      _dyninst_latex_validate("${OUTPUT_DIR}/${_stem}.pdf" "${OUTPUT_DIR}/${_stem}.log")
-    endif()
-
-    set(_report "")
-    if(_check_problems)
-      string(APPEND _report "\n  the log is not clean:${_check_problems}"
-             "\n  full log: ${OUTPUT_DIR}/${_stem}.log")
-    endif()
-    if(_validate_problems)
-      string(APPEND _report
-             "\n  the page does not hold its content:${_validate_problems}")
-    endif()
-    if(_report)
-      if(WARNINGS_AS_ERRORS)
-        # ALLOW_WARNINGS only ever silences a log warning, so offer it only
-        # when one is what failed.  A page that does not hold its content has
-        # to be fixed in the document.
-        set(_hint "")
-        if(_check_problems)
-          set(_hint " or add one to ALLOW_WARNINGS in the manual's"
-                    " manual-latex/CMakeLists.txt")
-        endif()
-        message(
-          FATAL_ERROR
-            "${MAIN}: the document built but${_report}\n"
-            "  Set -DDYNINST_WARNINGS_AS_ERRORS=OFF to report these "
-            "without failing${_hint}.")
-      else()
-        message(WARNING "${MAIN}: the document built but${_report}")
-      endif()
-    endif()
+    _dyninst_latex_report(FALSE)
     return()
   endif()
 
@@ -399,5 +417,4 @@ while(_pass LESS_EQUAL MAX_PASSES)
   math(EXPR _pass "${_pass} + 1")
 endwhile()
 
-message(WARNING "${MAIN}: still unsettled after ${MAX_PASSES} passes; "
-                "cross references or page numbers may be stale")
+_dyninst_latex_report(TRUE)
