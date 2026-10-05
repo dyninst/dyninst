@@ -265,10 +265,6 @@ function(_dyninst_latex_validate _pdf _log)
         PARENT_SCOPE)
     return()
   endif()
-  # pdfTeX puts the page's origin at the corner of the paper.
-  set(_px0 0)
-  set(_py0 0)
-
   execute_process(
     COMMAND "${GHOSTSCRIPT}" -q -dBATCH -dNOPAUSE -sDEVICE=bbox "${_pdf}"
     OUTPUT_QUIET
@@ -297,8 +293,10 @@ function(_dyninst_latex_validate _pdf _log)
     list(GET _edges 2 _urx)
     list(GET _edges 3 _ury)
 
-    math(EXPR _left "${_llx} - (${_px0})")
-    math(EXPR _bottom "${_lly} - (${_py0})")
+    # pdfTeX puts the page's origin at the corner of the paper, so the ink's
+    # lower-left coordinates are already its clearances from those two sides.
+    set(_left "${_llx}")
+    set(_bottom "${_lly}")
     math(EXPR _right "${_px1} - (${_urx})")
     math(EXPR _top "${_py1} - (${_ury})")
 
