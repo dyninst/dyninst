@@ -1145,6 +1145,8 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
    pthrd_printf("RPC %lu is moving to state finished\n", rpc->id());
    thr->clearRunningRPC();
    rpc->setState(int_iRPC::Finished);
+   if (rpc->getType() == int_iRPC::InfMalloc)
+      proc->displacedSlotPoolRPCFinished(rpc);
 
    if (rpc->countedSync()) {
      thr->decSyncRPCCount();

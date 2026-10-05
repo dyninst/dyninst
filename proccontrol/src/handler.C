@@ -1745,8 +1745,14 @@ Handler::handler_ret_t HandleEmulatedSingleStep::handleEvent(Event::ptr ev)
    EventBreakpoint::ptr ev_bp = ev->getEventBreakpoint();
    Address addr = ev_bp->getInternal()->addr;
    assert(ev_bp);
-   if (!em_singlestep->containsBreakpoint(addr))
+   if (!em_singlestep->containsBreakpoint(addr)) {
+      if (em_singlestep->isDisplaced()) {
+         // Some other breakpoint (a watchpoint, say) fired while the thread was
+         // in its displaced copy.  Move it back to the original text.
+         thrd->cancelDisplacedSingleStep();
+      }
       return ret_success;
+   }
 
    pthrd_printf("Breakpoint %lx corresponds to emulated single step.  Clearing BPs\n", addr);
    async_ret_t aresult = em_singlestep->clear();
@@ -1755,6 +1761,21 @@ Handler::handler_ret_t HandleEmulatedSingleStep::handleEvent(Event::ptr ev)
       return ret_async;
    }
 
+   if (em_singlestep->isDisplaced()) {
+      // The stub stands for an address in the original text: the instruction
+      // after the sequence, or the target of the exit branch that reached it.
+      Address resume = em_singlestep->resumeAddrForStub(addr);
+      assert(resume);
+      pthrd_printf("Displaced single step done on %d/%d, stub %lx -> resuming at %lx\n",
+                   proc->getPid(), thrd->getLWP(), addr, resume);
+      result_response::ptr pc_set = result_response::createResultResponse();
+      bool ok = thrd->setRegister(MachRegister::getPC(proc->getTargetArch()), resume, pc_set);
+      if (!ok || pc_set->hasError()) {
+         ev->setLastError(err_internal, "Could not restore PC after displaced single step\n");
+         return ret_error;
+      }
+      assert(pc_set->isReady());
+   }
    // The emulation's breakpoint is gone, so the stopped-on-breakpoint mark
    // that HandleBreakpoint set must not outlive it.  If a user breakpoint
    // shares the address it is still installed and the thread really is
@@ -1777,6 +1798,67 @@ Handler::handler_ret_t HandleEmulatedSingleStep::handleEvent(Event::ptr ev)
 int HandleEmulatedSingleStep::getPriority() const
 {
    return PostPlatformPriority;
+}
+
+/**
+ * A thread that stops for any reason other than its own stub breakpoint while
+ * running a displaced copy must not stay there: the user would see a PC in
+ * scratch memory, a detach would leave it to run off the end of the copy, and
+ * a signal handler would return into it.  Move it back to the original text.
+ **/
+HandleDisplacedStepCancel::HandleDisplacedStepCancel() :
+   Handler("Displaced Step Cancel")
+{
+}
+
+HandleDisplacedStepCancel::~HandleDisplacedStepCancel()
+{
+}
+
+void HandleDisplacedStepCancel::getEventTypesHandled(vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::None, EventType::Signal));
+   etypes.push_back(EventType(EventType::None, EventType::Stop));
+   etypes.push_back(EventType(EventType::None, EventType::Crash));
+   etypes.push_back(EventType(EventType::Pre, EventType::Exit));
+   etypes.push_back(EventType(EventType::None, EventType::Detach));
+   etypes.push_back(EventType(EventType::Any, EventType::LWPDestroy));
+   etypes.push_back(EventType(EventType::Any, EventType::UserThreadDestroy));
+}
+
+Handler::handler_ret_t HandleDisplacedStepCancel::handleEvent(Event::ptr ev)
+{
+   int_process *proc = ev->getProcess()->llproc();
+   if (!proc->plat_supportsDisplacedSingleStep())
+      return ret_success;
+
+   // Only a detach cancels every thread: it is a proc-stopper, so by the time
+   // it is handled each thread really is stopped, and HandleDetach is about to
+   // remove every breakpoint, stubs included.  No other event may touch a
+   // thread other than its own.  A process-synchronous event (exit, crash,
+   // exec) marks every thread's handler state stopped as bookkeeping, whether
+   // or not that thread has stopped; a cancel issued on that mark can run
+   // while the thread sits on a stub BRK whose trap the generator has not
+   // decoded yet.  The cancel moves the PC and removes the stub, and the trap
+   // is then decoded as a plain SIGTRAP and delivered to the mutatee.
+   if (ev->getEventType().code() == EventType::Detach) {
+      int_threadPool *pool = proc->threadPool();
+      for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++)
+         (*i)->cancelDisplacedSingleStep();
+      return ret_success;
+   }
+
+   if (!ev->getThread())
+      return ret_success;
+   int_thread *thrd = ev->getThread()->llthrd();
+   if (thrd)
+      thrd->cancelDisplacedSingleStep();
+   return ret_success;
+}
+
+int HandleDisplacedStepCancel::getPriority() const
+{
+   return PrePlatformPriority;
 }
 
 HandleLibrary::HandleLibrary() :
@@ -2596,6 +2678,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static HandleNop *hnop = NULL;
    static HandleDetach *hdetach = NULL;
    static HandleEmulatedSingleStep *hemulatedsinglestep = NULL;
+   static HandleDisplacedStepCancel *hdisplacedcancel = NULL;
    static iRPCHandler *hrpc = NULL;
    static iRPCPreCallbackHandler *hprerpc = NULL;
    static HandlePreBootstrap* hprebootstrap = NULL;
@@ -2634,6 +2717,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hnop = new HandleNop();
       hdetach = new HandleDetach();
       hemulatedsinglestep = new HandleEmulatedSingleStep();
+      hdisplacedcancel = new HandleDisplacedStepCancel();
       hasyncfileread = new HandleAsyncFileRead();
       hppsyscall = new HandlePostponedSyscall();
       initialized = true;
@@ -2670,6 +2754,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hnop);
    hpool->addHandler(hdetach);
    hpool->addHandler(hemulatedsinglestep);
+   hpool->addHandler(hdisplacedcancel);
    hpool->addHandler(hasyncfileread);
    hpool->addHandler(hppsyscall);
    plat_createDefaultHandlerPool(hpool);

@@ -87,6 +87,21 @@ class int_library;
 class int_process;
 class emulated_singlestep;
 
+/**
+ * How one instruction of an atomic sequence behaves when it is copied to
+ * another address for a displaced single step.
+ **/
+struct displaced_insn {
+   enum kind_t {
+      plain,           // position independent, copy as is
+      rel_branch,      // PC-relative branch to 'target'; retargeted if it leaves the sequence
+      unrelocatable    // anything whose meaning depends on its address (PC-relative data,
+                       // register branches, calls, system calls): fall back to in-place emulation
+   } kind;
+   Dyninst::Address target;
+   displaced_insn() : kind(unrelocatable), target(0) {}
+};
+
 class int_libraryTracking;
 class int_LWPTracking;
 class int_threadTracking;
@@ -503,6 +518,33 @@ class int_process
    virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Dyninst::Address> &result);
    virtual bool plat_convertToBreakpointAddress(Address &, int_thread *) { return true; }
    virtual void plat_getEmulatedSingleStepAsyncs(int_thread *thr, std::set<response::ptr> resps);
+
+   /**
+    * Displaced (out-of-line) emulated single step.  Instead of planting the
+    * emulation breakpoints in the (shared) text of the atomic sequence, the
+    * sequence is copied into a per-thread scratch slot in the mutatee and
+    * the thread runs the copy.  The platform describes one instruction at a
+    * time; the generic code in int_thread::setupDisplacedSingleStep does the
+    * copying.  A platform that does not override the first hook keeps the
+    * in-place breakpoint emulation.
+    **/
+   virtual bool plat_supportsDisplacedSingleStep() const { return false; }
+   virtual void plat_classifyInsnForDisplacedStep(unsigned int raw, Dyninst::Address addr,
+                                                  displaced_insn &info);
+   virtual bool plat_retargetBranchForDisplacedStep(unsigned int &raw, Dyninst::Address copy_addr,
+                                                    Dyninst::Address new_target);
+
+   // The scratch page that holds displaced-step copies, allocated on first use
+   // by an inferior malloc RPC and split into fixed-size slots.
+   bool displacedSlotPoolReady() const;
+   bool displacedSlotPoolFailed() const;
+   bool startDisplacedSlotPoolAlloc(int_thread *thr);
+   void displacedSlotPoolRPCFinished(int_iRPC_ptr rpc);
+   Dyninst::Address acquireDisplacedSlot();
+   void releaseDisplacedSlot(Dyninst::Address slot);
+   void displacedSlotPoolThreadGone(int_thread *thr);
+   unsigned displacedSlotSize() const;
+   void resetDisplacedSlotPool();
    virtual bool plat_needsThreadForMemOps() const { return true; }
    virtual unsigned int plat_getCapabilities();
    virtual Event::ptr plat_throwEventsBeforeContinue(int_thread *thr);
@@ -572,6 +614,15 @@ class int_process
    static bool in_callback;
    mem_state::ptr mem;
    std::map<Dyninst::Address, unsigned> exec_mem_cache;
+   // Displaced single-step scratch pool, see displacedSlotPoolReady().
+   Dyninst::Address dstep_pool_base;
+   unsigned dstep_pool_size;
+   std::vector<bool> dstep_slot_used;
+   int_iRPC_ptr dstep_pool_rpc;
+   int_thread *dstep_pool_rpc_thread;
+   bool dstep_pool_rpc_saved_user_ss;
+   bool dstep_pool_rpc_saved_ss;
+   bool dstep_pool_failed;
    int continueSig;
    bool createdViaAttach;
    memCache mem_cache;
@@ -949,6 +1000,17 @@ public:
    void addEmulatedSingleStep(emulated_singlestep *es);
    void rmEmulatedSingleStep(emulated_singlestep *es);
    emulated_singlestep *getEmulatedSingleStep();
+   // Run the atomic sequence at the PC (ending at 'seq_end') out of line.  Returns
+   // aret_success with displaced=true when the thread is set up to run the copy,
+   // aret_success with displaced=false when the caller should fall back to
+   // in-place emulation, and aret_async when the thread must stay stopped
+   // until the scratch pool exists or a slot frees up.
+   async_ret_t setupDisplacedSingleStep(Dyninst::Address seq_end, bool &displaced);
+   // Abandon a displaced step.  If the PC is inside the copy it is translated
+   // back to the corresponding original address.
+   void cancelDisplacedSingleStep();
+   // Map a PC inside a displaced copy back to the original text; identity otherwise.
+   Dyninst::Address translateDisplacedPC(Dyninst::Address pc);
 
    //RPC Management
    void addPostedRPC(int_iRPC_ptr rpc_);
@@ -1478,6 +1540,14 @@ class emulated_singlestep {
    int_thread *thr;
    std::set<Address> addrs;
 
+   // Set when the sequence runs out of line in a scratch slot.  The
+   // breakpoints then sit in the slot, not in the original text.
+   bool displaced;
+   Address copy_base;               // the slot
+   Address copy_end;                // end of the copied code and its stubs
+   Address orig_start;              // the atomic load the thread was stopped at
+   std::map<Address, Address> stub_to_orig;  // stub breakpoint -> address to resume at
+
   public:
    emulated_singlestep(int_thread *thr);
    ~emulated_singlestep();
@@ -1486,6 +1556,15 @@ class emulated_singlestep {
    async_ret_t add(Address addr);
    async_ret_t clear();
    void restoreSSMode();
+
+   void setDisplaced(Address copy_base_, Address copy_end_, Address orig_start_,
+                     const std::map<Address, Address> &stub_to_orig_);
+   bool isDisplaced() const;
+   bool pcInCopy(Address pc) const;
+   Address origStart() const;
+   Address copyBase() const;
+   // The original address a stub breakpoint stands for, or 0.
+   Address resumeAddrForStub(Address stub) const;
 
    std::set<response::ptr> clear_resps;
 };
