@@ -649,6 +649,10 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 
             Dyninst::MachRegisterVal addr;
             result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
+            // A signal that lands inside a displaced single-step copy is reported
+            // at the corresponding original address, which is where the thread will
+            // be once the step is cancelled.
+            addr = thread->translateDisplacedPC(addr);
             event = Event::ptr(new EventSignal(stopsig, addr, EventSignal::Unknown, false));
       }
       if (event && event->getSyncType() == Event::unset)
