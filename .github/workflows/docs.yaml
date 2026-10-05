@@ -6,9 +6,8 @@ on:
     branches: [ master ]
     paths:
       - 'docs/**'
-      - 'cmake/DyninstDocs.cmake'
-      - 'cmake/DyninstRunLaTeX.cmake'
-      - 'cmake/Modules/FindGhostscript.cmake'
+      - '**.cmake'
+      - '**CMakeLists.txt'
       - '.github/workflows/docs.yaml'
   workflow_dispatch:
 
