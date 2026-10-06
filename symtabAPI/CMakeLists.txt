@@ -2,65 +2,71 @@ include_guard(GLOBAL)
 
 include(DyninstLibrary)
 
-set(_public_headers
-    h/AddrLookup.h
-    h/Aggregate.h
-    h/Archive.h
-    h/Collections.h
-    h/ExceptionBlock.h
-    h/Function.h
-    h/LineInformation.h
-    h/Module.h
-    h/RangeLookup.h
-    h/Region.h
-    h/relocationEntry.h
-    h/Statement.h
-    h/StringTable.h
-    h/Symbol.h
-    h/Symtab.h
-    h/SymtabReader.h
-    h/symutil.h
-    h/Type.h
-    h/Variable.h)
+set(
+  _public_headers
+  h/AddrLookup.h
+  h/Aggregate.h
+  h/Archive.h
+  h/Collections.h
+  h/ExceptionBlock.h
+  h/Function.h
+  h/LineInformation.h
+  h/Module.h
+  h/RangeLookup.h
+  h/Region.h
+  h/relocationEntry.h
+  h/Statement.h
+  h/StringTable.h
+  h/Symbol.h
+  h/Symtab.h
+  h/SymtabReader.h
+  h/symutil.h
+  h/Type.h
+  h/Variable.h
+)
 
-set(_private_headers
-    src/annotations.h
-    src/debug.h
-    src/dwarfWalker.h
-    src/emitElf.h
-    src/emitElfStatic.h
-    src/emitWin.h
-    src/LinkMap.h
-    src/Object-elf.h
-    src/Object-pe.h
-    src/Object.h
-    src/Object-nt.h
-    src/Type-mem.h
-    src/indexed_symbols.hpp
-    src/symtab_impl.hpp
-    src/indexed_modules.h)
+set(
+  _private_headers
+  src/annotations.h
+  src/debug.h
+  src/dwarfWalker.h
+  src/emitElf.h
+  src/emitElfStatic.h
+  src/emitWin.h
+  src/LinkMap.h
+  src/Object-elf.h
+  src/Object-pe.h
+  src/Object.h
+  src/Object-nt.h
+  src/Type-mem.h
+  src/indexed_symbols.hpp
+  src/symtab_impl.hpp
+  src/indexed_modules.h
+)
 
-set(_sources
-    src/AddrLookup.C
-    src/Aggregate.C
-    src/annotations.C
-    src/Collections.C
-    src/debug.C
-    src/ExceptionBlock.C
-    src/Function.C
-    src/LineInformation.C
-    src/Module.C
-    src/Object.C
-    src/Region.C
-    src/relocationEntry.C
-    src/Statement.C
-    src/Symbol.C
-    src/Symtab-edit.C
-    src/Symtab-lookup.C
-    src/Symtab.C
-    src/SymtabReader.C
-    src/Type.C
-    src/Variable.C)
+set(
+  _sources
+  src/AddrLookup.C
+  src/Aggregate.C
+  src/annotations.C
+  src/Collections.C
+  src/debug.C
+  src/ExceptionBlock.C
+  src/Function.C
+  src/LineInformation.C
+  src/Module.C
+  src/Object.C
+  src/Region.C
+  src/relocationEntry.C
+  src/Statement.C
+  src/Symbol.C
+  src/Symtab-edit.C
+  src/Symtab-lookup.C
+  src/Symtab.C
+  src/SymtabReader.C
+  src/Type.C
+  src/Variable.C
+)
 
 if(DYNINST_OS_UNIX)
   list(
@@ -72,7 +78,8 @@ if(DYNINST_OS_UNIX)
     src/LinkMap.C
     src/emitElf.C
     src/emitElfStatic.C
-    src/dwarfWalker.C)
+    src/dwarfWalker.C
+  )
 
   if(DYNINST_CODEGEN_ARCH_X86_64 OR DYNINST_CODEGEN_ARCH_I386)
     list(APPEND _sources src/emitElfStatic-x86.C src/relocationEntry-elf-x86.C)

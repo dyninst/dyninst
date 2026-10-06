@@ -42,7 +42,6 @@ cmake_policy(SET CMP0083 NEW)
 include(CheckPIESupported)
 
 function(dyninst_check_pie_supported)
-
   cmake_parse_arguments(DYNINST_CHECK_PIE "" "" "LANGUAGES" "${ARGN}")
   if(DYNINST_CHECK_PIE_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR "Unparsed arguments: ${DYNINST_CHECK_PIE_UNPARSED_ARGUMENTS}")
@@ -86,13 +85,9 @@ function(dyninst_check_pie_supported)
         set(_flag "")
       endif()
 
-      set(${_spf}
-          "${_flag}"
-          CACHE INTERNAL "${_lang} static PIE flag")
-
+      set(${_spf} "${_flag}" CACHE INTERNAL "${_lang} static PIE flag")
     endforeach()
   endforeach()
 
   set(CMAKE_REQUIRED_LINK_OPTIONS "${_saved_link_opts}")
-
 endfunction()

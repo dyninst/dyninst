@@ -13,7 +13,8 @@ dyninst_library(
   DYNINST_INTERNAL_DEPS common patchAPI pcontrol
 )
 
-set(_inc_dirs
+set(
+  _inc_dirs
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/..
   ${CMAKE_CURRENT_SOURCE_DIR}/../Relocation

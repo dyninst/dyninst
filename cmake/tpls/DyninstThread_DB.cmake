@@ -30,8 +30,11 @@ endif()
 
 if(NOT TARGET Dyninst::Thread_DB)
   add_library(Dyninst::Thread_DB INTERFACE IMPORTED)
-  target_include_directories(Dyninst::Thread_DB SYSTEM
-                             INTERFACE ${Thread_DB_INCLUDE_DIRS})
+  target_include_directories(
+    Dyninst::Thread_DB
+    SYSTEM
+    INTERFACE ${Thread_DB_INCLUDE_DIRS}
+  )
   target_link_libraries(Dyninst::Thread_DB INTERFACE Thread_DB::Thread_DB)
   target_compile_definitions(Dyninst::Thread_DB INTERFACE cap_thread_db)
 endif()

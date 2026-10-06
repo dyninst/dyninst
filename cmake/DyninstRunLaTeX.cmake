@@ -61,8 +61,12 @@ get_filename_component(_stem "${MAIN}" NAME_WE)
 file(MAKE_DIRECTORY "${OUTPUT_DIR}")
 
 # The files that carry state from one pass to the next.
-set(_state_files "${OUTPUT_DIR}/${_stem}.aux" "${OUTPUT_DIR}/${_stem}.toc"
-                 "${OUTPUT_DIR}/${_stem}.out")
+set(
+  _state_files
+  "${OUTPUT_DIR}/${_stem}.aux"
+  "${OUTPUT_DIR}/${_stem}.toc"
+  "${OUTPUT_DIR}/${_stem}.out"
+)
 
 function(_dyninst_latex_state out)
   set(_s "")
@@ -72,9 +76,7 @@ function(_dyninst_latex_state out)
       string(APPEND _s "${_f}:${_h};")
     endif()
   endforeach()
-  set(${out}
-      "${_s}"
-      PARENT_SCOPE)
+  set(${out} "${_s}" PARENT_SCOPE)
 endfunction()
 
 function(_dyninst_latex_check _log)
@@ -111,11 +113,11 @@ function(_dyninst_latex_check _log)
   # file-open line like "(./3-API.tex" by the closing paren after a bare name.
   # Start at the keyword; pdfTeX prints warnings amid its page progress.
   string(
-    REGEX
-      MATCHALL
-      "(LaTeX Warning|LaTeX Font Warning|(Package|Class|Module) [A-Za-z0-9@._-]+ Warning|pdfTeX warning|Missing character)[^${_nl}]*(${_nl}\\([A-Za-z][A-Za-z0-9@._-]*\\)[^${_nl}]*)*"
-      _warnings
-      "${_txt}")
+    REGEX MATCHALL
+    "(LaTeX Warning|LaTeX Font Warning|(Package|Class|Module) [A-Za-z0-9@._-]+ Warning|pdfTeX warning|Missing character)[^${_nl}]*(${_nl}\\([A-Za-z][A-Za-z0-9@._-]*\\)[^${_nl}]*)*"
+    _warnings
+    "${_txt}"
+  )
   foreach(_w ${_warnings})
     string(REGEX REPLACE "[ \t]*${_nl}[ \t]*" " " _w "${_w}")
     if(NOT (_allow AND _w MATCHES "${_allow}"))
@@ -138,8 +140,10 @@ function(_dyninst_latex_check _log)
     # Overflowing by more than the margin means printing past the trim, not
     # merely into the margin.  One threshold serves both directions at
     # margin=1in.
-    if(_b MATCHES "^Overfull .[hv]box \\(([0-9.]+)pt" AND CMAKE_MATCH_1 GREATER
-                                                          MAX_OVERFULL_PT)
+    if(
+      _b MATCHES "^Overfull .[hv]box \\(([0-9.]+)pt"
+      AND CMAKE_MATCH_1 GREATER MAX_OVERFULL_PT
+    )
       set(_off " [RENDERS OFF PAGE]")
       set(_report TRUE)
     endif()
@@ -156,9 +160,7 @@ function(_dyninst_latex_check _log)
     endif()
   endforeach()
 
-  set(_check_problems
-      "${_problems}"
-      PARENT_SCOPE)
+  set(_check_problems "${_problems}" PARENT_SCOPE)
 endfunction()
 
 # Pull the numbers out of a line Ghostscript printed, as whole big points.
@@ -171,9 +173,7 @@ function(_dyninst_points _text _out)
     string(REGEX REPLACE "\\..*$" "" _t "${_t}")
     list(APPEND _r "${_t}")
   endforeach()
-  set(${_out}
-      "${_r}"
-      PARENT_SCOPE)
+  set(${_out} "${_r}" PARENT_SCOPE)
 endfunction()
 
 # TeX points (1in = 72.27pt) to PostScript points (1in = 72bp), rounded.
@@ -181,9 +181,7 @@ endfunction()
 # offers.  "1${_f} - 1000" rather than "${_f}" so a fraction like 069 is not
 # read as octal.
 function(_dyninst_pt_to_bp _pt _out)
-  set(${_out}
-      ""
-      PARENT_SCOPE)
+  set(${_out} "" PARENT_SCOPE)
   if(NOT _pt MATCHES "^([0-9]+)\\.?([0-9]*)$")
     return()
   endif()
@@ -192,9 +190,7 @@ function(_dyninst_pt_to_bp _pt _out)
   string(SUBSTRING "${_f}" 0 3 _f)
   math(EXPR _milli "${_i} * 1000 + 1${_f} - 1000")
   math(EXPR _bp "(${_milli} * 7200 / 7227 + 500) / 1000")
-  set(${_out}
-      "${_bp}"
-      PARENT_SCOPE)
+  set(${_out} "${_bp}" PARENT_SCOPE)
 endfunction()
 
 # Measure where the ink lands.  The log cannot settle it: pdflatex reports a
@@ -231,21 +227,22 @@ function(_dyninst_latex_validate _pdf _log)
     _dyninst_pt_to_bp("${CMAKE_MATCH_1}" _py1)
   endif()
   if(NOT _px1 OR NOT _py1)
-    set(_validate_problems
-        "\n    no page size in the log; is the geometry package loaded?"
-        PARENT_SCOPE)
+    set(
+      _validate_problems
+      "\n    no page size in the log; is the geometry package loaded?"
+      PARENT_SCOPE
+    )
     return()
   endif()
   execute_process(
     COMMAND "${GHOSTSCRIPT}" -q -dBATCH -dNOPAUSE -sDEVICE=bbox "${_pdf}"
     OUTPUT_QUIET
     ERROR_VARIABLE _bb
-    RESULT_VARIABLE _rc)
+    RESULT_VARIABLE _rc
+  )
   if(NOT _rc EQUAL 0)
     set(_p "\n    Ghostscript could not measure the PDF")
-    set(_validate_problems
-        "${_p}"
-        PARENT_SCOPE)
+    set(_validate_problems "${_p}" PARENT_SCOPE)
     return()
   endif()
 
@@ -267,10 +264,7 @@ function(_dyninst_latex_validate _pdf _log)
     # Ghostscript reports a page with no ink as 0 0 0 0.  A page is blank on
     # purpose often enough -- \cleardoublepage leaves one -- and reading that
     # as ink at the origin says it reaches the left and bottom edges.
-    if(_llx EQUAL 0
-       AND _lly EQUAL 0
-       AND _urx EQUAL 0
-       AND _ury EQUAL 0)
+    if(_llx EQUAL 0 AND _lly EQUAL 0 AND _urx EQUAL 0 AND _ury EQUAL 0)
       continue()
     endif()
 
@@ -296,14 +290,16 @@ function(_dyninst_latex_validate _pdf _log)
     endif()
     if(_sides)
       string(REPLACE ";" ", " _sides "${_sides}")
-      string(APPEND _p "\n    page ${_pageno}: ink reaches the ${_sides} edge"
-             " (clearance L${_left} R${_right} T${_top} B${_bottom} bp)")
+      string(
+        APPEND
+        _p
+        "\n    page ${_pageno}: ink reaches the ${_sides} edge"
+        " (clearance L${_left} R${_right} T${_top} B${_bottom} bp)"
+      )
     endif()
   endforeach()
 
-  set(_validate_problems
-      "${_p}"
-      PARENT_SCOPE)
+  set(_validate_problems "${_p}" PARENT_SCOPE)
 endfunction()
 
 # Called for a document that settled and for one that ran out of passes: the
@@ -318,13 +314,21 @@ function(_dyninst_latex_report _unsettled)
 
   set(_report "")
   if(_unsettled)
-    string(APPEND _report "\n  it never settled: ${MAX_PASSES} passes left the"
-           " cross references or page numbers still moving, so the table of"
-           " contents and every \\ref may name the wrong page")
+    string(
+      APPEND
+      _report
+      "\n  it never settled: ${MAX_PASSES} passes left the"
+      " cross references or page numbers still moving, so the table of"
+      " contents and every \\ref may name the wrong page"
+    )
   endif()
   if(_check_problems)
-    string(APPEND _report "\n  the log is not clean:${_check_problems}"
-           "\n  full log: ${OUTPUT_DIR}/${_stem}.log")
+    string(
+      APPEND
+      _report
+      "\n  the log is not clean:${_check_problems}"
+      "\n  full log: ${OUTPUT_DIR}/${_stem}.log"
+    )
   endif()
   if(_validate_problems)
     string(APPEND _report "\n  the page does not hold its content:${_validate_problems}")
@@ -340,18 +344,27 @@ function(_dyninst_latex_report _unsettled)
     # or, for the latter, given more passes.
     set(_hint "")
     if(_check_problems)
-      string(APPEND _hint " or add one to ALLOW_WARNINGS in the manual's"
-             " manual-latex/CMakeLists.txt")
+      string(
+        APPEND
+        _hint
+        " or add one to ALLOW_WARNINGS in the manual's"
+        " manual-latex/CMakeLists.txt"
+      )
     endif()
     if(_unsettled)
-      string(APPEND _hint " or raise MAX_PASSES in cmake/DyninstRunLaTeX.cmake"
-             " if the document is simply large")
+      string(
+        APPEND
+        _hint
+        " or raise MAX_PASSES in cmake/DyninstRunLaTeX.cmake"
+        " if the document is simply large"
+      )
     endif()
     message(
       FATAL_ERROR
-        "${MAIN}: the document built but${_report}\n"
-        "  Set -DDYNINST_WARNINGS_AS_ERRORS=OFF to report these "
-        "without failing${_hint}.")
+      "${MAIN}: the document built but${_report}\n"
+      "  Set -DDYNINST_WARNINGS_AS_ERRORS=OFF to report these "
+      "without failing${_hint}."
+    )
   else()
     message(WARNING "${MAIN}: the document built but${_report}")
   endif()
@@ -371,7 +384,9 @@ while(_pass LESS_EQUAL MAX_PASSES)
       -file-line-error -output-directory=${OUTPUT_DIR} ${MAIN}
     WORKING_DIRECTORY "${SOURCE_DIR}"
     RESULT_VARIABLE _rc
-    OUTPUT_QUIET ERROR_QUIET)
+    OUTPUT_QUIET
+    ERROR_QUIET
+  )
 
   if(NOT _rc EQUAL 0)
     # nonstopmode still exits non-zero on a LaTeX error, so a broken document
@@ -387,15 +402,21 @@ while(_pass LESS_EQUAL MAX_PASSES)
       endif()
     endif()
     message(
-      FATAL_ERROR "pdflatex failed on ${MAIN} (pass ${_pass}, exit ${_rc})${_detail}\n"
-                  "  full log: ${_log}")
+      FATAL_ERROR
+      "pdflatex failed on ${MAIN} (pass ${_pass}, exit ${_rc})${_detail}\n"
+      "  full log: ${_log}"
+    )
   endif()
 
   _dyninst_latex_state(_current)
 
   set(_rerun FALSE)
-  file(STRINGS "${OUTPUT_DIR}/${_stem}.log" _asks
-       REGEX "Rerun to get|Rerun LaTeX|Label\\(s\\) may have changed")
+  file(
+    STRINGS
+    "${OUTPUT_DIR}/${_stem}.log"
+    _asks
+    REGEX "Rerun to get|Rerun LaTeX|Label\\(s\\) may have changed"
+  )
   if(_asks)
     set(_rerun TRUE)
   endif()

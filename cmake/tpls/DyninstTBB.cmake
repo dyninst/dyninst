@@ -26,10 +26,7 @@ if(TBB_ROOT_DIR)
   set(_find_path_args NO_CMAKE_SYSTEM_PATH NO_SYSTEM_ENVIRONMENT_PATH)
 endif()
 
-find_package(
-  TBB ${_min_version}
-  COMPONENTS tbb tbbmalloc
-  REQUIRED ${_find_path_args})
+find_package(TBB ${_min_version} COMPONENTS tbb tbbmalloc REQUIRED ${_find_path_args})
 
 # Don't let TBB variables seep through
 mark_as_advanced(TBB_DIR)
@@ -38,9 +35,12 @@ if(NOT TARGET Dyninst::TBB)
   add_library(Dyninst::TBB INTERFACE IMPORTED)
   target_link_libraries(Dyninst::TBB INTERFACE TBB::tbb TBB::tbbmalloc)
   target_include_directories(
-    Dyninst::TBB SYSTEM
-    INTERFACE $<TARGET_PROPERTY:TBB::tbb,INTERFACE_INCLUDE_DIRECTORIES>
-              $<TARGET_PROPERTY:TBB::tbbmalloc,INTERFACE_INCLUDE_DIRECTORIES>)
+    Dyninst::TBB
+    SYSTEM
+    INTERFACE
+      $<TARGET_PROPERTY:TBB::tbb,INTERFACE_INCLUDE_DIRECTORIES>
+      $<TARGET_PROPERTY:TBB::tbbmalloc,INTERFACE_INCLUDE_DIRECTORIES>
+  )
 endif()
 
 message(STATUS "Found TBB ${TBB_VERSION}")

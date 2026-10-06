@@ -43,7 +43,8 @@ find_package(capstone REQUIRED ${_find_path_args})
 if(capstone_VERSION VERSION_LESS "${_min_version}")
   message(
     FATAL_ERROR
-      "Capstone: found version ${capstone_VERSION}, but need at least ${_min_version}")
+    "Capstone: found version ${capstone_VERSION}, but need at least ${_min_version}"
+  )
 endif()
 
 # We could use capstone::capstone_static, but there's currently no way to
@@ -59,8 +60,10 @@ if(NOT TARGET Dyninst::Capstone)
   add_library(Dyninst::Capstone INTERFACE IMPORTED)
   target_link_libraries(Dyninst::Capstone INTERFACE ${_cap_target})
   target_include_directories(
-    Dyninst::Capstone SYSTEM
-    INTERFACE $<TARGET_PROPERTY:${_cap_target},INTERFACE_INCLUDE_DIRECTORIES>)
+    Dyninst::Capstone
+    SYSTEM
+    INTERFACE $<TARGET_PROPERTY:${_cap_target},INTERFACE_INCLUDE_DIRECTORIES>
+  )
 endif()
 
 message(STATUS "Found Capstone ${capstone_VERSION}")

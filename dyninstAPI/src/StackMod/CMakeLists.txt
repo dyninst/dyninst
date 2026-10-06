@@ -12,17 +12,26 @@ if(POLICY CMP0076)
   cmake_policy(SET CMP0076 NEW)
 endif()
 
-set(_headers OffsetVector.h StackAccess.h StackLocation.h StackModChecker.h
-             StackModExpr.h TMap.h)
+set(
+  _headers
+  OffsetVector.h
+  StackAccess.h
+  StackLocation.h
+  StackModChecker.h
+  StackModExpr.h
+  TMap.h
+)
 
-set(_sources
-    OffsetVector.C
-    StackAccess.C
-    StackLocation.C
-    StackMod.C
-    StackModExpr.C
-    StackModChecker.C
-    TMap.C)
+set(
+  _sources
+  OffsetVector.C
+  StackAccess.C
+  StackLocation.C
+  StackMod.C
+  StackModExpr.C
+  StackModChecker.C
+  TMap.C
+)
 
 # cmake-format: off
 dyninst_library(
@@ -33,7 +42,8 @@ dyninst_library(
   DYNINST_INTERNAL_DEPS common parseAPI pcontrol patchAPI
 )
 
-set(_inc_dirs
+set(
+  _inc_dirs
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/..
   ${CMAKE_CURRENT_SOURCE_DIR}/../ASTs

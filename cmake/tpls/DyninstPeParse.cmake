@@ -38,8 +38,10 @@ find_package(pe-parse REQUIRED ${_find_path_args})
 if(NOT TARGET Dyninst::PeParse)
   add_library(Dyninst::PeParse INTERFACE IMPORTED)
   target_include_directories(
-    Dyninst::PeParse SYSTEM
-    INTERFACE $<TARGET_PROPERTY:pe-parse::pe-parse,INTERFACE_INCLUDE_DIRECTORIES>)
+    Dyninst::PeParse
+    SYSTEM
+    INTERFACE $<TARGET_PROPERTY:pe-parse::pe-parse,INTERFACE_INCLUDE_DIRECTORIES>
+  )
   target_link_libraries(Dyninst::PeParse INTERFACE pe-parse::pe-parse)
 endif()
 

@@ -3,7 +3,8 @@ option(USE_OpenMP "Use OpenMP for parallel parsing" ON)
 option(
   LIGHTWEIGHT_SYMTAB
   "Use lightweight symtab interface for ParseAPI, ProcControl, and Stackwalker; disables DyninstAPI build"
-  OFF)
+  OFF
+)
 
 option(SW_ANALYSIS_STEPPER "Use ParseAPI-based analysis stepper in Stackwalker" ON)
 
@@ -20,48 +21,60 @@ option(ADD_VALGRIND_ANNOTATIONS "Enable annotations for Valgrind analysis" OFF)
 
 option(ENABLE_STATIC_LIBS "Build static libraries as well?" OFF)
 
-option(DYNINST_BUILD_DOCS
-       "Require pdflatex and build the LaTeX manuals as part of 'all' and 'install'" OFF)
+option(
+  DYNINST_BUILD_DOCS
+  "Require pdflatex and build the LaTeX manuals as part of 'all' and 'install'"
+  OFF
+)
 
-option(DYNINST_DOCS_FORCE_VALIDATE
-       "Require Ghostscript and check that no manual prints past the paper's edge" OFF)
+option(
+  DYNINST_DOCS_FORCE_VALIDATE
+  "Require Ghostscript and check that no manual prints past the paper's edge"
+  OFF
+)
 
 option(
   DYNINST_DOCS_VALIDATE_LISTINGS
   "Compile the example sources the manuals typeset as part of 'all', with the warning flags the library itself uses"
-  ON)
+  ON
+)
 
-option(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS
-       "Disable all warning suppressions and frame size overrides." OFF)
+option(
+  DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS
+  "Disable all warning suppressions and frame size overrides."
+  OFF
+)
 
-set(DYNINST_EXTRA_WARNINGS
-    ""
-    CACHE
-      STRING
-      "Additional warning options to enable if available.  ;-separated without leading '-' (Wopt1[;Wopt2]...)."
-    )
+set(
+  DYNINST_EXTRA_WARNINGS
+  ""
+  CACHE STRING
+  "Additional warning options to enable if available.  ;-separated without leading '-' (Wopt1[;Wopt2]...)."
+)
 
 option(DYNINST_WARNINGS_AS_ERRORS "Treat compilation warnings as errors" OFF)
 
-set(DYNINST_LINKER
-    ""
-    CACHE STRING "The linker to use")
+set(DYNINST_LINKER "" CACHE STRING "The linker to use")
 mark_as_advanced(DYNINST_LINKER)
 
-set(DYNINST_CXXSTDLIB
-    "libstdc++"
-    CACHE STRING "The C++ standard library to use; only affects LLVM-based compilers")
+set(
+  DYNINST_CXXSTDLIB
+  "libstdc++"
+  CACHE STRING
+  "The C++ standard library to use; only affects LLVM-based compilers"
+)
 mark_as_advanced(DYNINST_CXXSTDLIB)
 
-option(DYNINST_FORCE_RUNPATH "Require the use of RUNPATH instead of compiler's default"
-       OFF)
+option(
+  DYNINST_FORCE_RUNPATH
+  "Require the use of RUNPATH instead of compiler's default"
+  OFF
+)
 
 set(_dyninst_test_types "ALL REGESSION INTEGRATION UNIT")
 mark_as_advanced(_dyninst_test_types)
 
-set(DYNINST_ENABLE_TESTS
-    "OFF"
-    CACHE STRING "Build tests (${_dyninst_test_types})")
+set(DYNINST_ENABLE_TESTS "OFF" CACHE STRING "Build tests (${_dyninst_test_types})")
 set_property(CACHE DYNINST_ENABLE_TESTS PROPERTY STRINGS ${_dyninst_test_types})
 
 option(DYNINST_ENABLE_FILEFORMAT_PE "Enable PE (Windows .exe/.dll) parsing" OFF)
@@ -71,11 +84,14 @@ option(DYNINST_ENABLE_CAPSTONE "Enable Capstone" OFF)
 option(
   DYNINST_ENABLE_ZYDIS
   "Use Zydis to recover the length of x86-64 instructions InstructionAPI cannot decode. The option may be removed in the future without further notice."
-  OFF)
+  OFF
+)
 mark_as_advanced(DYNINST_ENABLE_ZYDIS)
 
-set(DYNINST_CODEGEN_ARCH
-    ""
-    CACHE STRING
-          "Override default host architecture detection for cross-architecture support")
+set(
+  DYNINST_CODEGEN_ARCH
+  ""
+  CACHE STRING
+  "Override default host architecture detection for cross-architecture support"
+)
 mark_as_advanced(DYNINST_CODEGEN_ARCH)

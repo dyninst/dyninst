@@ -42,7 +42,6 @@ include_guard(GLOBAL)
 include(DyninstCheckCompilerFlag)
 
 function(dyninst_check_32bit_runtime_supported)
-
   cmake_parse_arguments(_dyn32rt_args "" "" "LANGUAGES" "${ARGN}")
   if(_dyn32rt_args_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR "Unparsed arguments: ${_dyn32rt_args_UNPARSED_ARGUMENTS}")
@@ -76,7 +75,6 @@ function(dyninst_check_32bit_runtime_supported)
 
     set(CMAKE_REQUIRED_LINK_OPTIONS "${_saved_link_opts}")
   endforeach()
-
 endfunction()
 
 function(_dyn32bitrt_int _lang _32bit_flag _static_flag)
@@ -96,12 +94,13 @@ function(_dyn32bitrt_int _lang _32bit_flag _static_flag)
 
   dyninst_check_compiler_flag(${_lang} "${_32bit_flag} ${_static_flag}" ${_32rs})
 
-  set(${_32rs}
-      ${${_32rs}}
-      CACHE BOOL "${_lang} ${_smsg} 32-bit runtime supported" FORCE)
+  set(${_32rs} ${${_32rs}} CACHE BOOL "${_lang} ${_smsg} 32-bit runtime supported" FORCE)
 
-  set(${_32rf}
-      "${_32bit_flag}"
-      CACHE STRING "${_lang} ${_smsg} 32-bit runtime flag" FORCE)
-
+  set(
+    ${_32rf}
+    "${_32bit_flag}"
+    CACHE STRING
+    "${_lang} ${_smsg} 32-bit runtime flag"
+    FORCE
+  )
 endfunction()

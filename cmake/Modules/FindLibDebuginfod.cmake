@@ -61,29 +61,29 @@ if(PC_LIBDEBUGINFOD_FOUND)
     pkg_get_variable(PC_LIBDEBUGINFOD_INCLUDE_DIRS libdebuginfod includedir)
   endif()
 
-  set(LibDebuginfod_INCLUDE_DIRS
-      ${PC_LIBDEBUGINFOD_INCLUDE_DIRS}
-      CACHE PATH "")
-  set(LibDebuginfod_LIBRARIES
-      ${PC_LIBDEBUGINFOD_LINK_LIBRARIES}
-      CACHE PATH "")
-  set(LibDebuginfod_VERSION
-      ${PC_LIBDEBUGINFOD_VERSION}
-      CACHE STRING "")
+  set(LibDebuginfod_INCLUDE_DIRS ${PC_LIBDEBUGINFOD_INCLUDE_DIRS} CACHE PATH "")
+  set(LibDebuginfod_LIBRARIES ${PC_LIBDEBUGINFOD_LINK_LIBRARIES} CACHE PATH "")
+  set(LibDebuginfod_VERSION ${PC_LIBDEBUGINFOD_VERSION} CACHE STRING "")
 else()
   find_path(
     LibDebuginfod_INCLUDE_DIRS
     NAMES debuginfod.h
-    PATH_SUFFIXES elfutils ${_find_path_args})
+    PATH_SUFFIXES elfutils ${_find_path_args}
+  )
 
   find_library(
     LibDebuginfod_LIBRARIES
     NAMES libdebuginfod debuginfod
-    PATH_SUFFIXES elfutils ${_find_path_args})
+    PATH_SUFFIXES elfutils ${_find_path_args}
+  )
 
   if(EXISTS "${LibDebuginfod_INCLUDE_DIRS}/version.h")
-    file(STRINGS "${LibDebuginfod_INCLUDE_DIRS}/version.h" _version_line
-         REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
+    file(
+      STRINGS
+      "${LibDebuginfod_INCLUDE_DIRS}/version.h"
+      _version_line
+      REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+"
+    )
     string(REGEX MATCH "[0-9]+" _version "${_version_line}")
     if(NOT "x${_version}" STREQUAL "x")
       set(LibDebuginfod_VERSION "0.${_version}")
@@ -98,7 +98,8 @@ find_package_handle_standard_args(
   LibDebuginfod
   FOUND_VAR LibDebuginfod_FOUND
   REQUIRED_VARS LibDebuginfod_LIBRARIES LibDebuginfod_INCLUDE_DIRS
-  VERSION_VAR LibDebuginfod_VERSION)
+  VERSION_VAR LibDebuginfod_VERSION
+)
 
 if(LibDebuginfod_FOUND)
   mark_as_advanced(LibDebuginfod_INCLUDE_DIR)
@@ -109,9 +110,11 @@ if(LibDebuginfod_FOUND)
     add_library(LibDebuginfod::LibDebuginfod UNKNOWN IMPORTED)
     set_target_properties(
       LibDebuginfod::LibDebuginfod
-      PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${LibDebuginfod_INCLUDE_DIRS}"
-                 IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-                 IMPORTED_LOCATION "${LibDebuginfod_LIBRARIES}")
+      PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${LibDebuginfod_INCLUDE_DIRS}"
+        IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+        IMPORTED_LOCATION "${LibDebuginfod_LIBRARIES}"
+    )
   endif()
 endif()
 

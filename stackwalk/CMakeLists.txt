@@ -2,43 +2,49 @@ include_guard(GLOBAL)
 
 include(DyninstLibrary)
 
-set(_public_headers
-    h/basetypes.h
-    h/frame.h
-    h/framestepper.h
-    h/local_var.h
-    h/procstate.h
-    h/steppergroup.h
-    h/swk_errors.h
-    h/symlookup.h
-    h/walker.h)
+set(
+  _public_headers
+  h/basetypes.h
+  h/frame.h
+  h/framestepper.h
+  h/local_var.h
+  h/procstate.h
+  h/steppergroup.h
+  h/swk_errors.h
+  h/symlookup.h
+  h/walker.h
+)
 
-set(_private_headers
-    src/addrRange.h
-    src/aarch64-swk.h
-    src/analysis_stepper.h
-    src/dbgstepper-impl.h
-    src/framestepper_pimple.h
-    src/freebsd-swk.h
-    src/get_trap_instruction.h
-    src/libstate.h
-    src/linuxbsd-swk.h
-    src/linux-swk.h
-    src/sw.h
-    src/symtab-swk.h
-    src/x86-swk.h)
+set(
+  _private_headers
+  src/addrRange.h
+  src/aarch64-swk.h
+  src/analysis_stepper.h
+  src/dbgstepper-impl.h
+  src/framestepper_pimple.h
+  src/freebsd-swk.h
+  src/get_trap_instruction.h
+  src/libstate.h
+  src/linuxbsd-swk.h
+  src/linux-swk.h
+  src/sw.h
+  src/symtab-swk.h
+  src/x86-swk.h
+)
 
-set(_sources
-    src/frame.C
-    src/framestepper.C
-    src/swk_errors.C
-    src/symlookup.C
-    src/walker.C
-    src/procstate.C
-    src/steppergroup.C
-    src/libstate.C
-    src/sw_pcontrol.C
-    src/symtab-swk.C)
+set(
+  _sources
+  src/frame.C
+  src/framestepper.C
+  src/swk_errors.C
+  src/symlookup.C
+  src/walker.C
+  src/procstate.C
+  src/steppergroup.C
+  src/libstate.C
+  src/sw_pcontrol.C
+  src/symtab-swk.C
+)
 
 if(DYNINST_HOST_ARCH_I386 OR DYNINST_HOST_ARCH_X86_64)
   list(APPEND _sources src/x86-swk.C src/x86-wanderer.C)

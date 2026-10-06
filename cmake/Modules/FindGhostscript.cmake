@@ -39,7 +39,8 @@ if(Ghostscript_EXECUTABLE)
     OUTPUT_VARIABLE _gs_version
     ERROR_QUIET
     RESULT_VARIABLE _gs_rc
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
   if(_gs_rc EQUAL 0 AND _gs_version MATCHES "^[0-9]+\\.[0-9]+")
     set(Ghostscript_VERSION "${_gs_version}")
   endif()
@@ -52,6 +53,7 @@ find_package_handle_standard_args(
   Ghostscript
   FOUND_VAR Ghostscript_FOUND
   REQUIRED_VARS Ghostscript_EXECUTABLE
-  VERSION_VAR Ghostscript_VERSION)
+  VERSION_VAR Ghostscript_VERSION
+)
 
 mark_as_advanced(Ghostscript_EXECUTABLE)

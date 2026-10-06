@@ -18,7 +18,8 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
     emitters/x86/generators.h
     emitters/x86/IA32/EmitterIA32Dyn.h
     emitters/x86/IA32/EmitterIA32.h
-    emitters/x86/IA32/EmitterIA32Stat.h)
+    emitters/x86/IA32/EmitterIA32Stat.h
+  )
 
   list(
     APPEND
@@ -28,8 +29,8 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
     emitters/x86/generators.C
     emitters/x86/IA32/EmitterIA32.C
     emitters/x86/IA32/EmitterIA32Dyn.C
-    emitters/x86/IA32/EmitterIA32Stat.C)
-
+    emitters/x86/IA32/EmitterIA32Stat.C
+  )
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(
     APPEND
@@ -40,7 +41,8 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     emitters/aarch64/EmitterAarch64Stat.h
     emitters/aarch64/EmitterAarch64RestoreRegs.h
     emitters/aarch64/EmitterAarch64SaveRegs.h
-    emitters/aarch64/generators.h)
+    emitters/aarch64/generators.h
+  )
 
   list(
     APPEND
@@ -50,8 +52,8 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
     emitters/aarch64/EmitterAarch64Stat.C
     emitters/aarch64/EmitterAarch64RestoreRegs.C
     emitters/aarch64/EmitterAarch64SaveRegs.C
-    emitters/aarch64/generators.C)
-
+    emitters/aarch64/generators.C
+  )
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(
     APPEND
@@ -62,7 +64,8 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
     emitters/PowerPC/ppc32/EmitterPowerPC32Dyn.h
     emitters/PowerPC/ppc32/EmitterPowerPC32Stat.h
     emitters/PowerPC/ppc64/EmitterPowerPC64Dyn.h
-    emitters/PowerPC/ppc64/EmitterPowerPC64Stat.h)
+    emitters/PowerPC/ppc64/EmitterPowerPC64Stat.h
+  )
 
   list(
     APPEND
@@ -72,14 +75,12 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
     emitters/PowerPC/generators.C
     emitters/PowerPC/ppc32/EmitterPowerPC32Stat.C
     emitters/PowerPC/ppc64/EmitterPowerPC64Dyn.C
-    emitters/PowerPC/ppc64/EmitterPowerPC64Stat.C)
-
+    emitters/PowerPC/ppc64/EmitterPowerPC64Stat.C
+  )
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-
   list(APPEND _headers codegen-amdgpu.h)
 
   list(APPEND _sources codegen-amdgpu.C)
-
 endif()
 
 # cmake-format: off
@@ -91,7 +92,8 @@ dyninst_library(
   DYNINST_INTERNAL_DEPS common patchAPI pcontrol
 )
 
-set(_inc_dirs
+set(
+  _inc_dirs
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/..
   ${CMAKE_CURRENT_SOURCE_DIR}/../ASTs
