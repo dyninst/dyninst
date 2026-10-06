@@ -172,16 +172,9 @@ endif()
 if(MODE STREQUAL "check" OR MODE STREQUAL "check-raw")
   set(_flags --check)
 elseif(MODE STREQUAL "diff")
-  # --color colours the diff through colorama, which strips its own output
-  # when stdout is not a terminal -- and execute_process always hands the
-  # child a pipe, so today this changes nothing either way.  It costs
-  # nothing, and it is what makes the diff colour the day that stops being
-  # true.
-  #
   # Unknown-command warnings belong to cmake-check, which has a section for
-  # them.  Here they are someone else's subject interleaved with the diff
-  # that was asked for, and leaving them out does not change a byte of it.
-  set(_flags --diff --color --no-warn-about-unknown-commands)
+  # them; interleaved with the diff they are noise that changes none of it.
+  set(_flags --diff --no-warn-about-unknown-commands)
 elseif(MODE STREQUAL "in-place")
   set(_flags --in-place)
 else()
