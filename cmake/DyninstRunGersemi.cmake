@@ -49,6 +49,27 @@ macro(dyninst_gersemi_section _title)
   set(_section_printed TRUE)
 endmacro()
 
+# One copy of the version: docker/dependencies.versions, beside the other
+# pinned dependencies.  The CI job installs what that file says, every
+# install line below names the same version, and the check further down
+# holds the gersemi on PATH to it -- releases format differently, so running
+# cmake-reformat with another one rewrites files this tree is already correct
+# for, and the job then rejects them.
+set(_versions_file "${SOURCE_DIR}/docker/dependencies.versions")
+set(_want "")
+if(EXISTS "${_versions_file}")
+  file(STRINGS "${_versions_file}" _want REGEX "^gersemi:")
+  string(REGEX REPLACE "^gersemi:" "" _want "${_want}")
+endif()
+
+# Unversioned only when that file could not be read, where naming no version
+# beats naming a wrong one.
+if(_want)
+  set(_install_spec "gersemi==${_want}")
+else()
+  set(_install_spec "gersemi")
+endif()
+
 if(NOT GERSEMI OR GERSEMI MATCHES "NOTFOUND$")
   dyninst_gersemi_section("installing gersemi")
   message(
@@ -56,13 +77,42 @@ if(NOT GERSEMI OR GERSEMI MATCHES "NOTFOUND$")
     "cmake-reformat-diff targets format this project's CMake code with\n"
     "gersemi.  Install it with\n"
     "\n"
-    "    python3 -m pip install gersemi\n"
+    "    python3 -m pip install ${_install_spec}\n"
     "\n"
     "and re-run cmake, or name it directly with\n"
     "\n"
     "    cmake -DDYNINST_GERSEMI_EXECUTABLE=<path> <build-dir>\n"
   )
   message(FATAL_ERROR "gersemi was not found")
+endif()
+
+set(_have "")
+execute_process(
+  COMMAND "${GERSEMI}" --version
+  OUTPUT_VARIABLE _version_text
+  ERROR_QUIET
+  RESULT_VARIABLE _version_rc
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+if(_version_rc EQUAL 0 AND _version_text MATCHES "gersemi ([0-9][0-9a-zA-Z.]*)")
+  set(_have "${CMAKE_MATCH_1}")
+endif()
+
+# Enforced only when both versions are known, so a future --version format
+# this cannot parse degrades to no check rather than a false failure.
+if(_want AND _have AND NOT _have STREQUAL _want)
+  dyninst_gersemi_section("wrong gersemi version")
+  message(
+    "gersemi ${_have} is installed, but this project is formatted with "
+    "${_want}.\n"
+    "Different releases format differently, so ${_have} would rewrite files\n"
+    "that are already correct.  Install the pinned version with\n"
+    "\n"
+    "    python3 -m pip install ${_install_spec}\n"
+    "\n"
+    "The version is recorded in docker/dependencies.versions.\n"
+  )
+  message(FATAL_ERROR "gersemi ${_have} installed, ${_want} required")
 endif()
 
 find_package(Git QUIET)

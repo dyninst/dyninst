@@ -36,11 +36,16 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y python3-pip
-        # Pinned: gersemi's output changes between releases, so an unpinned
-        # install reformats files this tree is already correct for.  The same
-        # version is recorded in docker/dependencies.versions, and
-        # dependency-version.yaml checks the two agree.
-        python3 -m pip install gersemi==0.29.2
+        # The version lives in docker/dependencies.versions, beside the other
+        # pinned dependencies, and cmake/DyninstRunGersemi.cmake reads the same
+        # line -- one copy, nothing to keep in step.  Unpinned, pip installs
+        # whatever is newest and reformats files this tree is correct for.
+        version=$(awk -F: '/^gersemi:/{print $2}' docker/dependencies.versions)
+        test -n "$version" || {
+          echo "::error::no gersemi version in docker/dependencies.versions"
+          exit 1
+        }
+        python3 -m pip install "gersemi==$version"
 
     - name: gersemi
       shell: bash

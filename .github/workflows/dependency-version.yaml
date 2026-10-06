@@ -8,7 +8,6 @@ on:
        - '**.cmake'
        - '**CMakeLists.txt'
        - 'docker/dependencies.versions'
-       - '.github/workflows/cmake-formatting.yaml'
   workflow_dispatch:
 
 concurrency:
@@ -63,13 +62,6 @@ jobs:
           expected=$(awk 'match($0,/capstone:(.+)/,a){print a[1]}' docker/dependencies.versions)
           if test "$current" != "$expected"; then
             echo "Capstone mismatch: Found $current, expected $expected" >/dev/stderr
-            res=1
-          fi
-
-          current=$(awk 'match($0,/pip install gersemi==(.+)/,a){print a[1]}' .github/workflows/cmake-formatting.yaml)
-          expected=$(awk 'match($0,/gersemi:(.+)/,a){print a[1]}' docker/dependencies.versions)
-          if test "$current" != "$expected"; then
-            echo "gersemi mismatch: Found $current, expected $expected" >/dev/stderr
             res=1
           fi
 
