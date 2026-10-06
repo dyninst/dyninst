@@ -133,9 +133,9 @@ Ensures that Dyninst builds on all supported platforms and compilers in non-stan
 
 ### CMake formatting ([workflows/cmake-formatting.yaml](workflows/cmake-formatting.yaml))
 
-*Runs `cmake-format` on updated files*
+*Runs `gersemi` over the project's CMake files*
 
-Ensures modified CMake files are correctly formatted using `cmake-format` and the rules in `.cmake-format.yaml` in the root of the project.
+Ensures the CMake files are correctly formatted.  Runs the equivalent of `make cmake-check`, which uses `gersemi` and the rules in `.gersemirc` in the root of the project.  Every tracked CMake file is checked, not only the ones a pull request changed.
 
 **when**: on pull requests to the master branch when a CMake file is changed, or manually
 
