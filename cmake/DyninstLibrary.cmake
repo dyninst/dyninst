@@ -212,7 +212,12 @@ function(dyninst_library _target)
   foreach(h ${_target_PUBLIC_HEADER_FILES})
     string(REGEX MATCH "^h/(.*)" _file ${h})
     if(NOT CMAKE_MATCH_1)
-      string(REGEX MATCH "/h/(.*)" _file ${h})
+      # An absolute path, which a generated header is.  The leading .* is
+      # greedy on purpose: it makes the LAST "/h/" the one that splits the
+      # path, so that an "h" directory above it in the build or home
+      # directory -- /home/h/proj/build/common/h/foo.h -- does not carry the
+      # header with it into include/proj/build/common/h.
+      string(REGEX MATCH ".*/h/(.*)" _file ${h})
     endif()
     if(NOT CMAKE_MATCH_1)
       message(FATAL_ERROR "Unable to process file '${h}'")
