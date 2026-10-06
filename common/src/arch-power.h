@@ -829,7 +829,7 @@ class DYNINST_EXPORT instruction {
     unsigned type() const;
     
     // return a pointer to the instruction
-    const unsigned char *ptr() const { return (const unsigned char *)&insn_; }
+    const unsigned char *ptr() const { return reinterpret_cast<const unsigned char *>(&insn_); }
 
     // For external modification
     // Don't allow external modification anymore.  Host byte order may differ

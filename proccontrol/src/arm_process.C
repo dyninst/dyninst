@@ -245,7 +245,7 @@ async_ret_t arm_process::readInsnForSS(Address pc, int_thread *, unsigned int &r
    if (!plat_needsAsyncIO())
    {
       //Fast-track for linux/arm
-      mem_response::ptr new_resp = mem_response::createMemResponse((char *) &rawInsn, sizeof(unsigned int));
+      mem_response::ptr new_resp = mem_response::createMemResponse(reinterpret_cast<char *>(&rawInsn), sizeof(unsigned int));
       bool result = readMem(pc, new_resp);
       if (!result || new_resp->hasError()) {
          pthrd_printf("Error during memory read for pc\n");

@@ -1237,7 +1237,7 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                             (sec_data + (stub_addr - glink->getMemOffset()));
 
                     // Keep moving pointer back if more -fPIC stubs are found.
-                    while (sec_data < (unsigned char *) insn) {
+                    while (sec_data < reinterpret_cast<decltype(sec_data)>(insn)) {
                         unsigned int *back = insn - 4;
 
                         if (((back[0] & 0xffff0000) == LWZ_11_30
