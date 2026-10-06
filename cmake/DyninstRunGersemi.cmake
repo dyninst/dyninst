@@ -19,21 +19,11 @@
 # hard to read.  Plain message() writes to stderr with the text untouched on
 # every CMake this project supports; NOTICE would need 3.15.
 
-# A section is headed by its title between two rules, and separated from the
-# one before it by two blank lines, so that a file list of any length does not
-# run into whatever follows it:
-#
-#     --------------------------------------------------
-#     -- gersemi --check on 95 files: reformatting required
-#     --------------------------------------------------
-#
-# These are plain message(), not message(STATUS), for the stream as much as
-# for the '-- ' that STATUS would prefix: STATUS writes to stdout, and
-# everything else here -- the file list, the warnings, gersemi's own report --
-# is on stderr.  Mixing the two splits a section from its heading the moment
-# either stream is redirected.  Keeping the headings on stderr also leaves
-# stdout carrying nothing this script wrote, so in diff mode it is gersemi's
-# diff and nothing else.
+# A section is its title between two rules, two blank lines after the previous
+# one, so a file list of any length does not run into what follows.  Headings
+# are plain message(), not STATUS: STATUS writes to stdout while everything
+# else here is on stderr, and splitting the streams separates a section from
+# its heading as soon as either is redirected.
 set(_section_printed FALSE)
 
 # Spelled out rather than built with string(REPEAT), which needs CMake 3.15;
