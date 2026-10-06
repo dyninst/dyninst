@@ -1930,7 +1930,7 @@ bool Elf_X_Nhdr::isValid() const
 
 const char* Elf_X_Nhdr::get_name() const
 {
-    return isValid() ? (char *)nhdr + sizeof(*nhdr) : NULL;
+    return isValid() ? reinterpret_cast<char *>(nhdr) + sizeof(*nhdr) : NULL;
 }
 
 const void* Elf_X_Nhdr::get_desc() const

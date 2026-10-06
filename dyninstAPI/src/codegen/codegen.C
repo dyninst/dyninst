@@ -207,7 +207,11 @@ void *codeGen::get_ptr(unsigned offset) const {
 void codeGen::update(codeBuf_t *ptr) {
     assert(buffer_);
     assert(sizeof(unsigned char) == 1);
-    unsigned diff = ((unsigned char *)ptr) - ((unsigned char *)buffer_);
+    unsigned diff = [ptr,this]() {
+    	auto *p = reinterpret_cast<unsigned char *>(ptr);
+    	auto *b = reinterpret_cast<unsigned char *>(buffer_);
+    	return p - b;
+    }();
     
     // Align...
     if (diff % CODE_GEN_OFFSET_SIZE) {
