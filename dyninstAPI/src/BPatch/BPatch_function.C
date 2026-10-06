@@ -846,7 +846,8 @@ bool BPatch_function::findVariable(const char *name,
 
       BPatch_Vector<BPatch_point*> *points = findPoint(BPatch_entry);
       assert(points->size() == 1);
-      BPatch_image *imgPtr = (BPatch_image *) mod->getObjParent();
+      BPatch_image *imgPtr = dynamic_cast<BPatch_image *>(mod->getObjParent());
+      assert(imgPtr);
 
       BPatch_variableExpr *nv = new BPatch_variableExpr(imgPtr->getAddressSpace(),
                                                         func->proc(),
@@ -856,7 +857,8 @@ bool BPatch_function::findVariable(const char *name,
    }
 
    // finally check the global scope.
-   BPatch_image *imgPtr = (BPatch_image *) mod->getObjParent();
+   BPatch_image *imgPtr = dynamic_cast<BPatch_image *>(mod->getObjParent());
+   assert(imgPtr);
    
    if (!imgPtr) return false;
    

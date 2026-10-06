@@ -465,7 +465,9 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
              std::vector<ParseAPI::Function *> funcs;
              curPoint->llpoint()->block()->llb()->getFuncs(funcs);
              for (unsigned f_iter = 0; f_iter < funcs.size(); ++f_iter) {
-                 if (((parse_func *)funcs[f_iter])->init_retstatus() != ParseAPI::RETURN ||
+            	 auto *f = dynamic_cast<parse_func *>(funcs[f_iter]);
+            	 assert(f);
+                 if (f->init_retstatus() != ParseAPI::RETURN ||
                      funcs[f_iter]->tampersStack() == ParseAPI::TAMPER_NONZERO) 
                  {
                      instrument = true;
@@ -824,8 +826,10 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         callPoint->llpoint()->block()->llb()->getFuncs(imgFuncs);
         for (unsigned fidx=0; fidx < imgFuncs.size(); fidx++) 
         {
+        	auto *f = dynamic_cast<parse_func*>(imgFuncs[fidx]);
+        	assert(f);
             BPatch_function *func = proc()->findOrCreateBPFunc(
-                proc()->lowlevel_process()->findFunction((parse_func*)imgFuncs[fidx]),
+                proc()->lowlevel_process()->findFunction(f),
                 NULL);
             removeInstrumentation(func, false, false);
             func->getCFG()->invalidate();
