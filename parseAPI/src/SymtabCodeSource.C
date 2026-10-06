@@ -964,7 +964,8 @@ SymtabCodeSource::resizeRegion(SymtabAPI::Region *sr, Address newDiskSize)
     bool found_it = false;
     set<CodeRegion*>::iterator rit = regions.begin();
     for (; rit != regions.end(); rit++) {
-        if (sr == ((SymtabCodeRegion*)(*rit))->symRegion()) {
+    	auto *reg = dynamic_cast<SymtabCodeRegion*>(*rit);
+        if (reg && sr == reg->symRegion()) {
             found_it = true;
             break;
         }
