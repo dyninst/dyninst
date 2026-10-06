@@ -9,6 +9,12 @@
 # a developer tool rather than a build dependency, so a missing one is not a
 # configure error -- it is an error only for whoever asks for one of these
 # targets, which is where DyninstRunGersemi.cmake reports it.
+#
+# For the same reason the find_program below is a default and an override
+# point, not the last word: the path it caches is baked into the targets at
+# generate time, so DyninstRunGersemi.cmake searches PATH again when it was
+# not found here.  Installing gersemi into an already-configured build tree
+# is the common case, and it should not need a re-configure to take.
 
 find_program(
   DYNINST_GERSEMI_EXECUTABLE
