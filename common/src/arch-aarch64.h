@@ -115,12 +115,26 @@ namespace NS_aarch64 {
     (((insn_.raw&thisInst##_OFFSET_MASK)>>thisInst##_OFFSHIFT)<<2)
 
 typedef const unsigned int insn_mask;
+/*
+ * Load/store exclusive, the LL/SC instructions that single-stepping has to emulate:
+ *
+ *   register:  size  001000  o2=0  L  o1=0  Rs  o0  Rt2  Rn  Rt     LDXR/LDAXR, STXR/STLXR (any size)
+ *   pair:      1 sz  001000  o2=0  L  o1=1  Rs  o0  Rt2  Rn  Rt     LDXP/LDAXP, STXP/STLXP (bit 31 set)
+ *
+ * The same bits [29:24] = 001000 also encode instructions that take no exclusive monitor
+ * and must NOT be treated as a sequence: load/store ordered (LDAR/STLR, o2=1 o1=0),
+ * compare-and-swap (CAS*, o2=1 o1=1) and compare-and-swap pair (CASP, bit 31 clear, o2=0
+ * o1=1).  An earlier mask tested only bits [29:24] and L, so every ldar started a fake
+ * sequence and, on LSE hardware, so did casa.
+ */
 class ATOMIC_t {
 public:
-    static insn_mask LD_MASK =  (0x3f400000);
-    static insn_mask ST_MASK =  (0x3f400000);
-    static insn_mask LD =    (0x08400000);
-    static insn_mask ST =    (0x08000000);
+    static insn_mask REG_MASK  = (0x3fe00000);   // bits [29:21]: 001000 o2 L o1
+    static insn_mask LD_REG    = (0x08400000);   // 001000 0 1 0
+    static insn_mask ST_REG    = (0x08000000);   // 001000 0 0 0
+    static insn_mask PAIR_MASK = (0xbfe00000);   // bit 31 and bits [29:21]
+    static insn_mask LD_PAIR   = (0x88600000);   // 1 . 001000 0 1 1
+    static insn_mask ST_PAIR   = (0x88200000);   // 1 . 001000 0 0 1
 };
 
 class UNCOND_BR_t {
@@ -129,9 +143,12 @@ public:
     static insn_mask IMM       =(0x14000000);
     static insn_mask IMM_OFFSET_MASK   =(0x03ffffff);
     static insn_mask IMM_OFFSHIFT   = 0;
-    static insn_mask REG_MASK  =(0xfe000000);
-    static insn_mask REG       =(0xd6000000);
-    static insn_mask REG_OFFSET_MASK   =(0x000001e0);
+    // BR, BLR, RET: 1101011 0 0 op(2) 11111 000000 Rn 00000 with op = 00/01/10 in bits [22:21].
+    // The mask keeps bit 23 and bits [20:10] and [4:0], so ERET (bit 23 set, Rn field 11111) and
+    // DRPS do not match: they are not register branches, and their Rn field would read as 31.
+    static insn_mask REG_MASK  =(0xff9ffc1f);
+    static insn_mask REG       =(0xd61f0000);
+    static insn_mask REG_OFFSET_MASK   =(0x000003e0);   // Rn, bits [9:5]: five bits, so x16..x30 decode
     static insn_mask REG_OFFSHIFT   =5;
 };
 
