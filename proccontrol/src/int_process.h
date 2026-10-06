@@ -1016,6 +1016,11 @@ public:
    // Abandon a displaced step.  If the PC is inside the copy it is translated
    // back to the corresponding original address.
    void cancelDisplacedSingleStep();
+   // Abandon whatever emulated single step is in flight, displaced or in place:
+   // breakpoints out of the text (or the copy), other threads released, PC back
+   // in the original text, single-step mode as the user last set it.  For a
+   // user request that makes the step moot: turning stepping off, moving the PC.
+   void cancelEmulatedSingleStep();
    // Map a PC inside a displaced copy back to the original text; identity otherwise.
    Dyninst::Address translateDisplacedPC(Dyninst::Address pc);
 
@@ -1567,6 +1572,14 @@ class emulated_singlestep {
    async_ret_t add(Address addr);
    async_ret_t clear();
    void restoreSSMode();
+   // The single-step mode the user wants the thread to have once this emulated
+   // step is over.  The constructor takes it from the thread (and turns the
+   // thread's own flags off for the duration); a Thread::setSingleStepMode()
+   // made while the step is in flight updates it here, so that the user's
+   // latest word, not the one from before the step, is what restoreSSMode()
+   // puts back.
+   void setSavedUserMode(bool s);
+   bool savedUserMode() const;
 
    void setHoldsProcess(bool b);
    bool holdsProcess() const;
