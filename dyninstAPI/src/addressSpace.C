@@ -2114,7 +2114,8 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
 
             // find all stub blocks for this edge
             for (list<ParseAPI::Edge*>::iterator eit = srcList.begin(); eit != srcList.end(); eit++) {
-                parse_block *isrc = (parse_block*)((*eit)->src());
+                parse_block *isrc = dynamic_cast<parse_block*>((*eit)->src());
+                assert(isrc);
                 block_instance *src = (*fit)->obj()->findBlockByEntry(base + isrc->start());
                 assert(src);
 
