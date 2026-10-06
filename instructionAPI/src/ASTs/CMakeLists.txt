@@ -15,7 +15,6 @@ set(
   Ternary.C
 )
 
-# cmake-format: off
 dyninst_library(
   instructionAPI_ASTs
   INTERNAL_LIBRARY
@@ -30,7 +29,6 @@ set(
   ${CMAKE_CURRENT_SOURCE_DIR}/..
   ${PROJECT_SOURCE_DIR}/instructionAPI/h
 )
-# cmake-format: on
 
 target_include_directories(instructionAPI_ASTs PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
 

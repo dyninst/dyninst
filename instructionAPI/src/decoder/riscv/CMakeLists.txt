@@ -22,7 +22,6 @@ set(
 
 set(_sources decoder.C mem_xlat.C opcode_xlat.C register_xlat.C)
 
-# cmake-format: off
 dyninst_library(
   instructionAPI_riscv
   INTERNAL_LIBRARY
@@ -38,7 +37,6 @@ set(
   ${CMAKE_CURRENT_SOURCE_DIR}/../..
   ${PROJECT_SOURCE_DIR}/instructionAPI/h
 )
-# cmake-format: on
 
 target_include_directories(instructionAPI_riscv PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
 

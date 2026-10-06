@@ -90,7 +90,6 @@ else()
   list(APPEND _parseapi_sources src/SymtabCodeSource.C)
 endif()
 
-# cmake-format: off
 dyninst_library(
   parseAPI
   PRIVATE_HEADER_FILES ${_parseapi_private_headers} ${_dataflow_private_headers}
@@ -100,7 +99,6 @@ dyninst_library(
   PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS OpenMP::OpenMP_CXX
 )
-# cmake-format: on
 
 foreach(t ${parseAPI_TARGETS})
   # There is both a common/h/util.h and a parseAPI/h/util.h, so put

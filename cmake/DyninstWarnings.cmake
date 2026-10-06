@@ -62,7 +62,6 @@ list(
   Wwrite-strings
 )
 
-# cmake-format: off
 #list(APPEND REQUESTED_WARNING_FLAGS Werror)
 #list(APPEND REQUESTED_WARNING_FLAGS Wredundant-tags)
 #list(APPEND REQUESTED_WARNING_FLAGS Wnull-dereference)
@@ -75,7 +74,6 @@ list(
 #list(APPEND REQUESTED_WARNING_FLAGS Wsign-promo)
 #list(APPEND REQUESTED_WARNING_FLAGS Wold-style-cast)
 #list(APPEND REQUESTED_WARNING_FLAGS Walloc-zero)
-# cmake-format: on
 
 if(DYNINST_EXTRA_WARNINGS)
   list(APPEND REQUESTED_WARNING_FLAGS ${DYNINST_EXTRA_WARNINGS})
@@ -139,14 +137,12 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
   endforeach()
 endif()
 
-# cmake-format: off
 # If -Wframe-larger-than is available adjust the value to allow for larger frames based on
 # compiler version and build type for the following 3 files:
 #
 # instructionAPI/src/InstructionDecoder-power.C (includes instructionAPI/src/power-opcode-table.C)
 # instructionAPI/src/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.C (includes instructionAPI/src/AMDGPU/gfx90a/finalizeOperands.C)
 # common/src/MachSyscall.C (includes common/src/SyscallInformation.C)
-# cmake-format: on
 #
 if(HAS_CPP_FLAG_Wframe_larger_than AND NOT DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
   # Override the default frame size maximum for DEBUG (-O0) build types as there stack

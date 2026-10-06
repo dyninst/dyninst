@@ -39,7 +39,6 @@ set(
   src/registers/riscv64.h
 )
 
-# cmake-format: off
 dyninst_library(
   dynDwarf
   PRIVATE_HEADER_FILES ${_private_headers}
@@ -50,4 +49,3 @@ dyninst_library(
   PRIVATE_DEPS Dyninst::Boost_headers Dyninst::ElfUtils
   INTERNAL_LIBRARY
 )
-# cmake-format: on

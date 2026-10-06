@@ -9,7 +9,6 @@ set(_headers InstructionDecoder-x86.h)
 
 set(_sources InstructionDecoder-x86.C)
 
-# cmake-format: off
 dyninst_library(
   instructionAPI_x86
   INTERNAL_LIBRARY
@@ -24,7 +23,6 @@ set(
   ${CMAKE_CURRENT_SOURCE_DIR}/../..
   ${PROJECT_SOURCE_DIR}/instructionAPI/h
 )
-# cmake-format: on
 
 target_include_directories(instructionAPI_x86 PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
 

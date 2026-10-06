@@ -16,7 +16,6 @@ if(DYNINST_ENABLE_ZYDIS)
   set(_unknown_insn_defines DYNINST_ENABLE_ZYDIS)
 endif()
 
-# cmake-format: off
 dyninst_library(
   instructionAPI_decoder
   INTERNAL_LIBRARY
@@ -39,7 +38,6 @@ set(
   ${CMAKE_CURRENT_SOURCE_DIR}/..
   ${PROJECT_SOURCE_DIR}/instructionAPI/h
 )
-# cmake-format: on
 
 target_include_directories(instructionAPI_decoder PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
 

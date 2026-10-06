@@ -138,7 +138,6 @@ elseif(DYNINST_OS_Windows)
   )
 endif()
 
-# cmake-format: off
 dyninst_library(
   dyninstAPI
   PUBLIC_HEADER_FILES ${_public_headers}
@@ -149,7 +148,6 @@ dyninst_library(
   PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS Threads::Threads Dyninst::PeParse
 )
-# cmake-format: on
 
 # gcc/clang search directories
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

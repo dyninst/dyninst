@@ -45,7 +45,6 @@ elseif(DYNINST_HOST_ARCH_AARCH64)
   list(APPEND _sources dynProcess-aarch64.C stackwalk-aarch64.C)
 endif()
 
-# cmake-format: off
 dyninst_library(
   dyninstAPI_dynproc
   INTERNAL_LIBRARY
@@ -60,7 +59,6 @@ set(
   ${CMAKE_CURRENT_SOURCE_DIR}/..
   ${CMAKE_CURRENT_SOURCE_DIR}/../../h
 )
-# cmake-format: on
 
 target_include_directories(dyninstAPI_dynproc PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
 

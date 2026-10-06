@@ -193,7 +193,6 @@ if(nonDebugMaxFrameSizeOverrideSyscallInformation)
   )
 endif()
 
-# cmake-format: off
 dyninst_library(
   common
   PUBLIC_HEADER_FILES ${_public_headers}
@@ -203,7 +202,6 @@ dyninst_library(
   PUBLIC_DEPS Dyninst::TBB Dyninst::Boost
   PRIVATE_DEPS Dyninst::LibIberty OpenMP::OpenMP_CXX Dyninst::Valgrind Threads::Threads
 )
-# cmake-format: on
 
 if(DYNINST_OS_Windows)
   foreach(t ${common_TARGETS})

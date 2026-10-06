@@ -102,7 +102,6 @@ elseif(DYNINST_OS_Windows)
   list(APPEND _sources src/Object-nt.C src/emitWin.C src/relocationEntry-stub.C)
 endif()
 
-# cmake-format: off
 dyninst_library(
   symtabAPI
   PUBLIC_HEADER_FILES ${_public_headers}
@@ -113,7 +112,6 @@ dyninst_library(
   DYNINST_INTERNAL_DEPS dynDwarf dynElf
   PRIVATE_DEPS OpenMP::OpenMP_CXX Dyninst::Boost Dyninst::ElfUtils Dyninst::PeParse
 )
-# cmake-format: on
 
 if(DYNINST_OS_Windows)
   foreach(t ${symtabAPI_TARGETS})

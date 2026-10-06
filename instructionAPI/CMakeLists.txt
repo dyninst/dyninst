@@ -54,7 +54,6 @@ set(
 
 set(_private_headers src/debug.h h/syscalls.h h/interrupts.h)
 
-# cmake-format: off
 dyninst_library(
   instructionAPI
   PUBLIC_HEADER_FILES ${_public_headers}
@@ -65,6 +64,5 @@ dyninst_library(
   PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS ${_subprojects}
 )
-# cmake-format: on
 
 unset(_subprojects)

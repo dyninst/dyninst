@@ -19,7 +19,6 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(APPEND _sources RegisterConversion-amdgpu.C registerSpace-amdgpu.C)
 endif()
 
-# cmake-format: off
 dyninst_library(
   dyninstAPI_registerSpace
   INTERNAL_LIBRARY
@@ -36,7 +35,6 @@ set(
   ${CMAKE_CURRENT_SOURCE_DIR}/../BPatch
   ${CMAKE_CURRENT_SOURCE_DIR}/../../h
 )
-# cmake-format: on
 
 target_include_directories(
   dyninstAPI_registerSpace

@@ -70,7 +70,6 @@ if(DYNINST_OS_UNIX)
   endif()
 endif()
 
-# cmake-format: off
 dyninst_library(
   stackwalk
   PUBLIC_HEADER_FILES ${_public_headers}
@@ -81,7 +80,6 @@ dyninst_library(
   PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS Dyninst::ElfUtils
 )
-# cmake-format: on
 
 foreach(t ${stackwalk_TARGETS})
   # Force frame pointers in stackwalker, no matter the optimization level
