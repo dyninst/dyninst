@@ -36,7 +36,11 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y python3-pip
-        python3 -m pip install gersemi
+        # Pinned: gersemi's output changes between releases, so an unpinned
+        # install reformats files this tree is already correct for.  The same
+        # version is recorded in docker/dependencies.versions, and
+        # dependency-version.yaml checks the two agree.
+        python3 -m pip install gersemi==0.29.2
 
     - name: gersemi
       shell: bash

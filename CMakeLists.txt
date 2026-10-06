@@ -31,8 +31,7 @@ project(
 )
 
 list(
-  INSERT
-  CMAKE_MODULE_PATH
+  INSERT CMAKE_MODULE_PATH
   0
   "${PROJECT_SOURCE_DIR}/cmake"
   "${PROJECT_SOURCE_DIR}/cmake/tpls"

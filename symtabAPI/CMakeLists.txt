@@ -70,8 +70,7 @@ set(
 
 if(DYNINST_OS_UNIX)
   list(
-    APPEND
-    _sources
+    APPEND _sources
     src/Object-elf.C
     src/Archive.C
     src/Archive-elf.C

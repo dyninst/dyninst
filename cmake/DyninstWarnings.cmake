@@ -20,8 +20,7 @@ set(defaultNonDebugMaxFrameSize 20480)
 # supported by the compiler.  The values do not include the the initial '-'
 
 list(
-  APPEND
-  REQUESTED_WARNING_FLAGS
+  APPEND REQUESTED_WARNING_FLAGS
   Wall
   Wextra
   Wpedantic

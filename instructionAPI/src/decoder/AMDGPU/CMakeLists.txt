@@ -41,15 +41,13 @@ set(
 set(finalizeOperandsExtraFlags "")
 if(debugMaxFrameSizeOverrideFinalizeOperands)
   string(
-    APPEND
-    finalizeOperandsExtraFlags
+    APPEND finalizeOperandsExtraFlags
     " $<$<CONFIG:DEBUG>:-Wframe-larger-than=${debugMaxFrameSizeOverrideFinalizeOperands}>"
   )
 endif()
 if(nonDebugMaxFrameSizeOverrideFinalizeOperands)
   string(
-    APPEND
-    finalizeOperandsExtraFlags
+    APPEND finalizeOperandsExtraFlags
     " $<$<NOT:$<CONFIG:DEBUG>>:-Wframe-larger-than=${nonDebugMaxFrameSizeOverrideFinalizeOperands}>"
   )
 endif()

@@ -11,8 +11,7 @@ set(_sources codegen.C)
 
 if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
   list(
-    APPEND
-    _headers
+    APPEND _headers
     codegen-x86.h
     emitters/x86/Emitterx86.h
     emitters/x86/generators.h
@@ -22,8 +21,7 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
   )
 
   list(
-    APPEND
-    _sources
+    APPEND _sources
     codegen-x86.C
     emitters/x86/Emitterx86.C
     emitters/x86/generators.C
@@ -33,8 +31,7 @@ if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
   )
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(
-    APPEND
-    _headers
+    APPEND _headers
     codegen-aarch64.h
     emitters/aarch64/EmitterAarch64.h
     emitters/aarch64/EmitterAarch64Dyn.h
@@ -45,8 +42,7 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   )
 
   list(
-    APPEND
-    _sources
+    APPEND _sources
     codegen-aarch64.C
     emitters/aarch64/EmitterAarch64.C
     emitters/aarch64/EmitterAarch64Stat.C
@@ -56,8 +52,7 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   )
 elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(
-    APPEND
-    _headers
+    APPEND _headers
     codegen-power.h
     emitters/PowerPC/EmitterPowerPC.h
     emitters/PowerPC/generators.h
@@ -68,8 +63,7 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   )
 
   list(
-    APPEND
-    _sources
+    APPEND _sources
     codegen-power.C
     emitters/PowerPC/EmitterPowerPC.C
     emitters/PowerPC/generators.C

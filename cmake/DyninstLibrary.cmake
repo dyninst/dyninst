@@ -103,8 +103,7 @@ function(dyninst_library _target)
   )
 
   cmake_parse_arguments(
-    PARSE_ARGV
-    0
+    PARSE_ARGV 0
     _target
     "FORCE_STATIC;INTERNAL_LIBRARY"
     ""

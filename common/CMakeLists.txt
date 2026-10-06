@@ -137,8 +137,7 @@ set(
 
 if(DYNINST_OS_UNIX)
   list(
-    APPEND
-    _sources
+    APPEND _sources
     src/addrtranslate-sysv.C
     src/symbolDemangleWithCache.C
     src/symbolDemangle.c
@@ -149,8 +148,7 @@ if(DYNINST_OS_FreeBSD)
   list(APPEND _sources src/freebsdKludges.C src/addrtranslate-freebsd.C)
 elseif(DYNINST_OS_Linux)
   list(
-    APPEND
-    _sources
+    APPEND _sources
     src/linuxKludges.C
     src/AuxvParser.C
     src/addrtranslate-auxv.C

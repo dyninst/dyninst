@@ -114,7 +114,7 @@ function(_dyninst_latex_check _log)
   # Start at the keyword; pdfTeX prints warnings amid its page progress.
   string(
     REGEX MATCHALL
-    "(LaTeX Warning|LaTeX Font Warning|(Package|Class|Module) [A-Za-z0-9@._-]+ Warning|pdfTeX warning|Missing character)[^${_nl}]*(${_nl}\\([A-Za-z][A-Za-z0-9@._-]*\\)[^${_nl}]*)*"
+      "(LaTeX Warning|LaTeX Font Warning|(Package|Class|Module) [A-Za-z0-9@._-]+ Warning|pdfTeX warning|Missing character)[^${_nl}]*(${_nl}\\([A-Za-z][A-Za-z0-9@._-]*\\)[^${_nl}]*)*"
     _warnings
     "${_txt}"
   )
@@ -291,8 +291,7 @@ function(_dyninst_latex_validate _pdf _log)
     if(_sides)
       string(REPLACE ";" ", " _sides "${_sides}")
       string(
-        APPEND
-        _p
+        APPEND _p
         "\n    page ${_pageno}: ink reaches the ${_sides} edge"
         " (clearance L${_left} R${_right} T${_top} B${_bottom} bp)"
       )
@@ -315,8 +314,7 @@ function(_dyninst_latex_report _unsettled)
   set(_report "")
   if(_unsettled)
     string(
-      APPEND
-      _report
+      APPEND _report
       "\n  it never settled: ${MAX_PASSES} passes left the"
       " cross references or page numbers still moving, so the table of"
       " contents and every \\ref may name the wrong page"
@@ -324,8 +322,7 @@ function(_dyninst_latex_report _unsettled)
   endif()
   if(_check_problems)
     string(
-      APPEND
-      _report
+      APPEND _report
       "\n  the log is not clean:${_check_problems}"
       "\n  full log: ${OUTPUT_DIR}/${_stem}.log"
     )
@@ -345,16 +342,14 @@ function(_dyninst_latex_report _unsettled)
     set(_hint "")
     if(_check_problems)
       string(
-        APPEND
-        _hint
+        APPEND _hint
         " or add one to ALLOW_WARNINGS in the manual's"
         " manual-latex/CMakeLists.txt"
       )
     endif()
     if(_unsettled)
       string(
-        APPEND
-        _hint
+        APPEND _hint
         " or raise MAX_PASSES in cmake/DyninstRunLaTeX.cmake"
         " if the document is simply large"
       )
@@ -412,8 +407,7 @@ while(_pass LESS_EQUAL MAX_PASSES)
 
   set(_rerun FALSE)
   file(
-    STRINGS
-    "${OUTPUT_DIR}/${_stem}.log"
+    STRINGS "${OUTPUT_DIR}/${_stem}.log"
     _asks
     REGEX "Rerun to get|Rerun LaTeX|Label\\(s\\) may have changed"
   )

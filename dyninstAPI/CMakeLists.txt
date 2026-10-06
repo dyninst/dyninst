@@ -104,8 +104,7 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(APPEND _sources src/addressSpace-aarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(
-    APPEND
-    _sources
+    APPEND _sources
     src/addressSpace-amdgpu-gfx908.C
     src/inst-amdgpu.C
     src/emit-amdgpu.C
@@ -128,8 +127,7 @@ elseif(DYNINST_OS_Linux)
   endif()
 elseif(DYNINST_OS_Windows)
   list(
-    APPEND
-    _sources
+    APPEND _sources
     src/hybridCallbacks.C
     src/hybridInstrumentation.C
     src/hybridOverwrites.C

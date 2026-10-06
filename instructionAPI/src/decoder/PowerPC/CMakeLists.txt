@@ -26,15 +26,13 @@ endif()
 # adjust warning threshold if set in cmake/warnings.cmake
 if(debugMaxFrameSizeOverridePowerOpcodeTable)
   string(
-    APPEND
-    instructionDecoderPowerExtraFlags
+    APPEND instructionDecoderPowerExtraFlags
     " $<$<CONFIG:DEBUG>:-Wframe-larger-than=${debugMaxFrameSizeOverridePowerOpcodeTable}>"
   )
 endif()
 if(nonDebugMaxFrameSizeOverridePowerOpcodeTable)
   string(
-    APPEND
-    instructionDecoderPowerExtraFlags
+    APPEND instructionDecoderPowerExtraFlags
     " $<$<NOT:$<CONFIG:DEBUG>>:-Wframe-larger-than=${nonDebugMaxFrameSizeOverridePowerOpcodeTable}>"
   )
 endif()

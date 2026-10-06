@@ -76,8 +76,7 @@ if(DYNINST_OS_UNIX)
   list(APPEND _sources src/sysv.C src/int_thread_db.C src/mmapalloc.C)
 elseif(DYNINST_OS_Windows)
   list(
-    APPEND
-    _sources
+    APPEND _sources
     src/GeneratorWindows.C
     src/DecoderWindows.C
     src/windows_handler.C
@@ -91,8 +90,7 @@ endif()
 
 if(DYNINST_OS_FreeBSD)
   list(
-    APPEND
-    _sources
+    APPEND _sources
     src/freebsd.C
     src/unix.C
     src/notify_pipe.C
@@ -102,8 +100,7 @@ if(DYNINST_OS_FreeBSD)
   )
 elseif(DYNINST_OS_Linux)
   list(
-    APPEND
-    _sources
+    APPEND _sources
     src/linux.C
     src/unix.C
     src/notify_pipe.C
