@@ -4,9 +4,16 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches: [ master ]
+    # The check covers every tracked CMake file, not only the ones a pull
+    # request touched, so anything that changes what "formatted" means has
+    # to trigger it: the gersemi settings, the pinned gersemi version, and
+    # this workflow itself.  cmake/DyninstRunGersemi.cmake is a '.cmake'.
     paths:
        - '**.cmake'
        - '**CMakeLists.txt'
+       - '.gersemirc'
+       - '.github/workflows/cmake-formatting.yaml'
+       - 'docker/dependencies.versions'
   workflow_dispatch:
 
 concurrency:
