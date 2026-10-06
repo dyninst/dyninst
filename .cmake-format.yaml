@@ -17,6 +17,25 @@ parse:
         LINK_LIBRARIES: '*'
         LINK_OPTIONS: '*'
         PROPERTIES: '*'
+    dyninst_add_manual:
+      pargs: 1
+      kwargs:
+        ALLOW_WARNINGS: '*'
+        MAX_OVERFULL_PT: '*'
+    dyninst_validate_listings:
+      pargs: 1
+      kwargs:
+        SOURCES: '*'
+        USES: '*'
+    dyninst_add_latex_document:
+      kwargs:
+        TARGET: '*'
+        SOURCE_DIR: '*'
+        MAIN: '*'
+        INSTALL_DESTINATION: '*'
+        ALLOW_WARNINGS: '*'
+        MAX_OVERFULL_PT: '*'
+        DEPENDS: '*'
     dyninst_add_cache_option:
       kwargs:
         CACHE: '*'

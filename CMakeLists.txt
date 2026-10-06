@@ -76,6 +76,8 @@ add_subdirectory(stackwalk)
 add_subdirectory(patchAPI)
 add_subdirectory(dyninstAPI)
 add_subdirectory(dynC_API)
+
+add_subdirectory(docs)
 add_subdirectory(parseThat)
 add_subdirectory(dyninstAPI_RT)
 

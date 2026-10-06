@@ -1,0 +1,162 @@
+name: Documentation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [ master ]
+    paths:
+      - 'docs/**'
+      - '**.cmake'
+      - '**CMakeLists.txt'
+      - '.github/workflows/docs.yaml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+
+  # Don't run the check if the PR is a draft
+  check-if-needed:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.draft == false }}
+    steps:
+      - shell: bash
+        run: true
+
+  get-oses:
+    runs-on: ubuntu-latest
+    needs: check-if-needed
+    outputs:
+      latest: ${{ steps.all.outputs.latest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - id: all
+        uses: ./.github/actions/os-versions
+
+  ############################################################################
+  #
+  #  Build every manual with the diagnostics that make a defect fatal:
+  #
+  #    DYNINST_BUILD_DOCS        pdflatex is required rather than optional
+  #    DYNINST_WARNINGS_AS_ERRORS  a LaTeX warning or an overfull box that
+  #                              leaves the paper fails the target, and so
+  #                              does a warning from compiling the examples
+  #    DYNINST_DOCS_FORCE_VALIDATE  Ghostscript is required, and each finished
+  #                              PDF is measured for ink reaching the edge
+  #
+  #  DYNINST_DOCS_VALIDATE_LISTINGS is ON by default, so <module>.pdf also
+  #  compiles the example sources that manual typesets.
+  #
+  docs:
+    runs-on: ubuntu-latest
+    needs: get-oses
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(needs.get-oses.outputs.latest) }}
+    permissions:
+      packages: read
+    container:
+      image: ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: Manuals (${{ matrix.os }})
+    steps:
+      - name: Install LaTeX and Ghostscript (Ubuntu)
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        shell: bash
+        run: |
+          set -ex
+          apt update -qq
+          apt install -y --no-install-recommends \
+            texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+            texlive-fonts-recommended texlive-pictures ghostscript
+
+      - name: Install LaTeX and Ghostscript (Fedora)
+        if: ${{ startsWith(matrix.os, 'fedora') }}
+        shell: bash
+        run: |
+          set -ex
+          yum install -y \
+            texlive-collection-latexrecommended texlive-collection-fontsrecommended \
+            texlive-collection-pictures ghostscript
+
+      - name: Checkout Dyninst
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: "src"  # relative to ${GITHUB_WORKSPACE}
+
+      - name: Configure
+        shell: bash
+        run: |
+          set -ex
+          cmake -S "${GITHUB_WORKSPACE}/src" -B "${GITHUB_WORKSPACE}/build" \
+                -DCMAKE_INSTALL_PREFIX="${GITHUB_WORKSPACE}/install" \
+                -DDYNINST_BUILD_DOCS=ON \
+                -DDYNINST_WARNINGS_AS_ERRORS=ON \
+                -DDYNINST_DOCS_FORCE_VALIDATE=ON
+
+      - name: Build and install the manuals
+        shell: bash
+        run: |
+          set -ex
+          cmake --build "${GITHUB_WORKSPACE}/build" --target docs-install -j 2
+
+      - name: Check every manual was installed
+        shell: bash
+        run: |
+          set -ex
+
+          build="${GITHUB_WORKSPACE}/build"
+
+          # Ask the build tree where the manuals went rather than assuming
+          # it: the prefix is the caller's to choose, DYNINST_DOCS_INSTALL_DIR
+          # is a cache variable, and an absolute one ignores the prefix.
+          prefix=$(cmake -LA -N "${build}" \
+                   | sed -n 's/^CMAKE_INSTALL_PREFIX:[^=]*=//p')
+          docdir=$(cmake -LA -N "${build}" \
+                   | sed -n 's/^DYNINST_DOCS_INSTALL_DIR:[^=]*=//p')
+          case "${docdir}" in
+            /*) dest="${docdir}"           ;;
+            *)  dest="${prefix}/${docdir}" ;;
+          esac
+
+          set +x
+
+          # The manuals a complete install contains, one per line.  The build
+          # writes this from the same install() rules that do the installing,
+          # so it cannot disagree with what docs-install produces -- which a
+          # list rebuilt here from the source tree could.
+          manifest="${build}/docs-manuals.txt"
+          if ! test -s "${manifest}"; then
+            echo "::error::${manifest} is missing or lists no manuals; did cmake configure the docs?"
+            exit 1
+          fi
+
+          missing=()
+          found=0
+          while IFS= read -r pdf; do
+            test -n "${pdf}" || continue
+            if test -s "${dest}/${pdf}"; then
+              found=$((found + 1))
+              printf '  ok       %s\n' "${pdf}"
+            else
+              missing+=("${pdf}")
+              printf '  MISSING  %s\n' "${pdf}"
+            fi
+          done < "${manifest}"
+
+          if test ${#missing[@]} -ne 0; then
+            echo "::error::not installed in ${dest}: ${missing[*]}"
+            ls -l "${dest}" || true
+            exit 1
+          fi
+
+          echo "all ${found} manuals installed in ${dest}"
