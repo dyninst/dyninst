@@ -4672,6 +4672,34 @@ async_ret_t int_thread::setupDisplacedSingleStep(Address seq_end, bool &displace
    return aret_success;
 }
 
+void int_thread::cancelEmulatedSingleStep()
+{
+   emulated_singlestep *es = em_singlestep;
+   if (!es)
+      return;
+   if (es->isDisplaced()) {
+      cancelDisplacedSingleStep();
+      return;
+   }
+   // In place: the breakpoints sit in the original text and, while they are
+   // installed, every other thread is held.  The thread itself is stopped (the
+   // callers are user operations on a stopped thread), so the text can be
+   // restored now.  A stopped-on-breakpoint mark that names one of these
+   // breakpoints would otherwise make the next continue step the thread over
+   // an address with no breakpoint at it.
+   int_process *proc = llproc();
+   pthrd_printf("Cancelling in-place emulated single step on %d/%d\n", proc->getPid(), getLWP());
+   async_ret_t aresult = es->clear();
+   if (aresult != aret_success)
+      pthrd_printf("Warning: in-place emulation breakpoint removal did not complete synchronously\n");
+   if (stopped_on_breakpoint_addr && es->containsBreakpoint(stopped_on_breakpoint_addr))
+      markStoppedOnBP(NULL);
+   if (es->holdsProcess())
+      es->releaseProcess();
+   es->restoreSSMode();
+   rmEmulatedSingleStep(es);
+}
+
 void int_thread::cancelDisplacedSingleStep()
 {
    emulated_singlestep *es = em_singlestep;
@@ -7917,7 +7945,7 @@ bool Thread::setAllRegisters(RegisterPool &pool) const
    MTLock lock_this_func;
    THREAD_EXIT_DETACH_STOP_TEST("setAllRegisters", false);
 
-   llthread_->cancelDisplacedSingleStep();
+   llthread_->cancelEmulatedSingleStep();
 
    result_response::ptr response = result_response::createResultResponse();
    bool result = llthread_->setAllRegisters(*pool.llregpool, response);
@@ -7972,7 +8000,7 @@ bool Thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val
    THREAD_EXIT_DETACH_STOP_TEST("setRegister", false);
 
    if (reg.isPC())
-      llthread_->cancelDisplacedSingleStep();
+      llthread_->cancelEmulatedSingleStep();   // moving the PC makes any emulated step in flight moot
 
    result_response::ptr response = result_response::createResultResponse();
    bool result = llthread_->setRegister(reg, val, response);
@@ -8019,7 +8047,7 @@ bool Thread::setAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
 {
    MTLock lock_this_func;
    THREAD_EXIT_DETACH_STOP_TEST("getAllRegistersAsync", false);
-   llthread_->cancelDisplacedSingleStep();
+   llthread_->cancelEmulatedSingleStep();
    pthrd_printf("User wants to async set registers on %d/%d\n",
                 llthread_->proc()->getPid(), llthread_->getLWP());
 
@@ -8190,6 +8218,22 @@ bool Thread::setSingleStepMode(bool s) const
 {
    MTLock lock_this_func;
    THREAD_EXIT_DETACH_STOP_TEST("setSingleStepMode", false);
+   emulated_singlestep *es = llthread_->getEmulatedSingleStep();
+   if (es) {
+      // An emulated step is in flight: the thread's own flags are off for its
+      // duration and restored from the saved mode when it completes, so a
+      // plain write here would be undone then (and the thread would step on
+      // for ever after the user turned stepping off).  Turning stepping off
+      // makes the step moot: cancel it.  Turning it on is what the step is
+      // already doing: record it as the mode to restore.
+      if (!s) {
+         llthread_->cancelEmulatedSingleStep();
+      }
+      else {
+         es->setSavedUserMode(true);
+         return true;
+      }
+   }
    llthread_->setSingleStepUserMode(s);
    return true;
 }
@@ -8198,7 +8242,10 @@ bool Thread::getSingleStepMode() const
 {
    MTLock lock_this_func;
    THREAD_EXIT_TEST("getSingleStepMode", false);
-   return llthread_->singleStepUserMode();
+   // While an emulated step is in flight the thread's own flag is off; what
+   // the user set is in the emulation's saved mode.
+   emulated_singlestep *es = llthread_->getEmulatedSingleStep();
+   return es ? es->savedUserMode() : llthread_->singleStepUserMode();
 }
 
 bool Thread::setSyscallMode(bool s) const
@@ -9283,6 +9330,16 @@ void emulated_singlestep::restoreSSMode()
 {
    thr->setSingleStepMode(saved_single_step);
    thr->setSingleStepUserMode(saved_user_single_step);
+}
+
+void emulated_singlestep::setSavedUserMode(bool s)
+{
+   saved_user_single_step = s;
+}
+
+bool emulated_singlestep::savedUserMode() const
+{
+   return saved_user_single_step;
 }
 
 void int_thread::terminate() {

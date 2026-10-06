@@ -1940,7 +1940,7 @@ Handler::handler_ret_t HandleDisplacedStepCancel::handleEvent(Event::ptr ev)
    if (ev->getEventType().code() == EventType::Detach) {
       int_threadPool *pool = proc->threadPool();
       for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++)
-         (*i)->cancelDisplacedSingleStep();
+         (*i)->cancelEmulatedSingleStep();     // displaced or in place: nothing of ours may stay in a detached process
       return ret_success;
    }
 
