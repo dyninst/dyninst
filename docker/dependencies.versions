@@ -3,3 +3,4 @@ tbb:2019.9
 elfutils:0.186
 cmake:3.14.0
 capstone:6.0.0-Alpha5
+gersemi:0.29.2

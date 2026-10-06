@@ -12,7 +12,6 @@ endif()
 set(_public_headers h/Elf_X.h)
 set(_sources src/Elf_X.C)
 
-# cmake-format: off
 dyninst_library(
   dynElf
   PUBLIC_HEADER_FILES ${_public_headers}
@@ -22,4 +21,3 @@ dyninst_library(
   PRIVATE_DEPS Dyninst::Boost_headers Dyninst::ElfUtils
   INTERNAL_LIBRARY
 )
-# cmake-format: on

@@ -25,7 +25,4 @@ list(JOIN _installed "\n" _installed)
 if(_installed)
   string(APPEND _installed "\n")
 endif()
-file(
-  GENERATE
-  OUTPUT "${PROJECT_BINARY_DIR}/docs-manuals.txt"
-  CONTENT "${_installed}")
+file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/docs-manuals.txt" CONTENT "${_installed}")

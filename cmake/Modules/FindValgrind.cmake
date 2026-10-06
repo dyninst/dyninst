@@ -58,17 +58,14 @@ if(PC_VALGRIND_FOUND)
     pkg_get_variable(PC_VALGRIND_INCLUDE_DIRS valgrind includedir)
   endif()
 
-  set(Valgrind_INCLUDE_DIRS
-      ${PC_VALGRIND_INCLUDE_DIRS}
-      CACHE PATH "")
-  set(Valgrind_VERSION
-      ${PC_VALGRIND_VERSION}
-      CACHE STRING "")
+  set(Valgrind_INCLUDE_DIRS ${PC_VALGRIND_INCLUDE_DIRS} CACHE PATH "")
+  set(Valgrind_VERSION ${PC_VALGRIND_VERSION} CACHE STRING "")
 else()
   find_path(
     Valgrind_INCLUDE_DIRS
     NAMES valgrind.h
-    PATH_SUFFIXES valgrind ${_find_path_args})
+    PATH_SUFFIXES valgrind ${_find_path_args}
+  )
 
   macro(_check_valgrind_version _file)
     file(STRINGS ${_file} _version_line REGEX "^#define __VALGRIND_MAJOR__[ \t]+[0-9]+")
@@ -93,7 +90,8 @@ find_package_handle_standard_args(
   Valgrind
   FOUND_VAR Valgrind_FOUND
   REQUIRED_VARS Valgrind_INCLUDE_DIRS
-  VERSION_VAR Valgrind_VERSION)
+  VERSION_VAR Valgrind_VERSION
+)
 
 mark_as_advanced(Valgrind_INCLUDE_DIRS)
 

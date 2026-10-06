@@ -1,7 +1,6 @@
 include_guard(GLOBAL)
 
 if(DYNINST_ENABLE_EXTERNAL_BINARY_TESTS)
-
   set(_targ unrelocated_cft)
   add_executable(${_targ} unrelocated_cft.cpp)
   target_compile_options(${_targ} PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
@@ -17,14 +16,12 @@ if(DYNINST_ENABLE_EXTERNAL_BINARY_TESTS)
   set_tests_properties(
     ${_tname}
     PROPERTIES
-      LABELS
-      "regression"
-      ENVIRONMENT
-      "DYNINST_DEBUG_PARSING=1;OMP_NUM_THREADS=1"
+      LABELS "regression"
+      ENVIRONMENT "DYNINST_DEBUG_PARSING=1;OMP_NUM_THREADS=1"
       PASS_REGULAR_EXPRESSION
-      "REJECTED: CF target of '[^']*' at 0xe0 carries an unapplied relocation \\(placeholder target 0xe5\\)"
-      FAIL_REGULAR_EXPRESSION
-      "jump to 0xe5 in other regions, TAIL CALL")
+        "REJECTED: CF target of '[^']*' at 0xe0 carries an unapplied relocation \\(placeholder target 0xe5\\)"
+      FAIL_REGULAR_EXPRESSION "jump to 0xe5 in other regions, TAIL CALL"
+  )
 
   # indirect_nopic.o (-fno-pic -fno-plt) has memory-indirect control flow
   # whose relocations are on the memory operand, not on a control-flow
@@ -35,13 +32,11 @@ if(DYNINST_ENABLE_EXTERNAL_BINARY_TESTS)
   add_test(NAME ${_tname} COMMAND ${_targ} "${_fpath}/indirect_nopic.o")
   set_tests_properties(
     ${_tname}
-    PROPERTIES LABELS
-               "regression"
-               ENVIRONMENT
-               "DYNINST_DEBUG_PARSING=1;OMP_NUM_THREADS=1"
-               PASS_REGULAR_EXPRESSION
-               "jump table candidate [^\n]* at 0xf"
-               FAIL_REGULAR_EXPRESSION
-               "not treating as indirect;has an unresolved relocation, not dynamic")
-
+    PROPERTIES
+      LABELS "regression"
+      ENVIRONMENT "DYNINST_DEBUG_PARSING=1;OMP_NUM_THREADS=1"
+      PASS_REGULAR_EXPRESSION "jump table candidate [^\n]* at 0xf"
+      FAIL_REGULAR_EXPRESSION
+        "not treating as indirect;has an unresolved relocation, not dynamic"
+  )
 endif()

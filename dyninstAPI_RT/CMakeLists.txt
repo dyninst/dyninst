@@ -10,23 +10,23 @@ set(_sources src/RTcommon.c src/RTheap.c src/RTthread.c)
 
 if(DYNINST_OS_FreeBSD)
   list(
-    APPEND
-    _sources
+    APPEND _sources
     src/RTposix.c
     src/RTfreebsd.c
     src/RTheap-freebsd.c
     src/RTspace.S
-    src/RTsignal.c)
+    src/RTsignal.c
+  )
 elseif(DYNINST_OS_Linux)
   set(_static_sources src/RTstatic_ctors_dtors_begin.c src/RTstatic_ctors_dtors_end.c)
   list(
-    APPEND
-    _sources
+    APPEND _sources
     src/RTposix.c
     src/RTlinux.c
     src/RTheap-linux.c
     src/RTspace.S
-    src/RTsignal.c)
+    src/RTsignal.c
+  )
 elseif(DYNINST_OS_Windows)
   list(APPEND _sources src/RTheap-win.c src/RTwinnt.c src/RTthread-x86.c)
 endif()
@@ -54,7 +54,6 @@ if(DYNINST_OS_UNIX)
   endif()
 endif()
 
-# cmake-format: off
 dyninst_library(
   dyninstAPI_RT
   PUBLIC_HEADER_FILES ${_public_headers}
@@ -64,7 +63,6 @@ dyninst_library(
   PRIVATE_DEPS Threads::Threads
   FORCE_STATIC
 )
-# cmake-format: on
 
 foreach(t ${dyninstAPI_RT_TARGETS})
   if(DYNINST_OS_UNIX)
@@ -88,7 +86,9 @@ if(BUILD_RTLIB_32)
 
   if(NOT DYNINST_C_32BIT_RUNTIME_SUPPORTED)
     message(
-      FATAL_ERROR "BUILD_RTLIB_32 enabled, but compiler doesn't support 32-bit runtime")
+      FATAL_ERROR
+      "BUILD_RTLIB_32 enabled, but compiler doesn't support 32-bit runtime"
+    )
   endif()
 
   if(ENABLE_STATIC_LIBS)
@@ -111,25 +111,25 @@ if(BUILD_RTLIB_32)
     list(FILTER _sources EXCLUDE REGEX "RTthread-x86-64")
   endif()
 
-  # cmake-format: off
   # The headers are all listed as PRIVATE so that they do not get copied into the install
   # tree twice (they already get copied in by the creation of the shared library targets)
-	dyninst_library(
-	  dyninstAPI_RT_m32
-	  PRIVATE_HEADER_FILES ${_public_headers} ${_private_headers}
-	  SOURCE_FILES ${_sources} src/RTthread-x86.c src/RTtlsgetaddr-x86.S
-	  DEFINES "MUTATEE_32"
-	  PRIVATE_DEPS Threads::Threads
-	  ${_force_static}
-	)
-	# cmake-format: on
+  dyninst_library(
+    dyninstAPI_RT_m32
+    PRIVATE_HEADER_FILES ${_public_headers} ${_private_headers}
+    SOURCE_FILES ${_sources} src/RTthread-x86.c src/RTtlsgetaddr-x86.S
+    DEFINES "MUTATEE_32"
+    PRIVATE_DEPS Threads::Threads ${_force_static}
+  )
 
   foreach(t ${dyninstAPI_RT_m32_TARGETS})
     target_compile_options(${t} PRIVATE "${DYNINST_C_32BIT_RUNTIME_FLAG}")
     target_link_options(${t} PRIVATE "${DYNINST_C_32BIT_RUNTIME_FLAG}")
 
     target_include_directories(
-      ${t} BEFORE PRIVATE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/common/h>")
+      ${t}
+      BEFORE
+      PRIVATE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/common/h>"
+    )
 
     if(DYNINST_OS_UNIX)
       target_link_libraries(${t} PRIVATE ${CMAKE_DL_LIBS})

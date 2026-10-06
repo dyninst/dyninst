@@ -61,29 +61,20 @@ if(PC_LIBDW_FOUND)
     pkg_get_variable(PC_LIBDW_INCLUDE_DIRS libdw includedir)
   endif()
 
-  set(LibDW_INCLUDE_DIRS
-      ${PC_LIBDW_INCLUDE_DIRS}
-      CACHE PATH "")
-  set(LibDW_LIBRARIES
-      ${PC_LIBDW_LINK_LIBRARIES}
-      CACHE PATH "")
-  set(LibDW_VERSION
-      ${PC_LIBDW_VERSION}
-      CACHE STRING "")
+  set(LibDW_INCLUDE_DIRS ${PC_LIBDW_INCLUDE_DIRS} CACHE PATH "")
+  set(LibDW_LIBRARIES ${PC_LIBDW_LINK_LIBRARIES} CACHE PATH "")
+  set(LibDW_VERSION ${PC_LIBDW_VERSION} CACHE STRING "")
 else()
-  find_path(
-    LibDW_INCLUDE_DIRS
-    NAMES libdw.h
-    PATH_SUFFIXES elfutils ${_find_path_args})
+  find_path(LibDW_INCLUDE_DIRS NAMES libdw.h PATH_SUFFIXES elfutils ${_find_path_args})
 
-  find_library(
-    LibDW_LIBRARIES
-    NAMES libdw dw
-    PATH_SUFFIXES elfutils ${_find_path_args})
+  find_library(LibDW_LIBRARIES NAMES libdw dw PATH_SUFFIXES elfutils ${_find_path_args})
 
   if(EXISTS "${LibDW_INCLUDE_DIRS}/version.h")
-    file(STRINGS "${LibDW_INCLUDE_DIRS}/version.h" _version_line
-         REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
+    file(
+      STRINGS "${LibDW_INCLUDE_DIRS}/version.h"
+      _version_line
+      REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+"
+    )
     string(REGEX MATCH "[0-9]+" _version "${_version_line}")
     if(NOT "x${_version}" STREQUAL "x")
       set(LibDW_VERSION "0.${_version}")
@@ -98,7 +89,8 @@ find_package_handle_standard_args(
   LibDW
   FOUND_VAR LibDW_FOUND
   REQUIRED_VARS LibDW_LIBRARIES LibDW_INCLUDE_DIRS
-  VERSION_VAR LibDW_VERSION)
+  VERSION_VAR LibDW_VERSION
+)
 
 if(LibDW_FOUND)
   mark_as_advanced(LibDW_INCLUDE_DIRS)
@@ -120,20 +112,29 @@ if(LibDW_FOUND)
 
   if(NOT TARGET LibDW::LibDW)
     add_library(LibDW::LibDW UNKNOWN IMPORTED)
-    set_target_properties(LibDW::LibDW PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                                                  "${LibDW_INCLUDE_DIRS}")
+    set_target_properties(
+      LibDW::LibDW
+      PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${LibDW_INCLUDE_DIRS}"
+    )
 
     if(NOT "x${_link_libs}" STREQUAL "x")
       set_target_properties(
-        LibDW::LibDW PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-                                IMPORTED_LINK_DEPENDENT_LIBRARIES "${_link_libs}")
+        LibDW::LibDW
+        PROPERTIES
+          IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+          IMPORTED_LINK_DEPENDENT_LIBRARIES "${_link_libs}"
+      )
       set(LibDW_LIBRARIES ${_libdw})
       unset(_libdw)
       unset(_link_libs)
     endif()
 
-    set_target_properties(LibDW::LibDW PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-                                                  IMPORTED_LOCATION "${LibDW_LIBRARIES}")
+    set_target_properties(
+      LibDW::LibDW
+      PROPERTIES
+        IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+        IMPORTED_LOCATION "${LibDW_LIBRARIES}"
+    )
   endif()
 endif()
 

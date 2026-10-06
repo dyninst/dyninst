@@ -90,20 +90,25 @@ endif()
 list(APPEND _dyninst_global_defs ${DYNINST_PLATFORM_CAPABILITIES})
 
 function(dyninst_library _target)
-  # cmake-format: off
-  set(_keywords
-      PRIVATE_HEADER_FILES
-      PUBLIC_HEADER_FILES
-      SOURCE_FILES # Both public and private
-      DEFINES
-      DYNINST_DEPS
-      DYNINST_INTERNAL_DEPS
-      PUBLIC_DEPS
-      PRIVATE_DEPS)
-  
-  cmake_parse_arguments(PARSE_ARGV 0 _target "FORCE_STATIC;INTERNAL_LIBRARY" "" "${_keywords}")
-  
-  # cmake-format: on
+  set(
+    _keywords
+    PRIVATE_HEADER_FILES
+    PUBLIC_HEADER_FILES
+    SOURCE_FILES # Both public and private
+    DEFINES
+    DYNINST_DEPS
+    DYNINST_INTERNAL_DEPS
+    PUBLIC_DEPS
+    PRIVATE_DEPS
+  )
+
+  cmake_parse_arguments(
+    PARSE_ARGV 0
+    _target
+    "FORCE_STATIC;INTERNAL_LIBRARY"
+    ""
+    "${_keywords}"
+  )
 
   if(_target_INTERNAL_LIBRARY)
     # Internal libraries never create actual library files (.so, .a, etc.)
@@ -112,8 +117,13 @@ function(dyninst_library _target)
     set(_lib_type SHARED)
   endif()
 
-  add_library(${_target} ${_lib_type} ${_target_PUBLIC_HEADER_FILES}
-                         ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
+  add_library(
+    ${_target}
+    ${_lib_type}
+    ${_target_PUBLIC_HEADER_FILES}
+    ${_target_PRIVATE_HEADER_FILES}
+    ${_target_SOURCE_FILES}
+  )
 
   if(_target_INTERNAL_LIBRARY)
     set_target_properties(${_target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -124,8 +134,12 @@ function(dyninst_library _target)
   if(NOT _target_INTERNAL_LIBRARY AND (_target_FORCE_STATIC OR ENABLE_STATIC_LIBS))
     list(APPEND _all_targets ${_target}_static)
     add_library(
-      ${_target}_static STATIC ${_target_PUBLIC_HEADER_FILES}
-                               ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
+      ${_target}_static
+      STATIC
+      ${_target_PUBLIC_HEADER_FILES}
+      ${_target_PRIVATE_HEADER_FILES}
+      ${_target_SOURCE_FILES}
+    )
 
     # When building all libraries as static, they have a '_static' suffix
     # but not when FORCE_STATIC is active
@@ -150,27 +164,36 @@ function(dyninst_library _target)
     # Internal library dependencies are NOT public
     target_link_libraries(${t} PRIVATE ${_target_DYNINST_INTERNAL_DEPS})
 
-    target_link_options(${t} PRIVATE $<$<COMPILE_LANGUAGE:C>:${DYNINST_LINK_FLAGS}>
-                        $<$<COMPILE_LANGUAGE:CXX>:${DYNINST_CXX_LINK_FLAGS}>)
-
-    target_compile_options(
-      ${t} PRIVATE $<$<COMPILE_LANGUAGE:C>:${SUPPORTED_C_WARNING_FLAGS}>
-                   $<$<COMPILE_LANGUAGE:CXX>:${SUPPORTED_CXX_WARNING_FLAGS}>)
+    target_link_options(
+      ${t}
+      PRIVATE
+        $<$<COMPILE_LANGUAGE:C>:${DYNINST_LINK_FLAGS}>
+        $<$<COMPILE_LANGUAGE:CXX>:${DYNINST_CXX_LINK_FLAGS}>
+    )
 
     target_compile_options(
       ${t}
-      PRIVATE $<$<COMPILE_LANGUAGE:C>:
-              $<$<CONFIG:DEBUG>:${DYNINST_C_FLAGS_DEBUG}>
-              $<$<CONFIG:RELWITHDEBINFO>:${DYNINST_C_FLAGS_RELWITHDEBINFO}>
-              $<$<CONFIG:RELEASE>:${DYNINST_C_FLAGS_RELEASE}>
-              $<$<CONFIG:MINSIZEREL>:${DYNINST_C_FLAGS_MINSIZEREL}>
-              >
-              $<$<COMPILE_LANGUAGE:CXX>:
-              $<$<CONFIG:DEBUG>:${DYNINST_CXX_FLAGS_DEBUG}>
-              $<$<CONFIG:RELWITHDEBINFO>:${DYNINST_CXX_FLAGS_RELWITHDEBINFO}>
-              $<$<CONFIG:RELEASE>:${DYNINST_CXX_FLAGS_RELEASE}>
-              $<$<CONFIG:MINSIZEREL>:${DYNINST_CXX_FLAGS_MINSIZEREL}>
-              >)
+      PRIVATE
+        $<$<COMPILE_LANGUAGE:C>:${SUPPORTED_C_WARNING_FLAGS}>
+        $<$<COMPILE_LANGUAGE:CXX>:${SUPPORTED_CXX_WARNING_FLAGS}>
+    )
+
+    target_compile_options(
+      ${t}
+      PRIVATE
+        $<$<COMPILE_LANGUAGE:C>:
+        $<$<CONFIG:DEBUG>:${DYNINST_C_FLAGS_DEBUG}>
+        $<$<CONFIG:RELWITHDEBINFO>:${DYNINST_C_FLAGS_RELWITHDEBINFO}>
+        $<$<CONFIG:RELEASE>:${DYNINST_C_FLAGS_RELEASE}>
+        $<$<CONFIG:MINSIZEREL>:${DYNINST_C_FLAGS_MINSIZEREL}>
+        >
+        $<$<COMPILE_LANGUAGE:CXX>:
+        $<$<CONFIG:DEBUG>:${DYNINST_CXX_FLAGS_DEBUG}>
+        $<$<CONFIG:RELWITHDEBINFO>:${DYNINST_CXX_FLAGS_RELWITHDEBINFO}>
+        $<$<CONFIG:RELEASE>:${DYNINST_CXX_FLAGS_RELEASE}>
+        $<$<CONFIG:MINSIZEREL>:${DYNINST_CXX_FLAGS_MINSIZEREL}>
+        >
+    )
 
     foreach(_v "PUBLIC" "PRIVATE")
       set(_d ${_target_${_v}_DEPS})
@@ -187,13 +210,16 @@ function(dyninst_library _target)
       ${t}
       PUBLIC
         "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR};${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>"
-        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
+        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+    )
 
     set_target_properties(
       ${t}
-      PROPERTIES INSTALL_RPATH "${DYNINST_RPATH_DIRECTORIES}"
-                 SOVERSION ${DYNINST_SOVERSION}
-                 VERSION ${DYNINST_VERSION})
+      PROPERTIES
+        INSTALL_RPATH "${DYNINST_RPATH_DIRECTORIES}"
+        SOVERSION ${DYNINST_SOVERSION}
+        VERSION ${DYNINST_VERSION}
+    )
 
     target_compile_definitions(${t} PRIVATE ${_dyninst_global_defs} ${_target_DEFINES})
   endforeach()
@@ -204,8 +230,8 @@ function(dyninst_library _target)
     RUNTIME DESTINATION ${DYNINST_INSTALL_BINDIR}
     LIBRARY DESTINATION ${DYNINST_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${DYNINST_INSTALL_LIBDIR}
-    INCLUDES
-    DESTINATION ${DYNINST_INSTALL_INCLUDEDIR})
+    INCLUDES DESTINATION ${DYNINST_INSTALL_INCLUDEDIR}
+  )
 
   # Install headers, preserving the directory structure under h/.
   # Note: By convention, headers are stored in "h/"
@@ -221,7 +247,5 @@ function(dyninst_library _target)
     install(FILES ${h} DESTINATION "${DYNINST_INSTALL_INCLUDEDIR}/${_dir}")
   endforeach()
 
-  set(${_target}_TARGETS
-      ${_all_targets}
-      PARENT_SCOPE)
+  set(${_target}_TARGETS ${_all_targets} PARENT_SCOPE)
 endfunction()

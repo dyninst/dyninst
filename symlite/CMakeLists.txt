@@ -17,7 +17,6 @@ set(_public_headers h/SymLite-elf.h)
 
 set(_sources src/SymLite-elf.C)
 
-# cmake-format: off
 dyninst_library(
   symLite
   PUBLIC_HEADER_FILES ${_public_headers}
@@ -25,4 +24,3 @@ dyninst_library(
   DEFINES SYMLITE_LIB
   DYNINST_DEPS common dynElf
 )
-# cmake-format: on
