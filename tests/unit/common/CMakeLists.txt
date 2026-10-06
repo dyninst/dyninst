@@ -13,4 +13,10 @@ target_link_libraries(bitmath_test PRIVATE common)
 add_test(NAME common_bitmath_test COMMAND bitmath_test)
 set_tests_properties(common_bitmath_test PROPERTIES LABELS "unit")
 
+add_executable(arch_aarch64_test arch_aarch64.cpp)
+target_compile_options(arch_aarch64_test PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(arch_aarch64_test PRIVATE common)
+add_test(NAME common_arch_aarch64_test COMMAND arch_aarch64_test)
+set_tests_properties(common_arch_aarch64_test PROPERTIES LABELS "unit")
+
 add_subdirectory(registers)
