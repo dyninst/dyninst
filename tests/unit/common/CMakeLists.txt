@@ -49,4 +49,10 @@ dyninst_add_test(
   DEPS common
 )
 
+add_executable(arch_power_test arch_power.cpp)
+target_compile_options(arch_power_test PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(arch_power_test PRIVATE common)
+add_test(NAME common_arch_power_test COMMAND arch_power_test)
+set_tests_properties(common_arch_power_test PROPERTIES LABELS "unit")
+
 add_subdirectory(registers)
