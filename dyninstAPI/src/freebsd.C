@@ -44,9 +44,7 @@
 #include "mapped_module.h"
 #include "freebsd.h"
 #include "dynproc/pcEventMuxer.h"
-#include "common/src/headers.h"
 #include "common/src/freebsdKludges.h"
-#include "common/src/freebsdHeaders.h"
 #include "common/src/dyninst_filesystem.h"
 
 #include "symtabAPI/h/Symtab.h"

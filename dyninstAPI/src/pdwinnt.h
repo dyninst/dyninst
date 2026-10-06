@@ -39,7 +39,6 @@
 
 #ifndef PDWINNT_HDR
 #define PDWINNT_HDR
-#include "common/src/headers.h"
 
 typedef HANDLE handleT;
 

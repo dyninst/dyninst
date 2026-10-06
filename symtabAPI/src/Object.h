@@ -52,7 +52,6 @@
 #include "Symtab.h"
 #include "Module.h"
 #include "LineInformation.h"
-#include "common/src/headers.h"
 #include "common/src/MappedFile.h"
 #include "common/src/lprintf.h"
 

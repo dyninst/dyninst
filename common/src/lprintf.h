@@ -38,6 +38,7 @@
 #if !defined(_lprintf_h_)
 #define _lprintf_h_
 #include "compiler_annotations.h"
+#include "dyninst_visibility.h"
 
 
 

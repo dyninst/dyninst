@@ -28,7 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/src/headers.h"
 #include "common/src/AuxvParser.h"
 #include "common/src/linuxKludges.h"
 #include <elf.h>
@@ -44,7 +43,8 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <string.h>
-
+#include <cassert>
+#include <fcntl.h>
 
 /**** process_vm_readv / process_vm_writev
  * Added in kernel 3.2 and some backports -- try it and check ENOSYS.
@@ -81,14 +81,6 @@ static ssize_t process_vm_writev(pid_t pid,
 }
 
 #endif /* !__GLIBC_PREREQ(2,15) */
-
-
-#include "symbolDemangleWithCache.h"
-
-std::string P_cplus_demangle( const std::string &symbol, bool includeTypes )
-{
-    return symbol_demangle_with_cache(symbol, includeTypes);
-} /* end P_cplus_demangle() */
 
 
 bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid)

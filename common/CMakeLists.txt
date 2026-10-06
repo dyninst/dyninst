@@ -67,9 +67,7 @@ set(_private_headers
     src/debug_common.h
     src/dthread.h
     src/dyn_register.h
-    src/freebsdHeaders.h
     src/freebsdKludges.h
-    src/headers.h
     src/ia32_entry.h
     src/ia32_locations.h
     src/ia32_memacc.h
@@ -77,7 +75,6 @@ set(_private_headers
     src/instruction-x86.h
     src/IntervalTree.h
     src/LinearVariable.h
-    src/linuxHeaders.h
     src/linuxKludges.h
     src/lprintf.h
     src/lru_cache.h

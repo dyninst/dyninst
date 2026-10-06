@@ -31,7 +31,6 @@
 #include "common/src/vgannotations.h"
 #include "compiler_diagnostics.h"
 #include "dwarfWalker.h"
-#include "headers.h"
 #include "Module.h"
 #include "Symtab.h"
 #include "Collections.h"
@@ -49,6 +48,7 @@
 #include <dwarf_names.h>
 #include <dwarf_cu_info.h>
 #include <stack>
+#include "symbolDemangleWithCache.h"
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -1721,7 +1721,7 @@ bool DwarfWalker::addFuncToContainer(boost::shared_ptr<Type> returnType) {
       functions, but confuses the tests.  Since Type uses vectors
       to hold field names, however, duplicate -- demangled names -- are OK. */
 
-   std::string demangledName = P_cplus_demangle( curName() );
+   std::string demangledName = symbol_demangle_with_cache( curName(), false );
 
    // Strip everything left of the rightmost ':' off to get rid of the class names
    // rfind finds the last occurrence of ':'; add 1 to get past it.

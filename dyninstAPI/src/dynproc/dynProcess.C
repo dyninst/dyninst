@@ -42,7 +42,6 @@
 #include "registerSpace/registerSpace.h"
 #include "mapped_object.h"
 #include "image.h"
-#include "common/src/headers.h"
 #include "common/src/dyninst_filesystem.h"
 #include <unistd.h>
 #include "PCErrors.h"

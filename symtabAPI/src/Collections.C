@@ -38,7 +38,6 @@
 #include "Module.h"
 #include "Variable.h"
 
-#include "common/src/headers.h"
 
 using namespace std;
 using namespace Dyninst;

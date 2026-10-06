@@ -35,7 +35,6 @@
 #include "BPatch_memoryAccess_NP.h"
 #include "ASTs/codeGenAST.h"
 #include "codegen/RegControl.h"
-#include "common/src/headers.h"
 #include "patching/instPoint.h"
 
 #include <cassert>

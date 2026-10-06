@@ -34,6 +34,7 @@
 #include <assert.h>
 #include <string>
 #include <fstream>
+#include <sys/stat.h>
 
 #include "image.h"
 #include "debug.h"

@@ -44,7 +44,6 @@
 #include "trampolines/baseTramp.h"
 #include "registerSpace/registerSpace.h"
 #include "patching/function.h"
-#include "common/src/linuxHeaders.h"
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using nullAST = Dyninst::DyninstAPI::nullAST;

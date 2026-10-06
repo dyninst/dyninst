@@ -30,7 +30,6 @@
 
 // $Id: syscall-linux.C,v 1.20 2008/05/28 17:14:19 legendre Exp $
 
-#include "common/src/headers.h"
 #include "dynproc/syscallNotification.h"
 #include "dynproc/dynProcess.h"
 #include "patching/instMapping.h"
