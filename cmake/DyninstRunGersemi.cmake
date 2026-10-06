@@ -71,19 +71,20 @@ else()
 endif()
 
 # GERSEMI is whatever the configure-time find_program cached, which is empty
-# or <var>-NOTFOUND if gersemi was not on PATH then.  Look again here, in the
-# environment this target is actually run in, so that installing gersemi
-# after configuring -- or putting it on PATH for one command -- is enough on
-# its own.  Re-running cmake would find it too, but nothing tells the user
-# their build tree is the thing holding the stale answer.
-if(NOT GERSEMI OR GERSEMI MATCHES "NOTFOUND$")
+# or <var>-NOTFOUND if gersemi was not on PATH then; if() reads both of those
+# as false.  Look again here, in the environment this target is actually run
+# in, so that installing gersemi after configuring -- or putting it on PATH
+# for one command -- is enough on its own.  Re-running cmake would find it
+# too, but nothing tells the user their build tree is the thing holding the
+# stale answer.
+if(NOT GERSEMI)
   find_program(_gersemi_on_path NAMES gersemi)
   if(_gersemi_on_path)
     set(GERSEMI "${_gersemi_on_path}")
   endif()
 endif()
 
-if(NOT GERSEMI OR GERSEMI MATCHES "NOTFOUND$")
+if(NOT GERSEMI)
   dyninst_gersemi_section("installing gersemi")
   message(
     "The cmake-check, cmake-check-raw, cmake-reformat and\n"
