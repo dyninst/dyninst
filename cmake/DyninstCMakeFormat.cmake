@@ -25,8 +25,6 @@ mark_as_advanced(DYNINST_GERSEMI_EXECUTABLE)
 
 if(DYNINST_GERSEMI_EXECUTABLE)
   message(STATUS "Found gersemi: ${DYNINST_GERSEMI_EXECUTABLE}")
-else()
-  message(STATUS "Could NOT find gersemi (needed only by the cmake-* targets)")
 endif()
 
 function(dyninst_add_gersemi_target _name _mode _comment)
