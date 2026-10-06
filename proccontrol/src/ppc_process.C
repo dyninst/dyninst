@@ -68,14 +68,16 @@ bool ppc_process::plat_breakpointAdvancesPC() const
    return false;
 }
 
+// Every load-and-reserve / store-conditional width, not only lwarx/stwcx.: a 64-bit ldarx/stdcx.
+// loop (the common case in ppc64 code) that is not recognised here is single-stepped with the
+// hardware, every step trap clears the reservation, stdcx. always fails and the thread never
+// leaves the loop.
 static bool atomicLoad(const instruction &insn) {
-    return (    (XFORM_OP(insn) == LXop)
-             && (XFORM_XO(insn) == LWARXxop) );
+    return insn.isAtomicLoad();
 }
 
 static bool atomicStore(const instruction &insn) {
-    return (    (XFORM_OP(insn) == STXop)
-             && (XFORM_XO(insn) == STWCXxop) );
+    return insn.isAtomicStore();
 }
 
 static void clear_ss_state_cb(int_thread *thr) {
