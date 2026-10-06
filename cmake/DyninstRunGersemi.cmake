@@ -248,7 +248,14 @@ else()
 endif()
 
 if(NOT _result EQUAL 0)
-  if(MODE MATCHES "^check")
+  # gersemi exits non-zero for a file it could not even parse as well as for
+  # one that is merely unformatted, and only the second is what cmake-reformat
+  # is for.  In check mode _reformat_count is the count of files it actually
+  # flagged, so a zero there with a non-zero exit means the reason is in the
+  # warnings section and the generic message below is the true one.  check-raw
+  # hands gersemi's own report straight through without reading it, so there
+  # is nothing to tell the two apart and the advice stands as a guess.
+  if(MODE STREQUAL "check-raw" OR _reformat_count GREATER 0)
     dyninst_gersemi_section("reformatting and inspecting")
     message(
       "The files listed above are not formatted.  To see what would change:\n"
