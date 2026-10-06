@@ -214,16 +214,16 @@ unsigned instruction::opcode() const {
     return -1;
 }
 
+// Load-exclusive (LDXR/LDAXR/LDXP/LDAXP), the start of an LL/SC sequence.  Not LDAR, not CAS.
 bool instruction::isAtomicLoad() const {
-    if( CHECK_INST(ATOMIC.LD) == true)
-        return true;
-    return false;
+    return !((insn_.raw & ATOMIC.REG_MASK) ^ ATOMIC.LD_REG)
+        || !((insn_.raw & ATOMIC.PAIR_MASK) ^ ATOMIC.LD_PAIR);
 }
 
+// Store-exclusive (STXR/STLXR/STXP/STLXP), the end of an LL/SC sequence.  Not STLR, not CAS.
 bool instruction::isAtomicStore() const {
-    if( CHECK_INST(ATOMIC.ST) == true)
-        return true;
-    return false;
+    return !((insn_.raw & ATOMIC.REG_MASK) ^ ATOMIC.ST_REG)
+        || !((insn_.raw & ATOMIC.PAIR_MASK) ^ ATOMIC.ST_PAIR);
 }
 
 } // namespace NS_aarch64
