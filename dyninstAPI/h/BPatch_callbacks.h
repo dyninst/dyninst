@@ -43,6 +43,8 @@ class BPatch_function;
 class BPatch_basicBlock;
 class BPatch_object;
 
+namespace Dyninst { namespace SymtabAPI { class Symtab; } }
+
 typedef enum {
     BPatchFatal, BPatchSerious, BPatchWarning, BPatchInfo
 } BPatchErrorLevel;
@@ -67,6 +69,14 @@ typedef void (*BPatchUserEventCallback)(BPatch_process *proc, void *buf,
 typedef void (*BPatchDynLibraryCallback)(BPatch_thread *proc,
 					 BPatch_object *mod,
 					 bool load);
+
+// Decides whether a shared object should be analyzed.  Called once per
+// shared object as it is loaded, after its symbol table has been read but
+// before any CFG is built, so that the decision can be based on the
+// object's contents -- its name, its size, how many functions it has.
+// Returning false leaves the object loaded but unparsed, exactly as
+// BPatch::addAnalysisExcludePattern does.
+typedef bool (*BPatchAnalyzeObjectCallback)(Dyninst::SymtabAPI::Symtab *symtab);
 
 typedef void (*BPatchForkCallback)(BPatch_thread *parent, 
                                    BPatch_thread *child);

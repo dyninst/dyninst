@@ -151,6 +151,10 @@ class DYNINST_EXPORT BPatch {
        what it calls itself.  Static for the same reason. */
     static std::vector<std::string> analysisExcludeSonames_;
 
+    /* Consulted for each object no pattern has already excluded.  Static for
+       the same reason. */
+    static BPatchAnalyzeObjectCallback analyzeObjectCallback_;
+
     bool instrFrames;
 
 	/* this is used to denote the fully qualified name of the prelink command on linux */
@@ -698,6 +702,26 @@ public:
     //  has already opened.
 
     bool  analysisExcluded(Dyninst::SymtabAPI::Symtab *symtab) const;
+
+    //  BPatch::registerAnalyzeObjectCallback:
+    //  Register a filter deciding whether a shared object is analyzed, and
+    //  return the one it replaces, or NULL.  Where the patterns above match a
+    //  name known in advance, this decides from the object itself: it is
+    //  passed the Symtab, so it can consult the size of the symbol table, or
+    //  anything else SymtabAPI exposes.  Skipping every library above some
+    //  number of functions, say, cannot be written as a pattern.
+    //
+    //  It is consulted by analysisExcluded(Symtab *), so it sees only objects
+    //  no pattern has already excluded, and never the executable or the
+    //  Dyninst runtime library.  It runs inside the load path, so it must not
+    //  call back into Dyninst.
+
+    BPatchAnalyzeObjectCallback registerAnalyzeObjectCallback(BPatchAnalyzeObjectCallback func);
+
+    //  BPatch::getAnalyzeObjectCallback:
+    //  Return the currently registered filter, or NULL if there is none.
+
+    BPatchAnalyzeObjectCallback getAnalyzeObjectCallback() const;
 };
 
 

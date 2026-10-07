@@ -139,6 +139,7 @@ BPatch::BPatch()
     // whatever the previous one was told.
     clearAnalysisExcludePatterns();
     clearAnalysisExcludeSonames();
+    registerAnalyzeObjectCallback(NULL);
 
     extern bool init();
 
@@ -1903,6 +1904,7 @@ void BPatch::addNonReturningFunc(std::string name)
 
 std::vector<std::string> BPatch::analysisExcludePatterns_;
 std::vector<std::string> BPatch::analysisExcludeSonames_;
+BPatchAnalyzeObjectCallback BPatch::analyzeObjectCallback_ = NULL;
 
 
 void BPatch::addAnalysisExcludePattern(const char *pattern)
@@ -1930,6 +1932,21 @@ void BPatch::addAnalysisExcludeSoname(const char *pattern)
 void BPatch::clearAnalysisExcludeSonames()
 {
   analysisExcludeSonames_.clear();
+}
+
+
+BPatchAnalyzeObjectCallback
+BPatch::registerAnalyzeObjectCallback(BPatchAnalyzeObjectCallback func)
+{
+  BPatchAnalyzeObjectCallback previous = analyzeObjectCallback_;
+  analyzeObjectCallback_ = func;
+  return previous;
+}
+
+
+BPatchAnalyzeObjectCallback BPatch::getAnalyzeObjectCallback() const
+{
+  return analyzeObjectCallback_;
 }
 
 
@@ -1975,6 +1992,12 @@ bool BPatch::analysisExcluded(Dyninst::SymtabAPI::Symtab *symtab) const
         return true;
       }
     }
+  }
+
+  // Last, because it is the only filter that can run arbitrary code: a
+  // pattern match spares the callback the object entirely.
+  if (analyzeObjectCallback_ != NULL && !(*analyzeObjectCallback_)(symtab))  {
+    return true;
   }
   return false;
 }
