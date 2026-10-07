@@ -149,10 +149,14 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
 
  public:
     // We need a way to check for errors; hence a "get" method
+    // mayExclude is false for an object the caller named outright: the
+    // target of a binary rewrite is instrumented even when a pattern also
+    // matches it.
     static mapped_object *createMappedObject(fileDescriptor &desc,
                                              AddressSpace *p,
                                              BPatch_hybridMode m = BPatch_normalMode,
-                                             bool parseGaps = true);
+                                             bool parseGaps = true,
+                                             bool mayExclude = true);
     static mapped_object *createMappedObject(ProcControlAPI::Library::const_ptr lib,
                                              AddressSpace *p,
                                              BPatch_hybridMode m = BPatch_normalMode,
@@ -285,7 +289,8 @@ public:
     // we've lost the module name.
 
     const std::vector<func_instance *> *findFuncVectorByPretty(const std::string &funcname);
-    const std::vector<func_instance *> *findFuncVectorByMangled(const std::string &funcname);
+    const std::vector<func_instance *> *findFuncVectorByMangled(const std::string &funcname,
+                                                                bool includePLTStubs = false);
 
     bool findFuncsByAddr(std::vector<func_instance *> &funcs);
     bool findBlocksByAddr(std::vector<block_instance *> &blocks);
@@ -300,6 +305,11 @@ public:
 	bool isDirty() { return dirty_; }
 
     func_instance *findFunction(ParseAPI::Function *img_func);
+
+    // ppc64 only; no-op elsewhere.  Records this object's TOC base and pairs
+    // a Power ABI v2 global entry with its local entry at the func_instance
+    // layer.  Safe to call more than once for the same function.
+    void linkPowerPreamble(parse_func *f);
 
     int_variable *findVariable(image_variable *img_var);
 

@@ -31,6 +31,8 @@
 #include <stdio.h>
 #include <assert.h>
 #include <signal.h>
+#include <string.h>
+#include <fnmatch.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #if !defined(os_windows)
@@ -48,6 +50,7 @@
 #include "hybridAnalysis.h"
 #include "BPatch_object.h"
 #include "os.h"
+#include "Symtab.h"
 
 // ProcControlAPI interface
 #include "dynproc/dynProcess.h"
@@ -107,7 +110,6 @@ BPatch::BPatch()
     livenessAnalysisOn_(true),
     livenessAnalysisDepth_(3),
     asyncActive(false),
-    delayedParsing_(false),
     instrFrames(false),
     systemPrelinkCommand(NULL),
     notificationFDOutput_(-1),
@@ -132,6 +134,12 @@ BPatch::BPatch()
     type_Untyped(NULL)
 {
     init_debug();
+
+    // The exclusion state is static, so a new BPatch would otherwise inherit
+    // whatever the previous one was told.
+    clearAnalysisExcludePatterns();
+    clearAnalysisExcludeSonames();
+    registerAnalyzeObjectCallback(NULL);
 
     extern bool init();
 
@@ -245,10 +253,6 @@ bool BPatch::parseDebugInfo()
 {
   return debugParseOn;
 }
-bool BPatch::delayedParsingOn()
-{
-  return delayedParsing_;
-}
 void BPatch::setDebugParsing(bool x)
 {
   debugParseOn = x;
@@ -300,10 +304,6 @@ bool BPatch::autoRelocationOn()
 void BPatch::setAutoRelocation_NP(bool x)
 {
   autoRelocation_NP = x;
-}
-void BPatch::setDelayedParsing(bool x)
-{
-  delayedParsing_ = x;
 }
 bool BPatch::isMergeTramp()
 {
@@ -1900,6 +1900,108 @@ void BPatch::addNonReturningFunc(std::string name)
 {
   Dyninst::ParseAPI::SymtabCodeSource::addNonReturning(name);
 }
+
+
+std::vector<std::string> BPatch::analysisExcludePatterns_;
+std::vector<std::string> BPatch::analysisExcludeSonames_;
+BPatchAnalyzeObjectCallback BPatch::analyzeObjectCallback_ = NULL;
+
+
+void BPatch::addAnalysisExcludePattern(const char *pattern)
+{
+  if (pattern && *pattern)  {
+    analysisExcludePatterns_.push_back(pattern);
+  }
+}
+
+
+void BPatch::clearAnalysisExcludePatterns()
+{
+  analysisExcludePatterns_.clear();
+}
+
+
+void BPatch::addAnalysisExcludeSoname(const char *pattern)
+{
+  if (pattern && *pattern)  {
+    analysisExcludeSonames_.push_back(pattern);
+  }
+}
+
+
+void BPatch::clearAnalysisExcludeSonames()
+{
+  analysisExcludeSonames_.clear();
+}
+
+
+BPatchAnalyzeObjectCallback
+BPatch::registerAnalyzeObjectCallback(BPatchAnalyzeObjectCallback func)
+{
+  BPatchAnalyzeObjectCallback previous = analyzeObjectCallback_;
+  analyzeObjectCallback_ = func;
+  return previous;
+}
+
+
+BPatchAnalyzeObjectCallback BPatch::getAnalyzeObjectCallback() const
+{
+  return analyzeObjectCallback_;
+}
+
+
+bool BPatch::analysisExcluded(const char *name) const
+{
+  if (!name || analysisExcludePatterns_.empty())  {
+    return false;
+  }
+
+  // Match each pattern against the full path and against the base name, so
+  // that "libLLVM.so*" catches "/usr/lib64/libLLVM.so.23.0git".
+  const char *base = strrchr(name, '/');
+  base = base ? base + 1 : name;
+
+  for (auto const &pat : analysisExcludePatterns_)  {
+    if (fnmatch(pat.c_str(), name, 0) == 0 ||
+        fnmatch(pat.c_str(), base, 0) == 0)  {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+// The decision Dyninst itself makes about an object.  Everything that can
+// exclude an object is applied here, so that a caller asking what Dyninst
+// would do gets the same answer Dyninst acts on.
+bool BPatch::analysisExcluded(Dyninst::SymtabAPI::Symtab *symtab) const
+{
+  if (symtab == NULL)  {
+    return false;
+  }
+  if (analysisExcluded(symtab->file().c_str()))  {
+    return true;
+  }
+
+  // DT_SONAME, when the object has one.  Matched whole: unlike a path there
+  // is no base name to fall back on.
+  const char *soname = symtab->getSOName();
+  if (soname != NULL)  {
+    for (auto const &pat : analysisExcludeSonames_)  {
+      if (fnmatch(pat.c_str(), soname, 0) == 0)  {
+        return true;
+      }
+    }
+  }
+
+  // Last, because it is the only filter that can run arbitrary code: a
+  // pattern match spares the callback the object entirely.
+  if (analyzeObjectCallback_ != NULL && !(*analyzeObjectCallback_)(symtab))  {
+    return true;
+  }
+  return false;
+}
+
 
 int BPatch_libInfo::getStopThreadCallbackID(Address cb) {
    auto iter = stopThreadCallbacks_.find(cb);

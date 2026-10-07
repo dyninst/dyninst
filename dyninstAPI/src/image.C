@@ -44,6 +44,7 @@
 #include "common/src/dyninst_filesystem.h"
 #include "common/src/MappedFile.h"
 #include "common/h/util.h"
+#include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/h/BPatch_flowGraph.h"
 
 #include "symtabAPI/h/Function.h"
@@ -86,6 +87,19 @@ namespace {
       return f && f->getModule() && f->getModule()->fileName() == "DYNINSTheap";
     }
   } nuke_heap;
+
+  // An excluded object gets no hints at all, so its CodeObject is empty rather
+  // than holding entry-less HINT stubs: CodeObject::process_hints() runs before
+  // the ignoreParse check, and record_hint_functions() would otherwise publish
+  // Functions whose entry() is NULL.
+  struct filt_all : SymtabCodeSource::hint_filt {
+    bool operator()(SymtabAPI::Function *) {
+      return true;
+    }
+    bool filterEntryPoint() {
+      return true;
+    }
+  } nuke_all;
 }
 
 fileDescriptor::fileDescriptor():
@@ -1168,7 +1182,8 @@ void image::findModByAddr (const Symbol *lookUp, vector<Symbol *> &mods,
 
 image *image::parseImage(fileDescriptor &desc, 
                          BPatch_hybridMode mode, 
-                         bool parseGaps)
+                         bool parseGaps,
+                         bool mayExclude)
 {
   /*
    * Check to see if we have parsed this image before. We will
@@ -1200,7 +1215,7 @@ image *image::parseImage(fileDescriptor &desc,
 #endif
 
   startup_printf("%s[%d]:  about to create image\n", FILE__, __LINE__);
-  image *ret = new image(desc, err, mode, parseGaps); 
+  image *ret = new image(desc, err, mode, parseGaps, mayExclude); 
   if(err) {
     return nullptr;
   }
@@ -1277,6 +1292,9 @@ int image::destroy() {
 }
 
 void image::analyzeIfNeeded() {
+  if (analysisExcluded_)  {
+      return;
+  }
   if (parseState_ == symtab) {
       parsing_printf("ANALYZING IMAGE %s\n",
               file().c_str());
@@ -1330,6 +1348,42 @@ static bool CheckForPowerPreamble(parse_block* entryBlock, Address &tocBase) {
     return false;
 }
 
+
+// Power ABI v2 gives a function two entry points: a global one that establishes
+// the TOC and a local one 8 bytes later that skips it.  Record the TOC base and
+// link the global entry to its local counterpart.
+//
+// When the whole object has been parsed the caller has already indexed every
+// function by address and passes that map.  A function parsed on demand has no
+// such index, so pass NULL and the counterpart is looked up in whatever has
+// been parsed so far.
+void image::checkPowerPreamble(parse_func *funct,
+                               const std::map<uint64_t, parse_func *> *overlaps)
+{
+   if (funct == NULL || funct->entry() == NULL)  {
+      return;
+   }
+
+   Address tocBase = 0;
+   if (!CheckForPowerPreamble(static_cast<parse_block*>(funct->entry()), tocBase))  {
+      return;
+   }
+   funct->setPowerTOCBaseAddress(tocBase);
+   funct->setContainsPowerPreamble(true);
+
+   parse_func *localEntry = NULL;
+   if (overlaps != NULL)  {
+      auto iter = overlaps->find(funct->addr() + 0x8);
+      if (iter != overlaps->end())  {
+         localEntry = iter->second;
+      }
+   }  else  {
+      localEntry = findFuncByEntry(funct->addr() + 0x8);
+   }
+   if (localEntry != NULL)  {
+      funct->setNoPowerPreambleFunc(localEntry);
+   }
+}
 
 
 void image::analyzeImage() {
@@ -1393,7 +1447,8 @@ void image::analyzeImage() {
 image::image(fileDescriptor &desc, 
              bool &err, 
              BPatch_hybridMode mode, 
-             bool parseGaps) :
+             bool parseGaps,
+             bool mayExclude) :
    desc_(desc),
    imageOffset_(0),
    imageLen_(0),
@@ -1415,6 +1470,7 @@ image::image(fileDescriptor &desc,
    trackNewBlocks_(false),
    refCount(1),
    parseState_(unparsed),
+   analysisExcluded_(false),
    parseGaps_(parseGaps),
    mode_(mode),
    arch(Dyninst::Arch_none)
@@ -1505,6 +1561,25 @@ image::image(fileDescriptor &desc,
                 FILE__, __LINE__);
    }
 
+   // Needed below to decide whether this object may be excluded from
+   // analysis; it is only two symbol lookups.
+   startup_printf("%s[%d]:  before determineImageType\n", FILE__, __LINE__);
+   determineImageType();
+
+   // The executable and the runtime library are always analyzed, and so is an
+   // object the caller named outright: rewriting a library that a pattern also
+   // matches should instrument it, not copy it through untouched.
+   if (mayExclude && isSharedLibrary() && !isDyninstRTLib() &&
+       BPatch::bpatch != NULL)  {
+       analysisExcluded_ = BPatch::bpatch->analysisExcluded(linkedFile);
+   }
+   if (analysisExcluded_)  {
+       startup_printf("%s[%d]: excluded from analysis, building no CFG for %s\n",
+                      FILE__, __LINE__, desc.file().c_str());
+       filt = &nuke_all;
+       parseGaps_ = false;
+   }
+
    // Initialize ParseAPI 
    bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
    cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
@@ -1512,9 +1587,13 @@ image::image(fileDescriptor &desc,
    // Continue ParseAPI init
    img_fact_ = new Dyninst::DyninstAPI::DynCFGFactory(this);
    parse_cb_ = new Dyninst::DyninstAPI::DynParseCallback(this);
-   obj_ = new CodeObject(cs_,img_fact_,parse_cb_,BPatch_defensiveMode == mode);
+   obj_ = new CodeObject(cs_,img_fact_,parse_cb_,BPatch_defensiveMode == mode,
+                         analysisExcluded_);
 
-     if (obj_->cs()->getArch() == Arch_ppc64) {
+     // An excluded object has no functions yet, and the ones it acquires are
+     // parsed one at a time later; each is checked as it appears, in
+     // parseExcludedFunction.
+     if (!analysisExcluded_ && obj_->cs()->getArch() == Arch_ppc64)  {
         // The PowerPC new ABI typically generate two entries per function.
         // Need special hanlding for them
         std::map<uint64_t, parse_func *> _findPower8Overlaps;
@@ -1523,16 +1602,7 @@ image::image(fileDescriptor &desc,
             _findPower8Overlaps[funct->addr()] = funct;
         }
         for (auto fit = obj_->funcs().begin(); fit != obj_->funcs().end(); ++fit) {
-            parse_func* funct = static_cast<parse_func*>(*fit);
-            Address tocBase = 0;
-            if(CheckForPowerPreamble(static_cast<parse_block*>(funct->entry()), tocBase)){
-                funct->setPowerTOCBaseAddress(tocBase);
-                funct->setContainsPowerPreamble(true);
-                auto iter = _findPower8Overlaps.find(funct->addr() + 0x8);
-                if (iter != _findPower8Overlaps.end()) {
-                    funct->setNoPowerPreambleFunc(iter->second);
-                } 
-            }
+            checkPowerPreamble(static_cast<parse_func*>(*fit), &_findPower8Overlaps);
         }
     }
 
@@ -1543,9 +1613,6 @@ image::image(fileDescriptor &desc,
    statusLine(msg.c_str());
 
 
-   // Check if image is libdyninstRT
-   startup_printf("%s[%d]:  before determineImageType\n", FILE__, __LINE__);
-   determineImageType();
    if (isDyninstRTLib()) { // don't parse gaps in the runtime library
        parseGaps_ = false;
    }
@@ -1836,6 +1903,34 @@ image::findBlocksByAddr(const Address addr, set<ParseAPI::Block *> & blocks )
 // Return the vector of functions associated with a pretty (demangled) name
 // Very well might be more than one!
 
+
+// An excluded image has no CFG, so a lookup by name finds nothing even though
+// the symbol is sitting in the symbol table.  Parse this function on demand and
+// leave the rest of the image alone, so the caller gets what it asked for
+// without the bulk parse we were told to skip.
+//
+// The parse has to be recursive.  Parser::parse_frame_one_iteration asserts
+// that the callee of a call edge already exists as a Function when it decides
+// whether the fallthrough edge survives, and a non-recursive parse never
+// creates one.  So this pulls in whatever the requested function reaches --
+// still far less than the whole object.
+parse_func *image::parseExcludedFunction(SymtabAPI::Function *symFunc)
+{
+   if (!analysisExcluded_ || symFunc == NULL)  {
+      return NULL;
+   }
+   parsing_printf("[%s:%d] on-demand parse of %s in excluded image %s\n",
+                  FILE__, __LINE__, symFunc->getName().c_str(), file().c_str());
+   obj_->parse(symFunc->getOffset(), true);
+
+   parse_func *ret = static_cast<parse_func *>(symFunc->getData());
+   if (obj_->cs()->getArch() == Arch_ppc64)  {
+      checkPowerPreamble(ret, NULL);
+   }
+   return ret;
+}
+
+
 const std::vector<parse_func *> *image::findFuncVectorByPretty(const std::string &name) {
     //Have to change here
     std::vector<parse_func *>* res = new std::vector<parse_func *>;
@@ -1846,6 +1941,9 @@ const std::vector<parse_func *> *image::findFuncVectorByPretty(const std::string
     {
         SymtabAPI::Function *symFunc = funcs[index];
         parse_func *imf = static_cast<parse_func *>(symFunc->getData());
+        if (imf == NULL)  {
+            imf = parseExcludedFunction(symFunc);
+        }
         if (imf) {
             res->push_back(imf);
         }
@@ -1861,7 +1959,8 @@ const std::vector<parse_func *> *image::findFuncVectorByPretty(const std::string
 // Return the vector of functions associated with a mangled name
 // Very well might be more than one! -- multiple static functions in different .o files
 
-const std::vector <parse_func *> *image::findFuncVectorByMangled(const std::string &name)
+const std::vector <parse_func *> *image::findFuncVectorByMangled(const std::string &name,
+                                                                 bool includePLTStubs)
 {
     std::vector<parse_func *>* res = new std::vector<parse_func *>;
 
@@ -1871,13 +1970,16 @@ const std::vector <parse_func *> *image::findFuncVectorByMangled(const std::stri
     for(unsigned index=0; index < funcs.size(); index++) {
         SymtabAPI::Function *symFunc = funcs[index];
         parse_func *imf = static_cast<parse_func *>(symFunc->getData());
-        
+
+        if (imf == NULL)  {
+            imf = parseExcludedFunction(symFunc);
+        }
         if (imf) {
             res->push_back(imf);
         }
     }
 
-    if (res->empty()) {
+    if (res->empty() && includePLTStubs)  {
         // Lookup PLT stubs
         auto it = plt_parse_funcs.find(name);
         if (it != plt_parse_funcs.end()) {

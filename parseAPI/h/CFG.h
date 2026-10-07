@@ -449,6 +449,11 @@ class DYNINST_EXPORT Function : public AnnotatableSparse, public boost::lockable
     Block * entry() const { return _entry; }
     bool parsed() const { return _parsed; }
 
+    /* True if this function is an external linkage stub (the PLT on ELF)
+       rather than a definition.  Backed by CodeSource::linkage(), so it
+       covers .plt, .plt.sec and .plt.got. */
+    DYNINST_EXPORT bool isPLTStub() const;
+
     /* Basic block and CFG access */
     blocklist blocks();
     const_blocklist blocks() const;

@@ -89,6 +89,36 @@ namespace Dyninst { namespace DyninstAPI {
       }
     }
     if (!st->findFuncByEntryOffset(stf, addr)) {
+      // The parser hands us an invented targ<addr> for a function it found by
+      // following control flow rather than from a hint.  When the symbol table
+      // names that address, that name is the real one and belongs on the
+      // function: an object excluded from analysis is parsed with no hints at
+      // all, so everything an on-demand parse reaches arrives here unnamed
+      // even though its symbol was there the whole time.
+      // The symbol is almost always an untyped one.  Symtab aggregates every
+      // ST_FUNCTION and ST_INDIRECT symbol into a Function keyed by offset,
+      // and the findFuncByEntryOffset above is a lookup in that same map, so
+      // a typed symbol at this address would already have been found.  What
+      // reaches here is ST_NOTYPE or ST_CODE: hand-written assembly routinely
+      // labels an entry point without typing it, and such a name is still the
+      // one the author gave it.  ST_FUNCTION is preferred anyway for the one
+      // case that escapes the map -- in a relocatable file an offset does not
+      // identify a symbol, so those functions are deliberately kept out of it.
+      SymtabAPI::Symbol *best{};
+      for (auto *sym : st->findSymbolByOffset(addr)) {
+        SymtabAPI::Symbol::SymbolType t = sym->getType();
+        if (t == SymtabAPI::Symbol::ST_FUNCTION) {
+          best = sym;
+          break;
+        }
+        if (!best &&
+            (t == SymtabAPI::Symbol::ST_NOTYPE || t == SymtabAPI::Symbol::ST_CODE)) {
+          best = sym;
+        }
+      }
+      if (best && !best->getMangledName().empty()) {
+        name = best->getMangledName();
+      }
       stf = st->createFunction(name, addr, 0, pdmod->mod());
     } else {
       pdmod = _img->getOrCreateModule(stf->getModule());

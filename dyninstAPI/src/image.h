@@ -259,9 +259,12 @@ class image : public codeRange {
    friend class image_variable;
    friend class Dyninst::DyninstAPI::DynCFGFactory;
  public:
+   // analyze == false: load the object but build no CFG for it.  Ignored for
+   // the executable and for the Dyninst runtime library, which always parse.
    static image *parseImage(fileDescriptor &desc, 
                             BPatch_hybridMode mode,
-                            bool parseGaps);
+                            bool parseGaps,
+                            bool mayExclude = true);
 
    // And to get rid of them if we need to re-parse
    static void removeImage(image *img);
@@ -274,9 +277,14 @@ class image : public codeRange {
 
    image(fileDescriptor &desc, bool &err, 
          BPatch_hybridMode mode,
-         bool parseGaps);
+         bool parseGaps,
+         bool mayExclude = true);
 
    void analyzeIfNeeded();
+   bool analysisExcluded() const { return analysisExcluded_; }
+   parse_func *parseExcludedFunction(Dyninst::SymtabAPI::Function *symFunc);
+   void checkPowerPreamble(parse_func *funct,
+                           const std::map<uint64_t, parse_func *> *overlaps);
    bool isParsed() { return parseState_ == analyzed; }
    parse_func* addFunction(Address functionEntryAddr, const char *name=NULL);
 
@@ -295,7 +303,10 @@ class image : public codeRange {
    // Find the vector of functions associated with a (demangled) name
    // Returns internal pointer, so label as const
    const std::vector <parse_func *> *findFuncVectorByPretty(const std::string &name);
-   const std::vector <parse_func *> *findFuncVectorByMangled(const std::string &name);
+   // includePLTStubs: also match external linkage (PLT) stubs, which are
+   // not in the Symtab and are tracked separately in plt_parse_funcs.
+   const std::vector <parse_func *> *findFuncVectorByMangled(const std::string &name,
+                                                             bool includePLTStubs = false);
    // Variables: nearly identical
    const std::vector <image_variable *> *findVarVectorByPretty(const std::string &name);
    const std::vector <image_variable *> *findVarVectorByMangled(const std::string &name);
@@ -498,6 +509,8 @@ class image : public codeRange {
 
    int refCount;
    imageParseState_t parseState_;
+   // Excluded from analysis: no CFG was built and none will be.
+   bool analysisExcluded_;
    bool parseGaps_;
    BPatch_hybridMode mode_;
    Dyninst::Architecture arch;

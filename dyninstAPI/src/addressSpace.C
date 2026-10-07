@@ -690,7 +690,8 @@ bool AddressSpace::findFuncsByPretty(const std::string &funcname,
 
 bool AddressSpace::findFuncsByMangled(const std::string &funcname,
                                       std::vector<func_instance *> &res,
-                                      const std::string &libname) { // = "", btw
+                                      const std::string &libname,
+                                      bool includePLTStubs) { // libname = "", btw
    unsigned starting_entries = res.size(); // We'll return true if we find something
 
    for (unsigned i = 0; i < mapped_objects.size(); i++) {
@@ -698,7 +699,7 @@ bool AddressSpace::findFuncsByMangled(const std::string &funcname,
           mapped_objects[i]->fileName() == libname.c_str() ||
           mapped_objects[i]->fullName() == libname.c_str()) {
          const std::vector<func_instance *> *mangled = 
-            mapped_objects[i]->findFuncVectorByMangled(funcname);
+            mapped_objects[i]->findFuncVectorByMangled(funcname, includePLTStubs);
          if (mangled) {
             for (unsigned mm = 0; mm < mangled->size(); mm++) {
                res.push_back((*mangled)[mm]);

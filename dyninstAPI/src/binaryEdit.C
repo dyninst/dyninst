@@ -305,7 +305,8 @@ BinaryEdit::~BinaryEdit()
 BinaryEdit *BinaryEdit::openFile(const std::string &file, 
                                  PatchMgrPtr mgr, 
                                  Dyninst::PatchAPI::Patcher::Ptr patch,
-                                 const std::string &member) {
+                                 const std::string &member,
+                                 bool isDependency) {
     if (!OS::executableExists(file)) {
         startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__, file.c_str());
         std::string msg = std::string("Can't read executable file ") + file + (": ") + strerror(errno);
@@ -322,7 +323,11 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file,
 
     BinaryEdit *newBinaryEdit = new BinaryEdit();
 
-    newBinaryEdit->mobj = mapped_object::createMappedObject(desc, newBinaryEdit);
+    // The file the caller named is always analyzed; only the dependencies
+    // pulled in behind it are subject to the exclusion patterns.
+    newBinaryEdit->mobj = mapped_object::createMappedObject(desc, newBinaryEdit,
+                                                           BPatch_normalMode,
+                                                           true, isDependency);
     if (!newBinaryEdit->mobj) {
         startup_printf("%s[%d]: failed to create mapped object for %s\n",
                        FILE__, __LINE__, file.c_str());
@@ -394,7 +399,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename, std::ma
      */
     std::map<std::string, BinaryEdit *> retMap;
     assert(mgr());
-    BinaryEdit *temp = BinaryEdit::openFile(filename, mgr(), patcher());
+    BinaryEdit *temp = BinaryEdit::openFile(filename, mgr(), patcher(), "", true);
 
     if( temp && temp->getAddressWidth() == getAddressWidth() ) {
        allOpened.insert(std::make_pair(filename, temp));

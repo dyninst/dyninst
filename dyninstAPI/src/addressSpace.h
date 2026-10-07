@@ -229,7 +229,8 @@ class AddressSpace : public InstructionSource {
                            const std::string &libname = "");
     bool findFuncsByMangled(const std::string &funcname, 
                             std::vector<func_instance *> &res,
-                            const std::string &libname = "");
+                            const std::string &libname = "",
+                            bool includePLTStubs = false);
     
     bool findVarsByAll(const std::string &varname,
                        std::vector<int_variable *> &res,

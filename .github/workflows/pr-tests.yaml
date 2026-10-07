@@ -135,7 +135,11 @@ jobs:
         run: |
           set -ex
           cd ${GITHUB_WORKSPACE}/external-tests; mkdir build; cd build
-          cmake .. -DDyninst_ROOT=${{ matrix.install-dir }} -DCMAKE_CXX_STANDARD=17
+          # The runner forbids the ptrace the live-process tests need, so
+          # ask external-tests to leave them out.  Until external-tests
+          # defines the option, CMake reports it unused and carries on.
+          cmake .. -DDyninst_ROOT=${{ matrix.install-dir }} -DCMAKE_CXX_STANDARD=17 \
+                   -DDYNINST_ENABLE_DYNAMIC_TESTS=OFF
           cmake --build . --parallel 2
 
       - name: Run external tests
@@ -221,7 +225,11 @@ jobs:
         run: |
           set -ex
           cd ${GITHUB_WORKSPACE}/external-tests; mkdir build; cd build
-          cmake .. -DDyninst_ROOT="${GITHUB_WORKSPACE}/install" -DCMAKE_CXX_STANDARD=17
+          # The runner forbids the ptrace the live-process tests need, so
+          # ask external-tests to leave them out.  Until external-tests
+          # defines the option, CMake reports it unused and carries on.
+          cmake .. -DDyninst_ROOT="${GITHUB_WORKSPACE}/install" -DCMAKE_CXX_STANDARD=17 \
+                   -DDYNINST_ENABLE_DYNAMIC_TESTS=OFF
           cmake --build . --parallel 2
 
       - name: Run external tests

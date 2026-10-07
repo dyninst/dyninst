@@ -154,25 +154,132 @@ loop, because waitForStatusChange blocks the mutator process while waiting.
 }
 
 \begin{apient}
-void setDelayedParsing(bool);
+void addAnalysisExcludePattern(const char *pattern);
 \end{apient}
 
 \apidesc{
-Turn on or off delayed parsing. When it is activated Dyninst will initially parse only the symbol table information in
-any new modules loaded by the program, and will postpone more thorough analysis (instrumentation point analysis,
-variable analysis, and discovery of new functions in stripped binaries). This analysis will automatically occur when
-the information is necessary.
-Users which require small run-time perturbation of a program should not delay parsing; the overhead for analysis may
-occur at unexpected times if it is triggered by internal Dyninst behavior. Users who desire instrumentation of a
-small number of functions will benefit from delayed parsing.
+Exclude shared objects from analysis. A shared object whose name matches \code{pattern} is
+still loaded --- its symbol table is read, and its symbols, address ranges and inferior heaps
+remain available --- but Dyninst builds no control flow graph for it, so it contains no
+functions and no basic blocks. This avoids the cost of parsing libraries that will never be
+instrumented, which can dominate process creation for programs that load very large shared
+libraries.
+
+\code{pattern} is a shell-style wildcard expression as accepted by \code{fnmatch(3)},
+supporting \code{*}, \code{?} and \code{[...]}. It is matched against both the object's full
+path and its base name, so \code{libLLVM.so*} matches
+\code{/usr/lib64/libLLVM.so.23.0git}. This function may be called more than once; an object is
+excluded if it matches any of the patterns.
+
+Patterns must be added before the process is created or the binary is opened, since an object
+is analyzed at the point it is loaded. The executable and the Dyninst runtime library are
+never excluded, and neither is a file named outright by \code{openBinary}: rewriting a library
+that a pattern also matches instruments it rather than copying it through untouched. Only the
+dependencies opened behind that file are eligible.
+
+Exclusion suppresses the parse that would otherwise happen when the object is loaded; it does
+not make the object's functions permanently unreachable. Looking one up by name still succeeds:
+that single function is parsed at the point it is requested, and can then be instrumented like
+any other. This is what lets Dyninst keep working when a library it itself depends on is
+excluded, and it means a mutator can exclude a large library wholesale and still instrument the
+handful of functions in it that it cares about.
+
+What exclusion does cost is everything that depends on having parsed the object up front. A
+lookup by address finds nothing there, since there is no control flow graph to search. Queries
+that enumerate rather than name -- \code{BPatch\_module::getProcedures}, and so the module's
+function list -- report only those functions already parsed on demand, which is normally none of
+them. Neither recovers by parsing the object, because neither has a particular function to ask
+for.
 }
 
 \begin{apient}
-bool delayedParsingOn();
+void clearAnalysisExcludePatterns();
 \end{apient}
 
 \apidesc{
-Return true if delayed parsing is enabled, or false otherwise.
+Discard every pattern previously passed to \code{addAnalysisExcludePattern}. Objects that have
+already been loaded are unaffected.
+}
+
+\begin{apient}
+void addAnalysisExcludeSoname(const char *pattern);
+\end{apient}
+
+\apidesc{
+As \code{addAnalysisExcludePattern}, but matched against the object's \code{DT\_SONAME} rather
+than its file name. The two name different things: a file name says where a library sits, which
+varies with the search path and does not survive renaming, while \code{DT\_SONAME} is the name
+the library calls itself and the name everything linking against it records. Matching on it
+therefore picks out the same library wherever it was found.
+
+The pattern is matched against the whole \code{DT\_SONAME}; unlike a path there is no base name
+to fall back on. An object without one --- an executable, or a library built without it ---
+matches no such pattern. The two pattern lists are independent, and an object is excluded if it
+matches either.
+}
+
+\begin{apient}
+void clearAnalysisExcludeSonames();
+\end{apient}
+
+\apidesc{
+Discard every pattern previously passed to \code{addAnalysisExcludeSoname}. Objects that have
+already been loaded are unaffected.
+}
+
+\begin{apient}
+bool analysisExcluded(const char *name) const;
+\end{apient}
+
+\apidesc{
+Return true if \code{name} matches any pattern passed to \code{addAnalysisExcludePattern},
+using the same matching rules. This asks only about the name, so it can be called before the
+object it names has been opened.
+}
+
+\begin{apient}
+bool analysisExcluded(Dyninst::SymtabAPI::Symtab *symtab) const;
+\end{apient}
+
+\apidesc{
+Return true if \code{symtab} is excluded from analysis. This is the decision Dyninst itself
+makes, and it is made from the object rather than from a name: it applies the patterns above to
+the object's path and base name, together with every other filter registered on this
+\code{BPatch}. Use it to ask what Dyninst would decide about an object already opened.
+}
+
+\begin{apient}
+typedef bool (*BPatchAnalyzeObjectCallback)(Dyninst::SymtabAPI::Symtab *symtab);
+
+BPatchAnalyzeObjectCallback
+registerAnalyzeObjectCallback(BPatchAnalyzeObjectCallback func);
+\end{apient}
+
+\apidesc{
+Register a callback that decides whether a shared object is analyzed, and return the
+previously registered callback, or NULL. Where \code{addAnalysisExcludePattern} matches on a
+name known in advance, this decides from the object's contents: the callback is passed that
+object's \code{Symtab}, so it can consult the size of the symbol table --
+\code{getAllFunctionsRef().size()} -- or anything else SymtabAPI exposes. Skipping every
+library above some number of functions, for instance, cannot be written as a pattern.
+
+The callback is invoked once per shared object as the object is loaded, after its symbol table
+has been read but before any control flow graph is built. Returning false leaves the object
+loaded but unparsed, exactly as a matching pattern would; returning true analyzes it normally.
+
+It is consulted by \code{analysisExcluded}, and last of the filters there, so a pattern match
+spares it the object entirely. It is never asked about the executable, the Dyninst runtime
+library, or a file named outright by \code{openBinary}. It must be registered before the
+process is created or the binary is opened, and, because it runs inside the load path, it must
+not call back into Dyninst.
+}
+
+\begin{apient}
+BPatchAnalyzeObjectCallback getAnalyzeObjectCallback() const;
+\end{apient}
+
+\apidesc{
+Return the currently registered analysis callback, or NULL if none has been registered.
 }
 
 \begin{apient}

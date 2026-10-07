@@ -131,7 +131,8 @@ mapped_object *mapped_object::createMappedObject(Library::const_ptr lib,
 mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
                                                  AddressSpace *p,
                                                  BPatch_hybridMode analysisMode,
-                                                 bool parseGaps) {
+                                                 bool parseGaps,
+                                                 bool mayExclude) {
    if (!p) return NULL;
    if ( BPatch_defensiveMode == analysisMode ) {
        // parsing in the gaps in defensive mode is a bad idea because
@@ -139,10 +140,11 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
        parseGaps = false;
    }
    assert(desc.file() != "");
+
    startup_printf("%s[%d]:  about to parseImage\n", FILE__, __LINE__);
    startup_printf("%s[%d]: name %s, codeBase 0x%lx, dataBase 0x%lx\n",
                   FILE__, __LINE__, desc.file().c_str(), desc.code(), desc.data());
-   image *img = image::parseImage( desc, analysisMode, parseGaps);
+   image *img = image::parseImage( desc, analysisMode, parseGaps, mayExclude);
    if (!img)  {
       startup_printf("%s[%d]:  failed to parseImage\n", FILE__, __LINE__);
       return NULL;
@@ -156,21 +158,15 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
    // Adds exported functions and variables..
    startup_printf("%s[%d]:  creating mapped object\n", FILE__, __LINE__);
    mapped_object *obj = new mapped_object(desc, img, p, analysisMode);
-   if (img->codeObject()->cs()->getArch() == Arch_ppc64) { 
-  const CodeObject::funclist & allFuncs = img->codeObject()->funcs();
-  CodeObject::funclist::const_iterator fit = allFuncs.begin();
-  for( ; fit != allFuncs.end(); ++fit) {
-      parse_func * f = (parse_func*)*fit;
-      if (f->getNoPowerPreambleFunc() != NULL) {
-          func_instance * preambleFunc = obj->findFunction(f);
-          func_instance * noPreambleFunc = obj->findFunction(f->getNoPowerPreambleFunc());
-          preambleFunc->setNoPowerPreambleFunc(noPreambleFunc);
-          noPreambleFunc->setPowerPreambleFunc(preambleFunc);
-          if (obj->getTOCBaseAddress() == 0 && f->getPowerTOCBaseAddress() > 0) {
-              obj->setTOCBaseAddress(f->getPowerTOCBaseAddress());
-          }
+   if (img->codeObject()->cs()->getArch() == Arch_ppc64)  {
+      // An object excluded from analysis has no functions here; each one it
+      // later acquires is linked as it is parsed, in findFuncVectorByPretty
+      // and findFuncVectorByMangled.
+      const CodeObject::funclist & allFuncs = img->codeObject()->funcs();
+      CodeObject::funclist::const_iterator fit = allFuncs.begin();
+      for ( ; fit != allFuncs.end(); ++fit)  {
+         obj->linkPowerPreamble((parse_func*)*fit);
       }
-  }
    }
    if (BPatch_defensiveMode == analysisMode) {
        img->register_codeBytesUpdateCB(obj);
@@ -403,17 +399,21 @@ const std::vector<func_instance *> *mapped_object::findFuncVectorByPretty(const 
            findFunction(func);
        }
        assert(funcs_[func]);
+       // A function parsed on demand missed the pass in createMappedObject.
+       linkPowerPreamble(func);
    }
    delete img_funcs;
    return allFunctionsByPrettyName[funcname];
 }
 
-const std::vector <func_instance *> *mapped_object::findFuncVectorByMangled(const std::string &funcname)
+const std::vector <func_instance *> *mapped_object::findFuncVectorByMangled(const std::string &funcname,
+                                                                            bool includePLTStubs)
 {
     if (funcname.empty()) return NULL;
 
     // First, check the underlying image.
-    const std::vector<parse_func *> *img_funcs = parse_img()->findFuncVectorByMangled(funcname);
+    const std::vector<parse_func *> *img_funcs =
+       parse_img()->findFuncVectorByMangled(funcname, includePLTStubs);
     if (img_funcs == NULL) {
        return NULL;
     }
@@ -439,6 +439,8 @@ const std::vector <func_instance *> *mapped_object::findFuncVectorByMangled(cons
           findFunction(func);
        }
        assert(funcs_[func]);
+       // A function parsed on demand missed the pass in createMappedObject.
+       linkPowerPreamble(func);
     }
     delete img_funcs;
     return allFunctionsByMangledName[funcname];
@@ -646,6 +648,33 @@ bool mapped_object::getAllVariables(std::vector<int_variable *> &vars) {
 func_instance *mapped_object::findFunction(ParseAPI::Function *papi_func) {
   return SCAST_FI(getFunc(papi_func));
 }
+
+
+void mapped_object::linkPowerPreamble(parse_func *f)
+{
+   if (f == NULL || parse_img()->codeObject()->cs()->getArch() != Arch_ppc64)  {
+      return;
+   }
+
+   // The TOC base is a property of the object, not of the pairing: a function
+   // may carry the preamble without a separate local entry existing, which is
+   // the normal shape when the function was parsed on demand.
+   if (tocBase == 0 && f->getPowerTOCBaseAddress() > 0)  {
+      setTOCBaseAddress(f->getPowerTOCBaseAddress());
+   }
+
+   if (f->getNoPowerPreambleFunc() == NULL)  {
+      return;
+   }
+   func_instance *preambleFunc = findFunction(f);
+   func_instance *noPreambleFunc = findFunction(f->getNoPowerPreambleFunc());
+   if (preambleFunc == NULL || noPreambleFunc == NULL)  {
+      return;
+   }
+   preambleFunc->setNoPowerPreambleFunc(noPreambleFunc);
+   noPreambleFunc->setPowerPreambleFunc(preambleFunc);
+}
+
 
 void mapped_object::addFunctionName(func_instance *func,
                                     const std::string newName,
