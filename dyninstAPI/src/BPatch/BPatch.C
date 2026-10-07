@@ -1910,6 +1910,20 @@ void BPatch::clearAnalysisExcludePatterns()
 }
 
 
+void BPatch::addAnalysisExcludeSoname(const char *pattern)
+{
+  if (pattern && *pattern)  {
+    analysisExcludeSonames_.push_back(pattern);
+  }
+}
+
+
+void BPatch::clearAnalysisExcludeSonames()
+{
+  analysisExcludeSonames_.clear();
+}
+
+
 bool BPatch::analysisExcluded(const char *name) const
 {
   if (!name || analysisExcludePatterns_.empty())  {
@@ -1939,7 +1953,21 @@ bool BPatch::analysisExcluded(Dyninst::SymtabAPI::Symtab *symtab) const
   if (symtab == NULL)  {
     return false;
   }
-  return analysisExcluded(symtab->file().c_str());
+  if (analysisExcluded(symtab->file().c_str()))  {
+    return true;
+  }
+
+  // DT_SONAME, when the object has one.  Matched whole: unlike a path there
+  // is no base name to fall back on.
+  const char *soname = symtab->getSOName();
+  if (soname != NULL)  {
+    for (auto const &pat : analysisExcludeSonames_)  {
+      if (fnmatch(pat.c_str(), soname, 0) == 0)  {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 
