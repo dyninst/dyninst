@@ -29,5 +29,6 @@
  */
 
 #include <string>
+#include "dyninst_visibility.h"
 
-std::string const& symbol_demangle_with_cache(const std::string &symName, bool includeParams);
+DYNINST_EXPORT std::string const& symbol_demangle_with_cache(const std::string &symName, bool includeParams);
