@@ -582,7 +582,8 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
         return std::unique_ptr<BinaryEdit>{};
       }
     }
-    auto temp = std::unique_ptr<BinaryEdit>{BinaryEdit::openFile(path, mgr(), patcher(), member)};
+    auto temp = std::unique_ptr<BinaryEdit>{
+        BinaryEdit::openFile(path, mgr(), patcher(), member, true)};
     if (temp && temp->getAddressWidth() == getAddressWidth()) {
       return temp;
     }

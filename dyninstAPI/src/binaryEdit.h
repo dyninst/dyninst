@@ -139,10 +139,14 @@ class BinaryEdit : public AddressSpace {
     ~BinaryEdit();
 
     // And the "open" factory method.
+    // isDependency distinguishes a library pulled in behind the target from
+    // the file the caller named; only the former may be excluded from
+    // analysis by a pattern.
     static BinaryEdit *openFile(const std::string &file,
                                 Dyninst::PatchAPI::PatchMgrPtr mgr = Dyninst::PatchAPI::PatchMgrPtr(),
                                 Dyninst::PatchAPI::Patcher::Ptr patch = Dyninst::PatchAPI::Patcher::Ptr(),
-                                const std::string &member = "");
+                                const std::string &member = "",
+                                bool isDependency = false);
 
     bool writeFile(const std::string &newFileName);
     

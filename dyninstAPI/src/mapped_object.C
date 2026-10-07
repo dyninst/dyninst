@@ -131,7 +131,8 @@ mapped_object *mapped_object::createMappedObject(Library::const_ptr lib,
 mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
                                                  AddressSpace *p,
                                                  BPatch_hybridMode analysisMode,
-                                                 bool parseGaps) {
+                                                 bool parseGaps,
+                                                 bool mayExclude) {
    if (!p) return NULL;
    if ( BPatch_defensiveMode == analysisMode ) {
        // parsing in the gaps in defensive mode is a bad idea because
@@ -139,10 +140,11 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
        parseGaps = false;
    }
    assert(desc.file() != "");
+
    startup_printf("%s[%d]:  about to parseImage\n", FILE__, __LINE__);
    startup_printf("%s[%d]: name %s, codeBase 0x%lx, dataBase 0x%lx\n",
                   FILE__, __LINE__, desc.file().c_str(), desc.code(), desc.data());
-   image *img = image::parseImage( desc, analysisMode, parseGaps);
+   image *img = image::parseImage( desc, analysisMode, parseGaps, mayExclude);
    if (!img)  {
       startup_printf("%s[%d]:  failed to parseImage\n", FILE__, __LINE__);
       return NULL;

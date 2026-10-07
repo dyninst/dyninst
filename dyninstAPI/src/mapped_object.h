@@ -149,10 +149,14 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
 
  public:
     // We need a way to check for errors; hence a "get" method
+    // mayExclude is false for an object the caller named outright: the
+    // target of a binary rewrite is instrumented even when a pattern also
+    // matches it.
     static mapped_object *createMappedObject(fileDescriptor &desc,
                                              AddressSpace *p,
                                              BPatch_hybridMode m = BPatch_normalMode,
-                                             bool parseGaps = true);
+                                             bool parseGaps = true,
+                                             bool mayExclude = true);
     static mapped_object *createMappedObject(ProcControlAPI::Library::const_ptr lib,
                                              AddressSpace *p,
                                              BPatch_hybridMode m = BPatch_normalMode,

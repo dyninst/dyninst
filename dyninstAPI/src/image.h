@@ -259,9 +259,12 @@ class image : public codeRange {
    friend class image_variable;
    friend class Dyninst::DyninstAPI::DynCFGFactory;
  public:
+   // analyze == false: load the object but build no CFG for it.  Ignored for
+   // the executable and for the Dyninst runtime library, which always parse.
    static image *parseImage(fileDescriptor &desc, 
                             BPatch_hybridMode mode,
-                            bool parseGaps);
+                            bool parseGaps,
+                            bool mayExclude = true);
 
    // And to get rid of them if we need to re-parse
    static void removeImage(image *img);
@@ -274,9 +277,11 @@ class image : public codeRange {
 
    image(fileDescriptor &desc, bool &err, 
          BPatch_hybridMode mode,
-         bool parseGaps);
+         bool parseGaps,
+         bool mayExclude = true);
 
    void analyzeIfNeeded();
+   bool analysisExcluded() const { return analysisExcluded_; }
    bool isParsed() { return parseState_ == analyzed; }
    parse_func* addFunction(Address functionEntryAddr, const char *name=NULL);
 
@@ -501,6 +506,8 @@ class image : public codeRange {
 
    int refCount;
    imageParseState_t parseState_;
+   // Excluded from analysis: no CFG was built and none will be.
+   bool analysisExcluded_;
    bool parseGaps_;
    BPatch_hybridMode mode_;
    Dyninst::Architecture arch;
