@@ -139,6 +139,7 @@ BPatch::BPatch()
     // The exclusion state is static, so a new BPatch would otherwise inherit
     // whatever the previous one was told.
     clearAnalysisExcludePatterns();
+    clearAnalysisExcludeSonames();
 
     extern bool init();
 
@@ -1910,6 +1911,7 @@ void BPatch::addNonReturningFunc(std::string name)
 
 
 std::vector<std::string> BPatch::analysisExcludePatterns_;
+std::vector<std::string> BPatch::analysisExcludeSonames_;
 
 
 void BPatch::addAnalysisExcludePattern(const char *pattern)
@@ -1923,6 +1925,20 @@ void BPatch::addAnalysisExcludePattern(const char *pattern)
 void BPatch::clearAnalysisExcludePatterns()
 {
   analysisExcludePatterns_.clear();
+}
+
+
+void BPatch::addAnalysisExcludeSoname(const char *pattern)
+{
+  if (pattern && *pattern)  {
+    analysisExcludeSonames_.push_back(pattern);
+  }
+}
+
+
+void BPatch::clearAnalysisExcludeSonames()
+{
+  analysisExcludeSonames_.clear();
 }
 
 
@@ -1955,7 +1971,21 @@ bool BPatch::analysisExcluded(Dyninst::SymtabAPI::Symtab *symtab) const
   if (symtab == NULL)  {
     return false;
   }
-  return analysisExcluded(symtab->file().c_str());
+  if (analysisExcluded(symtab->file().c_str()))  {
+    return true;
+  }
+
+  // DT_SONAME, when the object has one.  Matched whole: unlike a path there
+  // is no base name to fall back on.
+  const char *soname = symtab->getSOName();
+  if (soname != NULL)  {
+    for (auto const &pat : analysisExcludeSonames_)  {
+      if (fnmatch(pat.c_str(), soname, 0) == 0)  {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 

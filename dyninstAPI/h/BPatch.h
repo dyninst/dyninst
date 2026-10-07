@@ -152,6 +152,11 @@ class DYNINST_EXPORT BPatch {
        analyzed.  Static so that adding one does not change sizeof(BPatch). */
     static std::vector<std::string> analysisExcludePatterns_;
 
+    /* The same, matched against DT_SONAME rather than the file name.  Kept
+       apart because the two name different things: where a library sits and
+       what it calls itself.  Static for the same reason. */
+    static std::vector<std::string> analysisExcludeSonames_;
+
     bool instrFrames;
 
 	/* this is used to denote the fully qualified name of the prelink command on linux */
@@ -678,6 +683,21 @@ public:
     //  Discard all patterns added by addAnalysisExcludePattern.
 
     void  clearAnalysisExcludePatterns();
+
+    //  BPatch::addAnalysisExcludeSoname:
+    //  As addAnalysisExcludePattern, but matched against the object's
+    //  DT_SONAME instead of its file name.  That is the name the object calls
+    //  itself and the name other objects link against, so it does not change
+    //  with the path the library happened to be found at, and it is set even
+    //  when the file has been renamed.  An object with no DT_SONAME -- an
+    //  executable, or a library built without one -- matches nothing here.
+
+    void  addAnalysisExcludeSoname(const char *pattern);
+
+    //  BPatch::clearAnalysisExcludeSonames:
+    //  Discard all patterns added by addAnalysisExcludeSoname.
+
+    void  clearAnalysisExcludeSonames();
 
     //  BPatch::analysisExcluded:
     //  True if \p name matches any pattern added by addAnalysisExcludePattern.
