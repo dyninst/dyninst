@@ -1755,6 +1755,13 @@ Handler::handler_ret_t HandleEmulatedSingleStep::handleEvent(Event::ptr ev)
       return ret_async;
    }
 
+   // The emulation's breakpoint is gone, so the stopped-on-breakpoint mark
+   // that HandleBreakpoint set must not outlive it.  If a user breakpoint
+   // shares the address it is still installed and the thread really is
+   // stopped on it: keep the mark so the next continue steps over it.
+   if (!thrd->isStoppedOnBP())
+      thrd->markStoppedOnBP(NULL);
+
    EventSingleStep::ptr ev_ss = EventSingleStep::ptr(new EventSingleStep());
    ev_ss->setProcess(proc->proc());
    ev_ss->setThread(thrd->thread());
