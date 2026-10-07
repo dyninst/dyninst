@@ -112,11 +112,29 @@ function(dyninst_library _target)
     set(_lib_type SHARED)
   endif()
 
-  add_library(${_target} ${_lib_type} ${_target_PUBLIC_HEADER_FILES}
-                         ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
-
   if(_target_INTERNAL_LIBRARY)
+    add_library(${_target} ${_lib_type} ${_target_PUBLIC_HEADER_FILES}
+                           ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
     set_target_properties(${_target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    set(_build_targets)
+  else()
+    # The sources are compiled once, into ${_target}_objects. The shared
+    # library is linked from those objects, and the white-box unit tests link
+    # them directly (see ${_target}_whitebox below).
+    add_library(${_target}_objects OBJECT ${_target_PUBLIC_HEADER_FILES}
+                ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
+    set_target_properties(${_target}_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    add_library(${_target} ${_lib_type} $<TARGET_OBJECTS:${_target}_objects>)
+    # With only object files as sources, the linker language must be given.
+    set(_link_lang C)
+    foreach(_src ${_target_SOURCE_FILES})
+      if(_src MATCHES "\\.(C|cc|cpp|cxx)$")
+        set(_link_lang CXX)
+      endif()
+    endforeach()
+    set_target_properties(${_target} PROPERTIES LINKER_LANGUAGE ${_link_lang})
+    unset(_link_lang)
+    set(_build_targets ${_target}_objects)
   endif()
 
   set(_all_targets ${_target})
@@ -141,7 +159,7 @@ function(dyninst_library _target)
     unset(_suffix)
   endif()
 
-  foreach(t ${_all_targets})
+  foreach(t ${_all_targets} ${_build_targets})
     message(STATUS "Adding library '${t}'")
 
     # Depending on another Dyninst library is always public
@@ -221,7 +239,32 @@ function(dyninst_library _target)
     install(FILES ${h} DESTINATION "${DYNINST_INSTALL_INCLUDEDIR}/${_dir}")
   endforeach()
 
+  if(NOT _target_INTERNAL_LIBRARY)
+    # For unit tests that need the library's internal symbols: its objects,
+    # those of its internal libraries, and every other Dyninst library shared,
+    # so the libraries are initialized in the same order as in production.
+    add_library(${_target}_whitebox INTERFACE)
+    target_sources(${_target}_whitebox INTERFACE $<TARGET_OBJECTS:${_target}_objects>)
+    foreach(d ${_target_DYNINST_INTERNAL_DEPS})
+      get_target_property(_dep_type ${d} TYPE)
+      if(_dep_type STREQUAL "OBJECT_LIBRARY")
+        target_sources(${_target}_whitebox INTERFACE $<TARGET_OBJECTS:${d}>)
+      endif()
+      target_link_libraries(${_target}_whitebox INTERFACE ${d})
+    endforeach()
+    unset(_dep_type)
+    target_link_libraries(
+      ${_target}_whitebox INTERFACE ${_target_DYNINST_DEPS} ${_target_PUBLIC_DEPS}
+                                    ${_target_PRIVATE_DEPS})
+    target_include_directories(
+      ${_target}_whitebox
+      INTERFACE $<TARGET_PROPERTY:${_target}_objects,INCLUDE_DIRECTORIES>)
+    target_compile_definitions(
+      ${_target}_whitebox
+      INTERFACE $<TARGET_PROPERTY:${_target}_objects,COMPILE_DEFINITIONS>)
+  endif()
+
   set(${_target}_TARGETS
-      ${_all_targets}
+      ${_all_targets} ${_build_targets}
       PARENT_SCOPE)
 endfunction()
