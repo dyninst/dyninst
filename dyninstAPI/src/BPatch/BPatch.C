@@ -110,6 +110,7 @@ BPatch::BPatch()
     livenessAnalysisOn_(true),
     livenessAnalysisDepth_(3),
     asyncActive(false),
+    analyzeObjectCallback_(NULL),
     instrFrames(false),
     systemPrelinkCommand(NULL),
     notificationFDOutput_(-1),
@@ -1924,6 +1925,21 @@ void BPatch::clearAnalysisExcludeSonames()
 }
 
 
+BPatchAnalyzeObjectCallback
+BPatch::registerAnalyzeObjectCallback(BPatchAnalyzeObjectCallback func)
+{
+  BPatchAnalyzeObjectCallback previous = analyzeObjectCallback_;
+  analyzeObjectCallback_ = func;
+  return previous;
+}
+
+
+BPatchAnalyzeObjectCallback BPatch::getAnalyzeObjectCallback() const
+{
+  return analyzeObjectCallback_;
+}
+
+
 bool BPatch::analysisExcluded(const char *name) const
 {
   if (!name || analysisExcludePatterns_.empty())  {
@@ -1966,6 +1982,12 @@ bool BPatch::analysisExcluded(Dyninst::SymtabAPI::Symtab *symtab) const
         return true;
       }
     }
+  }
+
+  // Last, because it is the only filter that can run arbitrary code: a
+  // pattern match spares the callback the object entirely.
+  if (analyzeObjectCallback_ != NULL && !(*analyzeObjectCallback_)(symtab))  {
+    return true;
   }
   return false;
 }
