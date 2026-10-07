@@ -44,6 +44,7 @@
 #include "stackwalk/src/libstate.h"
 #include "stackwalk/src/sw.h"
 #include "common/src/IntervalTree.h"
+#include <sys/stat.h>
 #include <vector>
 
 using namespace Dyninst;
@@ -60,6 +61,7 @@ private:
    IntervalTree<Address, cache_t> loadedLibs;
 
    cache_t makeCache(LibAddrPair a, Library::ptr b) { return std::make_pair(a, b); }
+   LibAddrPair getLibAddrPair(Library::ptr lib) const;
    bool findInCache(Process::ptr proc, Address addr, LibAddrPair &lib);
    void removeLibFromCache(cache_t element);
 
@@ -416,9 +418,31 @@ PCLibraryState::~PCLibraryState()
 {
 }
 
+/**
+ * Return a library's load address and a filename usable from the tracer.
+ * A non-empty absolute loader path not already under /proc/<pid>/ is resolved
+ * through /proc/<pid>/root when available, retaining the target filesystem
+ * view. Empty names, relative names, existing procfs paths, and unavailable
+ * target-root paths remain unchanged.
+ */
+LibAddrPair PCLibraryState::getLibAddrPair(Library::ptr lib) const
+{
+   string filename = lib->getName();
+   const string proc_prefix = "/proc/" + to_string(pdebug->getProcessId()) + "/";
+   const bool is_process_path = filename.compare(0, proc_prefix.size(), proc_prefix) == 0;
+   if (!filename.empty() && filename[0] == '/' && !is_process_path) {
+      const string rooted = proc_prefix + "root" + filename;
+      struct stat file_stat;
+      if (stat(rooted.c_str(), &file_stat) == 0)
+         filename = rooted;
+   }
+   return LibAddrPair(filename, lib->getLoadAddress());
+}
+
 bool PCLibraryState::cacheLibraryRanges(Library::ptr lib)
 {
-   std::string filename = lib->getName();
+   LibAddrPair lib_addr = getLibAddrPair(lib);
+   std::string filename = lib_addr.first;
    Address base = lib->getLoadAddress();
 
    SymbolReaderFactory *fact = getDefaultSymbolReader();
@@ -438,9 +462,7 @@ bool PCLibraryState::cacheLibraryRanges(Library::ptr lib)
       Address segment_end = segment_start + segment.mem_size;
 
       loadedLibs.insert(segment_start, segment_end,
-                        makeCache(LibAddrPair(lib->getName(),
-                                              lib->getLoadAddress()),
-                                  lib));
+                        makeCache(lib_addr, lib));
    }
    return true;
 }
@@ -503,7 +525,7 @@ void PCLibraryState::checkForNewLib(Library::ptr lib)
    lib->setData((void *) 0x1);
 
    StepperGroup *group = pdebug->getWalker()->getStepperGroup();
-   LibAddrPair la(lib->getName(), lib->getLoadAddress());
+   LibAddrPair la = getLibAddrPair(lib);
 
    group->newLibraryNotification(&la, library_load);
 }
@@ -615,8 +637,7 @@ bool PCLibraryState::memoryScan(Process::ptr proc, Address addr, LibAddrPair &li
 
       signed int distance = addr - dyn_addr;
       if (distance == 0) {
-         lib.first = slib->getName();
-         lib.second = slib->getLoadAddress();
+         lib = getLibAddrPair(slib);
          sw_printf("[%s:%d] - Found library %s contains address %lx\n",
                    FILE__, __LINE__, lib.first.c_str(), addr);
          return true;
@@ -647,8 +668,7 @@ bool PCLibraryState::memoryScan(Process::ptr proc, Address addr, LibAddrPair &li
     * Check if predessor contains our address first--this should be the typical case
     **/
    if (nearest_predecessor && checkLibraryContains(addr, nearest_predecessor)) {
-      lib.first = nearest_predecessor->getName();
-      lib.second = nearest_predecessor->getLoadAddress();
+      lib = getLibAddrPair(nearest_predecessor);
       sw_printf("[%s:%d] - Found library %s contains address %lx\n",
                 FILE__, __LINE__, lib.first.c_str(), addr);
       return true;
@@ -657,8 +677,7 @@ bool PCLibraryState::memoryScan(Process::ptr proc, Address addr, LibAddrPair &li
     * Check successor
     **/
    if (nearest_successor && checkLibraryContains(addr, nearest_successor)) {
-      lib.first = nearest_successor->getName();
-      lib.second = nearest_successor->getLoadAddress();
+      lib = getLibAddrPair(nearest_successor);
       sw_printf("[%s:%d] - Found library %s contains address %lx\n",
                 FILE__, __LINE__, lib.first.c_str(), addr);
       return true;
@@ -671,16 +690,14 @@ bool PCLibraryState::memoryScan(Process::ptr proc, Address addr, LibAddrPair &li
    std::vector<Library::ptr>::iterator k = zero_dynamic_libs.begin();
    for (; k != zero_dynamic_libs.end(); k++) {
       if (checkLibraryContains(addr, *k)) {
-         lib.first = (*k)->getName();
-         lib.second = (*k)->getLoadAddress();
+         lib = getLibAddrPair(*k);
          return true;
       }
    }
    if(checkLibraryContains(addr, proc->libraries().getExecutable()))
    {
 
-     lib.first = proc->libraries().getExecutable()->getName();
-     lib.second = proc->libraries().getExecutable()->getLoadAddress();
+     lib = getLibAddrPair(proc->libraries().getExecutable());
      sw_printf("[%s:%d] - Found executable %s contains address %lx\n", FILE__,
 	       __LINE__, lib.first.c_str(), addr);
      return true;
@@ -701,7 +718,7 @@ bool PCLibraryState::getLibraries(std::vector<LibAddrPair> &libs, bool allow_ref
    {
       if (allow_refresh)
          checkForNewLib(*i);
-      libs.push_back(LibAddrPair((*i)->getName(), (*i)->getLoadAddress()));
+      libs.push_back(getLibAddrPair(*i));
    }
 
    vector<pair<LibAddrPair, unsigned int> > a_libs;
@@ -746,7 +763,7 @@ bool PCLibraryState::getAOut(LibAddrPair &ao)
       sw_printf("[%s:%d] - Could not get executable\n", FILE__, __LINE__);
       return false;
    }
-   ao = LibAddrPair(lib->getName(), lib->getLoadAddress());
+   ao = getLibAddrPair(lib);
    return true;
 }
 
