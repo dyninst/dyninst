@@ -38,6 +38,8 @@
 
 #ifdef os_windows
 
+#include <io.h>
+
 namespace Dyninst {
 
   static std::string expand_tilde(std::string path_name) {
@@ -156,6 +158,13 @@ std::string canonicalize(std::string path) {
     path = expand_tilde(path);
   }
 
+#ifdef os_linux
+  // canonical() follows procfs magic links into the tracer's filesystem view.
+  if(path.compare(0, 6, "/proc/") == 0) {
+    return path;
+  }
+#endif
+
   // Convert to a boost::filesystem::path
   auto boost_path = bf::path(path);
 
@@ -179,8 +188,30 @@ std::string canonicalize(std::string path) {
   return canonical_path.string();
 }
 
+std::string canonicalize(std::string path, int pid) {
+#ifdef os_linux
+  if(!path.empty() && path[0] == '/' && path.compare(0, 6, "/proc/") != 0) {
+    auto rooted = "/proc/" + std::to_string(pid) + "/root" + path;
+    if(is_readable(rooted)) {
+      path = std::move(rooted);
+    }
+  }
+#else
+  (void)pid;
+#endif
+  return canonicalize(std::move(path));
+}
+
 bool exists(std::string const& path) {
   return boost::filesystem::exists(path);
+}
+
+bool is_readable(std::string const& path) {
+#ifdef os_windows
+  return _access(path.c_str(), 4) == 0;
+#else
+  return access(path.c_str(), R_OK) == 0;
+#endif
 }
 
 std::string strip_all_extensions(std::string const& path) {

@@ -8,15 +8,21 @@
 #include <iostream>
 #include <string>
 
+#ifdef os_linux
+#include <unistd.h>
+#endif
+
 static int test_canonicalize();
+static int test_canonicalize_procfs();
 static int test_exists();
 static int test_replace_extension();
 static int test_append_filename_suffix();
 static int test_strip_all_extensions();
 
 int main() {
-  std::array<int(*)(), 5> tests = {{
+  std::array<int(*)(), 6> tests = {{
       test_canonicalize,
+      test_canonicalize_procfs,
       test_exists,
       test_replace_extension,
       test_append_filename_suffix,
@@ -31,6 +37,36 @@ int main() {
   }
   std::cout << "failed = " << std::boolalpha << failed << "\n";
   return failed ? EXIT_FAILURE : EXIT_SUCCESS;
+}
+
+int test_canonicalize_procfs() {
+#ifdef os_linux
+  namespace bf = boost::filesystem;
+
+  std::string const proc_path{"/proc/self/exe"};
+  if(Dyninst::filesystem::canonicalize(proc_path) != proc_path) {
+    std::cerr << "canonicalize changed a procfs path\n";
+    return EXIT_FAILURE;
+  }
+
+  auto const test_path = bf::absolute("procfs-canonicalize-test.out").string();
+  {
+    std::ofstream fs{test_path};
+    if(!fs) {
+      std::cerr << "Failed to create '" << test_path << "'\n";
+      return EXIT_FAILURE;
+    }
+  }
+
+  auto const rooted = Dyninst::filesystem::canonicalize(test_path, getpid());
+  auto const expected = "/proc/" + std::to_string(getpid()) + "/root" + test_path;
+  bf::remove(test_path);
+  if(rooted != expected) {
+    std::cerr << "canonicalize: expected '" << expected << "', got '" << rooted << "'\n";
+    return EXIT_FAILURE;
+  }
+#endif
+  return EXIT_SUCCESS;
 }
 
 int test_canonicalize() {

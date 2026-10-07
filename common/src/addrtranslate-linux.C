@@ -142,14 +142,7 @@ bool AddressTranslateSysV::setInterpreter()
       goto done;
    }
 
-   interp_name = exe->getInterpreter();
-   // Resolve absolute interpreter paths in the target process's mount namespace,
-   // e.g. /lib/ld-linux-aarch64.so.1 becomes /proc/<pid>/root/lib/ld-linux-aarch64.so.1.
-   if (!interp_name.empty() && interp_name[0] == '/') {
-      string rooted = "/proc/" + to_string(pid) + "/root" + interp_name;
-      if (access(rooted.c_str(), R_OK) == 0)
-         interp_name = rooted;
-   }
+   interp_name = Dyninst::filesystem::canonicalize(exe->getInterpreter(), pid);
    interpreter = files.getNode(interp_name, symfactory);
    if (interpreter)
       interpreter->markInterpreter();
@@ -195,7 +188,7 @@ string AddressTranslateSysV::getExecName()
    if (exec_name.empty()) {
       char name[64];
       snprintf(name, 64, "/proc/%d/exe", pid);
-      exec_name = name;
+      exec_name = Dyninst::filesystem::canonicalize(name);
    }
    return exec_name;
 }

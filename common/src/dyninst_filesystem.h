@@ -41,7 +41,11 @@ namespace Dyninst { namespace filesystem {
 
   DYNINST_EXPORT std::string canonicalize(std::string);
 
+  DYNINST_EXPORT std::string canonicalize(std::string, int pid);
+
   DYNINST_EXPORT bool exists(std::string const& path);
+
+  DYNINST_EXPORT bool is_readable(std::string const& path);
 
   DYNINST_EXPORT std::string replace_extension(std::string const& path, std::string const& val);
 
