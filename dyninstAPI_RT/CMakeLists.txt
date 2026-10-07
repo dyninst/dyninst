@@ -59,13 +59,19 @@ dyninst_library(
   PUBLIC_HEADER_FILES ${_public_headers}
   PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
-  DYNINST_DEPS common
   PRIVATE_DEPS Threads::Threads
   FORCE_STATIC
   NO_HEADERS_TARGET
 )
 
 foreach(t ${dyninstAPI_RT_TARGETS})
+  # For dyntypes.h and unaligned_memory_access.h, included by bare name.
+  target_include_directories(
+    ${t}
+    BEFORE
+    PRIVATE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/common/h>"
+  )
+
   if(DYNINST_OS_UNIX)
     target_link_libraries(${t} PRIVATE ${CMAKE_DL_LIBS})
   elseif(DYNINST_OS_Windows)
