@@ -2230,9 +2230,9 @@ boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
     }
 
     if (!bounds.lower.value) {
-      // dwarf_subrange_bounds will try dwarf_default_lower_bound for the
-      // current DIE. If we got here, that didn't work, so try using the one
-      // Dyninst parsed.
+      // dwarf_subrange_bounds tries dwarf_default_lower_bound with the unit's
+      // DW_AT_language. If we got here, the unit has no language or libdw has
+      // no default for it, so use the language Dyninst assigned the module.
       switch (mod()->language()) {
       case lang_Fortran:
       case lang_CMFortran:
