@@ -68,14 +68,16 @@ bool ppc_process::plat_breakpointAdvancesPC() const
    return false;
 }
 
+// Every load-and-reserve / store-conditional width, not only lwarx/stwcx.: a 64-bit ldarx/stdcx.
+// loop (the common case in ppc64 code) that is not recognised here is single-stepped with the
+// hardware, every step trap clears the reservation, stdcx. always fails and the thread never
+// leaves the loop.
 static bool atomicLoad(const instruction &insn) {
-    return (    (XFORM_OP(insn) == LXop)
-             && (XFORM_XO(insn) == LWARXxop) );
+    return insn.isAtomicLoad();
 }
 
 static bool atomicStore(const instruction &insn) {
-    return (    (XFORM_OP(insn) == STXop)
-             && (XFORM_XO(insn) == STWCXxop) );
+    return insn.isAtomicStore();
 }
 
 static void clear_ss_state_cb(int_thread *thr) {
@@ -249,6 +251,7 @@ async_ret_t ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Ad
    async_ret_t aresult = readPCForSS(thr, pc);
    if (aresult == aret_error || aresult == aret_async)
       return aresult;
+   const Address seq_start = pc;
 
     // Check if the next instruction is a lwarx
     // If it is, scan forward until the terminating stwcx.
@@ -289,6 +292,19 @@ async_ret_t ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Ad
 
     // The breakpoint should be set at the instruction following the sequence
     if( foundEnd ) {
+        // A branch whose target is inside the sequence (a retry edge before the
+        // store) does not leave it.  A breakpoint there would sit on an
+        // instruction the thread is about to execute, and the thread would
+        // trap without making progress.
+        vector<Address> exits;
+        for (vector<Address>::iterator i = addrResult.begin(); i != addrResult.end(); i++) {
+            if (*i >= seq_start && *i < pc) {
+                pthrd_printf("Branch target 0x%lx is inside the atomic sequence, no breakpoint\n", *i);
+                continue;
+            }
+            exits.push_back(*i);
+        }
+        addrResult.swap(exits);
         addrResult.push_back(pc);
         pthrd_printf("Atomic instruction sequence ends at 0x%lx\n", pc);
     }else if( sequenceStarted || addrResult.size() ) {
@@ -300,6 +316,65 @@ async_ret_t ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Ad
     }
 
     return aret_success;
+}
+
+bool ppc_process::plat_supportsDisplacedSingleStep() const
+{
+   return true;
+}
+
+/**
+ * Encodings used when copying an atomic sequence out of line.  Everything
+ * that is not listed is position independent on Power.
+ **/
+namespace {
+   // addpcis is DX-form with a 5-bit XO in bits [5:1]; the other opcode-19
+   // instructions that must stay in place (bclr, bcctr, bctar) are XL-form.
+   const unsigned int ADDPCISxop = 2;
+   unsigned int dxform_xo(unsigned int raw) { return (raw >> 1) & 0x1f; }
+}
+
+void ppc_process::plat_classifyInsnForDisplacedStep(unsigned int raw, Address addr, displaced_insn &info)
+{
+   instruction insn(raw);
+   info.kind = displaced_insn::unrelocatable;
+   info.target = 0;
+
+   unsigned int op = GENERIC_OP(insn);
+   if (op == Bop || op == BCop) {
+      // Absolute and linking branches keep their meaning only in place.
+      bool aa = (op == Bop) ? IFORM_AA(insn) : BFORM_AA(insn);
+      bool lk = (op == Bop) ? IFORM_LK(insn) : BFORM_LK(insn);
+      if (aa || lk)
+         return;
+      info.kind = displaced_insn::rel_branch;
+      info.target = insn.getTarget(addr);
+      return;
+   }
+   if (op == SVCop)
+      return;
+   if (op == BCLRop) {
+      unsigned int xo = XFORM_XO(insn);
+      if (xo == BCLRxop || xo == BCCTRxop || xo == BCTARxop || dxform_xo(raw) == ADDPCISxop)
+         return;
+   }
+   info.kind = displaced_insn::plain;
+}
+
+bool ppc_process::plat_retargetBranchForDisplacedStep(unsigned int &raw, Address copy_addr, Address new_target)
+{
+   instruction insn(raw);
+   if (!insn.isUncondBranch() && !insn.isCondBranch())
+      return false;
+   long offset = (long) new_target - (long) copy_addr;
+   if (offset & 0x3)
+      return false;
+   long limit = insn.isUncondBranch() ? MAX_BRANCH : MAX_CBRANCH;
+   if (offset <= -limit || offset >= limit)
+      return false;
+   insn.setBranchOffset(offset);
+   raw = insn.asInt();
+   return true;
 }
 
 void ppc_process::plat_getEmulatedSingleStepAsyncs(int_thread *, std::set<response::ptr> resps)

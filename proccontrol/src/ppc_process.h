@@ -54,6 +54,11 @@ class ppc_process : virtual public int_process
   virtual bool plat_needsPCSaveBeforeSingleStep();
   virtual void plat_getEmulatedSingleStepAsyncs(int_thread *thr, std::set<response::ptr> resps);
 
+  //displaced (out-of-line) emulated SS
+  virtual bool plat_supportsDisplacedSingleStep() const;
+  virtual void plat_classifyInsnForDisplacedStep(unsigned int raw, Address addr, displaced_insn &info);
+  virtual bool plat_retargetBranchForDisplacedStep(unsigned int &raw, Address copy_addr, Address new_target);
+
 
   void cleanupSSOnContinue(int_thread *thr);
  private:

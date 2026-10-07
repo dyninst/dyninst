@@ -339,6 +339,27 @@ class HandleEmulatedSingleStep : public Handler
    virtual int getPriority() const;
 };
 
+class HandleEmulatedSingleStepStart : public Handler
+{
+  public:
+   HandleEmulatedSingleStepStart();
+   ~HandleEmulatedSingleStepStart();
+
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+};
+
+class HandleDisplacedStepCancel : public Handler
+{
+  public:
+   HandleDisplacedStepCancel();
+   ~HandleDisplacedStepCancel();
+
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual int getPriority() const;
+};
+
 class HandleLibrary : public Handler
 {
  public:

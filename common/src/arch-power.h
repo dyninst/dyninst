@@ -459,6 +459,9 @@ const int maxGPR=32;           /* More space than is needed */
 #define LDUXxop		53
 #define LUXxop		55
 #define LDARXxop	84
+#define LBARXxop	52
+#define LHARXxop	116
+#define LQARXxop	276
 #define LBZXxop		87
 #define LBZUXxop	119
 #define LHZXxop		279
@@ -485,6 +488,9 @@ const int maxGPR=32;           /* More space than is needed */
 #define STDUXxop	181
 #define STUXxop		183
 #define STDCXxop	214
+#define STBCXxop	694
+#define STHCXxop	726
+#define STQCXxop	182
 #define STBXxop		215
 #define STBUXxop	247
 #define STHXxop		407
@@ -867,6 +873,9 @@ class DYNINST_EXPORT instruction {
     
     bool isCall() const;
     bool isCondBranch() const;
+    // load-and-reserve / store-conditional, every width (the LL/SC sequence boundaries)
+    bool isAtomicLoad() const;
+    bool isAtomicStore() const;
     bool isUncondBranch() const;
     bool isThunk() const;
 

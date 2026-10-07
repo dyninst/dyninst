@@ -93,6 +93,7 @@ class DYNINST_EXPORT EventType
    static const int PreBootstrap        = 512;
    static const int Continue            = 513;
    static const int PostponedSyscall    = 514;
+   static const int EmulatedSingleStepStart = 515;
 
    //Users should define their own events at this value or higher.
    static const int MaxProcCtrlEvent    = 1000;

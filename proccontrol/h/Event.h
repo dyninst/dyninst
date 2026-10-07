@@ -77,6 +77,7 @@ class EventRPC;
 class EventSingleStep;
 class EventBreakpointClear;
 class EventBreakpointRestore;
+class EventEmulatedSingleStepStart;
 class EventLibrary;
 class EventRPCLaunch;
 class EventAsync;
@@ -207,6 +208,9 @@ class DYNINST_EXPORT Event : public boost::enable_shared_from_this<Event>
 
    boost::shared_ptr<EventBreakpointRestore> getEventBreakpointRestore();
    boost::shared_ptr<const EventBreakpointRestore> getEventBreakpointRestore() const;
+
+   boost::shared_ptr<EventEmulatedSingleStepStart> getEventEmulatedSingleStepStart();
+   boost::shared_ptr<const EventEmulatedSingleStepStart> getEventEmulatedSingleStepStart() const;
 
    boost::shared_ptr<EventLibrary> getEventLibrary();
    boost::shared_ptr<const EventLibrary> getEventLibrary() const;
@@ -673,6 +677,25 @@ class DYNINST_EXPORT EventBreakpointClear : public Event
    virtual ~EventBreakpointClear();
    
    int_eventBreakpointClear *getInternal() const;
+   virtual bool procStopper() const;
+};
+
+/**
+ * Thrown when a thread needs an in-place emulated single step (breakpoints
+ * in the text of an atomic sequence) and the rest of the process must be
+ * stopped first so no other thread can run into those breakpoints.  Held by
+ * the ProcStopEventManager until every thread is stopped.
+ **/
+class DYNINST_EXPORT EventEmulatedSingleStepStart : public Event
+{
+   friend void boost::checked_delete<EventEmulatedSingleStepStart>(EventEmulatedSingleStepStart *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventEmulatedSingleStepStart>(const EventEmulatedSingleStepStart *) CHECKED_DELETE_NOEXCEPT;
+  public:
+   typedef boost::shared_ptr<EventEmulatedSingleStepStart> ptr;
+   typedef boost::shared_ptr<const EventEmulatedSingleStepStart> const_ptr;
+   EventEmulatedSingleStepStart();
+   virtual ~EventEmulatedSingleStepStart();
+
    virtual bool procStopper() const;
 };
 
