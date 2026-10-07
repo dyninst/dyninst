@@ -215,6 +215,32 @@ already been loaded are unaffected.
 }
 
 \begin{apient}
+void addAnalysisExcludeSoname(const char *pattern);
+\end{apient}
+
+\apidesc{
+As \code{addAnalysisExcludePattern}, but matched against the object's \code{DT\_SONAME} rather
+than its file name. The two name different things: a file name says where a library sits, which
+varies with the search path and does not survive renaming, while \code{DT\_SONAME} is the name
+the library calls itself and the name everything linking against it records. Matching on it
+therefore picks out the same library wherever it was found.
+
+The pattern is matched against the whole \code{DT\_SONAME}; unlike a path there is no base name
+to fall back on. An object without one --- an executable, or a library built without it ---
+matches no such pattern. The two pattern lists are independent, and an object is excluded if it
+matches either.
+}
+
+\begin{apient}
+void clearAnalysisExcludeSonames();
+\end{apient}
+
+\apidesc{
+Discard every pattern previously passed to \code{addAnalysisExcludeSoname}. Objects that have
+already been loaded are unaffected.
+}
+
+\begin{apient}
 bool analysisExcluded(const char *name) const;
 \end{apient}
 
