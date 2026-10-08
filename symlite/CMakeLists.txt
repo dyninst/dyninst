@@ -22,5 +22,9 @@ dyninst_library(
   PUBLIC_HEADER_FILES ${_public_headers}
   SOURCE_FILES ${_sources}
   DEFINES SYMLITE_LIB
-  DYNINST_DEPS common dynElf
+  DYNINST_DEPS common
+  DYNINST_INTERNAL_DEPS dynElf
 )
+
+# SymLite-elf.h includes Elf_X.h
+target_link_libraries(symLite_headers INTERFACE dynElf)
