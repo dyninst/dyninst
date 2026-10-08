@@ -34,6 +34,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem.hpp>
 #include <cstdlib>
+#include <deque>
 #include <string>
 
 #ifdef os_windows
@@ -216,6 +217,73 @@ std::string canonicalize(std::string path, int pid) {
     return proc + "root" + path;
   }
   return path;
+}
+
+// Resolve an absolute target path under root (e.g. /proc/<pid>/root), expanding
+// symlinks component by component: canonical() would follow absolute links on the host.
+// Return the resolved path with its root prefix, or an empty string on failure.
+std::string resolve_in_root_fs(std::string const& path, std::string const& root) {
+  namespace bf = boost::filesystem;
+  bf::path const target(path), root_path(root);
+  boost::system::error_code ec;
+  if(!target.is_absolute() || !root_path.is_absolute() || !bf::is_directory(root_path, ec))
+    return {};
+
+  bf::path resolved = root_path;
+  std::deque<bf::path> pending;
+  // Put a symlink target before the path components still to visit.
+  auto prepend_components = [&](bf::path const& value) {
+    auto relative = value.relative_path();
+    pending.insert(pending.begin(), relative.begin(), relative.end());
+  };
+  prepend_components(target);
+
+  // Match Linux's symlink-following limit to bound cycles and excessively long chains.
+  constexpr unsigned max_symlinks = 40;
+  unsigned links = 0;
+
+  while(!pending.empty()) {
+    auto component = pending.front();
+    pending.pop_front();
+
+    if(component == ".")
+      continue;
+
+    // Process ".." after expanding links, and never walk above the target root.
+    if(component == "..") {
+      if(resolved != root_path)
+        resolved = resolved.parent_path();
+      continue;
+    }
+
+    // Inspect this component without following its link on the host.
+    auto next = resolved / component;
+    auto status = bf::symlink_status(next, ec);
+    if(ec || !bf::exists(status))
+      return {};
+
+    if(bf::is_symlink(status)) {
+      if(++links > max_symlinks)
+        return {};
+
+      auto destination = bf::read_symlink(next, ec);
+      if(ec)
+        return {};
+
+      // Absolute links restart at the target root, not the tracer's '/'.
+      if(destination.is_absolute())
+        resolved = root_path;
+      prepend_components(destination);
+      continue;
+    }
+
+    // A nonfinal component must be a directory before resolving its children.
+    if(!pending.empty() && !bf::is_directory(status))
+      return {};
+    resolved = next;
+  }
+
+  return resolved.string();
 }
 
 bool exists(std::string const& path) {

@@ -56,6 +56,10 @@ namespace Dyninst { namespace filesystem {
    */
   DYNINST_EXPORT std::string canonicalize(std::string, int pid);
 
+  // Resolve an absolute target path with symlinks interpreted inside root.
+  // Return a path retaining the root prefix, or an empty string on failure.
+  DYNINST_EXPORT std::string resolve_in_root_fs(std::string const& path, std::string const& root);
+
   DYNINST_EXPORT bool exists(std::string const& path);
 
   DYNINST_EXPORT std::string replace_extension(std::string const& path, std::string const& val);

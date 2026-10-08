@@ -16,6 +16,7 @@
 #endif
 
 static int test_canonicalize();
+static int test_resolve_in_root_fs();
 static int test_canonicalize_procfs();
 static int test_exists();
 static int test_replace_extension();
@@ -23,8 +24,9 @@ static int test_append_filename_suffix();
 static int test_strip_all_extensions();
 
 int main() {
-  std::array<int(*)(), 6> tests = {{
+  std::array<int(*)(), 7> tests = {{
       test_canonicalize,
+      test_resolve_in_root_fs,
       test_canonicalize_procfs,
       test_exists,
       test_replace_extension,
@@ -118,6 +120,67 @@ int test_canonicalize_procfs() {
   waitpid(child, nullptr, 0);
   close(ready[0]);
   return cleanup(ret);
+#else
+  return EXIT_SUCCESS;
+#endif
+}
+
+int test_resolve_in_root_fs() {
+#ifdef __linux__
+  namespace bf = boost::filesystem;
+  auto const root = bf::temp_directory_path() / bf::unique_path("dyninst-root-%%%%-%%%%-%%%%");
+  auto const library = root / "opt/pkg/lib.so";
+  bf::create_directories(library.parent_path());
+  bf::create_directories(root / "links");
+  { std::ofstream file(library.string()); file << "fixture"; }
+  if(!bf::is_regular_file(library)) {
+    bf::remove_all(root);
+    return EXIT_FAILURE;
+  }
+
+  // Model an alternatives chain: /alias -> /links/current -> /opt/pkg.
+  bf::create_symlink("/links/current", root / "alias");
+  bf::create_symlink("/opt/pkg", root / "links/current");
+  bf::create_symlink("../opt/pkg", root / "links/relative");
+  bf::create_symlink("loop", root / "loop");
+  bf::create_symlink(library, root / "host-only"); // Exists on the host, not in this root.
+
+  // The last allowed link resolves; one additional link exceeds the limit.
+  bf::create_symlink("/opt/pkg/lib.so", root / "chain40");
+  for(int i = 39; i >= 0; --i)
+    bf::create_symlink("chain" + std::to_string(i + 1), root / ("chain" + std::to_string(i)));
+
+  // Each row maps a path inside root to a host path; "" means reject it.
+  struct test_case {
+    const char *scenario, *target_path;
+    std::string expected_host_path;
+  } const cases[] = {
+      {"absolute chain", "/alias/lib.so", library.string()},
+      {"relative directory link", "/links/relative/lib.so", library.string()},
+      {"clamp at root", "/../../alias/lib.so", library.string()},
+      {"parent after link", "/alias/../pkg/lib.so", library.string()},
+      {"40 links", "/chain1", library.string()},
+      {"41 links", "/chain0", ""},
+      {"loop", "/loop", ""},
+      {"host-only target", "/host-only", ""},
+      {"file as directory", "/opt/pkg/lib.so/..", ""},
+      {"relative path", "opt/pkg/lib.so", ""}
+  };
+  bool failed = false;
+  auto check = [&](const char *scenario, const char *target_path, bf::path const& target_root,
+                   std::string const& expected_host_path) {
+    auto result = Dyninst::filesystem::resolve_in_root_fs(target_path, target_root.string());
+    if(result != expected_host_path) {
+      std::cerr << scenario << ": expected '" << expected_host_path << "', got '" << result << "'\n";
+      failed = true;
+    }
+  };
+  for(auto const& t : cases)
+    check(t.scenario, t.target_path, root, t.expected_host_path);
+  check("relative root", "/", "relative-root", "");
+  check("file as root", "/", library, "");
+  bf::remove_all(root);
+  return failed ? EXIT_FAILURE : EXIT_SUCCESS;
 #else
   return EXIT_SUCCESS;
 #endif
