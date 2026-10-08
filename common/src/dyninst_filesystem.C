@@ -51,6 +51,7 @@ namespace Dyninst {
 #else
 
 #include <pwd.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
@@ -136,6 +137,22 @@ namespace Dyninst { namespace filesystem {
     return full_path.string();
   }
 
+#ifdef os_linux
+  // Check whether two paths resolve to different underlying files or directories.
+  static bool different_file_identity(std::string const& lhs, std::string const& rhs) {
+    struct stat lhs_stat{};
+    struct stat rhs_stat{};
+    return stat(lhs.c_str(), &lhs_stat) == 0 && stat(rhs.c_str(), &rhs_stat) == 0 &&
+           (lhs_stat.st_dev != rhs_stat.st_dev || lhs_stat.st_ino != rhs_stat.st_ino);
+  }
+
+  static bool has_distinct_filesystem_view(int pid) {
+    auto const proc = "/proc/" + std::to_string(pid);
+    return different_file_identity(proc + "/ns/mnt", "/proc/self/ns/mnt") ||
+           different_file_identity(proc + "/root", "/");
+  }
+#endif
+
 #endif
 
 std::string extract_filename(const std::string& path) {
@@ -190,7 +207,9 @@ std::string canonicalize(std::string path) {
 
 std::string canonicalize(std::string path, int pid) {
 #ifdef os_linux
-  if(!path.empty() && path[0] == '/' && path.compare(0, 6, "/proc/") != 0) {
+  // Keep stable host paths unless procfs shows that the target filesystem differs.
+  if(!path.empty() && path[0] == '/' && path.compare(0, 6, "/proc/") != 0 &&
+     has_distinct_filesystem_view(pid)) {
     auto rooted = "/proc/" + std::to_string(pid) + "/root" + path;
     if(is_readable(rooted)) {
       path = std::move(rooted);

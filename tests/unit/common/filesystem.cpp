@@ -58,11 +58,11 @@ int test_canonicalize_procfs() {
     }
   }
 
-  auto const rooted = Dyninst::filesystem::canonicalize(test_path, getpid());
-  auto const expected = "/proc/" + std::to_string(getpid()) + "/root" + test_path;
+  auto const resolved = Dyninst::filesystem::canonicalize(test_path, getpid());
+  auto const expected = Dyninst::filesystem::canonicalize(test_path);
   bf::remove(test_path);
-  if(rooted != expected) {
-    std::cerr << "canonicalize: expected '" << expected << "', got '" << rooted << "'\n";
+  if(resolved != expected) {
+    std::cerr << "canonicalize: expected '" << expected << "', got '" << resolved << "'\n";
     return EXIT_FAILURE;
   }
 #endif
