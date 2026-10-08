@@ -48,10 +48,16 @@ toolkit target.
     always PRIVATE attributes of the target.
 
   DYNINST_DEPS
-    A list of dependent Dyninst targets. <TargetName> links each of them.
-    <TargetName>_static links the static variant of each one that has a
-    static variant, and it is an error for a SHARED library here to have
-    none.
+    A list of the Dyninst libraries (not internal libraries) that
+    <TargetName> depends on. <TargetName> links each of them, and
+    <TargetName>_static links each one's static variant, which must
+    exist. An internal library uses only their <dep>_headers targets:
+    it is absorbed into both variants of a real library, so it has no
+    correct variant to link.
+
+  DYNINST_INTERNAL_DEPS
+    A list of internal libraries that <TargetName> absorbs. They are
+    PRIVATE dependencies.
 
   HEADER_DEPS
     A list of third-party targets that the public headers of
@@ -133,6 +139,19 @@ function(dyninst_library _target)
     set_target_properties(${_target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
   endif()
 
+  foreach(d ${_target_DYNINST_DEPS})
+    if(NOT TARGET ${d}_headers)
+      message(FATAL_ERROR "${_target}: ${d} is not a Dyninst library; "
+                          "list internal libraries in DYNINST_INTERNAL_DEPS")
+    endif()
+  endforeach()
+  foreach(d ${_target_DYNINST_INTERNAL_DEPS})
+    if(TARGET ${d}_headers)
+      message(
+        FATAL_ERROR "${_target}: ${d} is a Dyninst library; list it in DYNINST_DEPS")
+    endif()
+  endforeach()
+
   set(_all_targets ${_target})
 
   # Internal libraries are absorbed into real ones and have no headers
@@ -152,9 +171,7 @@ function(dyninst_library _target)
         "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR};${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>"
         "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
     foreach(d ${_target_DYNINST_DEPS})
-      if(TARGET ${d}_headers)
-        target_link_libraries(${_target}_headers INTERFACE ${d}_headers)
-      endif()
+      target_link_libraries(${_target}_headers INTERFACE ${d}_headers)
     endforeach()
     target_link_libraries(${_target}_headers INTERFACE ${_target_HEADER_DEPS})
 
@@ -175,22 +192,22 @@ function(dyninst_library _target)
     # are added before their dependents, so the static variant either
     # exists by now or never will.
     foreach(d ${_target_DYNINST_DEPS})
-      if(TARGET ${d}_static)
-        target_link_libraries(${_target}_static PUBLIC ${d}_static)
-      else()
-        get_target_property(_dep_type ${d} TYPE)
-        if(_dep_type STREQUAL "SHARED_LIBRARY")
-          message(
-            FATAL_ERROR "${_target}_static depends on ${d}, which has no static variant")
-        endif()
-        # An OBJECT or INTERFACE library has only one variant
-        target_link_libraries(${_target}_static PUBLIC ${d})
+      if(NOT TARGET ${d}_static)
+        message(
+          FATAL_ERROR "${_target}_static depends on ${d}, which has no static variant")
       endif()
+      target_link_libraries(${_target}_static PUBLIC ${d}_static)
     endforeach()
   endif()
 
-  # Depending on another Dyninst library is always public
-  target_link_libraries(${_target} PUBLIC ${_target_DYNINST_DEPS})
+  if(_target_INTERNAL_LIBRARY)
+    foreach(d ${_target_DYNINST_DEPS})
+      target_link_libraries(${_target} PUBLIC ${d}_headers)
+    endforeach()
+  else()
+    # Depending on another Dyninst library is always public
+    target_link_libraries(${_target} PUBLIC ${_target_DYNINST_DEPS})
+  endif()
 
   foreach(t ${_all_targets})
     message(STATUS "Adding library '${t}'")

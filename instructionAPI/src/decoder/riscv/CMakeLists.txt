@@ -21,7 +21,7 @@ dyninst_library(
   INTERNAL_LIBRARY
   SOURCE_FILES ${_sources}
   PRIVATE_HEADER_FILES ${_headers}
-  DYNINST_INTERNAL_DEPS common
+  DYNINST_DEPS common
   PUBLIC_DEPS Dyninst::Capstone
 )
 

@@ -31,7 +31,8 @@ dyninst_library(
   PUBLIC_HEADER_FILES ${_public_headers}
   SOURCE_FILES ${_sources}
   DEFINES DYNDWARF_LIB
-  DYNINST_DEPS dynElf common
+  DYNINST_DEPS common
+  DYNINST_INTERNAL_DEPS dynElf
   PRIVATE_DEPS Dyninst::Boost_headers Dyninst::ElfUtils
   INTERNAL_LIBRARY
 )

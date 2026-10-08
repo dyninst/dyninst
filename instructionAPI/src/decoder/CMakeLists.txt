@@ -23,8 +23,8 @@ dyninst_library(
   SOURCE_FILES ${_sources}
   PRIVATE_HEADER_FILES ${_headers}
   DEFINES ${_unknown_insn_defines}
+  DYNINST_DEPS common
   DYNINST_INTERNAL_DEPS
-    common
     instructionAPI_aarch64
     instructionAPI_amdgpu
     instructionAPI_powerpc
