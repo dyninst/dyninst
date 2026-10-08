@@ -64,18 +64,25 @@ if(DYNINST_OS_UNIX)
   endif()
 endif()
 
+set(_dyninst_deps common instructionAPI pcontrol ${SYMREADER})
+if(SW_ANALYSIS_STEPPER)
+  list(APPEND _dyninst_deps parseAPI)
+endif()
+
 # cmake-format: off
 dyninst_library(
   stackwalk
   PUBLIC_HEADER_FILES ${_public_headers}
   PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
-  DYNINST_DEPS common instructionAPI pcontrol ${SYMREADER}
+  DYNINST_DEPS ${_dyninst_deps}
   DYNINST_INTERNAL_DEPS dynDwarf dynElf
   PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS Dyninst::ElfUtils
 )
 # cmake-format: on
+
+unset(_dyninst_deps)
 
 foreach(t ${stackwalk_TARGETS})
   # Force frame pointers in stackwalker, no matter the optimization level
@@ -84,11 +91,6 @@ foreach(t ${stackwalk_TARGETS})
 
   if(SW_ANALYSIS_STEPPER)
     target_compile_definitions(${t} PRIVATE USE_PARSE_API)
-    if("${t}" MATCHES "static")
-      target_link_libraries(${t} PUBLIC parseAPI_static)
-    else()
-      target_link_libraries(${t} PUBLIC parseAPI)
-    endif()
     target_sources(${t} PRIVATE src/analysis_stepper.C src/callchecker-IAPI.C)
   else()
     target_sources(${t} PRIVATE src/callchecker.C)
