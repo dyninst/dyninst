@@ -71,16 +71,18 @@ toolkit target.
     always PRIVATE attributes of the target.
 
   DYNINST_DEPS
-    A list of dependent Dyninst targets. <TargetName> links each of them.
+    A list of the Dyninst libraries (not internal libraries) that
+    <TargetName> depends on. <TargetName> links each of them, and
     <TargetName>_static links each one's static variant when it has one.
-    Otherwise it links the dependency itself: an OBJECT or INTERFACE
-    library has only one variant, and a SHARED library without a static
-    variant stays shared. The only such case is dyninstAPI_RT_static,
-    which FORCE_STATIC creates even when common_static does not exist.
+    Otherwise it links the shared library itself; the only such case is
+    dyninstAPI_RT_static, which FORCE_STATIC creates even when
+    common_static does not exist. An internal library uses only their
+    <dep>_headers targets: it is absorbed into both variants of a real
+    library, so it has no correct variant to link.
 
   DYNINST_INTERNAL_DEPS
-    A list of targets that are PRIVATE dependencies of every variant of
-    <TargetName>, such as the internal libraries it absorbs.
+    A list of internal libraries that <TargetName> absorbs. They are
+    PRIVATE dependencies.
 
   HEADER_DEPS
     A list of third-party targets that the public headers of
@@ -201,6 +203,24 @@ function(dyninst_library _target)
     endif()
   endif()
 
+  foreach(d ${_target_DYNINST_DEPS})
+    if(NOT TARGET ${d}_headers)
+      message(
+        FATAL_ERROR
+        "${_target}: ${d} is not a Dyninst library; "
+        "list internal libraries in DYNINST_INTERNAL_DEPS"
+      )
+    endif()
+  endforeach()
+  foreach(d ${_target_DYNINST_INTERNAL_DEPS})
+    if(TARGET ${d}_headers)
+      message(
+        FATAL_ERROR
+        "${_target}: ${d} is a Dyninst library; list it in DYNINST_DEPS"
+      )
+    endif()
+  endforeach()
+
   set(_all_targets ${_target})
 
   set(
@@ -219,9 +239,7 @@ function(dyninst_library _target)
     add_library(${_target}_headers INTERFACE)
     target_include_directories(${_target}_headers INTERFACE "${_include_dirs}")
     foreach(d ${_target_DYNINST_DEPS})
-      if(TARGET ${d}_headers)
-        target_link_libraries(${_target}_headers INTERFACE ${d}_headers)
-      endif()
+      target_link_libraries(${_target}_headers INTERFACE ${d}_headers)
     endforeach()
     target_link_libraries(${_target}_headers INTERFACE ${_target_HEADER_DEPS})
 
@@ -256,9 +274,8 @@ function(dyninst_library _target)
       if(TARGET ${d}_static)
         target_link_libraries(${_target}_static PUBLIC ${d}_static)
       else()
-        # An OBJECT or INTERFACE library has only one variant. A SHARED one
-        # without a static variant is linked as is: dyninstAPI_RT_static
-        # depends on common, which is static only with ENABLE_STATIC_LIBS.
+        # dyninstAPI_RT_static depends on common, which is static only with
+        # ENABLE_STATIC_LIBS
         target_link_libraries(${_target}_static PUBLIC ${d})
       endif()
     endforeach()
@@ -271,8 +288,14 @@ function(dyninst_library _target)
     endforeach()
   endif()
 
-  # Depending on another Dyninst library is always public
-  target_link_libraries(${_target} PUBLIC ${_target_DYNINST_DEPS})
+  if(_target_INTERNAL_LIBRARY)
+    foreach(d ${_target_DYNINST_DEPS})
+      target_link_libraries(${_target} PUBLIC ${d}_headers)
+    endforeach()
+  else()
+    # Depending on another Dyninst library is always public
+    target_link_libraries(${_target} PUBLIC ${_target_DYNINST_DEPS})
+  endif()
 
   foreach(t ${_all_targets})
     message(STATUS "Adding library '${t}'")
