@@ -290,21 +290,24 @@ async_ret_t ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Ad
 
     // The breakpoint should be set at the instruction following the sequence
     if( foundEnd ) {
+        // The scan has stepped past the store-conditional
+        const Address seq_end = pc;
+
         // A branch whose target is inside the sequence (a retry edge before the
         // store) does not leave it.  A breakpoint there would sit on an
         // instruction the thread is about to execute, and the thread would
         // trap without making progress.
         vector<Address> exit_targets;
         for (auto branch_target : addrResult) {
-            if (branch_target >= seq_start && branch_target < pc) {
+            if (branch_target >= seq_start && branch_target < seq_end) {
                 pthrd_printf("Branch target 0x%lx is inside the atomic sequence, no breakpoint\n", branch_target);
                 continue;
             }
             exit_targets.push_back(branch_target);
         }
         addrResult.swap(exit_targets);
-        addrResult.push_back(pc);
-        pthrd_printf("Atomic instruction sequence ends at 0x%lx\n", pc);
+        addrResult.push_back(seq_end);
+        pthrd_printf("Atomic instruction sequence ends at 0x%lx\n", seq_end);
     }else if( sequenceStarted || addrResult.size() ) {
         addrResult.clear();
         pthrd_printf("Failed to find end of atomic instruction sequence\n");
