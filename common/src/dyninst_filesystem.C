@@ -38,8 +38,6 @@
 
 #ifdef os_windows
 
-#include <io.h>
-
 namespace Dyninst {
 
   static std::string expand_tilde(std::string path_name) {
@@ -145,12 +143,6 @@ namespace Dyninst { namespace filesystem {
     return stat(lhs.c_str(), &lhs_stat) == 0 && stat(rhs.c_str(), &rhs_stat) == 0 &&
            (lhs_stat.st_dev != rhs_stat.st_dev || lhs_stat.st_ino != rhs_stat.st_ino);
   }
-
-  static bool has_distinct_filesystem_view(int pid) {
-    auto const proc = "/proc/" + std::to_string(pid);
-    return different_file_identity(proc + "/ns/mnt", "/proc/self/ns/mnt") ||
-           different_file_identity(proc + "/root", "/");
-  }
 #endif
 
 #endif
@@ -175,13 +167,6 @@ std::string canonicalize(std::string path) {
     path = expand_tilde(path);
   }
 
-#ifdef os_linux
-  // canonical() follows procfs magic links into the tracer's filesystem view.
-  if(path.compare(0, 6, "/proc/") == 0) {
-    return path;
-  }
-#endif
-
   // Convert to a boost::filesystem::path
   auto boost_path = bf::path(path);
 
@@ -205,32 +190,36 @@ std::string canonicalize(std::string path) {
   return canonical_path.string();
 }
 
-std::string canonicalize(std::string path, int pid) {
+bool has_distinct_filesystem_view(int pid) {
 #ifdef os_linux
-  // Keep stable host paths unless procfs shows that the target filesystem differs.
-  if(!path.empty() && path[0] == '/' && path.compare(0, 6, "/proc/") != 0 &&
-     has_distinct_filesystem_view(pid)) {
-    auto rooted = "/proc/" + std::to_string(pid) + "/root" + path;
-    if(is_readable(rooted)) {
-      path = std::move(rooted);
-    }
-  }
+  auto const proc = "/proc/" + std::to_string(pid);
+  return different_file_identity(proc + "/ns/mnt", "/proc/self/ns/mnt") ||
+         different_file_identity(proc + "/root", "/");
 #else
   (void)pid;
+  return false;
 #endif
-  return canonicalize(std::move(path));
+}
+
+std::string canonicalize(std::string path, int pid) {
+  if(!has_distinct_filesystem_view(pid)) {
+    return canonicalize(std::move(path));
+  }
+  // The target has its own filesystem view (a container or a chroot). Paths
+  // under /proc/<pid>/ already open the target's files. Other absolute paths
+  // are the target's, so open them through /proc/<pid>/root even when that
+  // fails: the same path on this side may be a different file. Neither may be
+  // canonicalized here: canonical() follows the procfs links back to this
+  // side of the mount namespace.
+  auto const proc = "/proc/" + std::to_string(pid) + "/";
+  if(!path.empty() && path[0] == '/' && path.compare(0, proc.size(), proc) != 0) {
+    return proc + "root" + path;
+  }
+  return path;
 }
 
 bool exists(std::string const& path) {
   return boost::filesystem::exists(path);
-}
-
-bool is_readable(std::string const& path) {
-#ifdef os_windows
-  return _access(path.c_str(), 4) == 0;
-#else
-  return access(path.c_str(), R_OK) == 0;
-#endif
 }
 
 std::string strip_all_extensions(std::string const& path) {

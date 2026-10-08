@@ -41,11 +41,22 @@ namespace Dyninst { namespace filesystem {
 
   DYNINST_EXPORT std::string canonicalize(std::string);
 
+  /*
+   *  True when process `pid` resolves absolute paths differently from the
+   *  caller: another mount namespace or another root directory (a container or
+   *  a chroot). False when that cannot be determined.
+   */
+  DYNINST_EXPORT bool has_distinct_filesystem_view(int pid);
+
+  /*
+   *  `path`, a name read from process `pid` (its link map, PT_INTERP or
+   *  /proc/<pid>/exe), as the caller can open it. Without a distinct filesystem
+   *  view this is canonicalize(path). With one, names under /proc/<pid>/ are
+   *  returned unchanged and other absolute names become /proc/<pid>/root<path>.
+   */
   DYNINST_EXPORT std::string canonicalize(std::string, int pid);
 
   DYNINST_EXPORT bool exists(std::string const& path);
-
-  DYNINST_EXPORT bool is_readable(std::string const& path);
 
   DYNINST_EXPORT std::string replace_extension(std::string const& path, std::string const& val);
 

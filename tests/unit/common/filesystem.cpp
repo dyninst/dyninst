@@ -8,7 +8,10 @@
 #include <iostream>
 #include <string>
 
-#ifdef os_linux
+#ifdef __linux__  // os_linux is defined for the libraries, not the unit tests
+#include <sched.h>
+#include <signal.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #endif
 
@@ -40,14 +43,9 @@ int main() {
 }
 
 int test_canonicalize_procfs() {
-#ifdef os_linux
+#ifdef __linux__
   namespace bf = boost::filesystem;
-
-  std::string const proc_path{"/proc/self/exe"};
-  if(Dyninst::filesystem::canonicalize(proc_path) != proc_path) {
-    std::cerr << "canonicalize changed a procfs path\n";
-    return EXIT_FAILURE;
-  }
+  namespace df = Dyninst::filesystem;
 
   auto const test_path = bf::absolute("procfs-canonicalize-test.out").string();
   {
@@ -57,16 +55,72 @@ int test_canonicalize_procfs() {
       return EXIT_FAILURE;
     }
   }
+  auto const cleanup = [&](int ret) { bf::remove(test_path); return ret; };
 
-  auto const resolved = Dyninst::filesystem::canonicalize(test_path, getpid());
-  auto const expected = Dyninst::filesystem::canonicalize(test_path);
-  bf::remove(test_path);
-  if(resolved != expected) {
-    std::cerr << "canonicalize: expected '" << expected << "', got '" << resolved << "'\n";
-    return EXIT_FAILURE;
+  // A process sharing our filesystem view: names come back as canonicalize() gives them.
+  auto const self = getpid();
+  if(df::has_distinct_filesystem_view(self)) {
+    std::cerr << "has_distinct_filesystem_view: true for this process\n";
+    return cleanup(EXIT_FAILURE);
   }
-#endif
+  if(df::canonicalize(test_path, self) != df::canonicalize(test_path)) {
+    std::cerr << "canonicalize: '" << test_path << "' changed for this process\n";
+    return cleanup(EXIT_FAILURE);
+  }
+  auto const exe = "/proc/" + std::to_string(self) + "/exe";
+  if(df::canonicalize(exe, self) != bf::canonical(exe).string()) {
+    std::cerr << "canonicalize: '" << exe << "' did not resolve to the executable\n";
+    return cleanup(EXIT_FAILURE);
+  }
+
+  // A process with its own mount namespace: names are opened through /proc/<pid>/root.
+  int ready[2];
+  if(pipe(ready) != 0) {
+    return cleanup(EXIT_FAILURE);
+  }
+  pid_t const child = fork();
+  if(child < 0) {
+    return cleanup(EXIT_FAILURE);
+  }
+  if(child == 0) {
+    close(ready[0]);
+    char ok = unshare(CLONE_NEWUSER | CLONE_NEWNS) == 0 ? 1 : 0;
+    if(write(ready[1], &ok, 1) != 1) {
+      _exit(1);
+    }
+    pause();
+    _exit(0);
+  }
+  close(ready[1]);  // so read() sees EOF if the child dies first
+  char ok = 0;
+  bool const unshared = read(ready[0], &ok, 1) == 1 && ok;
+  int ret = EXIT_SUCCESS;
+  auto const proc = "/proc/" + std::to_string(child);
+  if(!unshared) {
+    std::cerr << "skipping the mount-namespace case: unshare() is not permitted here\n";
+  } else if(access((proc + "/root/").c_str(), R_OK) != 0) {
+    std::cerr << "skipping the mount-namespace case: cannot read " << proc << "/root\n";
+  } else if(!df::has_distinct_filesystem_view(child)) {
+    std::cerr << "has_distinct_filesystem_view: false for a process in another mount namespace\n";
+    ret = EXIT_FAILURE;
+  } else {
+    auto const rooted = df::canonicalize(test_path, child);
+    if(rooted != proc + "/root" + test_path) {
+      std::cerr << "canonicalize: expected '" << proc << "/root" << test_path << "', got '" << rooted << "'\n";
+      ret = EXIT_FAILURE;
+    }
+    if(df::canonicalize(proc + "/exe", child) != proc + "/exe") {
+      std::cerr << "canonicalize: changed '" << proc << "/exe' for a process in another mount namespace\n";
+      ret = EXIT_FAILURE;
+    }
+  }
+  kill(child, SIGKILL);
+  waitpid(child, nullptr, 0);
+  close(ready[0]);
+  return cleanup(ret);
+#else
   return EXIT_SUCCESS;
+#endif
 }
 
 int test_canonicalize() {
