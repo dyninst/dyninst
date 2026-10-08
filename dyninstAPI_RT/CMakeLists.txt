@@ -65,7 +65,8 @@ dyninst_library(
 )
 
 foreach(t ${dyninstAPI_RT_TARGETS})
-  # For dyntypes.h and unaligned_memory_access.h, included by bare name.
+  # For dyntypes.h, unaligned_memory_access.h and compiler_diagnostics.h,
+  # included by bare name.
   target_include_directories(
     ${t}
     BEFORE
