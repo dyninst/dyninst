@@ -94,12 +94,21 @@ void instruction::setInstruction(unsigned char *ptr, Dyninst::Address) {
 }
 
 bool instruction::isBranchReg() const{
-    return CHECK_INST(UNCOND_BR.REG );
+    if( CHECK_INST(UNCOND_BR.RETA) )
+        return true;
+    if( CHECK_INST(UNCOND_BR.BR) || CHECK_INST(UNCOND_BR.BLR) || CHECK_INST(UNCOND_BR.RET)
+        || CHECK_INST(UNCOND_BR.BRAZ) || CHECK_INST(UNCOND_BR.BLRAZ)
+        || CHECK_INST(UNCOND_BR.BRA) || CHECK_INST(UNCOND_BR.BLRA) ) {
+        // Rn = 31 is xzr, a branch to address 0 that no compiler emits.  Such a word is most
+        // likely data (a literal pool), so it is not taken as a branch to read a register for.
+        return (GET_OFFSET32(UNCOND_BR.REG)>>2) != UNCOND_BR.XZR_REG;
+    }
+    return false;
 }
 
 bool instruction::isUncondBranch() const {
     if( CHECK_INST(UNCOND_BR.IMM ) == true
-        || CHECK_INST(UNCOND_BR.REG ) == true
+        || isBranchReg()
       )
         return true;
 
@@ -170,7 +179,9 @@ unsigned instruction::getBranchTargetReg() const{
     // keep sure this instruction is uncond b reg.
     assert( isUncondBranch() );
     unsigned regNum;
-    if( CHECK_INST(UNCOND_BR.REG) ){
+    if( CHECK_INST(UNCOND_BR.RETA) )
+        return UNCOND_BR.RETA_TARGET_REG;
+    if( isBranchReg() ){
         // in this case, we should retrieve the offset from the reg
         // shift right 2 to overcome the <<2 for address values
         regNum = GET_OFFSET32(UNCOND_BR.REG)>>2;
@@ -188,7 +199,7 @@ Dyninst::Address instruction::getBranchOffset() const {
         if( CHECK_INST(UNCOND_BR.IMM) ){
             return signExtend(GET_OFFSET32(UNCOND_BR.IMM), 26+2 );
         }
-        if( CHECK_INST(UNCOND_BR.REG) ){
+        if( isBranchReg() ){
             // branch reg doesn't return offset.
             assert(0);
         }
@@ -216,14 +227,12 @@ unsigned instruction::opcode() const {
 
 // Load-exclusive (LDXR/LDAXR/LDXP/LDAXP), the start of an LL/SC sequence.  Not LDAR, not CAS.
 bool instruction::isAtomicLoad() const {
-    return !((insn_.raw & ATOMIC.REG_MASK) ^ ATOMIC.LD_REG)
-        || !((insn_.raw & ATOMIC.PAIR_MASK) ^ ATOMIC.LD_PAIR);
+    return CHECK_INST(ATOMIC.LD_REG) || CHECK_INST(ATOMIC.LD_PAIR);
 }
 
 // Store-exclusive (STXR/STLXR/STXP/STLXP), the end of an LL/SC sequence.  Not STLR, not CAS.
 bool instruction::isAtomicStore() const {
-    return !((insn_.raw & ATOMIC.REG_MASK) ^ ATOMIC.ST_REG)
-        || !((insn_.raw & ATOMIC.PAIR_MASK) ^ ATOMIC.ST_PAIR);
+    return CHECK_INST(ATOMIC.ST_REG) || CHECK_INST(ATOMIC.ST_PAIR);
 }
 
 } // namespace NS_aarch64

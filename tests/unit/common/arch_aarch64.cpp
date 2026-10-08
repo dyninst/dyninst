@@ -1,7 +1,8 @@
 /*
  * The aarch64 instruction predicates that ProcControl's emulated single-step relies on:
  * exclusive loads and stores (the LL/SC sequence boundaries) and branch-register targets.
- * Encodings were produced by GNU as (-march=armv8.1-a) and read back with objdump.
+ * Encodings were produced by GNU as (-march=armv8.3-a) and read back with objdump, except the
+ * unallocated op = 11 word, which no assembler emits.
  */
 #include "common/src/arch-aarch64.h"
 #include <cstdio>
@@ -72,6 +73,24 @@ const branch_case branch_cases[] = {
   {"br x30",   0xd61f03c0, true,  30},
   {"eret",     0xd69f03e0, false, 0},   // shares bits [31:25] with br/blr/ret; Rn field is 31
   {"drps",     0xd6bf03e0, false, 0},
+  {"br xzr",   0xd61f03e0, false, 0},   // Rn = 31: a branch to 0, more likely literal-pool data
+  {"ret xzr",  0xd65f03e0, false, 0},
+  {"(op=11)",  0xd67f0000, false, 0},   // unallocated
+  // pointer authentication (-mbranch-protection): the target is still Rn, or x30 for retaa/retab
+  {"retaa",              0xd65f0bff, true,  30},
+  {"retab",              0xd65f0fff, true,  30},
+  {"braaz x16",          0xd61f0a1f, true,  16},
+  {"braaz x0",           0xd61f081f, true,  0},
+  {"brabz x3",           0xd61f0c7f, true,  3},
+  {"blraaz x17",         0xd63f0a3f, true,  17},
+  {"blrabz x30",         0xd63f0fdf, true,  30},
+  {"braa x16, x17",      0xd71f0a11, true,  16},
+  {"brab x3, sp",        0xd71f0c7f, true,  3},
+  {"blraa x17, x16",     0xd73f0a30, true,  17},
+  {"blrab x30, x1",      0xd73f0fc1, true,  30},
+  {"braaz xzr",          0xd61f0bff, false, 0},
+  {"eretaa",             0xd69f0bff, false, 0},
+  {"eretab",             0xd69f0fff, false, 0},
   {"b .",      0x14000000, false, 0},
   {"bl .",     0x94000000, false, 0},
   {"cbz w0, .", 0x34000000, false, 0},

@@ -129,12 +129,14 @@ typedef const unsigned int insn_mask;
  */
 class ATOMIC_t {
 public:
-    static insn_mask REG_MASK  = (0x3fe00000);   // bits [29:21]: 001000 o2 L o1
-    static insn_mask LD_REG    = (0x08400000);   // 001000 0 1 0
-    static insn_mask ST_REG    = (0x08000000);   // 001000 0 0 0
-    static insn_mask PAIR_MASK = (0xbfe00000);   // bit 31 and bits [29:21]
-    static insn_mask LD_PAIR   = (0x88600000);   // 1 . 001000 0 1 1
-    static insn_mask ST_PAIR   = (0x88200000);   // 1 . 001000 0 0 1
+    static insn_mask LD_REG_MASK  = (0x3fe00000);   // bits [29:21]: 001000 o2 L o1
+    static insn_mask LD_REG       = (0x08400000);   // 001000 0 1 0
+    static insn_mask ST_REG_MASK  = (0x3fe00000);
+    static insn_mask ST_REG       = (0x08000000);   // 001000 0 0 0
+    static insn_mask LD_PAIR_MASK = (0xbfe00000);   // bit 31 and bits [29:21]
+    static insn_mask LD_PAIR      = (0x88600000);   // 1 . 001000 0 1 1
+    static insn_mask ST_PAIR_MASK = (0xbfe00000);
+    static insn_mask ST_PAIR      = (0x88200000);   // 1 . 001000 0 0 1
 };
 
 class UNCOND_BR_t {
@@ -143,11 +145,36 @@ public:
     static insn_mask IMM       =(0x14000000);
     static insn_mask IMM_OFFSET_MASK   =(0x03ffffff);
     static insn_mask IMM_OFFSHIFT   = 0;
-    // BR, BLR, RET: 1101011 0 0 op(2) 11111 000000 Rn 00000 with op = 00/01/10 in bits [22:21].
-    // The mask keeps bit 23 and bits [20:10] and [4:0], so ERET (bit 23 set, Rn field 11111) and
-    // DRPS do not match: they are not register branches, and their Rn field would read as 31.
-    static insn_mask REG_MASK  =(0xff9ffc1f);
-    static insn_mask REG       =(0xd61f0000);
+    /*
+     * Branch to register: bits [31:25] = 1101011 and bits [20:16] = 11111, then
+     *
+     *   BR, BLR, RET                 0 0 op 11111 000000 Rn    00000    op = 00 / 01 / 10
+     *   BRAAZ/BRABZ, BLRAAZ/BLRABZ   0 0 op 11111 00001M Rn    11111    op = 00 / 01
+     *   BRAA/BRAB, BLRAA/BLRAB       1 0 op 11111 00001M Rn    Rm       op = 00 / 01
+     *   RETAA/RETAB                  0 0 10 11111 00001M 11111 11111    branches to x30
+     *
+     * The pointer-authenticated forms (M selects key A or B) branch to the same register as
+     * their plain counterparts; the modifier in Rm or SP only checks the signature.  The other
+     * values of bits [24:21] (op = 11, ERET, DRPS, ERETAA/ERETAB) are not register branches.
+     */
+    static insn_mask BR_MASK    =(0xfffffc1f);
+    static insn_mask BR         =(0xd61f0000);
+    static insn_mask BLR_MASK   =(0xfffffc1f);
+    static insn_mask BLR        =(0xd63f0000);
+    static insn_mask RET_MASK   =(0xfffffc1f);
+    static insn_mask RET        =(0xd65f0000);
+    static insn_mask BRAZ_MASK  =(0xfffff81f);
+    static insn_mask BRAZ       =(0xd61f081f);
+    static insn_mask BLRAZ_MASK =(0xfffff81f);
+    static insn_mask BLRAZ      =(0xd63f081f);
+    static insn_mask BRA_MASK   =(0xfffff800);
+    static insn_mask BRA        =(0xd71f0800);
+    static insn_mask BLRA_MASK  =(0xfffff800);
+    static insn_mask BLRA       =(0xd73f0800);
+    static insn_mask RETA_MASK  =(0xfffffbff);
+    static insn_mask RETA       =(0xd65f0bff);
+    static insn_mask RETA_TARGET_REG = 30;
+    static insn_mask XZR_REG = 31;   // Rn = 31 names xzr in these encodings
     static insn_mask REG_OFFSET_MASK   =(0x000003e0);   // Rn, bits [9:5]: five bits, so x16..x30 decode
     static insn_mask REG_OFFSHIFT   =5;
 };
