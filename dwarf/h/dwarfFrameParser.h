@@ -56,7 +56,8 @@ typedef enum {
     FE_No_Frame_Entry,
     FE_Frame_Read_Error,
     FE_Frame_Eval_Error,
-    FE_No_Error
+    FE_No_Error,
+    FE_Undefined_Return_Address
 } FrameErrors_t;
 
 class DYNINST_EXPORT DwarfFrameParser {

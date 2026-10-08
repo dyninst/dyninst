@@ -74,14 +74,10 @@ namespace {
       return aarch64::x29;
     if(abstract == StackTop)
       return aarch64::sp;
-    if(abstract == CFA) {
+    if(abstract == CFA)
       dwarf_printf("No aarch64 register for abstract CFA");
-      return Dyninst::InvalidReg;
-    }
 
-    // Preserve concrete AArch64 registers used by same_value rules, such as
-    // sp and x29, while reconstructing non-top frames.
-    return abstract;
+    return Dyninst::InvalidReg;
   }
 }
 
@@ -339,26 +335,25 @@ bool DwarfFrameParser::getRegAtFrame(
             if(nops == 0 && ops == ops_mem)
             {
                 dwarf_printf("\t case of undefined rule\n");
-                // An undefined return address terminates the walk; check the
-                // abstract register before AArch64 converts it to x30.
-                const bool is_return_address = (reg == Dyninst::ReturnAddr);
-                if (is_return_address)
+                if (reg == Dyninst::ReturnAddr) {
+                    err_result = FE_Undefined_Return_Address;
                     return false;
-                if(this->arch == Arch_aarch64) {
+                }
+                if(this->arch == Arch_aarch64 && reg.getArchitecture() == Arch_none) {
                   reg = convert_abstract(reg);
                   dwarf_printf("\t aarch64 converted register reg=%s\n", reg.name().c_str());
                 }
 
-                // Dyninst treats as same_value ???
+                // Keep existing behavior for other undefined registers.
                 cons.readReg(reg);
-                return true; // true because undefined is a valid output
+                return true;
             }
 
             // case of same_value
             if(nops == 0 && ops == NULL)
             {
                 dwarf_printf("\t case of same_value rule\n");
-                if(this->arch == Arch_aarch64) {
+                if(this->arch == Arch_aarch64 && reg.getArchitecture() == Arch_none) {
                   reg = convert_abstract(reg);
                   dwarf_printf("\t aarch64 converted register reg=%s\n", reg.name().c_str());
                 }
@@ -367,6 +362,7 @@ bool DwarfFrameParser::getRegAtFrame(
                     cons.readReg(reg);
                     return true;
                 } else {
+                    err_result = FE_Frame_Eval_Error;
                     return false;
                 }
             }
