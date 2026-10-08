@@ -27,6 +27,8 @@ toolkit target.
 
   The <TargetName>_TARGETS variable will contain the names of the
   created library targets for this toolkit (not <TargetName>_headers).
+  The global property DYNINST_LIBRARIES lists every <TargetName> that
+  is not an internal library.
 
   The options are:
 
@@ -284,6 +286,10 @@ function(dyninst_library _target)
     get_filename_component(_dir ${CMAKE_MATCH_1} DIRECTORY)
     install(FILES ${h} DESTINATION "${DYNINST_INSTALL_INCLUDEDIR}/${_dir}")
   endforeach()
+
+  if(NOT _target_INTERNAL_LIBRARY)
+    set_property(GLOBAL APPEND PROPERTY DYNINST_LIBRARIES ${_target})
+  endif()
 
   set(${_target}_TARGETS
       ${_all_targets}
