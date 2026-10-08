@@ -334,26 +334,26 @@ bool DwarfFrameParser::getRegAtFrame(
             // case of undefined
             if(nops == 0 && ops == ops_mem)
             {
-                dwarf_printf("\t case of undefined rule, treats as same_value\n");
-                if(this->arch == Arch_aarch64) {
+                dwarf_printf("\t case of undefined rule\n");
+                if (reg == Dyninst::ReturnAddr) {
+                    err_result = FE_Undefined_Return_Address;
+                    return false;
+                }
+                if(this->arch == Arch_aarch64 && reg.getArchitecture() == Arch_none) {
                   reg = convert_abstract(reg);
                   dwarf_printf("\t aarch64 converted register reg=%s\n", reg.name().c_str());
                 }
 
-                // Dyninst treats as same_value ???
-                if (reg != Dyninst::ReturnAddr) {
-                    cons.readReg(reg);
-                    return true; // true because undefined is a valid output
-                } else {
-                    return false;
-                }
+                // Keep existing behavior for other undefined registers.
+                cons.readReg(reg);
+                return true;
             }
 
             // case of same_value
             if(nops == 0 && ops == NULL)
             {
                 dwarf_printf("\t case of same_value rule\n");
-                if(this->arch == Arch_aarch64) {
+                if(this->arch == Arch_aarch64 && reg.getArchitecture() == Arch_none) {
                   reg = convert_abstract(reg);
                   dwarf_printf("\t aarch64 converted register reg=%s\n", reg.name().c_str());
                 }
@@ -362,6 +362,7 @@ bool DwarfFrameParser::getRegAtFrame(
                     cons.readReg(reg);
                     return true;
                 } else {
+                    err_result = FE_Frame_Eval_Error;
                     return false;
                 }
             }
@@ -477,4 +478,3 @@ void DwarfFrameParser::setupCFIData()
     });
     ANNOTATE_HAPPENS_AFTER(&fde_dwarf_once);
 }
-
