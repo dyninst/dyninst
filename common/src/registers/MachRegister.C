@@ -107,13 +107,19 @@ namespace Dyninst {
 
           auto const lengthID = getLengthID();
 
-          // The standard FPRs are aliases of the SVE registers. However, Dyninst
-          // doesn't handle them, so we just consider the standard FPRs.
-          if(lengthID == aarch64::Q_REG) {
+          // z<N> is its own base.
+          if(category == aarch64::SVE && lengthID == aarch64::SVES) {
             return *this;
           }
 
-          // This is an 8-bit b<N>, 16-bit h<N>, 32-bit s<N>, or 64-bit d<N> register
+          // The predicates, ffr, vg, zt0, za and the ZA tiles alias no other
+          // register. The tiles are views of za but are not modeled as such.
+          if(category != aarch64::FPR) {
+            return *this;
+          }
+
+          // b<N>, h<N>, s<N>, d<N>, hq<N> and q<N> (= v<N>) all lie in the low
+          // 128 bits of z<N>, so z<N> is their base.
           auto const first_of_len = [&]() -> MachRegister {
             switch(lengthID) {
               case aarch64::B_REG: return aarch64::b0;    // 8-bit
@@ -128,9 +134,8 @@ namespace Dyninst {
           auto const first_seq_num = getID(first_of_len);
           auto const cur_seq_num = getID(*this);
           auto const offset = cur_seq_num - first_seq_num;
-          auto const new_seq_num = getID(aarch64::q0) + offset;
-          auto const new_len_type = aarch64::Q_REG;
-          auto const r = new_seq_num | new_len_type | aarch64::FPR | Arch_aarch64;
+          auto const new_seq_num = getID(aarch64::z0) + offset;
+          auto const r = new_seq_num | aarch64::SVES | aarch64::SVE | Arch_aarch64;
           return MachRegister(r);
         }
 

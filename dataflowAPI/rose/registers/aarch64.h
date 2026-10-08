@@ -85,11 +85,9 @@ namespace {
     }
 
     ARMv8SimdFpRegister fpr(int32_t baseID) {
-      // The FPRs are in sequential order, so we can map
-      // directly to an offset relative to q0.
-      // NOTE: `baseID` is guaranteed to be from the
-      //       most-basal FPR at this point.
-      auto const id = baseID - (Dyninst::aarch64::q0 & 0x000000ff);
+      // `baseID` is the ID of a base register z<N>. The z<N> are numbered
+      // sequentially, so N = baseID - ID(z0) selects v<N>.
+      auto const id = baseID - (Dyninst::aarch64::z0 & 0x000000ff);
       switch(id) {
         case 0: return armv8_simdfpr_v0;
         case 1: return armv8_simdfpr_v1;
@@ -157,6 +155,17 @@ namespace {
         auto const n = aarch64_rose::fpr(baseID);
         auto const p = (subrange == Dyninst::aarch64::HQ_REG) ? 64 : pos;
         return std::make_tuple(c, n, p, num_bits);
+      }
+
+      case Dyninst::aarch64::SVE: {
+        // ROSE has no SVE registers. It models only the low 128 bits of z<N>,
+        // which are v<N>.
+        if(subrange != Dyninst::aarch64::SVES) {
+          break;
+        }
+        auto const c = armv8_regclass_simd_fpr;
+        auto const n = aarch64_rose::fpr(baseID);
+        return std::make_tuple(c, n, pos, 128);
       }
 
       case Dyninst::aarch64::FLAG: {
