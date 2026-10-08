@@ -197,23 +197,23 @@ dyninst_library(
   PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
   DEFINES COMMON_LIB
-  PUBLIC_DEPS Dyninst::TBB Dyninst::Boost
+  HEADER_DEPS Dyninst::TBB Dyninst::Boost_headers
+  PUBLIC_DEPS Dyninst::Boost
   PRIVATE_DEPS Dyninst::LibIberty OpenMP::OpenMP_CXX Dyninst::Valgrind Threads::Threads
 )
 
-# PUBLIC: the public headers of symtabAPI, stackwalk and dyninstAPI include
-# dyninstversion.h, so everything that links common must find it.
+# On common_headers: the public headers of symtabAPI, stackwalk and
+# dyninstAPI include dyninstversion.h, so everything that compiles against
+# common must find it.
 #
 # BEFORE: a checkout built before the header moved still has a stale copy in
 # the source h/, which dyninst_library puts on the path; the build tree has
 # to come first.
-foreach(t ${common_TARGETS})
-  target_include_directories(
-    ${t}
-    BEFORE
-    PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/h>"
-  )
-endforeach()
+target_include_directories(
+  common_headers
+  BEFORE
+  INTERFACE "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/h>"
+)
 
 if(DYNINST_OS_Windows)
   foreach(t ${common_TARGETS})
