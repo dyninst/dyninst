@@ -224,6 +224,16 @@ Parser::parse_at(const std::vector<std::pair<Address, CodeRegion*>> & targets,
     if(_parse_state == UNPARSEABLE)
         return;
 
+    // Nothing has consumed hint_funcs yet, so the clear below would strand every
+    // unparsed function and the COMPLETE downgrade would lock parse() out for good.
+    const bool full_parse_pending = (_parse_state == UNPARSED);
+    dyn_c_vector<Function *> pending_hints;
+    dyn_c_vector<Function *> pending_discovered;
+    if (full_parse_pending) {
+        pending_hints.swap(hint_funcs);
+        pending_discovered.swap(discover_funcs);
+    }
+
     // Reset parser status
     _parse_state = PARTIAL;
     hint_funcs.clear();
@@ -270,6 +280,14 @@ Parser::parse_at(const std::vector<std::pair<Address, CodeRegion*>> & targets,
     }
     parse_frames(work,recursive);
     finalize();
+
+    if (full_parse_pending) {
+        // finalize() already took this parse's batch; re-queuing it would double-finalize
+        hint_funcs.swap(pending_hints);
+        discover_funcs.swap(pending_discovered);
+        _parse_state = UNPARSED;
+        return;
+    }
 
     // downgrade state if necessary
     if(_parse_state > COMPLETE)
