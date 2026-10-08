@@ -1,6 +1,6 @@
 /*
  * The Power instruction predicates that ProcControl's emulated single-step relies on: load-and-reserve and
- * store-conditional of every width (the LL/SC sequence boundaries), and the branch forms the scan follows.
+ * store-conditional of every width (the LL/SC sequence boundaries).
  * Encodings were produced by GNU as (-a64 -mpower9 -mlittle) and read back with objdump.
  */
 #include "common/src/arch-power.h"
