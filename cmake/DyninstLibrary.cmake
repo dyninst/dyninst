@@ -8,7 +8,11 @@ toolkit target.
   dyninst_library
 
   This command is a wrapper around `add_library` that creates a
-  SHARED and, optionally, STATIC library for a Dyninst toolkit.
+  SHARED and, optionally, STATIC library for a Dyninst toolkit, plus
+  an INTERFACE target <TargetName>_headers that carries what is needed
+  to compile against the toolkit: its public include directories, the
+  <dep>_headers of each Dyninst dependency, and HEADER_DEPS. Both
+  library variants link <TargetName>_headers.
 
     dyninst_library(<TargetName>
       [PRIVATE_HEADER_FILES <file>...]
@@ -16,12 +20,13 @@ toolkit target.
       [SOURCE_FILES <file>...]
       [DEFINES <val>...]
       [DYNINST_DEPS <target>...]
+      [HEADER_DEPS <target>...]
       [PUBLIC_DEPS <target>...]
       [PRIVATE_DEPS <target>...]
     )
 
   The <TargetName>_TARGETS variable will contain the names of the
-  created targets for this toolkit.
+  created library targets for this toolkit (not <TargetName>_headers).
 
   The options are:
 
@@ -46,6 +51,13 @@ toolkit target.
     A list of dependent Dyninst targets. If a target for a static library
     is created, it will link against the corresponding static target for
     each library container here.
+
+  HEADER_DEPS
+    A list of third-party targets that the public headers of
+    <TargetName> need. They are linked to <TargetName>_headers, so that
+    their include directories keep SYSTEM and their compile options.
+    An internal library has no _headers target; for it they are PUBLIC
+    dependencies of the library itself.
 
   PUBLIC_DEPS
     A list of targets that are PUBLIC dependencies of <TargetName>.
@@ -98,6 +110,7 @@ function(dyninst_library _target)
       DEFINES
       DYNINST_DEPS
       DYNINST_INTERNAL_DEPS
+      HEADER_DEPS
       PUBLIC_DEPS
       PRIVATE_DEPS)
   
@@ -121,11 +134,41 @@ function(dyninst_library _target)
 
   set(_all_targets ${_target})
 
+  # Internal libraries are absorbed into real ones and have no headers
+  # target; their include directories and HEADER_DEPS go on the target itself.
+  if(_target_INTERNAL_LIBRARY)
+    target_include_directories(
+      ${_target}
+      PUBLIC
+        "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR};${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>"
+        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
+    target_link_libraries(${_target} PUBLIC ${_target_HEADER_DEPS})
+  else()
+    add_library(${_target}_headers INTERFACE)
+    target_include_directories(
+      ${_target}_headers
+      INTERFACE
+        "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR};${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>"
+        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
+    foreach(d ${_target_DYNINST_DEPS})
+      if(TARGET ${d}_headers)
+        target_link_libraries(${_target}_headers INTERFACE ${d}_headers)
+      endif()
+    endforeach()
+    target_link_libraries(${_target}_headers INTERFACE ${_target_HEADER_DEPS})
+
+    # Linked before anything else, so that the library's own include
+    # directories come before those of its dependencies: several components
+    # have headers with the same name (e.g. util.h in common and parseAPI).
+    target_link_libraries(${_target} PUBLIC ${_target}_headers)
+  endif()
+
   if(NOT _target_INTERNAL_LIBRARY AND (_target_FORCE_STATIC OR ENABLE_STATIC_LIBS))
     list(APPEND _all_targets ${_target}_static)
     add_library(
       ${_target}_static STATIC ${_target_PUBLIC_HEADER_FILES}
                                ${_target_PRIVATE_HEADER_FILES} ${_target_SOURCE_FILES})
+    target_link_libraries(${_target}_static PUBLIC ${_target}_headers)
 
     # When building all libraries as static, they have a '_static' suffix
     # but not when FORCE_STATIC is active
@@ -183,12 +226,6 @@ function(dyninst_library _target)
       unset(_d)
     endforeach()
 
-    target_include_directories(
-      ${t}
-      PUBLIC
-        "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR};${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>"
-        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
-
     set_target_properties(
       ${t}
       PROPERTIES INSTALL_RPATH "${DYNINST_RPATH_DIRECTORIES}"
@@ -198,8 +235,13 @@ function(dyninst_library _target)
     target_compile_definitions(${t} PRIVATE ${_dyninst_global_defs} ${_target_DEFINES})
   endforeach()
 
+  set(_installed_targets ${_all_targets})
+  if(NOT _target_INTERNAL_LIBRARY)
+    list(APPEND _installed_targets ${_target}_headers)
+  endif()
+
   install(
-    TARGETS ${_all_targets}
+    TARGETS ${_installed_targets}
     EXPORT dyninst-targets
     RUNTIME DESTINATION ${DYNINST_INSTALL_BINDIR}
     LIBRARY DESTINATION ${DYNINST_INSTALL_LIBDIR}
