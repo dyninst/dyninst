@@ -30,7 +30,7 @@ dyninst_library(
   INTERNAL_LIBRARY
   SOURCE_FILES ${_sources}
   PRIVATE_HEADER_FILES ${_headers}
-  DYNINST_INTERNAL_DEPS common parseAPI pcontrol patchAPI
+  DYNINST_DEPS common parseAPI pcontrol patchAPI
 )
 
 set(_inc_dirs
