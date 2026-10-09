@@ -68,7 +68,9 @@ AMDGPU:
   - changed-files:
     - any-glob-to-any-file:
       - '**/*AMDGPU*/**'
+      - '**/*AMDGPU*'
       - '**/*amdgpu*'
+      - '**/*Amdgpu*'
 
 PowerPC:
   - changed-files:
