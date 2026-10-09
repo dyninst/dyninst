@@ -180,7 +180,8 @@ function(dyninst_library _target)
       else()
         get_target_property(_dep_type ${d} TYPE)
         if(_dep_type STREQUAL "SHARED_LIBRARY")
-          message(FATAL_ERROR "${_target}_static depends on ${d}, which has no static variant")
+          message(
+            FATAL_ERROR "${_target}_static depends on ${d}, which has no static variant")
         endif()
         # An OBJECT or INTERFACE library has only one variant
         target_link_libraries(${_target}_static PUBLIC ${d})
