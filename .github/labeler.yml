@@ -1,0 +1,140 @@
+# Apply library-level label if any file in it changed
+BPatch:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'dyninstAPI/**/*BPatch*'
+
+dataflowAPI:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'dataflowAPI/**'
+
+dynC_API:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'dynC_API/**'
+
+dyninstAPI:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'dyninstAPI/**'
+
+dyninstAPI_RT:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'dyninstAPI_RT/**'
+
+instructionAPI:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'instructionAPI/**'
+
+parseAPI:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'parseAPI/**'
+
+patchAPI:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'patchAPI/**'
+
+proccontrol:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'proccontrol/**'
+
+stackwalker:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'stackwalk/**'
+
+Symtab:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'symtabAPI/**'
+
+# Use if any file contains the arch's name
+Aarch64:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*Aarch64*'
+      - '**/*aarch64*'
+      - '**/*aarch64*/**'
+      - '**/*ARM*'
+      - '**/*arm_*'
+
+AMDGPU:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*AMDGPU*/**'
+      - '**/*AMDGPU*'
+      - '**/*amdgpu*'
+      - '**/*Amdgpu*'
+
+PowerPC:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*PowerPC*'
+      - '**/*PowerPC*/**'
+      - '**/*power*'
+      - '**/*ppc*'
+
+RISC-V:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*riscv64*'
+      - '**/*riscv64*/**'
+      - '**/*Riscv64*'
+
+x86_64:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*x86*'
+      - /**/*AMD64*'
+
+# Only use if _just_ the documentation is updated  
+documentation:
+  - changed-files:
+    - all-globs-to-all-files:
+        - 'docs/**'
+
+# Only use if core CMake files are updated
+build:
+  - changed-files:
+    - all-globs-to-any-file:
+        - 'cmake/**'
+
+github_actions:
+  - changed-files:
+    - all-globs-to-any-file:
+        - '.github/**'
+
+DWARF:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'dwarf/**'
+      - '**/*dwarf*'
+
+ELF:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'elf/**'
+      - 'symtabAPI/**/*elf*'
+      - 'symtabAPI/**/*Elf*'
+      - 'symlite/**/*elf*'
+
+# Changes to machine-level representations
+machine:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'common/h/registers/**'
+      - 'common/h/mnemonics/**'
+      - 'common/src/arch*'
+      - 'common/src/registers/**'
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'docker/dependencies.versions'
+      - 'cmake/tpls/*'
