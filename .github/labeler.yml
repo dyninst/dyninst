@@ -87,6 +87,7 @@ x86_64:
   - changed-files:
     - any-glob-to-any-file:
       - '**/*x86*'
+      - /**/*AMD64*'
 
 # Only use if _just_ the documentation is updated  
 documentation:
