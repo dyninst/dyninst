@@ -1,6 +1,9 @@
 # Fails if EXE has a dynamic dependency on any of SONAMES ('|'-separated),
 # the sonames of the shared Dyninst libraries.
-execute_process(COMMAND ${OBJDUMP} -p ${EXE} OUTPUT_VARIABLE _out RESULT_VARIABLE _rc)
+execute_process(
+  COMMAND ${OBJDUMP} -p ${EXE}
+  OUTPUT_VARIABLE _out
+  RESULT_VARIABLE _rc)
 if(NOT _rc EQUAL 0)
   message(FATAL_ERROR "objdump failed on ${EXE}")
 endif()

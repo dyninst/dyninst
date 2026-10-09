@@ -30,9 +30,10 @@ foreach(l ${_libs})
   target_link_options(static_link_${l} PRIVATE "LINKER:--no-as-needed"
                       "LINKER:--allow-shlib-undefined")
 
-  add_test(NAME static_link_${l}
-           COMMAND ${CMAKE_COMMAND} -DOBJDUMP=${CMAKE_OBJDUMP}
-                   -DEXE=$<TARGET_FILE:static_link_${l}> -DSONAMES=${_sonames} -P
-                   ${CMAKE_CURRENT_SOURCE_DIR}/check_needed.cmake)
+  add_test(
+    NAME static_link_${l}
+    COMMAND
+      ${CMAKE_COMMAND} -DOBJDUMP=${CMAKE_OBJDUMP} -DEXE=$<TARGET_FILE:static_link_${l}>
+      -DSONAMES=${_sonames} -P ${CMAKE_CURRENT_SOURCE_DIR}/check_needed.cmake)
   set_tests_properties(static_link_${l} PROPERTIES LABELS "unit")
 endforeach()
