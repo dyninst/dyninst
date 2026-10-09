@@ -121,6 +121,7 @@ ELF:
     - any-glob-to-any-file:
       - 'elf/**'
       - 'symtabAPI/**/*elf*'
+      - 'symtabAPI/**/*Elf*'
       - 'symlite/**/*elf*'
 
 # Changes to machine-level representations
