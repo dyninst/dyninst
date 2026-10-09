@@ -81,6 +81,7 @@ RISC-V:
   - changed-files:
     - any-glob-to-any-file:
       - '**/*riscv64*'
+      - '**/*riscv64*/**'
       - '**/*Riscv64*'
 
 x86_64:
