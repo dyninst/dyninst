@@ -91,10 +91,20 @@ dyninst_library(
   PUBLIC_HEADER_FILES ${_parseapi_public_headers} ${_dataflow_public_headers} 
   SOURCE_FILES ${_parseapi_sources} ${_dataflow_sources}
   DYNINST_DEPS common instructionAPI ${SYMREADER}
-  PUBLIC_DEPS Dyninst::Boost_headers
+  HEADER_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS OpenMP::OpenMP_CXX
 )
 # cmake-format: on
+
+target_include_directories(
+  parseAPI_headers INTERFACE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dataflowAPI/h>"
+                             "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dataflowAPI/>")
+
+# When using symlite, we still need the symtabAPI headers
+if(LIGHTWEIGHT_SYMTAB)
+  target_include_directories(
+    parseAPI_headers INTERFACE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/symtabAPI/h>")
+endif()
 
 foreach(t ${parseAPI_TARGETS})
   # There is both a common/h/util.h and a parseAPI/h/util.h, so put
@@ -102,19 +112,8 @@ foreach(t ${parseAPI_TARGETS})
   target_include_directories(${t} BEFORE
                              PRIVATE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/common/h>")
 
-  target_include_directories(
-    ${t} PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dataflowAPI/h>"
-                "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dataflowAPI/>")
-
   if(DYNINST_OS_Windows)
     target_compile_definitions(${t} PRIVATE "ROSE_UTIL_EXPORTS" "NOMINMAX")
     target_link_libraries(parseAPI PRIVATE shlwapi)
   endif()
-
-  # When using symlite, we still need the symtabAPI headers
-  if(LIGHTWEIGHT_SYMTAB)
-    target_include_directories(
-      ${t} PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/symtabAPI/h>")
-  endif()
-
 endforeach()

@@ -111,15 +111,13 @@ dyninst_library(
   PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
   DYNINST_DEPS common ${SYMREADER}
-  PUBLIC_DEPS Dyninst::Boost_headers
+  HEADER_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS ${CMAKE_DL_LIBS} Dyninst::Thread_DB Threads::Threads
 )
 # cmake-format: on
 
 # When using symlite, we still need the symtabAPI headers
 if(LIGHTWEIGHT_SYMTAB)
-  foreach(t ${pcontrol_TARGETS})
-    target_include_directories(
-      ${t} PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/symtabAPI/h>")
-  endforeach()
+  target_include_directories(
+    pcontrol_headers INTERFACE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/symtabAPI/h>")
 endif()
