@@ -60,6 +60,7 @@ Aarch64:
     - any-glob-to-any-file:
       - '**/*Aarch64*'
       - '**/*aarch64*'
+      - '**/*aarch64*/**'
       - '**/*ARM*'
       - '**/*arm_*'
 
