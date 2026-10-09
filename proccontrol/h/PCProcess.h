@@ -604,6 +604,8 @@ class DYNINST_EXPORT Thread : public boost::enable_shared_from_this<Thread>
    bool getSyscallMode() const;
 
    bool getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val) const;
+   // Read the instruction PAC mask; unsupported targets return a zero mask.
+   bool getInstructionPacMask(Dyninst::MachRegisterVal &mask) const;
    bool getAllRegisters(RegisterPool &pool) const;
    bool setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val) const;
    bool setAllRegisters(RegisterPool &pool) const;

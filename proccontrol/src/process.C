@@ -3948,6 +3948,12 @@ bool int_thread::plat_getRegisterAsync(Dyninst::MachRegister,
    return false;
 }
 
+bool int_thread::plat_getInstructionPacMask(Dyninst::MachRegisterVal &mask)
+{
+   mask = 0;
+   return true;
+}
+
 bool int_thread::plat_setAllRegistersAsync(int_registerPool &,
                                            result_response::ptr)
 {
@@ -7510,6 +7516,13 @@ bool Thread::getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &va
    }
    val = response->getResult();
    return true;
+}
+
+bool Thread::getInstructionPacMask(Dyninst::MachRegisterVal &mask) const
+{
+   MTLock lock_this_func;
+   THREAD_EXIT_DETACH_STOP_TEST("getInstructionPacMask", false);
+   return llthread_->plat_getInstructionPacMask(mask);
 }
 
 bool Thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val) const

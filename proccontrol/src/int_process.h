@@ -979,6 +979,7 @@ public:
    virtual bool plat_getAllRegisters(int_registerPool &pool) = 0;
    virtual bool plat_getRegister(Dyninst::MachRegister reg,
                                  Dyninst::MachRegisterVal &val) = 0;
+   virtual bool plat_getInstructionPacMask(Dyninst::MachRegisterVal &mask);
    virtual bool plat_setAllRegisters(int_registerPool &pool) = 0;
    virtual bool plat_setRegister(Dyninst::MachRegister reg,
                                  Dyninst::MachRegisterVal val) = 0;
