@@ -180,6 +180,21 @@ bool ProcDebug::getRegValue(MachRegister reg, THR_ID thread,
    return result;
 }
 
+bool ProcDebug::getInstructionPacMask(THR_ID thread, MachRegisterVal &mask)
+{
+   CHECK_PROC_LIVE;
+   ThreadPool::iterator thrd_i = proc->threads().find(thread);
+   if (thrd_i == proc->threads().end()) {
+      Stackwalker::setLastError(err_badparam, "Invalid thread ID");
+      return false;
+   }
+   if (!(*thrd_i)->getInstructionPacMask(mask)) {
+      Stackwalker::setLastError(err_proccontrol, ProcControlAPI::getLastErrorMsg());
+      return false;
+   }
+   return true;
+}
+
 bool ProcDebug::readMem(void *dest, Address source, size_t size)
 {
    CHECK_PROC_LIVE;

@@ -102,6 +102,23 @@ bool ProcessState::preStackwalk(Dyninst::THR_ID)
    return true;
 }
 
+bool ProcessState::getInstructionPacMask(THR_ID, MachRegisterVal &mask)
+{
+   mask = 0;
+   return false;
+}
+
+Address ProcessState::normalizeReturnAddress(Address address, THR_ID thread)
+{
+   if (!address || thread == NULL_THR_ID || getArchitecture() != Arch_aarch64 || isFirstParty())
+      return address;
+   MachRegisterVal mask = 0;
+   // Query the sampled thread; a fixed virtual-address width would strip the wrong bits.
+   if (!getInstructionPacMask(thread, mask))
+      return address;
+   return address & ~mask;
+}
+
 bool ProcessState::postStackwalk(Dyninst::THR_ID)
 {
    return true;

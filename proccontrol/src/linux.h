@@ -211,6 +211,7 @@ class linux_thread : virtual public thread_db_thread
    virtual bool plat_stop();
    virtual bool plat_getAllRegisters(int_registerPool &reg);
    virtual bool plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);
+   virtual bool plat_getInstructionPacMask(Dyninst::MachRegisterVal &mask);
    virtual bool plat_setAllRegisters(int_registerPool &reg);
    virtual bool plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val);
    virtual bool attach();

@@ -92,6 +92,13 @@ public:
 
   virtual Dyninst::Architecture getArchitecture() = 0;
 
+  // Query the sampled thread's instruction PAC mask without reading an architectural register.
+  virtual bool getInstructionPacMask(Dyninst::THR_ID thread, Dyninst::MachRegisterVal &mask);
+
+  // Recovered AArch64 return addresses may still carry PAC bits. Clear those
+  // bits before caller/library lookup, without changing target state.
+  Dyninst::Address normalizeReturnAddress(Dyninst::Address address, Dyninst::THR_ID thread);
+
   virtual ~ProcessState();
 
   Walker *getWalker() const;
@@ -140,6 +147,7 @@ class DYNINST_EXPORT ProcDebug : public ProcessState {
   virtual ~ProcDebug();
 
   virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val);
+  virtual bool getInstructionPacMask(Dyninst::THR_ID thread, Dyninst::MachRegisterVal &mask);
   virtual bool readMem(void *dest, Dyninst::Address source, size_t size);
   virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &thrds);
   virtual bool getDefaultThread(Dyninst::THR_ID &default_tid);
