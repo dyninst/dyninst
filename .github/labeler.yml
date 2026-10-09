@@ -47,12 +47,12 @@ proccontrol:
 stackwalker:
   - changed-files:
     - any-glob-to-any-file:
-      - 'stackwalker/**'
+      - 'stackwalk/**'
 
 Symtab:
   - changed-files:
     - any-glob-to-any-file:
-      - 'Symtab/**'
+      - 'symtabAPI/**'
 
 # Use if any file contains the arch's name
 Aarch64:
