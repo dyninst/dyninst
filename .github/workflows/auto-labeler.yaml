@@ -1,0 +1,29 @@
+# Automatically applies labels based on rules in .github/labeler.yml
+
+name: "Pull Request Labeler"
+on:
+  pull_request:
+     types: [opened]
+
+
+permissions: {}
+
+jobs:
+
+  # Don't run the check if the PR is a draft
+  check-if-needed:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.draft == false }}
+    steps:
+      - shell: bash
+        run: true
+
+  labeler:
+    needs: check-if-needed
+    permissions:
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      # Apply labels defined in .github/labeler.yml
+    - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13  # v7.0.0
