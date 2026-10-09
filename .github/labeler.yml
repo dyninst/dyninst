@@ -73,9 +73,9 @@ PowerPC:
   - changed-files:
     - any-glob-to-any-file:
       - '**/*PowerPC*'
-      - '**/*Power*'
-      - '**/*PPC*'
-      - '**/*ppc64*'
+      - '**/*PowerPC*/**'
+      - '**/*power*'
+      - '**/*ppc*'
 
 RISC-V:
   - changed-files:
