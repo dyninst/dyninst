@@ -36,7 +36,6 @@
 
 #include <elf.h>
 #include <cstdio>
-#include <linux/limits.h>
 
 #include <sys/ptrace.h>
 #include <sys/types.h>
@@ -143,7 +142,7 @@ bool AddressTranslateSysV::setInterpreter()
       goto done;
    }
 
-   interp_name = exe->getInterpreter();
+   interp_name = Dyninst::filesystem::canonicalize(exe->getInterpreter(), pid);
    interpreter = files.getNode(interp_name, symfactory);
    if (interpreter)
       interpreter->markInterpreter();
@@ -189,7 +188,7 @@ string AddressTranslateSysV::getExecName()
    if (exec_name.empty()) {
       char name[64];
       snprintf(name, 64, "/proc/%d/exe", pid);
-      exec_name = Dyninst::filesystem::canonicalize(name);
+      exec_name = Dyninst::filesystem::canonicalize(name, pid);
    }
    return exec_name;
 }
