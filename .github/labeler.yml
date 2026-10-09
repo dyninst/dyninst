@@ -91,29 +91,29 @@ x86_64:
 # Only use if _just_ the documentation is updated  
 documentation:
   - changed-files:
-    - all-glob-to-all-file:
+    - all-globs-to-all-files:
         - 'docs/**'
 
 # Only use if core CMake files are updated
 build:
   - changed-files:
-    - all-glob-to-any-file:
+    - all-globs-to-any-file:
         - 'cmake/**'
 
 github_actions:
   - changed-files:
-    - all-glob-to-any-file:
+    - all-globs-to-any-file:
         - '.github/**'
 
 DWARF:
   - changed-files:
-    - all-glob-to-any-file:
+    - any-glob-to-any-file:
       - 'dwarf/**'
       - '**/*dwarf*'
 
 ELF:
   - changed-files:
-    - all-glob-to-any-file:
+    - any-glob-to-any-file:
       - 'elf/**'
       - 'symtabAPI/**/*elf*'
       - 'symlite/**/*elf*'
