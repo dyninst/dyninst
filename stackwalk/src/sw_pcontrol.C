@@ -429,15 +429,8 @@ LibAddrPair PCLibraryState::getResolvedLibrary(Library::ptr lib) const
    // A process that shares our filesystem view keeps the loader's name:
    // canonicalize() would resolve its symlinks (libc.so.6 -> libc-2.28.so)
    // and change the names users see.
-   if (Dyninst::filesystem::has_distinct_filesystem_view(pid)) {
+   if (Dyninst::filesystem::has_distinct_filesystem_view(pid))
       filename = Dyninst::filesystem::canonicalize(std::move(filename), pid);
-      const string root = "/proc/" + to_string(pid) + "/root";
-      if (filename.compare(0, root.size() + 1, root + "/") == 0) {
-         auto resolved = Dyninst::filesystem::resolve_in_root_fs(filename.substr(root.size()), root);
-         if (!resolved.empty())
-            filename = std::move(resolved);
-      }
-   }
    return LibAddrPair(std::move(filename), lib->getLoadAddress());
 }
 

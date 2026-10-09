@@ -52,12 +52,19 @@ namespace Dyninst { namespace filesystem {
    *  `path`, a name read from process `pid` (its link map, PT_INTERP or
    *  /proc/<pid>/exe), as the caller can open it. Without a distinct filesystem
    *  view this is canonicalize(path). With one, names under /proc/<pid>/ are
-   *  returned unchanged and other absolute names become /proc/<pid>/root<path>.
+   *  returned unchanged, and other absolute names become /proc/<pid>/root<path>
+   *  with their symlinks resolved inside that root by resolve_in_root_fs()
+   *  (where libc.so.6 is a link, it becomes libc-2.28.so), or unresolved if that fails.
    */
   DYNINST_EXPORT std::string canonicalize(std::string, int pid);
 
-  // Resolve an absolute target path with symlinks interpreted inside root.
-  // Return a path retaining the root prefix, or an empty string on failure.
+  /*
+   *  `path`, an absolute name in the filesystem rooted at `root`, with every
+   *  symlink resolved inside `root`: absolute links restart at `root`, and ".."
+   *  never goes above it. The result keeps the `root` prefix. It is empty if
+   *  the name cannot be resolved: a missing component, a non-directory before
+   *  the last component, or more than 40 links.
+   */
   DYNINST_EXPORT std::string resolve_in_root_fs(std::string const& path, std::string const& root);
 
   DYNINST_EXPORT bool exists(std::string const& path);

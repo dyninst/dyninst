@@ -208,15 +208,17 @@ std::string canonicalize(std::string path, int pid) {
   }
   // The target has its own filesystem view (a container or a chroot). Paths
   // under /proc/<pid>/ already open the target's files. Other absolute paths
-  // are the target's, so open them through /proc/<pid>/root even when that
-  // fails: the same path on this side may be a different file. Neither may be
-  // canonicalized here: canonical() follows the procfs links back to this
-  // side of the mount namespace.
+  // are the target's: resolve them inside /proc/<pid>/root. canonical() cannot
+  // do that, because it follows the procfs links and absolute symlinks back to
+  // this side of the mount namespace. If resolution fails, still open them
+  // through /proc/<pid>/root: the same path on this side may be a different file.
   auto const proc = "/proc/" + std::to_string(pid) + "/";
-  if(!path.empty() && path[0] == '/' && path.compare(0, proc.size(), proc) != 0) {
-    return proc + "root" + path;
+  if(path.empty() || path[0] != '/' || path.compare(0, proc.size(), proc) == 0) {
+    return path;
   }
-  return path;
+  auto const root = proc + "root";
+  auto resolved = resolve_in_root_fs(path, root);
+  return resolved.empty() ? root + path : resolved;
 }
 
 // Resolve an absolute target path under root (e.g. /proc/<pid>/root), expanding
