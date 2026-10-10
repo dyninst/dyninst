@@ -43,32 +43,19 @@
  *
  * The value is mostly useful in the 'case' part switch statements.
  **/
-#if defined(DYN_DEFINE_REGS)
-// DYN_DEFINE_REGS Should only be defined in libcommon.
-// We want one definition, which will be in libcommon, and declarations
-// for everyone else.
-//
-// I wanted these to be const MachRegister objects, but that changes the
-// linker scope.  Instead they're non-const.  Every accessor function is
-// const anyways, so we'll just close our eyes and pretend they're declared
-// const.
-#  define DEF_REGISTER(name, value)                                                                \
-    const signed int i##name = (value);                                                            \
-    DYNINST_EXPORT MachRegister name(i##name, #name)
+// Prototype (store-the-name / constexpr constants):
+// The register constants are `constexpr MachRegister` objects carrying their
+// name as a string literal. Plain `constexpr` (not `inline`, so no C++17
+// requirement) gives each TU its own compile-time copy; MachRegister constants
+// are only ever used by value (compared by the int handle), so per-TU internal
+// linkage is fine. This makes the old DYN_DEFINE_REGS decl/def split (which
+// existed only to get one runtime definition in libcommon) unnecessary.
+#define DEF_REGISTER(name, value)                                                                  \
+    constexpr signed int i##name = (value);                                                 \
+    constexpr MachRegister name{i##name, #name}
 
-#  define DEF_REGISTER_ALIAS(name, target)                                                         \
-    const signed int i##name = i##target;                                                          \
-    DYNINST_EXPORT MachRegister name(i##name, #name)
-
-#else
-#  define DEF_REGISTER(name, value)                                                                \
-    const signed int i##name = (value);                                                            \
-    DYNINST_EXPORT extern MachRegister name
-
-#  define DEF_REGISTER_ALIAS(name, target)                                                         \
-    const signed int i##name = i##target;                                                          \
-    DYNINST_EXPORT extern MachRegister name
-
-#endif
+#define DEF_REGISTER_ALIAS(name, target)                                                           \
+    constexpr signed int i##name = i##target;                                               \
+    constexpr MachRegister name{i##name, #name}
 
 #endif
