@@ -78,7 +78,9 @@ PowerPC:
       - '**/*PowerPC*'
       - '**/*PowerPC*/**'
       - '**/*power*'
+      - '**/*Power*'
       - '**/*ppc*'
+      - '**/*ppc*/**'
 
 RISC-V:
   - changed-files:
