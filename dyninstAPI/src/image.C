@@ -1177,6 +1177,21 @@ void image::findModByAddr (const Symbol *lookUp, vector<Symbol *> &mods,
  *    physical offset. 
  */
 
+// Would this open exclude img's object from analysis?  The answer belongs to
+// the open rather than to the file: it turns on how the caller named the
+// object and on the patterns in force when it is opened, both of which can
+// differ between two opens of the same file.
+//
+// The executable and the runtime library are always analyzed, and so is an
+// object the caller named outright: rewriting a library that a pattern also
+// matches should instrument it, not copy it through untouched.
+static bool excludesAnalysis(const image *img, bool mayExclude)
+{
+   return mayExclude && img->isSharedLibrary() && !img->isDyninstRTLib() &&
+          BPatch::bpatch != NULL &&
+          BPatch::bpatch->analysisExcluded(img->getObject());
+}
+
 image *image::parseImage(fileDescriptor &desc, 
                          BPatch_hybridMode mode, 
                          bool parseGaps,
@@ -1193,6 +1208,16 @@ image *image::parseImage(fileDescriptor &desc,
   for (unsigned u=0; u<numImages; u++) {
       if (desc.isSameFile(allImages[u]->desc())) {
          if (allImages[u]->getObject()->canBeShared()) {
+            // A parsed image and an unparsed one are not interchangeable, and
+            // neither can be turned into the other: the CFG an analyzed image
+            // has cannot be taken away, and the one an excluded image lacks is
+            // what the caller asked to do without.  So an image is reusable
+            // only for an open that would decide about it the same way.  When
+            // none is, the loop falls through and this open builds its own.
+            if (allImages[u]->analysisExcluded() !=
+                excludesAnalysis(allImages[u], mayExclude))  {
+                continue;
+            }
             // We reference count...
             startup_printf("%s[%d]: returning pre-parsed image\n", FILE__, __LINE__);
             return allImages[u]->clone();
@@ -1527,13 +1552,7 @@ image::image(fileDescriptor &desc,
    startup_printf("%s[%d]:  before determineImageType\n", FILE__, __LINE__);
    determineImageType();
 
-   // The executable and the runtime library are always analyzed, and so is an
-   // object the caller named outright: rewriting a library that a pattern also
-   // matches should instrument it, not copy it through untouched.
-   if (mayExclude && isSharedLibrary() && !isDyninstRTLib() &&
-       BPatch::bpatch != NULL)  {
-       analysisExcluded_ = BPatch::bpatch->analysisExcluded(linkedFile);
-   }
+   analysisExcluded_ = excludesAnalysis(this, mayExclude);
    if (analysisExcluded_)  {
        startup_printf("%s[%d]: excluded from analysis, building no CFG for %s\n",
                       FILE__, __LINE__, desc.file().c_str());
