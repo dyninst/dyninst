@@ -83,9 +83,9 @@ PowerPC:
 RISC-V:
   - changed-files:
     - any-glob-to-any-file:
-      - '**/*riscv64*'
-      - '**/*riscv64*/**'
-      - '**/*Riscv64*'
+      - '**/*riscv*'
+      - '**/*riscv*/**'
+      - '**/*Riscv*'
 
 x86_64:
   - changed-files:
