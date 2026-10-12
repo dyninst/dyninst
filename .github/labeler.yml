@@ -98,6 +98,7 @@ x86:
       - '**/*IA32*/**'
       - '**/*IA32*'
       - '**/*ia32*'
+      - '**/*i386*'
 
 # Only use if _just_ the documentation is updated  
 documentation:
