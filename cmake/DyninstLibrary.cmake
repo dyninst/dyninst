@@ -73,8 +73,7 @@ toolkit target.
   DYNINST_DEPS
     A list of dependent Dyninst targets. <TargetName> links each of them.
     <TargetName>_static links the static variant of each one that has a
-    static variant, and it is an error for a SHARED library here to have
-    none.
+    static variant, and the library itself otherwise.
 
   DYNINST_INTERNAL_DEPS
     A list of targets that are PRIVATE dependencies of every variant of
@@ -254,14 +253,9 @@ function(dyninst_library _target)
       if(TARGET ${d}_static)
         target_link_libraries(${_target}_static PUBLIC ${d}_static)
       else()
-        get_target_property(_dep_type ${d} TYPE)
-        if(_dep_type STREQUAL "SHARED_LIBRARY")
-          message(
-            FATAL_ERROR
-            "${_target}_static depends on ${d}, which has no static variant"
-          )
-        endif()
-        # An OBJECT or INTERFACE library has only one variant
+        # An OBJECT or INTERFACE library has only one variant. A SHARED one
+        # without a static variant is linked as is: dyninstAPI_RT_static
+        # depends on common, which is static only with ENABLE_STATIC_LIBS.
         target_link_libraries(${_target}_static PUBLIC ${d})
       endif()
     endforeach()
