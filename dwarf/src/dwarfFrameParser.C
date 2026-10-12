@@ -66,18 +66,21 @@ namespace {
   std::mutex frameParsers_mutex;
   std::map<frameParser_key, DwarfFrameParser::Ptr> frameParsers;
 
-  // This only for aarch64
-  MachRegister convert_abstract(MachRegister abstract) {
-    if(abstract == ReturnAddr)
+  // This only for aarch64.  Abstract registers map to their aarch64
+  // registers; any other register is returned unchanged.
+  MachRegister convert_abstract(MachRegister reg) {
+    if(reg == ReturnAddr)
       return aarch64::x30;
-    if(abstract == FrameBase)
+    if(reg == FrameBase)
       return aarch64::x29;
-    if(abstract == StackTop)
+    if(reg == StackTop)
       return aarch64::sp;
-    if(abstract == CFA)
+    if(reg == CFA) {
       dwarf_printf("No aarch64 register for abstract CFA");
+      return Dyninst::InvalidReg;
+    }
 
-    return Dyninst::InvalidReg;
+    return reg;
   }
 }
 
