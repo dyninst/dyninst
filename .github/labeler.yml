@@ -89,11 +89,15 @@ RISC-V:
       - '**/*riscv*/**'
       - '**/*Riscv*'
 
-x86_64:
+x86:
   - changed-files:
     - any-glob-to-any-file:
+      - '**/*x86*/**'
       - '**/*x86*'
       - '**/*AMD64*'
+      - '**/*IA32*/**'
+      - '**/*IA32*'
+      - '**/*ia32*'
 
 # Only use if _just_ the documentation is updated  
 documentation:
