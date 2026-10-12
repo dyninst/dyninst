@@ -82,6 +82,9 @@ It serves as a container of \code{BPatch\_module} objects.
   If the incUninstrumentable flag is set, the returned table of
   procedures will include uninstrumentable functions. The
   default behavior is to omit these functions.
+  An external linkage stub -- an entry in the PLT on ELF, which forwards to a
+  definition supplied by another object rather than being one -- is among the
+  uninstrumentable functions, so it is reported only when this flag is set.
 
   [NOTE: If name is not found to match any demangled function names
     in the \code{BPatch\_object}, the search is repeated as if
