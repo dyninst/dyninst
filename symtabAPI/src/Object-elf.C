@@ -430,6 +430,7 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
     plt_entry_size_ = 0;
     rel_plt_entry_size_ = 0;
     rel_plt_addr_ = 0;
+    jmprel_addr_ = 0;
     rel_plt_size_ = 0;
     rel_addr_ = 0;
     rel_size_ = 0;
@@ -525,6 +526,7 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
                         break;
                     case DT_JMPREL:
                         secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+                        jmprel_addr_ = dynsecData.d_ptr(j);
                         break;
                     case DT_SYMTAB:
                     case DT_STRTAB:
@@ -783,8 +785,7 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
                 strscnp = scnp;
                 strtab_addr_ = scn.sh_addr();
             }
-        } else if ((secAddrTagMapping.find(scn.sh_addr()) != secAddrTagMapping.end()) &&
-                 secAddrTagMapping[scn.sh_addr()] == DT_JMPREL) {
+        } else if (jmprel_addr_ != 0 && scn.sh_addr() == jmprel_addr_) {
             rel_plt_scnp = scnp;
             rel_plt_addr_ = scn.sh_addr();
             rel_plt_size_ = scn.sh_size();
