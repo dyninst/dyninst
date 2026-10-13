@@ -1139,6 +1139,65 @@ bool ObjectELF::get_relocationDyn_entries(unsigned rel_scnp_index,
     return true;
 }
 
+// The aarch64 PLT stubs of this object, keyed by the GOT slot each one jumps
+// through.
+//
+// Striding over .plt the way the other architectures do cannot work here.  GNU
+// ld sets sh_entsize to zero on aarch64 deliberately -- see binutils PR
+// ld/26312 -- because .plt is not a table of fixed-size entries: a stub is 16
+// bytes, or 24 built with BTI or with PAC-PLT, and the section also holds the
+// header and may hold a TLSDESC stub.  Taking the size from the section header
+// yields zero, and every relocation then lands on the address of the header.
+//
+// So read the stubs instead.  Whatever the variant, each one begins by loading
+// the address it jumps to out of the GOT,
+//
+//     (bti c)
+//     adrp x16, page of the slot
+//     ldr  x17, [x16, #offset of the slot in that page]
+//     ...
+//
+// and the slot it names is what a .rela.plt entry relocates, which is how a
+// stub is matched to the symbol it stands for.  The header and the TLSDESC
+// stub load through the GOT as well, but no .rela.plt entry names the slots
+// they use, so they are left unmatched rather than having to be recognised.
+static void aarch64_plt_stubs_by_got(const unsigned char *plt, Offset pltAddr,
+                                     Offset pltSize,
+                                     std::map<Offset, Offset> &stubByGot)
+{
+    // BTI C, the instruction a stub built for branch target identification
+    // starts with, and where a call to such a stub lands.
+    const uint32_t bti_c = 0xd503245fu;
+
+    for (Offset off = 0; off + 8 <= pltSize; off += 4)  {
+        uint32_t adrp{}, ldr{};
+        Dyninst::read_memory_as(adrp, plt + off);
+        Dyninst::read_memory_as(ldr, plt + off + 4);
+
+        // adrp x16, #imm  followed by  ldr x17, [x16, #imm12]
+        if ((adrp & 0x9f00001fu) != 0x90000010u)  continue;
+        if ((ldr & 0xffc003ffu) != 0xf9400211u)  continue;
+
+        // imm21 is split: the low two bits at 30:29, the high nineteen at 23:5.
+        int64_t imm = (int64_t)((((adrp >> 5) & 0x7ffffu) << 2)
+                                | ((adrp >> 29) & 0x3u));
+        if (imm & ((int64_t)1 << 20))  imm -= ((int64_t)1 << 21);
+
+        Offset pc = pltAddr + off;
+        Offset slot = ((pc & ~(Offset)0xfff) + (Offset)(imm << 12))
+                      + (Offset)(((ldr >> 10) & 0xfffu) * 8);
+
+        Offset entry = pc;
+        if (off >= 4)  {
+            uint32_t prev{};
+            Dyninst::read_memory_as(prev, plt + off - 4);
+            if (prev == bti_c)  entry = pc - 4;
+        }
+        stubByGot[slot] = entry;
+    }
+}
+
+
 bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                                     Elf_X_Shdr *&dynsym_scnp,
                                     Elf_X_Shdr *&dynstr_scnp) {
@@ -1453,6 +1512,25 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                 // Sometimes, PPC32 Linux may use this loop to update fbt entries.
                 // Should stay -1 for all other platforms.  See notes above.
                 int fbt_iter = -1;
+
+                // On aarch64 a stub's address is read out of .plt rather than
+                // counted off from the start of it.  See the comment on
+                // aarch64_plt_stubs_by_got.
+                std::map<Offset, Offset> plt_stub_by_got;
+                if (getArch() == Dyninst::Arch_aarch64)  {
+                    for (unsigned r = 0; r < regions_.size(); ++r)  {
+                        if (regions_[r]->getRegionName() != PLT_NAME)  continue;
+                        const unsigned char *plt =
+                            (const unsigned char *) regions_[r]->getPtrToRawData();
+                        if (plt != NULL)  {
+                            aarch64_plt_stubs_by_got(plt,
+                                                     regions_[r]->getMemOffset(),
+                                                     regions_[r]->getDiskSize(),
+                                                     plt_stub_by_got);
+                        }
+                        break;
+                    }
+                }
                 if (fbt_.size() > 0 && !fbt_[0].rel_addr() && fbt_[0].name() != "@plt")
                     fbt_iter = 0;
 
@@ -1501,8 +1579,27 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                     }
                     }
 
+                    // Where the stub for this relocation is.  Everywhere but
+                    // aarch64 that is the next entry in a fixed-size table.
+                    Offset stub_addr = next_plt_entry_addr;
+                    if (getArch() == Dyninst::Arch_aarch64)  {
+                        std::map<Offset, Offset>::const_iterator sit =
+                            plt_stub_by_got.find((Offset) offset);
+                        if (sit == plt_stub_by_got.end())  {
+                            // Nothing in .plt jumps through this slot, so there
+                            // is no stub to record.  Falling back to a counted
+                            // address would put the name on something that is
+                            // not a stub, which is worse than leaving it out.
+                            create_printf("%s[%d]: no PLT stub jumps through the "
+                                          "slot relocated for %s\n",
+                                          FILE__, __LINE__, targ_name.c_str());
+                            continue;
+                        }
+                        stub_addr = sit->second;
+                    }
+
                     if (fbt_iter == -1) { // Create new relocation entry.
-                        relocationEntry re(next_plt_entry_addr, offset, targ_name,
+                        relocationEntry re(stub_addr, offset, targ_name,
                                            NULL, type);
                         if (type == R_X86_64_IRELATIVE) {
                             vector<Symbol *> funcs;
