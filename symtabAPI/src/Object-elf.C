@@ -848,7 +848,13 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
                     }
                 }
                 else if (getArch() == Dyninst::Arch_riscv64) {
-                    plt_entry_size_ = 16;
+                    // ld writes the real size here -- elfnn-riscv.c sets
+                    // sh_entsize from htab->plt_entry_size -- so the value read
+                    // above is the one to use.  Sixteen is what the ordinary
+                    // PLT uses, kept for anything that leaves the field empty.
+                    if (!plt_entry_size_)  {
+                        plt_entry_size_ = 16;
+                    }
                 }
             }
         } else if (strcmp(name, COMMENT_NAME) == 0) {
@@ -1496,7 +1502,20 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
             } else if (getArch() == Dyninst::Arch_aarch64) {
                 next_plt_entry_addr += 2 * plt_entry_size_;
             } else if (getArch() == Dyninst::Arch_riscv64) {
-                next_plt_entry_addr += 2 * plt_entry_size_;
+                // The header is two entries in the ordinary PLT and three in
+                // the Zicfilp one, and nothing in the section header says
+                // which.  But .plt holds nothing else -- elfnn-riscv.c sizes it
+                // as the header followed by one entry per relocation -- so
+                // whatever is left once the entries are accounted for is the
+                // header.
+                Offset entries = 0;
+                if (rel_plt_entry_size_)  {
+                    entries = (Offset) plt_entry_size_ *
+                              (rel_plt_size_ / rel_plt_entry_size_);
+                }
+                next_plt_entry_addr += (entries != 0 && plt_size_ > entries)
+                                           ? plt_size_ - entries
+                                           : 2 * plt_entry_size_;
             } else {
                 next_plt_entry_addr += 4 * (plt_entry_size_); //1st 4 entries are special
             }
