@@ -15,6 +15,15 @@ endif()
 
 set(BUILD_SHARED_LIBS ON)
 
+# Let an object or static library start compiling without first waiting for
+# the libraries it depends on to be built.  It only links into a shared
+# library later, so the Makefile generator's target ordering just idles the
+# build; nothing here generates headers that would need it.  CMake < 3.19
+# ignores this.
+if(NOT DEFINED CMAKE_OPTIMIZE_DEPENDENCIES)
+  set(CMAKE_OPTIMIZE_DEPENDENCIES ON)
+endif()
+
 # The unit tests need internal symbols
 if(DYNINST_ENABLE_TESTS)
   set(CMAKE_C_VISIBILITY_PRESET default)
