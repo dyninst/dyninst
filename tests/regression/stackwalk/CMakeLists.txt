@@ -24,3 +24,5 @@ set_tests_properties(
     SKIP_RETURN_CODE 77
     SKIP_REGULAR_EXPRESSION "skipping:"
 )
+
+add_subdirectory(vdso)
