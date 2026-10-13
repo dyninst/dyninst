@@ -96,10 +96,6 @@ void SymtabWrapper::notifyOfSymtab(Symtab *symtab, std::string name)
      wrapper = new SymtabWrapper();
   }
   
-  if (wrapper->map.count(name)) {
-     return;
-  }
-
   wrapper->map[name] = symtab;
 }
 
