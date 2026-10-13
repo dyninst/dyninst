@@ -102,7 +102,7 @@ namespace {
 
 int main() {
   auto const vdso_base = static_cast<Dyninst::Address>(getauxval(AT_SYSINFO_EHDR));
-  if(!vdso_base) {
+  if(vdso_base == Dyninst::ADDR_NULL) {
     std::cout << "No vDSO in this process\n";
     return skipped;
   }
