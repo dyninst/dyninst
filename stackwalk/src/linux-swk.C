@@ -162,6 +162,15 @@ vsys_info *Dyninst::Stackwalker::getVsysInfo(ProcessState *ps)
    ss << "[vsyscall-" << ps->getProcessId() << "]";
    ret->name = ss.str();
    LibraryWrapper::registerLibrary(reader, ret->name);
+#if defined(WITH_SYMTAB_API)
+   // Frame::getLibOffset finds Symtabs through SymtabWrapper by library name,
+   // and ret->name is not a file it can open.  The Symtab stays owned by the
+   // reader; vsysmap never releases the reader or vsys_mem.
+   if (SymtabReader *symtab_reader = dynamic_cast<SymtabReader *>(reader)) {
+      if (Symtab *symtab = symtab_reader->getSymtab())
+         SymtabWrapper::notifyOfSymtab(symtab, ret->name);
+   }
+#endif
 
   done:
    vsysmap[ps] = ret;

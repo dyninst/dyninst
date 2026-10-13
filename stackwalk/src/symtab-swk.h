@@ -52,6 +52,7 @@ class SymtabWrapper {
    SymtabWrapper();
  public:
    static Symtab *getSymtab(std::string filename);
+   // Makes 'symtab' the result of getSymtab(name), replacing any earlier entry.
    static void notifyOfSymtab(Symtab *symtab, std::string name);
    ~SymtabWrapper();
 };
