@@ -88,3 +88,12 @@ if(DYNINST_ENABLE_TESTS)
 endif()
 
 include(DyninstInstall)
+
+# The cmake-check, cmake-check-raw, cmake-reformat and cmake-reformat-diff
+# targets.  Nothing in the build depends on them, and they are for working on
+# Dyninst itself, so a project that brings Dyninst in with add_subdirectory or
+# FetchContent gets neither them nor a clash with its own targets of the same
+# names.
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  include(DyninstCMakeFormat)
+endif()
