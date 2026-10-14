@@ -312,7 +312,7 @@ class SpringboardBuilder {
 
   void addMultiNeeded(const SpringboardReq &p);
 
-  void generateBranch(Address from, Address to, codeGen &input);
+  void generateBranch(const SpringboardReq &r, codeGen &input);
   void generateTrap(Address from, Address to, codeGen &input);
 
   bool conflict(Address start, Address end, bool inRelocatedCode, func_instance* func, Priority p) { return installed_springboards_->conflict(start, end, inRelocatedCode, func, p); }
