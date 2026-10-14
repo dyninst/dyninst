@@ -32,10 +32,12 @@ dyninst_library(
   PRIVATE_DEPS ${_unknown_insn_deps}
 )
 
-set(_inc_dirs
+set(
+  _inc_dirs
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/..
-  ${PROJECT_SOURCE_DIR}/instructionAPI/h)
+  ${PROJECT_SOURCE_DIR}/instructionAPI/h
+)
 
 target_include_directories(instructionAPI_decoder PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
 

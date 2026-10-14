@@ -61,25 +61,17 @@ if(PC_LIBELF_FOUND)
     pkg_get_variable(PC_LIBELF_INCLUDE_DIRS libelf includedir)
   endif()
 
-  set(LibELF_INCLUDE_DIRS
-      ${PC_LIBELF_INCLUDE_DIRS}
-      CACHE PATH "")
-  set(LibELF_LIBRARIES
-      ${PC_LIBELF_LINK_LIBRARIES}
-      CACHE PATH "")
-  set(LibELF_VERSION
-      ${PC_LIBELF_VERSION}
-      CACHE STRING "")
+  set(LibELF_INCLUDE_DIRS ${PC_LIBELF_INCLUDE_DIRS} CACHE PATH "")
+  set(LibELF_LIBRARIES ${PC_LIBELF_LINK_LIBRARIES} CACHE PATH "")
+  set(LibELF_VERSION ${PC_LIBELF_VERSION} CACHE STRING "")
 else()
-  find_path(
-    LibELF_INCLUDE_DIRS
-    NAMES libelf.h
-    PATH_SUFFIXES elfutils ${_find_path_args})
+  find_path(LibELF_INCLUDE_DIRS NAMES libelf.h PATH_SUFFIXES elfutils ${_find_path_args})
 
   find_library(
     LibELF_LIBRARIES
     NAMES libelf elf
-    PATH_SUFFIXES elfutils ${_find_path_args})
+    PATH_SUFFIXES elfutils ${_find_path_args}
+  )
 
   macro(_check_libelf_version _file)
     file(STRINGS ${_file} _version_line REGEX "^#define _ELFUTILS_VERSION[ \t]+[0-9]+")
@@ -103,7 +95,8 @@ find_package_handle_standard_args(
   LibELF
   FOUND_VAR LibELF_FOUND
   REQUIRED_VARS LibELF_LIBRARIES LibELF_INCLUDE_DIRS
-  VERSION_VAR LibELF_VERSION)
+  VERSION_VAR LibELF_VERSION
+)
 
 if(LibELF_FOUND)
   mark_as_advanced(LibELF_INCLUDE_DIRS)
@@ -114,9 +107,11 @@ if(LibELF_FOUND)
     add_library(LibELF::LibELF UNKNOWN IMPORTED)
     set_target_properties(
       LibELF::LibELF
-      PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${LibELF_INCLUDE_DIRS}"
-                 IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-                 IMPORTED_LOCATION "${LibELF_LIBRARIES}")
+      PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${LibELF_INCLUDE_DIRS}"
+        IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+        IMPORTED_LOCATION "${LibELF_LIBRARIES}"
+    )
   endif()
 endif()
 

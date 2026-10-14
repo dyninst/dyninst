@@ -14,8 +14,15 @@ cmake_host_system_information(RESULT _host_arch QUERY OS_PLATFORM)
 set(_32bit_x86_arches "i386" "i686")
 set(_64bit_x86_arches "x86_64" "amd64")
 set(_amdgpu_arches "amdgpu_gfx908" "amdgpu_gfx90a" "amdgpu_gfx940" "amdgpu_gfx950")
-set(_known_arches "ppc64le" "aarch64" "riscv64" ${_32bit_x86_arches} ${_64bit_x86_arches}
-                  ${_amdgpu_arches})
+set(
+  _known_arches
+  "ppc64le"
+  "aarch64"
+  "riscv64"
+  ${_32bit_x86_arches}
+  ${_64bit_x86_arches}
+  ${_amdgpu_arches}
+)
 
 if(NOT "${_host_arch}" IN_LIST _known_arches)
   message(FATAL_ERROR "Unsupported architecture: '${_host_arch}'")
@@ -67,8 +74,8 @@ if(DYNINST_CODEGEN_ARCH)
   if(NOT DYNINST_CODEGEN_ARCH IN_LIST _known_arches)
     message(
       FATAL_ERROR
-        "Unsupported DYNINST_CODEGEN_ARCH, expect one of `${_known_arches}`, got `${DYNINST_CODEGEN_ARCH}`"
-      )
+      "Unsupported DYNINST_CODEGEN_ARCH, expect one of `${_known_arches}`, got `${DYNINST_CODEGEN_ARCH}`"
+    )
   else()
     set(_codegen_arch ${DYNINST_CODEGEN_ARCH})
   endif()

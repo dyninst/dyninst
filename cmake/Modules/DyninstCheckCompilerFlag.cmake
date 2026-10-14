@@ -10,7 +10,6 @@ include(CheckCXXCompilerFlag)
 #
 
 function(dyninst_check_compiler_flag _lang _flag _var)
-
   if(_lang STREQUAL "C")
     check_c_compiler_flag(${_flag} ${_var})
   elseif(_lang STREQUAL "CXX")
@@ -18,5 +17,4 @@ function(dyninst_check_compiler_flag _lang _flag _var)
   else()
     message(FATAL_ERROR "dyninst_check_compiler_flag: unsupported language '${_lang}'")
   endif()
-
 endfunction()

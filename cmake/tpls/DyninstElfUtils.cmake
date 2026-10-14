@@ -49,6 +49,7 @@ if(NOT TARGET Dyninst::ElfUtils)
     set_property(
       TARGET Dyninst::ElfUtils
       APPEND
-      PROPERTY INTERFACE_COMPILE_DEFINITIONS DEBUGINFOD_LIB)
+      PROPERTY INTERFACE_COMPILE_DEFINITIONS DEBUGINFOD_LIB
+    )
   endif()
 endif()

@@ -18,7 +18,8 @@ add_executable(
   src/utils.C
   src/sha1.C
   src/dyninstCore.C
-  src/dyninstCompat.v5.C)
+  src/dyninstCompat.v5.C
+)
 
 target_compile_definitions(parseThat PRIVATE HAVE_BPATCH_PROCESS_H)
 

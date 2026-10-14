@@ -38,8 +38,8 @@ if(_test_flag STREQUAL "UNIT")
 else()
   message(
     FATAL_ERROR
-      "Unknown test type '${DYNINST_ENABLE_TESTS}'. Must be one of ${_dyninst_test_types}"
-    )
+    "Unknown test type '${DYNINST_ENABLE_TESTS}'. Must be one of ${_dyninst_test_types}"
+  )
 endif()
 
 unset(_test_flag)

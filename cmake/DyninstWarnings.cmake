@@ -5,8 +5,8 @@
 if(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
   message(
     STATUS
-      "DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS set: disabling all dyninst warning suppressions and frame size overrides"
-    )
+    "DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS set: disabling all dyninst warning suppressions and frame size overrides"
+  )
 endif()
 
 # Frame sizes are larger for debug build, so adjust based on build type files with
@@ -20,8 +20,7 @@ set(defaultNonDebugMaxFrameSize 20480)
 # supported by the compiler.  The values do not include the the initial '-'
 
 list(
-  APPEND
-  REQUESTED_WARNING_FLAGS
+  APPEND REQUESTED_WARNING_FLAGS
   Wall
   Wextra
   Wpedantic
@@ -59,7 +58,8 @@ list(
   Wuninitialized
   Wvla
   Wvolatile
-  Wwrite-strings)
+  Wwrite-strings
+)
 
 #list(APPEND REQUESTED_WARNING_FLAGS Werror)
 #list(APPEND REQUESTED_WARNING_FLAGS Wredundant-tags)
@@ -77,8 +77,9 @@ list(
 if(DYNINST_EXTRA_WARNINGS)
   list(APPEND REQUESTED_WARNING_FLAGS ${DYNINST_EXTRA_WARNINGS})
   message(
-    STATUS "DYNINST_EXTRA_WARNINGS set, adding extra warnings:  ${DYNINST_EXTRA_WARNINGS}"
-    )
+    STATUS
+    "DYNINST_EXTRA_WARNINGS set, adding extra warnings:  ${DYNINST_EXTRA_WARNINGS}"
+  )
 endif()
 
 if(DYNINST_WARNINGS_AS_ERRORS)
@@ -97,8 +98,11 @@ if(CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang)$")
   foreach(f IN LISTS REQUESTED_WARNING_FLAGS)
     string(REGEX REPLACE "[^a-zA-Z0-9]" "_" v "HAS_C_FLAG_${f}")
     set(CMAKE_REQUIRED_FLAGS "-${f}")
-    check_c_source_compiles("int main(){return 0;}" "${v}" FAIL_REGEX
-                            "warning: *command[- ]line option|-Wunknown-warning-option")
+    check_c_source_compiles(
+      "int main(){return 0;}"
+      "${v}"
+      FAIL_REGEX "warning: *command[- ]line option|-Wunknown-warning-option"
+    )
     # Previous two lines are equivalent to below, but also catches a 0 exit status
     # with a warning message output: check_c_compiler_flag("-${f}" "${v}")
     if(${v})
@@ -117,8 +121,11 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
   foreach(f IN LISTS REQUESTED_WARNING_FLAGS)
     string(REGEX REPLACE "[^a-zA-Z0-9]" "_" v "HAS_CPP_FLAG_${f}")
     set(CMAKE_REQUIRED_FLAGS "-${f}")
-    check_cxx_source_compiles("int main(){return 0;}" "${v}" FAIL_REGEX
-                              "warning: *command[- ]line option|-Wunknown-warning-option")
+    check_cxx_source_compiles(
+      "int main(){return 0;}"
+      "${v}"
+      FAIL_REGEX "warning: *command[- ]line option|-Wunknown-warning-option"
+    )
     if(${v})
       list(APPEND SUPPORTED_CXX_WARNING_FLAGS "-${f}")
       if(f MATCHES "^(.*)=[0-9]+$")
@@ -190,4 +197,6 @@ endif()
 message(STATUS "Using C warning flags: ${SUPPORTED_C_WARNING_FLAGS}")
 message(STATUS "Using CXX warning flags: ${SUPPORTED_CXX_WARNING_FLAGS}")
 message(
-  STATUS "Extra CXX DEBUG warning flags: -Wframe-larger-than=${defaultDebugMaxFrameSize}")
+  STATUS
+  "Extra CXX DEBUG warning flags: -Wframe-larger-than=${defaultDebugMaxFrameSize}"
+)
