@@ -142,9 +142,7 @@ bool BPatch_image::getSourceObj(BPatch_Vector<BPatch_sourceObj *> &vect)
 {
    BPatch_Vector<BPatch_module *> *temp = getModules();
    if (temp) {
-      for(auto *m : *temp) {
-        vect.push_back(m);
-      }
+      vect.assign(temp->begin(), temp->end());
       return (true);
    } else {
       return (false);
