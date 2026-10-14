@@ -858,8 +858,6 @@ bool BPatch_function::findVariable(const char *name,
 
    // finally check the global scope.
    BPatch_image *imgPtr = dynamic_cast<BPatch_image *>(mod->getObjParent());
-   assert(imgPtr);
-   
    if (!imgPtr) return false;
    
    BPatch_variableExpr *var = imgPtr->findVariable(name);
