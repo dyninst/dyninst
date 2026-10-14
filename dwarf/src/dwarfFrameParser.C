@@ -344,7 +344,7 @@ bool DwarfFrameParser::getRegAtFrame(
                   dwarf_printf("\t aarch64 converted register reg=%s\n", reg.name().c_str());
                 }
 
-                // Keep existing behavior for other undefined registers.
+                // Dyninst treats an undefined rule for any register other than the RA as same_value.
                 cons.readReg(reg);
                 return true;
             }
