@@ -756,8 +756,10 @@ bool insnCodeGen::modifyData(Dyninst::Address target,
     if (((raw >> 24) & 0x1F) == 0x10) {
         Dyninst::Address offset;
         if((static_cast<uint32_t>(raw) >> 31) & 0x1) {
-            target &= 0xFFFFF000;
-            Dyninst::Address cur = gen.currAddr() & 0xFFFFF000;
+            // ADRP addresses 4 KiB pages; keep all 64 bits of both addresses
+            const Dyninst::Address page_mask = ~static_cast<Dyninst::Address>(0xFFF);
+            target &= page_mask;
+            Dyninst::Address cur = gen.currAddr() & page_mask;
             offset = isneg ? (cur - target) : (target - cur);
             offset >>= 12;
         } else {
