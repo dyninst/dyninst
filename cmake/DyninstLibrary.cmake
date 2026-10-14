@@ -90,7 +90,6 @@ endif()
 list(APPEND _dyninst_global_defs ${DYNINST_PLATFORM_CAPABILITIES})
 
 function(dyninst_library _target)
-  # cmake-format: off
   set(_keywords
       PRIVATE_HEADER_FILES
       PUBLIC_HEADER_FILES
@@ -103,7 +102,6 @@ function(dyninst_library _target)
   
   cmake_parse_arguments(PARSE_ARGV 0 _target "FORCE_STATIC;INTERNAL_LIBRARY" "" "${_keywords}")
   
-  # cmake-format: on
 
   if(_target_INTERNAL_LIBRARY)
     # Internal libraries never create actual library files (.so, .a, etc.)

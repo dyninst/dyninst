@@ -54,7 +54,6 @@ if(DYNINST_OS_UNIX)
   endif()
 endif()
 
-# cmake-format: off
 dyninst_library(
   dyninstAPI_RT
   PUBLIC_HEADER_FILES ${_public_headers}
@@ -64,7 +63,6 @@ dyninst_library(
   PRIVATE_DEPS Threads::Threads
   FORCE_STATIC
 )
-# cmake-format: on
 
 foreach(t ${dyninstAPI_RT_TARGETS})
   if(DYNINST_OS_UNIX)
@@ -111,7 +109,6 @@ if(BUILD_RTLIB_32)
     list(FILTER _sources EXCLUDE REGEX "RTthread-x86-64")
   endif()
 
-  # cmake-format: off
   # The headers are all listed as PRIVATE so that they do not get copied into the install
   # tree twice (they already get copied in by the creation of the shared library targets)
 	dyninst_library(
@@ -122,7 +119,6 @@ if(BUILD_RTLIB_32)
 	  PRIVATE_DEPS Threads::Threads
 	  ${_force_static}
 	)
-	# cmake-format: on
 
   foreach(t ${dyninstAPI_RT_m32_TARGETS})
     target_compile_options(${t} PRIVATE "${DYNINST_C_32BIT_RUNTIME_FLAG}")

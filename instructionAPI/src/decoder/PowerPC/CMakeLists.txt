@@ -43,7 +43,6 @@ if(NOT instructionDecoderPowerExtraFlags STREQUAL "")
     power_opcode_tables.C PROPERTIES COMPILE_FLAGS "${instructionDecoderPowerExtraFlags}")
 endif()
 
-# cmake-format: off
 dyninst_library(
   instructionAPI_powerpc
   INTERNAL_LIBRARY
@@ -56,7 +55,6 @@ set(_inc_dirs
   ${CMAKE_CURRENT_SOURCE_DIR}/..
   ${CMAKE_CURRENT_SOURCE_DIR}/../..
   ${PROJECT_SOURCE_DIR}/instructionAPI/h)
-# cmake-format: on
 
 target_include_directories(instructionAPI_powerpc PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
 

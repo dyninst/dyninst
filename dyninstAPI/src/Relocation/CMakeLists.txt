@@ -74,7 +74,6 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(APPEND _sources Widgets/CFWidget-amdgpu.C Widgets/PCWidget-amdgpu.C)
 endif()
 
-# cmake-format: off
 dyninst_library(
   dyninstAPI_relocation
   INTERNAL_LIBRARY
@@ -91,7 +90,6 @@ set(_inc_dirs
   ${CMAKE_CURRENT_SOURCE_DIR}/../registerSpace
   ${CMAKE_CURRENT_SOURCE_DIR}/../../h
 )
-# cmake-format: on
 
 target_include_directories(dyninstAPI_relocation PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
 

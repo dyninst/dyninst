@@ -104,7 +104,6 @@ elseif(DYNINST_OS_Linux)
     src/loadLibrary/codegen-linux.C)
 endif()
 
-# cmake-format: off
 dyninst_library(
   pcontrol
   PUBLIC_HEADER_FILES ${_public_headers}
@@ -114,7 +113,6 @@ dyninst_library(
   PUBLIC_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS ${CMAKE_DL_LIBS} Dyninst::Thread_DB Threads::Threads
 )
-# cmake-format: on
 
 # When using symlite, we still need the symtabAPI headers
 if(LIGHTWEIGHT_SYMTAB)

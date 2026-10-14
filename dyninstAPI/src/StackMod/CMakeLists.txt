@@ -24,7 +24,6 @@ set(_sources
     StackModChecker.C
     TMap.C)
 
-# cmake-format: off
 dyninst_library(
   dyninstAPI_stackmod
   INTERNAL_LIBRARY
@@ -40,7 +39,6 @@ set(_inc_dirs
   ${CMAKE_CURRENT_SOURCE_DIR}/../registerSpace
   ${CMAKE_CURRENT_SOURCE_DIR}/../../h
 )
-# cmake-format: on
 
 target_include_directories(dyninstAPI_stackmod PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
 

@@ -36,7 +36,6 @@ set(_sources
     src/Point.C
     src/PointMaker.C)
 
-# cmake-format: off
 dyninst_library(
   patchAPI
   PUBLIC_HEADER_FILES ${_public_headers}
@@ -46,4 +45,3 @@ dyninst_library(
   DYNINST_DEPS common instructionAPI parseAPI
   PRIVATE_DEPS Dyninst::Boost
 )
-# cmake-format: on

@@ -58,7 +58,6 @@ if(NOT finalizeOperandsExtraFlags STREQUAL "")
                               PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
 endif()
 
-# cmake-format: off
 dyninst_library(
   instructionAPI_amdgpu
   INTERNAL_LIBRARY
@@ -71,7 +70,6 @@ set(_inc_dirs
   ${CMAKE_CURRENT_SOURCE_DIR}/..
   ${CMAKE_CURRENT_SOURCE_DIR}/../..
   ${PROJECT_SOURCE_DIR}/instructionAPI/h)
-# cmake-format: on
 
 target_include_directories(instructionAPI_amdgpu PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
 

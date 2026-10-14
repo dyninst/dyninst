@@ -18,7 +18,6 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(APPEND _sources baseTramp-aarch64.C)
 endif()
 
-# cmake-format: off
 dyninst_library(
   dyninstAPI_trampolines
   INTERNAL_LIBRARY
@@ -35,7 +34,6 @@ set(_inc_dirs
   ${CMAKE_CURRENT_SOURCE_DIR}/../registerSpace
   ${CMAKE_CURRENT_SOURCE_DIR}/../../h
 )
-# cmake-format: on
 
 target_include_directories(dyninstAPI_trampolines PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
 
