@@ -60,12 +60,29 @@ bool AmdgpuKernelDescriptor::isGfx8() const {
 }
 
 bool AmdgpuKernelDescriptor::isGfx9() const {
-  return isGfx90aOr942() ||
+  return hasGfx90aComputePgmRsrc3Layout() ||
          (amdgpuMach >= EF_AMDGPU_MACH_AMDGCN_GFX900 && amdgpuMach <= EF_AMDGPU_MACH_AMDGCN_GFX90C);
 }
 
-bool AmdgpuKernelDescriptor::isGfx90aOr942() const {
-  return amdgpuMach >= EF_AMDGPU_MACH_AMDGCN_GFX90A && amdgpuMach <= EF_AMDGPU_MACH_AMDGCN_GFX942;
+// Does COMPUTE_PGM_RSRC3 use the GFX90A field layout (ACCUM_OFFSET + TG_SPLIT), i.e. the architected
+// acc-VGPR / unified VGPR+AGPR file? This is what guards getCOMPUTE_PGM_RSRC3_AccumOffset()/TgSplit()
+// and selects the GFX90A (vs GFX10+) RSRC3 dump format -- a capability, not an arch range.
+//
+// It MUST be an explicit set, not a `>= GFX90A && <= GFX942` range: the AMDGPU mach IDs interleave CDNA
+// and RDNA (e.g. gfx1100=0x41 .. gfx1250=0x49 sit between gfx90a=0x3f and gfx942=0x4c), so a range would
+// wrongly match RDNA parts. Add a mach here when a new CDNA arch with this RSRC3 layout gains support.
+bool AmdgpuKernelDescriptor::hasGfx90aComputePgmRsrc3Layout() const {
+  switch (amdgpuMach) {
+  case EF_AMDGPU_MACH_AMDGCN_GFX90A:         // 0x3f, CDNA2
+  case 0x040:                                // gfx940, CDNA3 (no named enum; removed from LLVM, kept for old objects)
+  case 0x04b:                                // gfx941, CDNA3 (no named enum; removed from LLVM, kept for old objects)
+  case EF_AMDGPU_MACH_AMDGCN_GFX942:         // 0x4c, CDNA3
+  case EF_AMDGPU_MACH_AMDGCN_GFX950:         // 0x4f, CDNA4
+  case EF_AMDGPU_MACH_AMDGCN_GFX9_4_GENERIC: // 0x5f
+    return true;
+  default:
+    return false;
+  }
 }
 
 bool AmdgpuKernelDescriptor::isGfx9Plus() const { return isGfx9() || isGfx10Plus(); }
@@ -84,7 +101,7 @@ bool AmdgpuKernelDescriptor::isGfx11() const {
   return amdgpuMach == EF_AMDGPU_MACH_AMDGCN_GFX1100 ||
          amdgpuMach == EF_AMDGPU_MACH_AMDGCN_GFX1103 ||
          (amdgpuMach >= EF_AMDGPU_MACH_AMDGCN_GFX1101 &&
-          amdgpuMach >= EF_AMDGPU_MACH_AMDGCN_GFX1102);
+          amdgpuMach <= EF_AMDGPU_MACH_AMDGCN_GFX1102);
 }
 
 AmdgpuKernelDescriptor::AmdgpuKernelDescriptor(uint8_t *kdBytes, size_t kdSize, unsigned amdgpuMachine) {
@@ -139,24 +156,24 @@ uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3() const { return kdRepr.co
 
 // GFX90A, GFX942 begin
 uint32_t AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3_AccumOffset() const {
-  assert(isGfx90aOr942());
+  assert(hasGfx90aComputePgmRsrc3Layout());
   const uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc3;
   return GET_VALUE(COMPUTE_PGM_RSRC3_GFX90A_ACCUM_OFFSET);
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC3_AccumOffset(uint32_t value) {
-  assert(isGfx90aOr942());
+  assert(hasGfx90aComputePgmRsrc3Layout());
   kdRepr.compute_pgm_rsrc3 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc3, value, COMPUTE_PGM_RSRC3_GFX90A_ACCUM_OFFSET);
 }
 
 bool AmdgpuKernelDescriptor::getCOMPUTE_PGM_RSRC3_TgSplit() const {
-  assert(isGfx90aOr942());
+  assert(hasGfx90aComputePgmRsrc3Layout());
   const uint32_t fourByteBuffer = kdRepr.compute_pgm_rsrc3;
   return GET_VALUE(COMPUTE_PGM_RSRC3_GFX90A_TG_SPLIT);
 }
 
 void AmdgpuKernelDescriptor::setCOMPUTE_PGM_RSRC3_TgSplit(bool value) {
-  assert(isGfx90aOr942());
+  assert(hasGfx90aComputePgmRsrc3Layout());
   kdRepr.compute_pgm_rsrc3 = INSERT_FIELD_32(kdRepr.compute_pgm_rsrc3, value, COMPUTE_PGM_RSRC3_GFX90A_TG_SPLIT);
 }
 //
@@ -747,8 +764,8 @@ void AmdgpuKernelDescriptor::dumpCOMPUTE_PGM_RSRC3(std::ostream &os) const {
   const char *indent = "    ";
   os << "  -- COMPUTE_PGM_RSRC3 begin\n";
 
-  if (isGfx90aOr942())
-    dumpCOMPUTE_PGM_RSRC3_Gfx90aOr942(os);
+  if (hasGfx90aComputePgmRsrc3Layout())
+    dumpCOMPUTE_PGM_RSRC3_Gfx90a(os);
 
   else if (isGfx10Plus())
     dumpCOMPUTE_PGM_RSRC3_Gfx10Plus(os);
@@ -759,8 +776,8 @@ void AmdgpuKernelDescriptor::dumpCOMPUTE_PGM_RSRC3(std::ostream &os) const {
   os << "  -- COMPUTE_PGM_RSRC3 end\n";
 }
 
-void AmdgpuKernelDescriptor::dumpCOMPUTE_PGM_RSRC3_Gfx90aOr942(std::ostream &os) const {
-  assert(isGfx90aOr942());
+void AmdgpuKernelDescriptor::dumpCOMPUTE_PGM_RSRC3_Gfx90a(std::ostream &os) const {
+  assert(hasGfx90aComputePgmRsrc3Layout());
   const char *indent = "    ";
 
   os << indent << "ACCUM_OFFSET : " << getCOMPUTE_PGM_RSRC3_AccumOffset() << '\n';
