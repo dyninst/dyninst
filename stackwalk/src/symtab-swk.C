@@ -41,6 +41,8 @@
 #include "symtabAPI/h/Symbol.h"
 #include "symtabAPI/h/AddrLookup.h"
 #include "stackwalk/src/symtab-swk.h"
+#include "stackwalk/src/libstate.h"
+#include "symtabAPI/h/SymtabReader.h"
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
@@ -69,6 +71,14 @@ Symtab *SymtabWrapper::getSymtab(std::string filename)
   Symtab *symtab;
   bool result = Symtab::openFile(symtab, filename);
   if (!result) {
+     // A library read from memory, such as the vDSO ("[vsyscall-<pid>]"), is
+     // registered with LibraryWrapper under a name that is not a file.  Its
+     // reader owns the Symtab, so it is not added to 'map', whose entries
+     // ~SymtabWrapper deletes.
+     SymtabReader *reader =
+        dynamic_cast<SymtabReader *>(LibraryWrapper::testLibrary(filename));
+     if (reader && reader->getSymtab())
+        return reader->getSymtab();
      setLastError(err_nofile, "Couldn't open file through SymtabAPI\n");
      return NULL;
   }
@@ -96,6 +106,10 @@ void SymtabWrapper::notifyOfSymtab(Symtab *symtab, std::string name)
      wrapper = new SymtabWrapper();
   }
   
+  if (wrapper->map.count(name)) {
+     return;
+  }
+
   wrapper->map[name] = symtab;
 }
 
