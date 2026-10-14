@@ -40,6 +40,7 @@
 #include "BPatch_callbacks.h"
 #include <set>
 #include <string>
+#include <vector>
 #include "dyntypes.h"
 #include "dyninstversion.h"
 #include "compiler_diagnostics.h"
@@ -51,6 +52,12 @@ class PCProcess;
 class PCThread;
 class PCEventHandler;
 class func_instance;
+
+namespace Dyninst {
+   namespace SymtabAPI {
+      class Symtab;
+   }
+}
 
 //Keep old versions defined, that way someone can test if we're more
 // at or more recent than version 5.1 with '#if defined(DYNINST_5_1)'
@@ -134,6 +141,18 @@ class DYNINST_EXPORT BPatch {
     /* If true, override requests to block while waiting for events,
        polling instead */
     bool asyncActive;
+
+    /* Wildcard patterns naming shared objects that are loaded but not
+       analyzed. */
+    std::vector<std::string> analysisExcludePatterns_;
+
+    /* The same, matched against DT_SONAME rather than the file name.  Kept
+       apart because the two name different things: where a library sits and
+       what it calls itself. */
+    std::vector<std::string> analysisExcludeSonames_;
+
+    /* Consulted for each object no pattern has already excluded. */
+    BPatchAnalyzeObjectCallback analyzeObjectCallback_;
 
     bool instrFrames;
 
@@ -629,6 +648,85 @@ public:
     //  Globally specify that any function with a given name will not return
     
     void  addNonReturningFunc(std::string name);
+
+    //  BPatch::addAnalysisExcludePattern:
+    //  Shared objects whose name matches this shell-style wildcard pattern
+    //  (see fnmatch(3): '*', '?', '[...]') are still loaded -- their symbols,
+    //  address ranges and modules remain available -- but no CFG is built for
+    //  them up front.  This avoids the cost of parsing libraries that will
+    //  never be instrumented.
+    //
+    //  Their functions are not lost.  Looking one up by name parses that
+    //  function, and whatever it reaches, at the point it is asked for, and it
+    //  can then be instrumented like any other.  What exclusion costs is what
+    //  depends on having parsed the object up front: a lookup by address finds
+    //  nothing there, and the queries that enumerate rather than name, such as
+    //  BPatch_module::getProcedures, report only what has been parsed so far.
+    //
+    //  The pattern is matched against both the object's full path and its base
+    //  name, so "libLLVM.so*" matches "/usr/lib64/libLLVM.so.23.0git".
+    //
+    //  The executable and the Dyninst runtime library are never excluded.
+    //  Patterns must be added before the process or binary is created.
+
+    void  addAnalysisExcludePattern(const char *pattern);
+
+    //  BPatch::clearAnalysisExcludePatterns:
+    //  Discard all patterns added by addAnalysisExcludePattern.
+
+    void  clearAnalysisExcludePatterns();
+
+    //  BPatch::addAnalysisExcludeSoname:
+    //  As addAnalysisExcludePattern, but matched against the object's
+    //  DT_SONAME instead of its file name.  That is the name the object calls
+    //  itself and the name other objects link against, so it does not change
+    //  with the path the library happened to be found at, and it is set even
+    //  when the file has been renamed.  An object with no DT_SONAME -- an
+    //  executable, or a library built without one -- matches nothing here.
+
+    void  addAnalysisExcludeSoname(const char *pattern);
+
+    //  BPatch::clearAnalysisExcludeSonames:
+    //  Discard all patterns added by addAnalysisExcludeSoname.
+
+    void  clearAnalysisExcludeSonames();
+
+    //  BPatch::analysisExcluded:
+    //  True if \p name matches any pattern added by addAnalysisExcludePattern.
+    //  This asks only about the name, so it can be called before an object has
+    //  been opened.
+
+    bool  analysisExcluded(const char *name) const;
+
+    //  BPatch::analysisExcluded:
+    //  Whether this object is excluded from analysis.  This is the decision
+    //  Dyninst itself makes, and it is made from the object rather than from a
+    //  name: it applies the name patterns above to the object's path and base
+    //  name, and any further filter registered through the calls below.  A
+    //  caller can use it to ask what Dyninst would decide about an object it
+    //  has already opened.
+
+    bool  analysisExcluded(Dyninst::SymtabAPI::Symtab *symtab) const;
+
+    //  BPatch::registerAnalyzeObjectCallback:
+    //  Register a filter deciding whether a shared object is analyzed, and
+    //  return the one it replaces, or NULL.  Where the patterns above match a
+    //  name known in advance, this decides from the object itself: it is
+    //  passed the Symtab, so it can consult the size of the symbol table, or
+    //  anything else SymtabAPI exposes.  Skipping every library above some
+    //  number of functions, say, cannot be written as a pattern.
+    //
+    //  It is consulted by analysisExcluded(Symtab *), so it sees only objects
+    //  no pattern has already excluded, and never the executable or the
+    //  Dyninst runtime library.  It runs inside the load path, so it must not
+    //  call back into Dyninst.
+
+    BPatchAnalyzeObjectCallback registerAnalyzeObjectCallback(BPatchAnalyzeObjectCallback func);
+
+    //  BPatch::getAnalyzeObjectCallback:
+    //  Return the currently registered filter, or NULL if there is none.
+
+    BPatchAnalyzeObjectCallback getAnalyzeObjectCallback() const;
 };
 
 

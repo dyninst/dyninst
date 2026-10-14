@@ -259,9 +259,14 @@ class image : public codeRange {
    friend class image_variable;
    friend class Dyninst::DyninstAPI::DynCFGFactory;
  public:
+   // mayExclude is false for an object the caller named outright: the target
+   // of a binary rewrite is instrumented even when a pattern also matches it.
+   // The executable and the Dyninst runtime library are never excluded
+   // either, whatever is passed here.
    static image *parseImage(fileDescriptor &desc, 
                             BPatch_hybridMode mode,
-                            bool parseGaps);
+                            bool parseGaps,
+                            bool mayExclude = true);
 
    // And to get rid of them if we need to re-parse
    static void removeImage(image *img);
@@ -272,11 +277,17 @@ class image : public codeRange {
       return this; 
    }
 
+   // mayExclude as in parseImage above.
    image(fileDescriptor &desc, bool &err, 
          BPatch_hybridMode mode,
-         bool parseGaps);
+         bool parseGaps,
+         bool mayExclude = true);
 
    void analyzeIfNeeded();
+   bool analysisExcluded() const { return analysisExcluded_; }
+   parse_func *parseExcludedFunction(Dyninst::SymtabAPI::Function *symFunc);
+   void checkPowerPreamble(parse_func *funct,
+                           const std::map<uint64_t, parse_func *> *overlaps);
    bool isParsed() { return parseState_ == analyzed; }
    parse_func* addFunction(Address functionEntryAddr, const char *name=NULL);
 
@@ -498,6 +509,9 @@ class image : public codeRange {
 
    int refCount;
    imageParseState_t parseState_;
+   // Excluded from analysis: no CFG was built up front.  A function is
+   // parsed on demand when it is looked up by name.
+   bool analysisExcluded_;
    bool parseGaps_;
    BPatch_hybridMode mode_;
    Dyninst::Architecture arch;
