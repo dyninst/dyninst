@@ -162,6 +162,9 @@ class BinaryEdit : public AddressSpace {
     // Add a library prerequisite
     void addLibraryPrereq(std::string libname);
 
+    // Add a DT_NEEDED entry for the runtime library, unless the RT depends on this object
+    void addRuntimeLibPrereq();
+
    void setupRTLibrary(std::vector<BinaryEdit *> &r);
    std::vector<BinaryEdit *> &rtLibrary();
    bool getAllDependencies(std::map<std::string, BinaryEdit* > &deps);
