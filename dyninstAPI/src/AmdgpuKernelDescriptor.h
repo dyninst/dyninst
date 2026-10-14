@@ -287,6 +287,19 @@ public:
   // DON'T USE THIS FOR MODIFYING KDs.
   void *getRawPtr() { return (void *)&kdRepr; }
 
+  // Arch-family / capability predicates. Public so consumers can branch the register model, VGPR/AGPR
+  // granule, and scratch ABI on the KD's architecture (e.g. hasGfx90aComputePgmRsrc3Layout() for the
+  // gfx90a/942/950 architected acc-VGPR file) without re-deriving it from the ELF e_flags mach byte.
+  bool isGfx6() const;
+  bool isGfx7() const;
+  bool isGfx8() const;
+  bool isGfx9() const;
+  bool hasGfx90aComputePgmRsrc3Layout() const;
+  bool isGfx9Plus() const;
+  bool isGfx10() const;
+  bool isGfx10Plus() const;
+  bool isGfx11() const;
+
 private:
   void dumpCOMPUTE_PGM_RSRC3(std::ostream &os) const;
   void dumpCOMPUTE_PGM_RSRC3_Gfx90a(std::ostream &os) const;
@@ -297,16 +310,6 @@ private:
   void dumpCOMPUTE_PGM_RSRC2(std::ostream &os) const;
 
   void dumpKernelCodeProperties(std::ostream &os) const;
-
-  bool isGfx6() const;
-  bool isGfx7() const;
-  bool isGfx8() const;
-  bool isGfx9() const;
-  bool hasGfx90aComputePgmRsrc3Layout() const;
-  bool isGfx9Plus() const;
-  bool isGfx10() const;
-  bool isGfx10Plus() const;
-  bool isGfx11() const;
 
   bool supportsArchitectedFlatScratch() const;
 
