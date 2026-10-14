@@ -4,9 +4,16 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches: [ master ]
+    # The check covers every tracked CMake file, not only the ones a pull
+    # request touched, so anything that changes what "formatted" means has
+    # to trigger it: the gersemi settings, the pinned gersemi version, and
+    # this workflow itself.  cmake/DyninstRunGersemi.cmake is a '.cmake'.
     paths:
        - '**.cmake'
        - '**CMakeLists.txt'
+       - '.gersemirc'
+       - '.github/workflows/cmake-formatting.yaml'
+       - 'docker/dependencies.versions'
   workflow_dispatch:
 
 concurrency:
@@ -16,9 +23,18 @@ concurrency:
 permissions: {}
 
 jobs:
-  cmake-formatting:
+
+  # Don't run the check if the PR is a draft
+  check-if-needed:
     runs-on: ubuntu-latest
     if: ${{ github.event.pull_request.draft == false }}
+    steps:
+      - shell: bash
+        run: true
+
+  cmake-formatting:
+    runs-on: ubuntu-latest
+    needs: check-if-needed
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -27,17 +43,38 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y python3-pip
-        python3 -m pip install cmake-format
+        # The pinned version: see cmake/DyninstRunGersemi.cmake.
+        version=$(awk -F: '/^gersemi:/{print $2}' docker/dependencies.versions)
+        test -n "$version" || {
+          echo "::error::no gersemi version in docker/dependencies.versions"
+          exit 1
+        }
+        python3 -m pip install "gersemi==$version"
 
-    - name: cmake-format
+    - name: gersemi
       shell: bash
       run: |
-        set +e
-        cmake-format -i $(find . -type f | egrep 'CMakeLists.txt|\.cmake$')
-        if [ $(git diff | wc -l) -gt 0 ]; then
-          echo -e "\nError! CMake files not formatted."
-          echo -e "\nRun the following to fix:"
-          for f in $(git diff --name-only); do echo -e "  cmake-format -i $f"; done
+        # The cmake-check and cmake-reformat-diff targets drive this same
+        # script, so a contributor's build and this job share one file list
+        # and one report.  Calling it directly rather than through the
+        # targets keeps the job on a bare runner: 'cmake -P' wants no
+        # configured build tree, and so none of Dyninst's dependencies.
+        run() {
+          cmake -DGERSEMI="$(command -v gersemi)" \
+                -DMODE="$1" \
+                -DSOURCE_DIR="${GITHUB_WORKSPACE}" \
+                -P "${GITHUB_WORKSPACE}/cmake/DyninstRunGersemi.cmake"
+        }
+
+        # The script exits 2 when the only trouble is unformatted files, and
+        # that is the one failure a diff explains; for any other (a parse
+        # error, a wrong gersemi) the diff would only repeat it.  The step
+        # runs under 'bash -e', hence the '|| status=$?'.
+        status=0
+        run check || status=$?
+        if [ "$status" -eq 2 ]; then
           echo
-          exit 1
+          echo
+          run diff || true
         fi
+        exit "$status"
