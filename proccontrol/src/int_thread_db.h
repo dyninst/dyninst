@@ -202,6 +202,12 @@ private:
     // an actual lookup walked over are ever in here, and each is parsed at most once.
     std::map<std::string, std::string> soname_cache;
     const std::string &getLibSOName(int_library *lib);
+    // Where the thread library's symbols live since glibc 2.34 merged libpthread into libc:
+    // the C library and the dynamic loader (see getSymbolAddr).
+    int_library *findCLibrary();
+    int_library *findLoader();
+    static bool isCLibraryName(const std::string &path);
+    static bool isLoaderName(const std::string &path);
 
     async_ret_t ll_fetchThreadInfo(td_thrhandle_t *th, td_thrinfo_t *info);
 };

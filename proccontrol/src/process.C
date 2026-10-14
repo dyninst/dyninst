@@ -7393,7 +7393,7 @@ bool Thread::stopThread()
    int_process *proc = thrd->llproc();
 
    pthrd_printf("User stopping thread %d/%d\n", proc->getPid(), thrd->getLWP());
-   bool result = thrd->getUserState().setState(int_thread::running);
+   bool result = thrd->getUserState().setState(int_thread::stopped);
    if (!result) {
       perr_printf("Thread %d/%d was not in a stoppable state, error return from setState\n",
                   proc->getPid(), thrd->getLWP());
