@@ -3139,7 +3139,8 @@ int read_except_table_gcc3(
 
             if (catch_block == 0)
                 continue;
-            ExceptionBlock eb(region_start + landingpad_base, (unsigned) region_size,
+            // Call-site ranges are function-relative; only landing pads use LPStart.
+            ExceptionBlock eb(region_start + low_pc, (unsigned) region_size,
                               catch_block + landingpad_base);
             eb.setTryStart(tryStart);
             eb.setTryEnd(tryEnd);

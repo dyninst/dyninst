@@ -54,9 +54,14 @@ namespace Stackwalker {
 class LibraryState;
 class ThreadState;
 class Walker;
+class Frame;
 
 class DYNINST_EXPORT ProcessState {
    friend class Walker;
+   friend class Frame;
+ private:
+   Dyninst::Address normalizeReturnAddress(Dyninst::Address address,
+                                           Dyninst::THR_ID thread);
 protected:
    Dyninst::PID pid;
    std::string exec_path;
@@ -95,10 +100,6 @@ public:
   // Query the sampled thread's instruction PAC mask without reading an architectural register.
   virtual bool getInstructionPacMask(Dyninst::THR_ID thread, Dyninst::MachRegisterVal &mask);
 
-  // Recovered AArch64 return addresses may still carry PAC bits. Clear those
-  // bits before caller/library lookup, without changing target state.
-  Dyninst::Address normalizeReturnAddress(Dyninst::Address address, Dyninst::THR_ID thread);
-
   virtual ~ProcessState();
 
   Walker *getWalker() const;
@@ -131,6 +132,9 @@ class ProcSelf : public ProcessState {
 };
 
 class DYNINST_EXPORT ProcDebug : public ProcessState {
+ private:
+   Dyninst::MachRegisterVal instruction_pac_mask = 0;
+   bool instruction_pac_mask_valid = false;
  protected:
    Dyninst::ProcControlAPI::Process::ptr proc;
    ProcDebug(Dyninst::ProcControlAPI::Process::ptr p);

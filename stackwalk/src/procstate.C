@@ -110,6 +110,8 @@ bool ProcessState::getInstructionPacMask(THR_ID, MachRegisterVal &mask)
 
 Address ProcessState::normalizeReturnAddress(Address address, THR_ID thread)
 {
+   // PAC bits are not yet removed from return addresses when walking our own
+   // process's stack (first-party).
    if (!address || thread == NULL_THR_ID || getArchitecture() != Arch_aarch64 || isFirstParty())
       return address;
    MachRegisterVal mask = 0;
