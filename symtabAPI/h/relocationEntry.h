@@ -40,10 +40,14 @@
 #include "Region.h"
 
 // The minimum version of libelf Dyninst supports (0.173) does not define:
+// - R_RISCV_IRELATIVE
 // - R_RISCV_PLT32
 // - R_RISCV_SET_ULEB128
 // - R_RISCV_SUB_ULEB128
 // Define them if missing
+#ifndef R_RISCV_IRELATIVE
+#define R_RISCV_IRELATIVE	58
+#endif
 #ifndef R_RISCV_PLT32
 #define R_RISCV_PLT32 59
 #endif
