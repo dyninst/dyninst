@@ -47,6 +47,7 @@ RegisterMap &machRegIndex_amdgpu_gfx908();
 RegisterMap &machRegIndex_amdgpu_gfx90a();
 RegisterMap &machRegIndex_amdgpu_gfx940();
 RegisterMap &machRegIndex_amdgpu_gfx950();
+RegisterMap &machRegIndex_amdgpu_gfx1250();
 RegisterMap &machRegIndex_riscv64();
 
 }

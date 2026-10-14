@@ -2288,6 +2288,13 @@ AMDGPUInstructionKind RoseInsnAMDGPUFactory::convertKind(entryID opcode) {
         case amdgpu_gfx950_op_S_ADD_U32 : return rose_amdgpu_op_s_add_u32;
         case amdgpu_gfx950_op_S_ADDC_U32 : return rose_amdgpu_op_s_addc_u32;
 
+        case amdgpu_gfx1250_op_S_GET_PC_I64 : return rose_amdgpu_op_s_getpc_b64;
+        case amdgpu_gfx1250_op_S_SET_PC_I64 : return rose_amdgpu_op_s_setpc_b64;
+        case amdgpu_gfx1250_op_S_SWAP_PC_I64 : return rose_amdgpu_op_s_swappc_b64;
+        case amdgpu_gfx1250_op_S_ADD_CO_U32 : return rose_amdgpu_op_s_add_u32;
+        case amdgpu_gfx1250_op_S_ADD_CO_CI_U32 : return rose_amdgpu_op_s_addc_u32;
+        case amdgpu_gfx1250_op_S_MOV_B64 : return rose_amdgpu_op_s_mov_b64;
+
         default: return rose_amdgpu_op_INVALID;
     }
 }

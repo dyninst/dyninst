@@ -36,6 +36,7 @@
 #include "registers/AMDGPU/amdgpu_gfx90a_regs.h"
 #include "registers/AMDGPU/amdgpu_gfx940_regs.h"
 #include "registers/AMDGPU/amdgpu_gfx950_regs.h"
+#include "registers/AMDGPU/amdgpu_gfx1250_regs.h"
 #include "dataflowAPI/src/debug_dataflow.h"
 
 #include <tuple>
@@ -154,6 +155,35 @@ namespace {
       }
     }
     convert_printf("Unknown AmdgpuGfx950 category '%d'\n", category);
+    return std::make_tuple(amdgpu_regclass_unknown, baseID, pos, 0);
+  }
+
+  std::tuple<AMDGPURegisterClass, int, int, int>
+  AmdgpuGfx1250Rose(int32_t category, int32_t baseID, int32_t, int32_t size) {
+    constexpr auto pos = 0;
+
+    switch(category) {
+      case Dyninst::amdgpu_gfx1250::SGPR: {
+        auto const reg_idx = static_cast<AMDGPUScalarGeneralPurposeRegister>(baseID);
+        return std::make_tuple(amdgpu_regclass_sgpr, reg_idx, pos, size);
+        break;
+      }
+
+      case Dyninst::amdgpu_gfx1250::VGPR: {
+        auto const reg_idx = static_cast<AMDGPUVectorGeneralPurposeRegister>(baseID);
+        return std::make_tuple(amdgpu_regclass_vgpr, reg_idx, pos, size);
+      }
+
+      case Dyninst::amdgpu_gfx1250::PC: {
+        return std::make_tuple(amdgpu_regclass_pc, amdgpu_pc, pos, size);
+      }
+
+      case Dyninst::amdgpu_gfx1250::MISC: {
+        auto const reg_idx = static_cast<AMDGPUMiscRegister>(baseID);
+        return std::make_tuple(amdgpu_regclass_misc, reg_idx, pos, size);
+      }
+    }
+    convert_printf("Unknown AmdgpuGfx1250 category '%d'\n", category);
     return std::make_tuple(amdgpu_regclass_unknown, baseID, pos, 0);
   }
 
