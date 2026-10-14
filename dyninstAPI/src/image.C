@@ -2038,20 +2038,23 @@ bool image::findSymByPrefix(const std::string &prefix, std::vector<Symbol *> &re
 
 std::unordered_map<Address, std::string> *image::getPltFuncs()
 {
-   bool result;
    if (pltFuncs)
       return pltFuncs;
 
-
-   vector<SymtabAPI::relocationEntry> fbt;
-   result = getObject()->getFuncBindingTable(fbt);
-   if (!result)
+   // From the linkage table rather than from the binding table it is built
+   // from.  The two are the same except where a second PLT exists -- Intel
+   // CET puts the stubs calls go through in .plt.sec, and the linkage table
+   // names those while the binding table names the lazy entries the
+   // relocations belong to.  Reading the binding table here left this map
+   // and the one ParseAPI uses disagreeing about the same address.
+   const std::map<Address, std::string> &linkage = cs_->linkage();
+   if (linkage.empty())
       return NULL;
 
    pltFuncs = new std::unordered_map<Address, std::string>;
    assert(pltFuncs);
-   for(unsigned k = 0; k < fbt.size(); k++) {
-      (*pltFuncs)[fbt[k].target_addr()] = fbt[k].name();
+   for (auto const &entry : linkage) {
+      (*pltFuncs)[entry.first] = entry.second;
    }
    return pltFuncs;
 }
