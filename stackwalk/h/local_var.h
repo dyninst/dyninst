@@ -122,7 +122,7 @@ class LVReader : public MemRegReader
       current_depth--;
       Frame &g = (*swalk)[current_depth];
       Offset offset;
-      void *symtab_v = NULL;
+      void *symtab_v{};
       std::string lib;
       Symtab *symtab = NULL;
       if (g.getLibOffset(lib, offset, symtab_v))
