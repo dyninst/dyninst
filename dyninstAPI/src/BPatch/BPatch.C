@@ -107,7 +107,6 @@ BPatch::BPatch()
     livenessAnalysisOn_(true),
     livenessAnalysisDepth_(3),
     asyncActive(false),
-    delayedParsing_(false),
     instrFrames(false),
     systemPrelinkCommand(NULL),
     notificationFDOutput_(-1),
@@ -245,10 +244,6 @@ bool BPatch::parseDebugInfo()
 {
   return debugParseOn;
 }
-bool BPatch::delayedParsingOn()
-{
-  return delayedParsing_;
-}
 void BPatch::setDebugParsing(bool x)
 {
   debugParseOn = x;
@@ -300,10 +295,6 @@ bool BPatch::autoRelocationOn()
 void BPatch::setAutoRelocation_NP(bool x)
 {
   autoRelocation_NP = x;
-}
-void BPatch::setDelayedParsing(bool x)
-{
-  delayedParsing_ = x;
 }
 bool BPatch::isMergeTramp()
 {
