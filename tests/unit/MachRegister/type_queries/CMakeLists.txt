@@ -54,6 +54,12 @@ target_link_libraries(type_query_amdgpu_gfx950 PRIVATE common)
 add_test(NAME machregister_type_query_amdgpu_gfx950 COMMAND type_query_amdgpu_gfx950)
 set_tests_properties(machregister_type_query_amdgpu_gfx950 PROPERTIES LABELS "unit")
 
+add_executable(type_query_amdgpu_gfx1250 amdgpu_gfx1250.cpp)
+target_compile_options(type_query_amdgpu_gfx1250 PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+target_link_libraries(type_query_amdgpu_gfx1250 PRIVATE common)
+add_test(NAME machregister_type_query_amdgpu_gfx1250 COMMAND type_query_amdgpu_gfx1250)
+set_tests_properties(machregister_type_query_amdgpu_gfx1250 PROPERTIES LABELS "unit")
+
 add_executable(type_query_riscv64 riscv64.cpp)
 target_compile_options(type_query_riscv64 PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
 target_link_libraries(type_query_riscv64 PRIVATE common)

@@ -64,7 +64,8 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   std::string MultiRegisterAST::format(Architecture arch, formatStyle) const {
-    if(arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940 || arch == Arch_amdgpu_gfx950) {
+    if(arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940 || arch == Arch_amdgpu_gfx950 ||
+       arch == Arch_amdgpu_gfx1250) {
       return AmdgpuFormatter::formatMultiRegister(m_Regs[0]->getID(), m_Regs.size());
     }
     assert(0 && " multi register currently defined for amdgpu formats only ");

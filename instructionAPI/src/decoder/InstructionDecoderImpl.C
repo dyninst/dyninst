@@ -39,6 +39,7 @@
 #include "decoder/AMDGPU/gfx90a/InstructionDecoder-amdgpu-gfx90a.h"
 #include "decoder/AMDGPU/gfx940/InstructionDecoder-amdgpu-gfx940.h"
 #include "decoder/AMDGPU/gfx950/InstructionDecoder-amdgpu-gfx950.h"
+#include "decoder/AMDGPU/gfx1250/InstructionDecoder-amdgpu-gfx1250.h"
 #include "BinaryFunction.h"
 #include "Dereference.h"
 #include "MultiRegister.h"
@@ -82,6 +83,8 @@ namespace Dyninst { namespace InstructionAPI {
         return Ptr(new InstructionDecoder_amdgpu_gfx940(a));
       case Arch_amdgpu_gfx950:
         return Ptr(new InstructionDecoder_amdgpu_gfx950(a));
+      case Arch_amdgpu_gfx1250:
+        return Ptr(new InstructionDecoder_amdgpu_gfx1250(a));
       default:
         assert(0);
         return Ptr();

@@ -8,7 +8,7 @@ endif()
 set(_headers
     amdgpu_branchinsn_table.h gfx908/InstructionDecoder-amdgpu-gfx908.h
     gfx90a/InstructionDecoder-amdgpu-gfx90a.h gfx940/InstructionDecoder-amdgpu-gfx940.h
-    gfx950/InstructionDecoder-amdgpu-gfx950.h)
+    gfx950/InstructionDecoder-amdgpu-gfx950.h gfx1250/InstructionDecoder-amdgpu-gfx1250.h)
 
 set(_sources
     gfx908/decodeOperands.C
@@ -30,7 +30,12 @@ set(_sources
     gfx950/appendOperands.C
     gfx950/finalizeOperands.C
     gfx950/amdgpu_gfx950_decoder_impl.C
-    gfx950/InstructionDecoder-amdgpu-gfx950.C)
+    gfx950/InstructionDecoder-amdgpu-gfx950.C
+    gfx1250/decodeOperands.C
+    gfx1250/appendOperands.C
+    gfx1250/finalizeOperands.C
+    gfx1250/amdgpu_gfx1250_decoder_impl.C
+    gfx1250/InstructionDecoder-amdgpu-gfx1250.C)
 
 set(finalizeOperandsExtraFlags "")
 if(debugMaxFrameSizeOverrideFinalizeOperands)
@@ -55,6 +60,8 @@ if(NOT finalizeOperandsExtraFlags STREQUAL "")
   set_source_files_properties(gfx940/InstructionDecoder-amdgpu-gfx940.C
                               PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
   set_source_files_properties(gfx950/InstructionDecoder-amdgpu-gfx950.C
+                              PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
+  set_source_files_properties(gfx1250/InstructionDecoder-amdgpu-gfx1250.C
                               PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}")
 endif()
 

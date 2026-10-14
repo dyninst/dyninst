@@ -53,6 +53,7 @@ namespace Dyninst { namespace InstructionAPI {
     friend class InstructionDecoder_amdgpu_gfx90a;
     friend class InstructionDecoder_amdgpu_gfx940;
     friend class InstructionDecoder_amdgpu_gfx950;
+    friend class InstructionDecoder_amdgpu_gfx1250;
     friend class InstructionDecoder_riscv64;
     friend class InstructionDecoder_x86;
 

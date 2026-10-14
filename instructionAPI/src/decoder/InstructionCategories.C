@@ -44,6 +44,7 @@ namespace Dyninst { namespace InstructionAPI {
       case amdgpu_gfx90a_op_S_ENDPGM: // special treatment for endpgm
       case amdgpu_gfx940_op_S_ENDPGM: // special treatment for endpgm
       case amdgpu_gfx950_op_S_ENDPGM: // special treatment for endpgm
+      case amdgpu_gfx1250_op_S_ENDPGM: // special treatment for endpgm
         return c_GPUKernelExitInsn;
 
       case e_call:
@@ -56,7 +57,9 @@ namespace Dyninst { namespace InstructionAPI {
       case amdgpu_gfx940_op_S_SWAPPC_B64:
       case amdgpu_gfx940_op_S_CALL_B64:
       case amdgpu_gfx950_op_S_SWAPPC_B64:
+      case amdgpu_gfx1250_op_S_SWAP_PC_I64:
       case amdgpu_gfx950_op_S_CALL_B64:
+      case amdgpu_gfx1250_op_S_CALL_I64:
         return c_CallInsn;
 
       case e_jmp:

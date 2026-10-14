@@ -68,7 +68,8 @@ namespace Dyninst { namespace InstructionAPI {
   MachRegister RegisterAST::getID() const { return m_Reg; }
 
   std::string RegisterAST::format(Architecture arch, formatStyle) const {
-    if(arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940 || arch == Arch_amdgpu_gfx950) {
+    if(arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940 || arch == Arch_amdgpu_gfx950 ||
+       arch == Arch_amdgpu_gfx1250) {
       return AmdgpuFormatter::formatRegister(m_Reg, m_num_elements, m_Low, m_High);
     }
     return ArchSpecificFormatter::getFormatter(arch).formatRegister(m_Reg.name());

@@ -20,6 +20,7 @@
 #include "registers/AMDGPU/amdgpu_gfx90a_regs.h"
 #include "registers/AMDGPU/amdgpu_gfx940_regs.h"
 #include "registers/AMDGPU/amdgpu_gfx950_regs.h"
+#include "registers/AMDGPU/amdgpu_gfx1250_regs.h"
 
 
 using namespace Dyninst::InstructionAPI;
@@ -284,13 +285,15 @@ std::string AmdgpuFormatter::formatRegister(MachRegister  m_Reg, uint32_t m_num_
 
         if(regClass == amdgpu_gfx908::SGPR || regClass == amdgpu_gfx90a::SGPR || 
             regClass == amdgpu_gfx940::SGPR ||
-            regClass == amdgpu_gfx950::SGPR){
+            regClass == amdgpu_gfx950::SGPR ||
+            regClass == amdgpu_gfx1250::SGPR){
             return "S["+std::to_string(id) + ":" + std::to_string(id+size-1)+"]";
         }
 
         if(regClass == amdgpu_gfx908::VGPR || regClass == amdgpu_gfx90a::VGPR || 
             regClass == amdgpu_gfx940::VGPR ||
-            regClass == amdgpu_gfx950::VGPR){
+            regClass == amdgpu_gfx950::VGPR ||
+            regClass == amdgpu_gfx1250::VGPR){
             return "V["+std::to_string(id) + ":" + std::to_string(id+size-1)+"]";
         }
 
@@ -304,11 +307,13 @@ std::string AmdgpuFormatter::formatRegister(MachRegister  m_Reg, uint32_t m_num_
 
         if(m_Reg == amdgpu_gfx908::vcc_lo || m_Reg == amdgpu_gfx90a::vcc_lo ||
             m_Reg == amdgpu_gfx940::vcc_lo ||
-            m_Reg == amdgpu_gfx950::vcc_lo)
+            m_Reg == amdgpu_gfx950::vcc_lo ||
+            m_Reg == amdgpu_gfx1250::vcc_lo)
             return "VCC";
         if(m_Reg == amdgpu_gfx908::exec_lo || m_Reg == amdgpu_gfx90a::exec_lo || 
             m_Reg == amdgpu_gfx940::exec_lo ||
-            m_Reg == amdgpu_gfx950::exec_lo)
+            m_Reg == amdgpu_gfx950::exec_lo ||
+            m_Reg == amdgpu_gfx1250::exec_lo)
             return "EXEC";
 
 
@@ -326,13 +331,15 @@ std::string AmdgpuFormatter::formatRegister(MachRegister  m_Reg, uint32_t m_num_
 
         if(regClass == amdgpu_gfx908::SGPR || regClass == amdgpu_gfx90a::SGPR ||
             regClass == amdgpu_gfx940::SGPR ||
-            regClass == amdgpu_gfx950::SGPR){
+            regClass == amdgpu_gfx950::SGPR ||
+            regClass == amdgpu_gfx1250::SGPR){
             return "S["+std::to_string(id) + ":" + std::to_string(id+size-1)+"]";
         }
 
         if(regClass == amdgpu_gfx908::VGPR || regClass == amdgpu_gfx90a::VGPR || 
             regClass == amdgpu_gfx940::VGPR ||
-            regClass == amdgpu_gfx950::VGPR){
+            regClass == amdgpu_gfx950::VGPR ||
+            regClass == amdgpu_gfx1250::VGPR){
             return "V["+std::to_string(id) + ":" + std::to_string(id+size-1)+"]";
         }
 
@@ -346,12 +353,14 @@ std::string AmdgpuFormatter::formatRegister(MachRegister  m_Reg, uint32_t m_num_
 
         if(m_Reg == amdgpu_gfx908::vcc_lo || m_Reg == amdgpu_gfx90a::vcc_lo || 
             m_Reg == amdgpu_gfx940::vcc_lo ||
-            m_Reg == amdgpu_gfx950::vcc_lo)
+            m_Reg == amdgpu_gfx950::vcc_lo ||
+            m_Reg == amdgpu_gfx1250::vcc_lo)
             return "VCC";
 
         if(m_Reg == amdgpu_gfx908::exec_lo || m_Reg == amdgpu_gfx90a::exec_lo || 
             m_Reg == amdgpu_gfx940::exec_lo ||
-            m_Reg == amdgpu_gfx950::exec_lo)
+            m_Reg == amdgpu_gfx950::exec_lo ||
+            m_Reg == amdgpu_gfx1250::exec_lo)
             return "EXEC";
 
         name +=  "["+std::to_string(m_Low)+":"+std::to_string(m_High)+"]";
@@ -368,13 +377,15 @@ std::string AmdgpuFormatter::formatMultiRegister(MachRegister m_Reg, uint32_t le
 
     if(regClass == amdgpu_gfx908::SGPR || regClass == amdgpu_gfx90a::SGPR || 
         regClass == amdgpu_gfx940::SGPR ||
-            regClass == amdgpu_gfx950::SGPR){
+            regClass == amdgpu_gfx950::SGPR ||
+            regClass == amdgpu_gfx1250::SGPR){
         return "S["+std::to_string(id) + ":" + std::to_string(id+len-1)+"]";
     }
 
     if(regClass == amdgpu_gfx908::VGPR || regClass == amdgpu_gfx90a::VGPR || 
         regClass == amdgpu_gfx940::VGPR ||
-            regClass == amdgpu_gfx950::VGPR){
+            regClass == amdgpu_gfx950::VGPR ||
+            regClass == amdgpu_gfx1250::VGPR){
         return "V["+std::to_string(id) + ":" + std::to_string(id+len-1)+"]";
     }
 
@@ -388,11 +399,13 @@ std::string AmdgpuFormatter::formatMultiRegister(MachRegister m_Reg, uint32_t le
 
     if(m_Reg == amdgpu_gfx908::vcc_lo || m_Reg == amdgpu_gfx90a::vcc_lo ||
         m_Reg == amdgpu_gfx940::vcc_lo ||
-            m_Reg == amdgpu_gfx950::vcc_lo)
+            m_Reg == amdgpu_gfx950::vcc_lo ||
+            m_Reg == amdgpu_gfx1250::vcc_lo)
         return "VCC";
     if(m_Reg == amdgpu_gfx908::exec_lo || m_Reg == amdgpu_gfx90a::exec_lo || 
         m_Reg == amdgpu_gfx940::exec_lo ||
-            m_Reg == amdgpu_gfx950::exec_lo)
+            m_Reg == amdgpu_gfx950::exec_lo ||
+            m_Reg == amdgpu_gfx1250::exec_lo)
         return "EXEC";
     return "BAD-MULTIFORMAT_REGISTER:" + name;
 }
@@ -534,6 +547,7 @@ ArchSpecificFormatter& ArchSpecificFormatter::getFormatter(Architecture a)
         case Arch_amdgpu_gfx90a:
         case Arch_amdgpu_gfx940:
         case Arch_amdgpu_gfx950:
+        case Arch_amdgpu_gfx1250:
             theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new AmdgpuFormatter());
             break;
         case Arch_aarch32:

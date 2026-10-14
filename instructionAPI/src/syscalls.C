@@ -206,6 +206,7 @@ bool di::isSystemCall(Instruction const& ins) {
     case Arch_amdgpu_gfx90a:
     case Arch_amdgpu_gfx940:
     case Arch_amdgpu_gfx950:
+    case Arch_amdgpu_gfx1250:
     case Arch_intelGen9:
       return false;
   }

@@ -1852,6 +1852,9 @@ Dyninst::Architecture Elf_X::getArch() const
                 unsigned int ef_amdgpu_mach = 0x000000ff & e_flags();
                 //cerr << " dealing with amd gpu , mach = "  << std::hex << ef_amdgpu_mach << endl;
                 switch(ef_amdgpu_mach){
+                    case 0x49:  // gfx1250
+                    case 0x5b:  // gfx12-5-generic
+                        return Dyninst::Arch_amdgpu_gfx1250;
                     case 0x4f:  // gfx950
                     case 0x5f:  // gfx9-4-generic
                         return Dyninst::Arch_amdgpu_gfx950;

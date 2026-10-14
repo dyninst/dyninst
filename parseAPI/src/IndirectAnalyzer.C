@@ -76,9 +76,13 @@ public:
             case amdgpu_gfx940_op_S_MOV_B32:
             case amdgpu_gfx940_op_S_MOV_B64:
             case amdgpu_gfx950_op_S_ADD_U32:
+            case amdgpu_gfx1250_op_S_ADD_CO_U32:
             case amdgpu_gfx950_op_S_ADDC_U32:
+            case amdgpu_gfx1250_op_S_ADD_CO_CI_U32:
             case amdgpu_gfx950_op_S_MOV_B32:
+            case amdgpu_gfx1250_op_S_MOV_B32:
             case amdgpu_gfx950_op_S_MOV_B64:
+            case amdgpu_gfx1250_op_S_MOV_B64:
                 return false;
             default:
                 return true;
