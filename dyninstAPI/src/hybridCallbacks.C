@@ -487,6 +487,9 @@ static int getPreCallPoints(ParseAPI::Block* blk,
          fit++) 
     {
         auto *pfunc = dynamic_cast<parse_func*>(*fit);
+        if(!pfunc) {
+            continue;
+        }
         func_instance *iFunc = llproc->findFunction(pfunc);
         instPoint *iPoint = instPoint::preCall(iFunc, iFunc->obj()->findBlock(blk));
         if (iPoint) {
