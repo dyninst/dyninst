@@ -46,8 +46,10 @@
 #include "Archive.h"
 
 #include <cstdio>
+#include <deque>
 #include <iostream>
 #include <map>
+#include <set>
 #include <tuple>
 
 using namespace Dyninst::SymtabAPI;
@@ -456,6 +458,35 @@ bool BinaryEdit::getAllDependencies(std::map<std::string, BinaryEdit*>& deps)
    return true;
 }
 
+// The DT_SONAMEs of everything ld.so loads because of the runtime library's own
+// DT_NEEDED entries, directly or through another dependency (libc, ld.so, libdl,
+// libpthread, ...). Computed once per runtime library.
+static std::set<std::string> const& rtDependencyClosure(Symtab *rt)
+{
+   static std::map<std::string, std::set<std::string>> cache;
+   auto found = cache.find(rt->file());
+   if (found != cache.end()) return found->second;
+
+   std::set<std::string> &names = cache[rt->file()];
+   std::deque<std::string> todo(rt->getDependencies().begin(), rt->getDependencies().end());
+   while (!todo.empty()) {
+      std::string name = todo.front();
+      todo.pop_front();
+      if (!names.insert(name).second) continue;
+      std::vector<std::string> paths;
+      if (!BinaryEdit::getResolvedLibraryPath(name, paths)) continue;
+      for (auto const &path : paths) {
+         Symtab *dep = nullptr;
+         if (!Symtab::openFile(dep, path) || dep->getAddressWidth() != rt->getAddressWidth())
+            continue;
+         if (dep->getSOName()) names.insert(dep->getSOName());
+         todo.insert(todo.end(), dep->getDependencies().begin(), dep->getDependencies().end());
+         break;
+      }
+   }
+   return names;
+}
+
 bool BinaryEdit::writeFile(const std::string &newFileName) 
 {
    // Step 1: changes. 
@@ -467,8 +498,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 
       // link to the runtime library if tramp guards are currently enabled
       if ( !symObj->isStaticBinary() && !BPatch::bpatch->isTrampRecursive() ) {
-          assert(!runtime_lib.empty());
-          symObj->addLibraryPrereq((*runtime_lib.begin())->fileName());
+          addRuntimeLibPrereq();
       }
 
       if( symObj->isStaticBinary() && isDirty() ) {
@@ -730,6 +760,23 @@ Address BinaryEdit::getDependentRelocationAddr(Symbol *referring) {
 void BinaryEdit::addLibraryPrereq(std::string libname) {
    Symtab *symObj = mobj->parse_img()->getObject();
    symObj->addLibraryPrereq(libname);
+}
+
+void BinaryEdit::addRuntimeLibPrereq() {
+   assert(!runtime_lib.empty());
+   // Not when the runtime library itself depends on this object. A rewritten libc
+   // that needs the RT forms the cycle libc -> RT -> libdl -> libc, and ld.so then
+   // relocates the RT's dependencies before libc. A dependency linked with BIND_NOW
+   // (libdl on RHEL 8) resolves libc's IFUNCs right away and runs their resolvers in
+   // an unrelocated libc, which crashes. The entry is not needed either: the RT finds
+   // trap tables by walking the link map, and the rewritten executable loads the RT.
+   Symtab *symObj = mobj->parse_img()->getObject();
+   Symtab *rt = (*runtime_lib.begin())->parse_img()->getObject();
+   const char *soname = symObj->getSOName();
+   if (soname && rtDependencyClosure(rt).count(soname)) {
+      return;
+   }
+   symObj->addLibraryPrereq((*runtime_lib.begin())->fileName());
 }
 
 
