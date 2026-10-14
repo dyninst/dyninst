@@ -172,6 +172,9 @@ location_t Frame::getFPLocation() const {
 }
 
 void Frame::setRA(Dyninst::MachRegisterVal newval) {
+  // Normalize signed return addresses before steppers validate their mappings.
+  if (walker)
+    newval = walker->getProcessState()->normalizeReturnAddress(newval, originating_thread);
   sw_printf("[%s:%d] - Setting ra of frame %p to %lx\n",
 	    FILE__, __LINE__, (void*)this, newval);
   ra = newval;

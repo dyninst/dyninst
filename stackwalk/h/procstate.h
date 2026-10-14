@@ -54,9 +54,14 @@ namespace Stackwalker {
 class LibraryState;
 class ThreadState;
 class Walker;
+class Frame;
 
 class DYNINST_EXPORT ProcessState {
    friend class Walker;
+   friend class Frame;
+ private:
+   Dyninst::Address normalizeReturnAddress(Dyninst::Address address,
+                                           Dyninst::THR_ID thread);
 protected:
    Dyninst::PID pid;
    std::string exec_path;
@@ -92,6 +97,9 @@ public:
 
   virtual Dyninst::Architecture getArchitecture() = 0;
 
+  // Query the sampled thread's instruction PAC mask without reading an architectural register.
+  virtual bool getInstructionPacMask(Dyninst::THR_ID thread, Dyninst::MachRegisterVal &mask);
+
   virtual ~ProcessState();
 
   Walker *getWalker() const;
@@ -124,6 +132,9 @@ class ProcSelf : public ProcessState {
 };
 
 class DYNINST_EXPORT ProcDebug : public ProcessState {
+ private:
+   Dyninst::MachRegisterVal instruction_pac_mask = 0;
+   bool instruction_pac_mask_valid = false;
  protected:
    Dyninst::ProcControlAPI::Process::ptr proc;
    ProcDebug(Dyninst::ProcControlAPI::Process::ptr p);
@@ -140,6 +151,7 @@ class DYNINST_EXPORT ProcDebug : public ProcessState {
   virtual ~ProcDebug();
 
   virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val);
+  virtual bool getInstructionPacMask(Dyninst::THR_ID thread, Dyninst::MachRegisterVal &mask);
   virtual bool readMem(void *dest, Dyninst::Address source, size_t size);
   virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &thrds);
   virtual bool getDefaultThread(Dyninst::THR_ID &default_tid);
