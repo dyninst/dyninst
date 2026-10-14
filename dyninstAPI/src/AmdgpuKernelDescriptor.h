@@ -289,7 +289,7 @@ public:
 
 private:
   void dumpCOMPUTE_PGM_RSRC3(std::ostream &os) const;
-  void dumpCOMPUTE_PGM_RSRC3_Gfx90aOr942(std::ostream &os) const;
+  void dumpCOMPUTE_PGM_RSRC3_Gfx90a(std::ostream &os) const;
   void dumpCOMPUTE_PGM_RSRC3_Gfx10Plus(std::ostream &os) const;
 
   void dumpCOMPUTE_PGM_RSRC1(std::ostream &os) const;
@@ -302,7 +302,7 @@ private:
   bool isGfx7() const;
   bool isGfx8() const;
   bool isGfx9() const;
-  bool isGfx90aOr942() const;
+  bool hasGfx90aComputePgmRsrc3Layout() const;
   bool isGfx9Plus() const;
   bool isGfx10() const;
   bool isGfx10Plus() const;
