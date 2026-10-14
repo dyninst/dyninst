@@ -14,6 +14,7 @@
 
 #include "Function.h"
 #include "frame.h"
+#include "swk_errors.h"
 #include "walker.h"
 
 #include <cstdlib>
@@ -22,6 +23,7 @@
 #include <string>
 #include <csignal>
 #include <sys/auxv.h>
+#include <sys/prctl.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <vector>
@@ -74,10 +76,13 @@ namespace {
     symtab->getAllFunctions(funcs);
     st::Function* target{};
     for(auto* f : funcs) {
-      for(auto it = f->pretty_names_begin(); it != f->pretty_names_end(); ++it) {
+      for(auto it = f->pretty_names_begin(); !target && it != f->pretty_names_end(); ++it) {
         if(it->find("clock_gettime") != std::string::npos) {
           target = f;
         }
+      }
+      if(target) {
+        break;
       }
     }
     if(!target) {
@@ -107,23 +112,31 @@ int main() {
     return skipped;
   }
 
+  pid_t const parent = getpid();
   pid_t const child = fork();
   if(child < 0) {
     std::cerr << "fork failed\n";
     return EXIT_FAILURE;
   }
   if(child == 0) {
+    // Don't outlive a parent that crashes before it can kill us.
+    prctl(PR_SET_PDEATHSIG, SIGKILL);
+    if(getppid() != parent) {
+      _exit(EXIT_FAILURE);
+    }
     for(;;) {
       pause();
     }
   }
 
-  int result = EXIT_FAILURE;
+  // Attaching needs ptrace, which yama or a container may forbid.
+  int result = skipped;
   if(sw::Walker* walker = sw::Walker::newWalker(child)) {
     result = check(walker, child, vdso_base);
     delete walker;
   } else {
-    std::cerr << "Unable to attach a walker to " << child << "\n";
+    std::cout << "Unable to attach a walker to " << child << ": "
+              << sw::getLastErrorMsg() << "\n";
   }
 
   kill(child, SIGKILL);
