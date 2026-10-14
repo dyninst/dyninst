@@ -592,7 +592,23 @@ int image::findMain()
                     linkedFile->getDefaultModule(),
                     eReg, 
                     0 );
-            linkedFile->addSymbol(newSym);		
+            linkedFile->addSymbol(newSym);
+        }
+    }
+
+#elif defined(aarch64_unknown_linux) && defined(DYNINST_CODEGEN_ARCH_AARCH64)
+    // Only look for main in executables, but do allow position-independent
+    // executables (PIE) which look like shared objects with an INTERP.
+    if (linkedFile->isExec())
+    {
+        vector <SymtabAPI::Function *> funcs;
+        if (!linkedFile->findFunctionsByName(funcs, "main") &&
+            !linkedFile->findFunctionsByName(funcs, "_main"))
+        {
+            // Nothing here works out where main is from the code, so an
+            // executable without a symbol for it has no main.
+            startup_printf("%s[%d] failed to find main\n",FILE__,__LINE__);
+            return -1;
         }
     }
 
