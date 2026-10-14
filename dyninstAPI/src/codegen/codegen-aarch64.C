@@ -161,6 +161,7 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Dyninst::Address from, Dyn
     if (labs(disp) <= MAX_BRANCH_OFFSET) {
         // We shouldn't be here, since this is an internal-called-only func.
         generateBranch(gen, disp, isCall);
+        return;
     }
 
     assert (!isCall); // Can't do this yet
