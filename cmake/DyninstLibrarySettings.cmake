@@ -15,16 +15,12 @@ endif()
 
 set(BUILD_SHARED_LIBS ON)
 
-# The unit tests need internal symbols
-if(DYNINST_ENABLE_TESTS)
-  set(CMAKE_C_VISIBILITY_PRESET default)
-  set(CMAKE_CXX_VISIBILITY_PRESET default)
-  set(CMAKE_VISIBILITY_INLINES_HIDDEN OFF)
-else()
-  set(CMAKE_C_VISIBILITY_PRESET hidden)
-  set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-  set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
-endif()
+# Only the symbols marked DYNINST_EXPORT are part of the shared libraries'
+# interface, also when the tests are built. Unit tests that need internal
+# symbols link the static libraries instead.
+set(CMAKE_C_VISIBILITY_PRESET hidden)
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 
 include(GNUInstallDirs)
 set(DYNINST_INSTALL_BINDIR "${CMAKE_INSTALL_BINDIR}")

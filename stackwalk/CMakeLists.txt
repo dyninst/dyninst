@@ -89,8 +89,15 @@ foreach(t ${stackwalk_TARGETS})
     else()
       target_link_libraries(${t} PUBLIC parseAPI)
     endif()
-    target_sources(${t} PRIVATE src/analysis_stepper.C src/callchecker-IAPI.C)
-  else()
-    target_sources(${t} PRIVATE src/callchecker.C)
+  endif()
+
+  # The shared library is linked from stackwalk_objects; only the targets
+  # that compile sources get them.
+  if(NOT TARGET ${t}_objects)
+    if(SW_ANALYSIS_STEPPER)
+      target_sources(${t} PRIVATE src/analysis_stepper.C src/callchecker-IAPI.C)
+    else()
+      target_sources(${t} PRIVATE src/callchecker.C)
+    endif()
   endif()
 endforeach()
