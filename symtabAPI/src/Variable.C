@@ -96,12 +96,10 @@ bool Variable::operator==(const Variable &v) const
 			return false;
 		}
 
-	auto *agg_this = dynamic_cast<const Aggregate*>(this);
-	auto *agg_v = dynamic_cast<const Aggregate*>(&v);
-	if(agg_this && agg_v) {
-	  return *agg_this == *agg_v;
-	}
-	return false;
+	// Check base class operator==
+	auto *agg_this = static_cast<const Aggregate*>(this);
+	auto *agg_v = static_cast<const Aggregate*>(&v);
+	return *agg_this == *agg_v;
 }
 
 bool Variable::removeSymbol(Symbol *sym) 
