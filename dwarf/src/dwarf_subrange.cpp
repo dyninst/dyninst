@@ -58,68 +58,116 @@ bool is_signed(Dwarf_Die *die) {
 namespace Dyninst {
 namespace DwarfDyninst {
 
-static dwarf_result upper_bound(Dwarf_Die *die) {
+static bool constant_value(Dwarf_Attribute *attr, bool as_signed,
+                           Dwarf_Word &value) {
+  if (as_signed) {
+    Dwarf_Sword signed_value;
+    if (dwarf_formsdata(attr, &signed_value) != 0)
+      return false;
+    value = signed_value;
+    return true;
+  }
+  return dwarf_formudata(attr, &value) == 0;
+}
+
+// A DWARF expression that is a single constant operation, which is how gcc
+// writes a bound the optimizer proved constant (DW_OP_lit6, DW_OP_const2u).
+static bool constant_expression(Dwarf_Attribute *attr, Dwarf_Word &value) {
+  Dwarf_Op *ops;
+  size_t num_ops;
+  if (dwarf_getlocation(attr, &ops, &num_ops) != 0 || num_ops != 1)
+    return false;
+
+  auto const op = ops[0].atom;
+  if (op >= DW_OP_lit0 && op <= DW_OP_lit31) {
+    value = op - DW_OP_lit0;
+    return true;
+  }
+  switch (op) {
+  case DW_OP_const1u:
+  case DW_OP_const1s:
+  case DW_OP_const2u:
+  case DW_OP_const2s:
+  case DW_OP_const4u:
+  case DW_OP_const4s:
+  case DW_OP_const8u:
+  case DW_OP_const8s:
+  case DW_OP_constu:
+  case DW_OP_consts:
+    value = ops[0].number;
+    return true;
+  default:
+    return false;
+  }
+}
+
+/*
+ * DWARF5 - Section 2.19 Static and Dynamic Values of Attributes
+ *
+ * The bound and count attributes of a subrange may be a constant, a DWARF
+ * expression, or a reference to a DIE that describes a constant, describes a
+ * variable holding the value, or computes it. A constant, directly, through a
+ * reference, or as an expression that is a single constant operation, is the
+ * value; the other cases are runtime values, and are reported as found but
+ * with no value.
+ */
+static dwarf_result subrange_attr(Dwarf_Die *die, unsigned int name,
+                                  bool as_signed) {
   Dwarf_Attribute attr;
-  if (dwarf_attr_integrate(die, DW_AT_upper_bound, &attr)) {
-    if (is_signed(die)) {
-      Dwarf_Sword upper;
-      if (dwarf_formsdata(&attr, &upper) != 0)
-        return dwarf_error{};
-      return upper;
-    }
-    Dwarf_Word unsigned_upper;
-    if (dwarf_formudata(&attr, &unsigned_upper) != 0)
-      return dwarf_error{};
-    return unsigned_upper;
+  if (!dwarf_attr_integrate(die, name, &attr)) {
+    // Nothing was found, but there was no error
+    return dwarf_result{};
   }
 
-  // Nothing was found, but there was no error
+  Dwarf_Word value;
+  if (constant_value(&attr, as_signed, value))
+    return value;
+
+  // The constant decoders fail the same way for a runtime value and for a
+  // form that is invalid here, so check for the runtime forms explicitly.
+  Dwarf_Block block;
+  if (dwarf_formblock(&attr, &block) == 0) {
+    if (constant_expression(&attr, value))
+      return value;
+    return dwarf_result{};
+  }
+
+  // A reference that can't be resolved, such as one into a supplementary
+  // (dwz) file that isn't available, is an error.
+  Dwarf_Die ref;
+  if (!dwarf_formref_die(&attr, &ref))
+    return dwarf_error{};
+
+  Dwarf_Attribute ref_value;
+  if (dwarf_attr_integrate(&ref, DW_AT_const_value, &ref_value) &&
+      constant_value(&ref_value, is_signed(&ref), value))
+    return value;
   return dwarf_result{};
+}
+
+static dwarf_result upper_bound(Dwarf_Die *die) {
+  return subrange_attr(die, DW_AT_upper_bound, is_signed(die));
 }
 
 static dwarf_result lower_bound(Dwarf_Die *die) {
-  Dwarf_Attribute attr;
-  if (dwarf_attr_integrate(die, DW_AT_lower_bound, &attr)) {
-    if (is_signed(die)) {
-      Dwarf_Sword lower;
-      if (dwarf_formsdata(&attr, &lower) != 0)
-        return dwarf_error{};
-      return lower;
-    }
-    Dwarf_Word unsigned_lower;
-    if (dwarf_formudata(&attr, &unsigned_lower) != 0)
-      return dwarf_error{};
-    return unsigned_lower;
-  }
-
-  // Nothing was found, but there was no error
-  return dwarf_result{};
+  return subrange_attr(die, DW_AT_lower_bound, is_signed(die));
 }
 
 static dwarf_result lower_bound_by_language(Dwarf_Die *die) {
-  int lang = dwarf_srclang(die);
-  if (lang != -1) {
-    Dwarf_Sword lower;
-    if (dwarf_default_lower_bound(lang, &lower) != 0)
-      return dwarf_error{};
+  // DW_AT_language is only on the unit DIE, and dwarf_srclang reads the DIE
+  // it is given.
+  Dwarf_Die cu_die;
+  int lang = dwarf_srclang(dwarf_diecu(die, &cu_die, nullptr, nullptr));
+  Dwarf_Sword lower;
+  if (lang != -1 && dwarf_default_lower_bound(lang, &lower) == 0)
     return lower;
-  }
 
-  // Nothing was found, but there was no error
+  // No language, or one libdw has no default for; the caller decides
   return dwarf_result{};
 }
 
 static dwarf_result length_from_count(Dwarf_Die *die) {
-  Dwarf_Attribute attr;
-  if (dwarf_attr_integrate(die, DW_AT_count, &attr)) {
-    Dwarf_Word count;
-    if (dwarf_formudata(&attr, &count) != 0)
-      return dwarf_error{};
-    return count;
-  }
-
-  // Nothing was found, but there was no error
-  return dwarf_result{};
+  return subrange_attr(die, DW_AT_count, false);
 }
 
 dwarf_bounds dwarf_subrange_bounds(Dwarf_Die *die) {
