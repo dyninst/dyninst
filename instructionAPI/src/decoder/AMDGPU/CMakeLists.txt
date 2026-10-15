@@ -38,39 +38,6 @@ set(
   gfx950/InstructionDecoder-amdgpu-gfx950.C
 )
 
-set(finalizeOperandsExtraFlags "")
-if(debugMaxFrameSizeOverrideFinalizeOperands)
-  string(
-    APPEND finalizeOperandsExtraFlags
-    " $<$<CONFIG:DEBUG>:-Wframe-larger-than=${debugMaxFrameSizeOverrideFinalizeOperands}>"
-  )
-endif()
-if(nonDebugMaxFrameSizeOverrideFinalizeOperands)
-  string(
-    APPEND finalizeOperandsExtraFlags
-    " $<$<NOT:$<CONFIG:DEBUG>>:-Wframe-larger-than=${nonDebugMaxFrameSizeOverrideFinalizeOperands}>"
-  )
-endif()
-
-if(NOT finalizeOperandsExtraFlags STREQUAL "")
-  set_source_files_properties(
-    gfx908/InstructionDecoder-amdgpu-gfx908.C
-    PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}"
-  )
-  set_source_files_properties(
-    gfx90a/InstructionDecoder-amdgpu-gfx90a.C
-    PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}"
-  )
-  set_source_files_properties(
-    gfx940/InstructionDecoder-amdgpu-gfx940.C
-    PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}"
-  )
-  set_source_files_properties(
-    gfx950/InstructionDecoder-amdgpu-gfx950.C
-    PROPERTIES COMPILE_FLAGS "${finalizeOperandsExtraFlags}"
-  )
-endif()
-
 dyninst_library(
   instructionAPI_amdgpu
   INTERNAL_LIBRARY
