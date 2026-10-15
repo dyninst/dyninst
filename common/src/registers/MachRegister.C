@@ -16,21 +16,14 @@ namespace {
   }
 }
 
-namespace Dyninst { namespace registers {
-  // These are defined in dyn_regs.C to ensure global constructor initialization ordering
-  extern name_cache names;
-  extern register_cache all_regs;
-}}
-
 namespace Dyninst {
 
   MachRegister::MachRegister() : reg(0) {}
 
-  MachRegister::MachRegister(signed int r) : reg(r) {}
-
   MachRegister::MachRegister(signed int r, std::string n) : MachRegister(r) {
-    registers::names.emplace(r, std::move(n));
-    registers::all_regs[getArchitecture()].push_back(*this);
+    registers::registry &reg_info = registers::get_registry();
+    reg_info.names.emplace(r, std::move(n));
+    reg_info.all_regs[getArchitecture()].push_back(*this);
   }
 
   unsigned int MachRegister::regClass() const { return reg & 0x00ff0000; }
@@ -266,8 +259,9 @@ namespace Dyninst {
   bool MachRegister::isValid() const { return (reg != InvalidReg.reg); }
 
   std::string const& MachRegister::name() const {
-    auto iter = registers::names.find(reg);
-    if(iter != registers::names.end()) {
+    registers::name_cache const& names = registers::get_registry().names;
+    auto iter = names.find(reg);
+    if(iter != names.end()) {
 	return iter->second;
     }
     common_parsing_printf("No MachRegister found with value %x\n", static_cast<unsigned int>(reg));
@@ -1163,6 +1157,6 @@ namespace Dyninst {
   }
 
   std::vector<MachRegister> const& MachRegister::getAllRegistersForArch(Dyninst::Architecture arch) {
-    return registers::all_regs[arch];
+    return registers::get_registry().all_regs[arch];
   }
 }

@@ -56,13 +56,17 @@
 // linker scope.  Instead they're non-const.  Every accessor function is
 // const anyways, so we'll just close our eyes and pretend they're declared
 // const.
+//
+// Each is built from its value alone by the constexpr constructor, so it
+// is constant-initialized: no code runs at startup to create it.  The names
+// are in tables that common/src/dyn_regs.C builds from the same lists.
 #  define DEF_REGISTER(name, value)                                                                \
     const signed int i##name = (value);                                                            \
-    DYNINST_EXPORT MachRegister name(i##name, #name);
+    DYNINST_EXPORT MachRegister name(i##name);
 
 #  define DEF_REGISTER_ALIAS(name, target)                                                         \
     const signed int i##name = i##target;                                                          \
-    DYNINST_EXPORT MachRegister name(i##name, #name);
+    DYNINST_EXPORT MachRegister name(i##name);
 
 #else
 #  define DEF_REGISTER(name, value)                                                                \
