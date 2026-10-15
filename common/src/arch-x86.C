@@ -138,9 +138,6 @@
 #include <iostream>
 #include <mutex> // once_flag, call_once
 
-#include "boost/assign/list_of.hpp"
-#include "boost/assign/std/vector.hpp"
-#include "boost/assign/std/set.hpp"
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/mutex.hpp>
 #include "common/src/arch-x86.h"
@@ -153,7 +150,6 @@
 #include "encoding-x86.h"
 
 using namespace std;
-using namespace boost::assign;
 using namespace Dyninst;
 
 /* operand sizes */
