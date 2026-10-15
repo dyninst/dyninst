@@ -1091,8 +1091,12 @@ bool int_process::waitAndHandleEvents(bool block)
 
       bool terminating = (ev->getProcess()->isTerminated());
 
+      // Post-exit and crash events mark the process exited in their own
+      // handler, before their callback (which may be deferred to the user
+      // thread) and the exit cleanup have run. Let them finish.
       bool exitEvent = (ev->getEventType().time() == EventType::Post &&
-                        ev->getEventType().code() == EventType::Exit);
+                        ev->getEventType().code() == EventType::Exit) ||
+                       ev->getEventType().code() == EventType::Crash;
       Process::const_ptr proc = ev->getProcess();
       int_process *llproc = proc->llproc();
 
