@@ -239,13 +239,6 @@ namespace {
         }
     };
 
-    struct libc_startup_info {
-        void * sda;
-        void * main_addr;
-        void * init_addr;
-        void * fini_addr;
-    };
-
     // Pointer to the file contents of [addr, addr + size), or NULL when no
     // region holds those bytes on disk (unmapped, or NOBITS such as .bss).
     void *get_raw_symtab_ptr(Symtab *linkedFile, Address addr, Address size)
@@ -259,14 +252,35 @@ namespace {
         return (char*)reg->getPtrToRawData() + off;
     }
 
+    // Read one word of the binary's own width (not the host's) at addr.
+    bool read_target_word(Symtab *linkedFile, Address addr, Address &word)
+    {
+        unsigned width = linkedFile->getAddressWidth();
+        void *data = get_raw_symtab_ptr(linkedFile, addr, width);
+        if (data == NULL)
+            return false;
+        if (width == 8) {
+            uint64_t w;
+            memcpy(&w, data, sizeof w);
+            word = static_cast<Address>(w);
+        } else if (width == 4) {
+            uint32_t w;
+            memcpy(&w, data, sizeof w);
+            word = static_cast<Address>(w);
+        } else {
+            return false;
+        }
+        return true;
+    }
+
     Address deref_opd(Symtab *linkedFile, Address addr)
     {
         Region *reg = linkedFile->findEnclosingRegion(addr);
         if (reg && reg->getRegionName() == ".opd") {
             // opd symbol needing dereference
-            void *data = get_raw_symtab_ptr(linkedFile, addr, sizeof(Address));
-            if (data)
-                return *(Address*)data;
+            Address target;
+            if (read_target_word(linkedFile, addr, target))
+                return target;
         }
         return addr;
     }
@@ -366,11 +380,9 @@ namespace {
                         expr->bind(ru.get(), Result(u64, TOC));
                 const Result &res = expr->eval();
                 if (res.defined) {
-                    void *res_addr =
-                        get_raw_symtab_ptr(linkedFile, res.convert<Address>(),
-                                           sizeof(Address));
-                    if (res_addr)
-                        ss_addr = *(Address*)res_addr;
+                    Address word;
+                    if (read_target_word(linkedFile, res.convert<Address>(), word))
+                        ss_addr = word;
                 }
             }
         }
@@ -410,12 +422,13 @@ namespace {
             }
         }
 
-        // need a pointer to the image data
-        auto si = (struct libc_startup_info *)
-            get_raw_symtab_ptr(linkedFile, ss_addr,
-                               sizeof(struct libc_startup_info));
-        if (si)
-            return (Address)si->main_addr;
+        // ss_addr points at glibc's struct startup_info, four words of the
+        // binary's width: sda_base, main, init, fini. Read main.
+        Address main_addr;
+        if (ss_addr != 0
+            && read_target_word(linkedFile,
+                                ss_addr + linkedFile->getAddressWidth(), main_addr))
+            return main_addr;
 
         return 0;
     }
