@@ -510,8 +510,10 @@ bool Symtab::findRegionByEntry(Region *&ret, const Offset offset)
  * address range only describes the TLS initialization template, and the
  * sections placed at or after its start (e.g. .init_array, .data.rel.ro)
  * hold the actual bytes there. When the search lands on such a region,
- * prefer an overlapping neighbor that does occupy the address; only those
- * neighbors can overlap it, since regions_ is sorted by (start, size).
+ * prefer an overlapping neighbor that does occupy the address. .tbss is
+ * the only allocated ELF section the linker lets overlap others, so any
+ * other region covering an address in its range starts at or inside it:
+ * at its start (sorted before it, being smaller) or after it.
  */
 Region *Symtab::findEnclosingRegion(const Offset where)
 {
@@ -531,13 +533,15 @@ Region *Symtab::findEnclosingRegion(const Offset where)
                 return curreg;
             // regions sharing curreg's start sort before it (smaller size)
             for (int i = mid - 1; i >= 0
-                 && regions_[i]->getMemOffset() == curreg->getMemOffset(); --i)
+                 && regions_[i]->getMemOffset() == curreg->getMemOffset(); --i) {
                 if (contains(regions_[i]) && !isTLSBss(regions_[i]))
                     return regions_[i];
+            }
             for (int i = mid + 1; i < (int) regions_.size()
-                 && regions_[i]->getMemOffset() <= where; ++i)
+                 && regions_[i]->getMemOffset() <= where; ++i) {
                 if (contains(regions_[i]) && !isTLSBss(regions_[i]))
                     return regions_[i];
+            }
             return curreg;
         }
         else if (where < curreg->getMemOffset()) {
