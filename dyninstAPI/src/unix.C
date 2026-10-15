@@ -681,6 +681,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 #include "dyninstAPI/src/debug.h"
 #include "boost/tuple/tuple.hpp"
 #include <elf.h>
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 #if defined(os_linux)
 #include "dyninstAPI/src/linux.h"
@@ -782,6 +783,77 @@ func_instance *block_instance::callee() {
    }
    
    return NULL;
+}
+
+// The executable's original DT_PREINIT_ARRAY and DT_PREINIT_ARRAYSZ values, read
+// from its dynamic section; zero when it has none. False if the dynamic section
+// cannot be read, in which case whether the executable has a preinit array is
+// unknown.
+template <typename Dyn>
+static bool readPreinitArray(Region *dynamic, Address &array, Address &size) {
+   array = size = 0;
+   auto const *dyn = static_cast<Dyn const *>(dynamic->getPtrToRawData());
+   if (!dyn) return false;
+   for (size_t i = 0; i < dynamic->getDiskSize() / sizeof(Dyn) && dyn[i].d_tag != DT_NULL; i++) {
+      if (dyn[i].d_tag == DT_PREINIT_ARRAY)
+         array = dyn[i].d_un.d_ptr;
+      else if (dyn[i].d_tag == DT_PREINIT_ARRAYSZ)
+         size = dyn[i].d_un.d_val;
+   }
+   return true;
+}
+
+// Point the executable's DT_PREINIT_ARRAY at the RT's DYNINSTpreinit, which
+// installs the trap handler and then calls the executable's original preinit
+// functions. A rewritten library (libc, ld.so, ...) has trap springboards that
+// the constructors of the RT's own dependencies can reach, and those run before
+// the RT's constructor installs the handler; preinit functions run before any
+// constructor. Only an executable has a preinit array, so a rewritten library
+// loaded by a program that was not rewritten keeps the constructor timing.
+void BinaryEdit::addPreinitTrapHandler() {
+   func_instance *preinit = findOnlyOneFunction("DYNINSTpreinit");
+   if (!preinit) {
+      return; // an RT without DYNINSTpreinit; its constructor installs the handler
+   }
+   Symtab *symObj = mobj->parse_img()->getObject();
+   unsigned width = getAddressWidth();
+
+   // The original array is what ld.so would have run: the executable's own
+   // DT_PREINIT_ARRAY/SZ entries, not whatever section is named .preinit_array.
+   // If they cannot be read, leave the executable alone rather than risk dropping
+   // its preinit functions; the RT's constructor still installs the handler.
+   std::vector<Region *> regions;
+   Region *dynamic = nullptr;
+   if (symObj->getAllRegions(regions)) {
+      for (Region *r : regions) {
+         if (r->getRegionType() == Region::RT_DYNAMIC) {
+            dynamic = r;
+            break;
+         }
+      }
+   }
+   Address origArray = 0, origSize = 0;
+   if (!dynamic ||
+       !(width == 8 ? readPreinitArray<Elf64_Dyn>(dynamic, origArray, origSize)
+                    : readPreinitArray<Elf32_Dyn>(dynamic, origArray, origSize))) {
+      return;
+   }
+
+   // the new one-entry preinit array, filled in by a relocation against the RT
+   Address slot = inferiorMalloc(width);
+   std::vector<unsigned char> zeros(width, 0);
+   writeDataSpace((void *) slot, width, zeros.data());
+   addDependentRelocation(slot, preinit->getRelocSymbol());
+   // The relocation needs the RT loaded, so this adds the entry even when
+   // writeFile leaves it out because isTrampRecursive() is set.
+   addLibraryPrereq((*runtime_lib.begin())->fileName());
+
+   if (origArray && origSize) {
+      symObj->addSysVDynamic(DT_DYNINST_PREINIT_ARRAY, origArray);
+      symObj->addSysVDynamic(DT_DYNINST_PREINIT_ARRAYSZ, origSize);
+   }
+   symObj->addSysVDynamic(DT_PREINIT_ARRAY, slot);
+   symObj->addSysVDynamic(DT_PREINIT_ARRAYSZ, width);
 }
 
 void BinaryEdit::makeInitAndFiniIfNeeded()
