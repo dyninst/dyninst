@@ -377,6 +377,10 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
 {
 }
 
+void BinaryEdit::addPreinitTrapHandler()
+{
+}
+
 bool BinaryEdit::archSpecificMultithreadCapable() {
     return false;
 }
@@ -493,6 +497,13 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       if (canUseTraps()) {
          trapMapping.shouldBlockFlushes(false);
          trapMapping.flush();
+      }
+
+      // aarch64 is left out: the RT cannot service rewriter traps there yet
+      // (getStaticTrapMap), so installing its handler earlier would not help.
+      if (mobj == getAOut() && symObj->isExecutable() && !symObj->isSharedLibrary() &&
+          !symObj->isStaticBinary() && canUseTraps() && getArch() != Arch_aarch64) {
+         addPreinitTrapHandler();
       }
 
       // Now, we need to copy in the memory of the new segments
