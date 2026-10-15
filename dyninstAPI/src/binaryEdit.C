@@ -500,7 +500,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       }
 
       // aarch64 is left out: the RT cannot service rewriter traps there yet
-      // (getStaticTrapMap), so installing its handler earlier would not help.
+      // (getStaticTrapMap in RTlinux.c is assert(0) on aarch64), so installing
+      // its handler earlier would not help.
       if (mobj == getAOut() && symObj->isExecutable() && !symObj->isSharedLibrary() &&
           !symObj->isStaticBinary() && canUseTraps() && getArch() != Arch_aarch64) {
          addPreinitTrapHandler();
