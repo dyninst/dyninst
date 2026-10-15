@@ -11,6 +11,11 @@ concurrency:
 
 permissions: {}
 
+env:
+  # Use the maximum number of cores
+  # docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+  NUM_BUILD_JOBS: 4
+
 jobs:
 
   get-oses:
@@ -77,7 +82,7 @@ jobs:
         shell: bash
         run: |
           set -ex
-          spack/bin/spack install -j2 hpctoolkit@develop~viewer~papi ^intel-tbb ^dyninst@master
+          spack/bin/spack install -j${{ env.NUM_BUILD_JOBS }} hpctoolkit@develop~viewer~papi ^intel-tbb ^dyninst@master
 
   must:
     runs-on: ubuntu-latest
@@ -136,7 +141,7 @@ jobs:
           opts+="-DCMAKE_BUILD_TYPE=RelWithDebInfo "
           
           cmake . -B build ${opts}
-          cmake --build build --parallel 2
+          cmake --build build --parallel ${{ env.NUM_BUILD_JOBS }}
 
 
   systemtap:
@@ -186,7 +191,7 @@ jobs:
           mkdir build
           cd build
           ../configure --with-dyninst --without-python3-probes
-          make -j2
+          make -j${{ env.NUM_BUILD_JOBS }}
 
 
   llnl-stat:
@@ -233,7 +238,7 @@ jobs:
           mkdir build
           cd build
           cmake ..
-          cmake --build . --parallel 2
+          cmake --build . --parallel ${{ env.NUM_BUILD_JOBS }}
           cmake --install .  # /usr
 
       - name: Install GraphViz
@@ -246,7 +251,7 @@ jobs:
           mkdir build
           cd build
           cmake .. -DWITH_EXPAT=OFF -DWITH_GHOSTSCRIPT=OFF -DWITH_GTK=OFF -DWITH_QUARTZ=OFF -DWITH_X=OFF
-          cmake --build . --parallel 2
+          cmake --build . --parallel ${{ env.NUM_BUILD_JOBS }}
           cmake --install .
 
       - name: Install launchmon
@@ -260,7 +265,7 @@ jobs:
           mkdir build
           cd build
           ../configure CXXFLAGS='--std=c++11'
-          make -j2
+          make -j${{ env.NUM_BUILD_JOBS }}
           make install
 
       - name: Install MRNet
@@ -293,7 +298,7 @@ jobs:
           mkdir build
           cd build
           ../configure --disable-gui --disable-examples --with-stackwalker=/dyninst/install --with-mrnet=/usr/local
-          make -j2
+          make -j${{ env.NUM_BUILD_JOBS }}
 
 
   tau:
@@ -330,7 +335,7 @@ jobs:
 
           cd tau2
           ./configure -dyninst=/dyninst/install -tbb=/usr/lib
-          make -j2
+          make -j${{ env.NUM_BUILD_JOBS }}
 
   # Part of the Barcelona Supercomputing Performance Tools (https://github.com/bsc-performance-tools).
   extrae:
@@ -394,4 +399,4 @@ jobs:
             --with-xml2-libs=${lib_dir}             \
             --with-xml2-headers=/usr/include        
           
-          make -j2
+          make -j${{ env.NUM_BUILD_JOBS }}
