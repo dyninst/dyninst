@@ -91,7 +91,7 @@ jobs:
           
           docker build -f docker/Dockerfile.${distro} \
                        -t $base \
-                       --build-arg build_jobs=2 \
+                       --build-arg build_jobs=$(nproc) \
                        --build-arg version=${version} \
                        ${extra} \
                        .
