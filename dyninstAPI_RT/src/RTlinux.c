@@ -674,8 +674,9 @@ typedef void (*preinit_func_t)(int, char **, char **);
  * constructor can reach a trap springboard in a rewritten library (libc, ...).
  * The RT's own constructor runs too late for that: ld.so runs the constructors
  * of everything the RT depends on first. libc has not run its own initializer
- * yet, so this takes the environment from envp instead of calling getenv, and
- * calls nothing in libc before the handler is installed.
+ * yet, so this takes the environment from envp instead of calling getenv. The
+ * only libc functions it calls are sigemptyset and sigaction, which do not
+ * need libc's initializer.
  */
 DLLEXPORT void DYNINSTpreinit(int argc, char **argv, char **envp)
 {
