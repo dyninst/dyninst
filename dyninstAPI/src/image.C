@@ -246,15 +246,17 @@ namespace {
         void * fini_addr;
     };
 
-    void *get_raw_symtab_ptr(Symtab *linkedFile, Address addr)
+    // Pointer to the file contents of [addr, addr + size), or NULL when no
+    // region holds those bytes on disk (unmapped, or NOBITS such as .bss).
+    void *get_raw_symtab_ptr(Symtab *linkedFile, Address addr, Address size)
     {
         Region *reg = linkedFile->findEnclosingRegion(addr);
-        if (reg != NULL) {
-            char *data = (char*)reg->getPtrToRawData();
-            data += addr - reg->getMemOffset();
-            return data;
-        }
-        return NULL;
+        if (reg == NULL || reg->getPtrToRawData() == NULL)
+            return NULL;
+        Address off = addr - reg->getMemOffset();
+        if (off + size > reg->getDiskSize())
+            return NULL;
+        return (char*)reg->getPtrToRawData() + off;
     }
 
     Address deref_opd(Symtab *linkedFile, Address addr)
@@ -262,7 +264,7 @@ namespace {
         Region *reg = linkedFile->findEnclosingRegion(addr);
         if (reg && reg->getRegionName() == ".opd") {
             // opd symbol needing dereference
-            void *data = get_raw_symtab_ptr(linkedFile, addr);
+            void *data = get_raw_symtab_ptr(linkedFile, addr, sizeof(Address));
             if (data)
                 return *(Address*)data;
         }
@@ -365,7 +367,8 @@ namespace {
                 const Result &res = expr->eval();
                 if (res.defined) {
                     void *res_addr =
-                        get_raw_symtab_ptr(linkedFile, res.convert<Address>());
+                        get_raw_symtab_ptr(linkedFile, res.convert<Address>(),
+                                           sizeof(Address));
                     if (res_addr)
                         ss_addr = *(Address*)res_addr;
                 }
@@ -409,7 +412,8 @@ namespace {
 
         // need a pointer to the image data
         auto si = (struct libc_startup_info *)
-            get_raw_symtab_ptr(linkedFile, ss_addr);
+            get_raw_symtab_ptr(linkedFile, ss_addr,
+                               sizeof(struct libc_startup_info));
         if (si)
             return (Address)si->main_addr;
 
