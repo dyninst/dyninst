@@ -681,6 +681,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 #include "dyninstAPI/src/debug.h"
 #include "boost/tuple/tuple.hpp"
 #include <elf.h>
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 #if defined(os_linux)
 #include "dyninstAPI/src/linux.h"
@@ -782,6 +783,37 @@ func_instance *block_instance::callee() {
    }
    
    return NULL;
+}
+
+// Point the executable's DT_PREINIT_ARRAY at the RT's DYNINSTpreinit, which
+// installs the trap handler and then calls the executable's original preinit
+// functions. A rewritten library (libc, ld.so, ...) has trap springboards that
+// the constructors of the RT's own dependencies can reach, and those run before
+// the RT's constructor installs the handler; preinit functions run before any
+// constructor. Only an executable has a preinit array, so a rewritten library
+// loaded by a program that was not rewritten keeps the constructor timing.
+void BinaryEdit::addPreinitTrapHandler() {
+   func_instance *preinit = findOnlyOneFunction("DYNINSTpreinit");
+   if (!preinit) {
+      return; // an RT without DYNINSTpreinit; its constructor installs the handler
+   }
+   Symtab *symObj = mobj->parse_img()->getObject();
+   unsigned width = getAddressWidth();
+
+   // the new one-entry preinit array, filled in by a relocation against the RT
+   Address slot = inferiorMalloc(width);
+   std::vector<unsigned char> zeros(width, 0);
+   writeDataSpace((void *) slot, width, zeros.data());
+   addDependentRelocation(slot, preinit->getRelocSymbol());
+   addLibraryPrereq((*runtime_lib.begin())->fileName()); // the relocation needs the RT loaded
+
+   Region *orig = nullptr;
+   if (symObj->findRegion(orig, ".preinit_array") && orig->getMemSize()) {
+      symObj->addSysVDynamic(DT_DYNINST_PREINIT_ARRAY, orig->getMemOffset());
+      symObj->addSysVDynamic(DT_DYNINST_PREINIT_ARRAYSZ, orig->getMemSize());
+   }
+   symObj->addSysVDynamic(DT_PREINIT_ARRAY, slot);
+   symObj->addSysVDynamic(DT_PREINIT_ARRAYSZ, width);
 }
 
 void BinaryEdit::makeInitAndFiniIfNeeded()
