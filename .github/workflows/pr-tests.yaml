@@ -22,11 +22,6 @@ concurrency:
 
 permissions: {}
 
-env:
-  # Use the maximum number of cores
-  # docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-public-repositories
-  NUM_BUILD_JOBS: 4
-
 jobs:
 
   # Don't run the check if the PR is a draft
@@ -113,7 +108,7 @@ jobs:
           set -ex
           cd ${GITHUB_WORKSPACE}/testsuite; mkdir build; cd build
           cmake .. -DDyninst_ROOT=${{ matrix.install-dir }}
-          cmake --build . --parallel ${{ env.NUM_BUILD_JOBS }}
+          cmake --build . --parallel $(nproc)
 
       - name: Checkout Examples
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -127,7 +122,7 @@ jobs:
           set -ex
           cd ${GITHUB_WORKSPACE}/examples; mkdir build; cd build
           cmake .. -DDyninst_ROOT=${{ matrix.install-dir }}
-          cmake --build . --parallel ${{ env.NUM_BUILD_JOBS }}
+          cmake --build . --parallel $(nproc)
 
       - name: Checkout External Tests
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -141,7 +136,7 @@ jobs:
           set -ex
           cd ${GITHUB_WORKSPACE}/external-tests; mkdir build; cd build
           cmake .. -DDyninst_ROOT=${{ matrix.install-dir }} -DCMAKE_CXX_STANDARD=17
-          cmake --build . --parallel ${{ env.NUM_BUILD_JOBS }}
+          cmake --build . --parallel $(nproc)
 
       - name: Run external tests
         if: ${{ matrix.compiler != 'clang' }}  # libdyninstAPI_RT doesn't work correctly with clang
@@ -199,7 +194,7 @@ jobs:
           set -ex
           cd ${GITHUB_WORKSPACE}/testsuite; mkdir build; cd build
           cmake .. -DDyninst_ROOT="${GITHUB_WORKSPACE}/install"
-          cmake --build . --parallel ${{ env.NUM_BUILD_JOBS }}
+          cmake --build . --parallel $(nproc)
 
       - name: Checkout Examples
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -213,7 +208,7 @@ jobs:
           set -ex
           cd ${GITHUB_WORKSPACE}/examples; mkdir build; cd build
           cmake .. -DDyninst_ROOT="${GITHUB_WORKSPACE}/install"
-          cmake --build . --parallel ${{ env.NUM_BUILD_JOBS }}
+          cmake --build . --parallel $(nproc)
 
       - name: Checkout External Tests
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -227,7 +222,7 @@ jobs:
           set -ex
           cd ${GITHUB_WORKSPACE}/external-tests; mkdir build; cd build
           cmake .. -DDyninst_ROOT="${GITHUB_WORKSPACE}/install" -DCMAKE_CXX_STANDARD=17
-          cmake --build . --parallel ${{ env.NUM_BUILD_JOBS }}
+          cmake --build . --parallel $(nproc)
 
       - name: Run external tests
         if: ${{ matrix.compiler != 'clang' }}  # libdyninstAPI_RT doesn't work correctly with clang

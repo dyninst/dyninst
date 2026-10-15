@@ -25,11 +25,6 @@ concurrency:
 
 permissions: {}
 
-env:
-  # Use the maximum number of cores
-  # docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-public-repositories
-  NUM_BUILD_JOBS: 4
-
 jobs:
 
   # Don't run the check if the PR is a draft or already marked as an ABI break
@@ -129,7 +124,7 @@ jobs:
           autoreconf -i
           mkdir build; cd build
           ../configure --prefix=/libabigail/install
-          make -j${{ env.NUM_BUILD_JOBS }}
+          make -j$(nproc)
           make install
 
       - name: Run abidiff
