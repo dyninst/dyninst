@@ -75,9 +75,6 @@ namespace Dyninst { namespace InstructionAPI {
     static ArmConditionImmediate::Ptr makeArmConditionImmediate(const Result& val);
     virtual std::string format(Architecture, formatStyle) const override;
     virtual std::string format(formatStyle) const override;
-
-  private:
-    std::map<unsigned int, std::string> m_condLookupMap;
   };
 
   class DYNINST_EXPORT ArmPrfmTypeImmediate : public Immediate {
@@ -87,9 +84,6 @@ namespace Dyninst { namespace InstructionAPI {
     static Immediate::Ptr makeArmPrfmTypeImmediate(const Result& val);
     virtual std::string format(Architecture, formatStyle) const override;
     virtual std::string format(formatStyle) const override;
-
-  private:
-    std::map<unsigned int, std::string> m_prfmTypeLookupMap;
   };
 }}
 
