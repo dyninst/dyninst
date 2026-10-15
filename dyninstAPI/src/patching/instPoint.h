@@ -52,6 +52,7 @@ class block_instance;
 class func_instance;
 class edge_instance;
 class baseTramp;
+class LivenessAnalyzer;
 
 class instPoint;
 
@@ -135,6 +136,15 @@ class instPoint : public Dyninst::PatchAPI::Point {
     Address addr_compat() const;
 
     bitArray liveRegisters();
+    // Compute liveRegs_ using a caller-supplied analyzer (lets a parallel pre-warm
+    // populate it with a thread-local analyzer, off the serial code-gen path).
+    // Idempotent; the no-arg liveRegisters() delegates here with a shared analyzer.
+    void fillLiveRegisters(LivenessAnalyzer *live);
+    // The process-global liveness analyzer used at code-gen time (one per address
+    // width). Exposed so a pre-warm pass can populate the *same* instance that
+    // liveRegisters() reads, so analyze(F) is cached for every code-gen liveness
+    // query -- coverage trampolines and relocation widgets alike.
+    static LivenessAnalyzer *livenessAnalyzer(int addressWidth);
 
     std::string format() const;
 

@@ -88,6 +88,11 @@ public:
 	void clean(ParseAPI::Function *func);
 	void clean();
 
+	// Merge another analyzer's per-function results into this one (used to fold
+	// per-thread parallel-prewarm analyzers into the shared analyzer). Existing
+	// entries are kept; coincident keys (e.g. shared blocks) carry equal values.
+	void absorb(LivenessAnalyzer &other);
+
 	int getIndex(MachRegister machReg);
 	ABI* getABI() { return abi;}
 
