@@ -1827,25 +1827,54 @@ bool thread_db_thread::fetchThreadInfo() {
    }
    if( !initThreadHandle() ) return false;
 
-   pthrd_printf("Calling td_thr_get_info on %d/%d\n", llproc()->getPid(), getLWP());
    thread_db_process *tdb_proc = dynamic_cast<thread_db_process *>(llproc());
-   async_ret_t result = tdb_proc->ll_fetchThreadInfo(threadHandle, &tinfo);
-   if (result == aret_error) {
-      pthrd_printf("Returning error in fetchThreadInfo due to ll_fetchThreadInfo\n");
-      return false;
-   }
-   while (result == aret_async) {
-      std::set<response::ptr> resps;
-      llproc()->getMemCache()->getPendingAsyncs(resps);
-      llproc()->waitForAsyncEvent(resps);
-      result = tdb_proc->ll_fetchThreadInfo(threadHandle, &tinfo);
+   auto fetch = [&]() {
+      pthrd_printf("Calling td_thr_get_info on %d/%d\n", llproc()->getPid(), getLWP());
+      async_ret_t result = tdb_proc->ll_fetchThreadInfo(threadHandle, &tinfo);
+      while (result == aret_async) {
+         std::set<response::ptr> resps;
+         llproc()->getMemCache()->getPendingAsyncs(resps);
+         llproc()->waitForAsyncEvent(resps);
+         result = tdb_proc->ll_fetchThreadInfo(threadHandle, &tinfo);
+      }
       if (result == aret_error) {
          pthrd_printf("Returning error in fetchThreadInfo due to ll_fetchThreadInfo\n");
          return false;
       }
+      return true;
+   };
+   if (!fetch()) return false;
+
+   /*
+    * A handle mapped before the thread library has set up the initial thread is a
+    * placeholder that reports TID 0 for as long as it is used.  glibc >= 2.34 static
+    * executables hit this on create: the thread agent comes up at _start, while the
+    * list td_ta_map_lwp2thr consults is only linked in __libc_setup_tls, and a
+    * single-threaded process never delivers the thread event that would refresh it.
+    * Map the LWP again; once the library is initialized that yields the real handle.
+    * Mapping reads the process, so it cannot succeed while the process runs; report
+    * the information as unavailable then rather than a TID of 0.
+    */
+   if (!tinfo.ti_tid) {
+      td_err_e errVal = thread_db_process::p_td_ta_map_lwp2thr(tdb_proc->getThreadDBAgent(),
+                                                                lwp, threadHandle);
+      while (errVal != TD_OK && llproc()->getMemCache()->hasPendingAsync()) {
+         std::set<response::ptr> resps;
+         llproc()->getMemCache()->getPendingAsyncs(resps);
+         llproc()->waitForAsyncEvent(resps);
+         errVal = thread_db_process::p_td_ta_map_lwp2thr(tdb_proc->getThreadDBAgent(),
+                                                         lwp, threadHandle);
+      }
+      if (errVal == TD_OK && !fetch()) return false;
+      if (!tinfo.ti_tid) {
+         pthrd_printf("No user thread info yet for %d/%d: %s(%d)\n", llproc()->getPid(),
+                      getLWP(), tdErr2Str(errVal), errVal);
+         setLastError(err_nouserthrd, "User thread info is not available until the thread library has initialized the thread.");
+         return false;
+      }
    }
 
-   if( tinfo.ti_tid ) tinfo_initialized = true;
+   tinfo_initialized = true;
    return true;
 }
 
