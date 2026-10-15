@@ -60,6 +60,11 @@ class arm_process : virtual public int_process
   virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Address> &addrResult);
   virtual void plat_getEmulatedSingleStepAsyncs(int_thread *, std::set<response::ptr> resps);
 
+  //displaced (out-of-line) emulated SS
+  virtual bool plat_supportsDisplacedSingleStep() const;
+  virtual void plat_classifyInsnForDisplacedStep(unsigned int raw, Address addr, displaced_insn &info);
+  virtual bool plat_retargetBranchForDisplacedStep(unsigned int &raw, Address copy_addr, Address new_target);
+
  private:
   std::map<int_thread *, reg_response::ptr> pcs_for_ss;
   std::map<Address, mem_response::ptr> mem_for_ss;
