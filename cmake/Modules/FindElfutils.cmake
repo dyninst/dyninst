@@ -94,26 +94,43 @@ if(${_need_debuginfod})
   find_package_handle_standard_args(
     Elfutils
     FOUND_VAR Elfutils_FOUND
-    REQUIRED_VARS LibDW_INCLUDE_DIRS LibDW_LIBRARIES LibELF_INCLUDE_DIRS LibELF_LIBRARIES
-                  LibDebuginfod_INCLUDE_DIRS LibDebuginfod_LIBRARIES
-    VERSION_VAR Elfutils_VERSION)
+    REQUIRED_VARS
+      LibDW_INCLUDE_DIRS
+      LibDW_LIBRARIES
+      LibELF_INCLUDE_DIRS
+      LibELF_LIBRARIES
+      LibDebuginfod_INCLUDE_DIRS
+      LibDebuginfod_LIBRARIES
+    VERSION_VAR Elfutils_VERSION
+  )
 else()
   find_package_handle_standard_args(
     Elfutils
     FOUND_VAR Elfutils_FOUND
     REQUIRED_VARS LibDW_INCLUDE_DIRS LibDW_LIBRARIES LibELF_INCLUDE_DIRS LibELF_LIBRARIES
-    VERSION_VAR Elfutils_VERSION)
+    VERSION_VAR Elfutils_VERSION
+  )
 endif()
 
 if(Elfutils_FOUND)
-  set(Elfutils_INCLUDE_DIRS
-      ${LibDW_INCLUDE_DIRS} ${LibELF_INCLUDE_DIRS} ${LibDebuginfod_INCLUDE_DIRS}
-      CACHE PATH "")
+  set(
+    Elfutils_INCLUDE_DIRS
+    ${LibDW_INCLUDE_DIRS}
+    ${LibELF_INCLUDE_DIRS}
+    ${LibDebuginfod_INCLUDE_DIRS}
+    CACHE PATH
+    ""
+  )
   mark_as_advanced(Elfutils_INCLUDE_DIRS)
 
-  set(Elfutils_LIBRARIES
-      ${LibDW_LIBRARIES} ${LibELF_LIBRARIES} ${LibDebuginfod_LIBRARIES}
-      CACHE PATH "")
+  set(
+    Elfutils_LIBRARIES
+    ${LibDW_LIBRARIES}
+    ${LibELF_LIBRARIES}
+    ${LibDebuginfod_LIBRARIES}
+    CACHE PATH
+    ""
+  )
   mark_as_advanced(Elfutils_LIBRARIES)
 
   mark_as_advanced(Elfutils_VERSION)

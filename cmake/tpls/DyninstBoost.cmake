@@ -40,7 +40,15 @@ endif()
 set(Boost_NO_WARN_NEW_VERSIONS ON)
 
 # Library components that need to be linked against
-set(_boost_components atomic chrono date_time filesystem thread timer)
+set(
+  _boost_components
+  atomic
+  chrono
+  date_time
+  filesystem
+  thread
+  timer
+)
 find_package(Boost ${_min_version} QUIET REQUIRED COMPONENTS ${_boost_components})
 
 # Don't let Boost variables seep through
@@ -51,19 +59,28 @@ if(NOT TARGET Dyninst::Boost)
   add_library(Dyninst::Boost INTERFACE IMPORTED)
   target_link_libraries(Dyninst::Boost INTERFACE ${Boost_LIBRARIES})
   target_include_directories(Dyninst::Boost SYSTEM INTERFACE ${Boost_INCLUDE_DIRS})
-  target_compile_definitions(Dyninst::Boost
-                             INTERFACE BOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
+  target_compile_definitions(
+    Dyninst::Boost
+    INTERFACE BOOST_MULTI_INDEX_DISABLE_SERIALIZATION
+  )
 
   # Just the headers (effectively a simplified Boost::headers target)
   add_library(Dyninst::Boost_headers INTERFACE IMPORTED)
-  target_include_directories(Dyninst::Boost_headers SYSTEM
-                             INTERFACE ${Boost_INCLUDE_DIRS})
-  target_compile_definitions(Dyninst::Boost_headers
-                             INTERFACE BOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
+  target_include_directories(
+    Dyninst::Boost_headers
+    SYSTEM
+    INTERFACE ${Boost_INCLUDE_DIRS}
+  )
+  target_compile_definitions(
+    Dyninst::Boost_headers
+    INTERFACE BOOST_MULTI_INDEX_DISABLE_SERIALIZATION
+  )
 
   if(NOT DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
-    target_compile_options(Dyninst::Boost_headers
-                           INTERFACE ${clangBoostDeprecatedWarning})
+    target_compile_options(
+      Dyninst::Boost_headers
+      INTERFACE ${clangBoostDeprecatedWarning}
+    )
   endif()
 endif()
 

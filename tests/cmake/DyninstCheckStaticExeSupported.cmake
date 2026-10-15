@@ -12,7 +12,6 @@ include(DyninstCheckCompilerFlag)
 #       keyword as usual.
 
 function(dyninst_check_static_exe_supported)
-
   cmake_parse_arguments(CHECK_STATIC_EXE "" "" "LANGUAGES" "${ARGN}")
   if(CHECK_STATIC_EXE_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR "Unparsed arguments: ${CHECK_STATIC_EXE_UNPARSED_ARGUMENTS}")
@@ -45,13 +44,16 @@ function(dyninst_check_static_exe_supported)
       dyninst_check_compiler_flag(${_lang} ${_flag} ${_is_supported_name})
 
       if(${_is_supported_name})
-        set(${_flag_name}
-            "${_flag}"
-            CACHE STRING "${_lang} static executable link flag" FORCE)
+        set(
+          ${_flag_name}
+          "${_flag}"
+          CACHE STRING
+          "${_lang} static executable link flag"
+          FORCE
+        )
       endif()
     endforeach()
   endforeach()
 
   set(CMAKE_REQUIRED_LINK_OPTIONS "${_saved_link_opts}")
-
 endfunction()

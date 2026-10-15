@@ -133,11 +133,11 @@ Ensures that Dyninst builds on all supported platforms and compilers in non-stan
 
 ### CMake formatting ([workflows/cmake-formatting.yaml](workflows/cmake-formatting.yaml))
 
-*Runs `cmake-format` on updated files*
+*Runs `gersemi` over the project's CMake files*
 
-Ensures modified CMake files are correctly formatted using `cmake-format` and the rules in `.cmake-format.yaml` in the root of the project.
+Ensures the CMake files are correctly formatted.  Runs the equivalent of `cmake --build <build-dir> --target cmake-check`, which uses `gersemi` and the rules in `.gersemirc` in the root of the project.  Every tracked CMake file is checked, not only the ones a pull request changed.  When files are not formatted, the job also prints the diff that would fix them; to apply it, run `cmake --build <build-dir> --target cmake-reformat` (`cmake-reformat-diff` shows the same diff locally).  The gersemi version is pinned in `docker/dependencies.versions`; it needs Python 3.8 or later, a requirement of the formatting tooling only, not of building Dyninst.  Where the system Python is externally managed (PEP 668) and pip refuses to install into it, use `pipx install gersemi==<version>` or a venv instead.
 
-**when**: on pull requests to the master branch when a CMake file is changed, or manually
+**when**: on pull requests to the master branch that change a CMake file, `.gersemirc`, the pinned gersemi version in `docker/dependencies.versions`, or the workflow itself; or manually
 
 ### Run CodeQL analyzer ([workflows/codeql](workflows/codeql.yaml))
 

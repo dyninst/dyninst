@@ -30,9 +30,10 @@ find_package(LATEX COMPONENTS PDFLATEX)
 if(DYNINST_BUILD_DOCS AND NOT LATEX_PDFLATEX_FOUND)
   message(
     FATAL_ERROR
-      "DYNINST_BUILD_DOCS is ON but pdflatex was not found.\n"
-      "  Install a LaTeX distribution, or configure with "
-      "-DDYNINST_BUILD_DOCS=OFF to build the manuals on demand only.")
+    "DYNINST_BUILD_DOCS is ON but pdflatex was not found.\n"
+    "  Install a LaTeX distribution, or configure with "
+    "-DDYNINST_BUILD_DOCS=OFF to build the manuals on demand only."
+  )
 endif()
 
 find_package(Ghostscript)
@@ -40,10 +41,11 @@ find_package(Ghostscript)
 if(DYNINST_DOCS_FORCE_VALIDATE AND NOT Ghostscript_FOUND)
   message(
     FATAL_ERROR
-      "DYNINST_DOCS_FORCE_VALIDATE is ON but Ghostscript was not found.\n"
-      "  Install Ghostscript, or configure with "
-      "-DDYNINST_DOCS_FORCE_VALIDATE=OFF to skip the measurement when it "
-      "is unavailable.")
+    "DYNINST_DOCS_FORCE_VALIDATE is ON but Ghostscript was not found.\n"
+    "  Install Ghostscript, or configure with "
+    "-DDYNINST_DOCS_FORCE_VALIDATE=OFF to skip the measurement when it "
+    "is unavailable."
+  )
 endif()
 
 if(DYNINST_BUILD_DOCS)
@@ -52,18 +54,23 @@ else()
   add_custom_target(docs COMMENT "Building the Dyninst manuals")
 endif()
 
-set(DYNINST_DOCS_INSTALL_DIR
-    "${CMAKE_INSTALL_DOCDIR}"
-    CACHE STRING "Where 'install' and 'docs-install' put the manuals")
+set(
+  DYNINST_DOCS_INSTALL_DIR
+  "${CMAKE_INSTALL_DOCDIR}"
+  CACHE STRING
+  "Where 'install' and 'docs-install' put the manuals"
+)
 
 # Installing on demand.  install() is bound to the 'install' target, so route
 # through the generated cmake_install.cmake with the component filter; that
 # keeps DESTDIR and the install prefix working, which a plain copy would not.
 add_custom_target(
   docs-install
-  COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_COMPONENT=docs -P
-          ${CMAKE_BINARY_DIR}/cmake_install.cmake
-  COMMENT "Installing the Dyninst manuals into ${DYNINST_DOCS_INSTALL_DIR}")
+  COMMAND
+    ${CMAKE_COMMAND} -DCMAKE_INSTALL_COMPONENT=docs -P
+    ${CMAKE_BINARY_DIR}/cmake_install.cmake
+  COMMENT "Installing the Dyninst manuals into ${DYNINST_DOCS_INSTALL_DIR}"
+)
 add_dependencies(docs-install docs)
 
 # ---------------------------------------------------------------------------
@@ -83,7 +90,15 @@ add_dependencies(docs-install docs)
 # ---------------------------------------------------------------------------
 function(dyninst_add_latex_document)
   set(_opts "")
-  set(_one TARGET SOURCE_DIR MAIN INSTALL_DESTINATION ALLOW_WARNINGS MAX_OVERFULL_PT)
+  set(
+    _one
+    TARGET
+    SOURCE_DIR
+    MAIN
+    INSTALL_DESTINATION
+    ALLOW_WARNINGS
+    MAX_OVERFULL_PT
+  )
   set(_many DEPENDS)
   # PARSE_ARGV, not ${ARGN}: expanding ARGN re-splits every argument on its
   # semicolons, so a regex containing one reaches here already truncated.
@@ -106,7 +121,9 @@ function(dyninst_add_latex_document)
   endforeach()
   if(LTX_UNPARSED_ARGUMENTS)
     message(
-      FATAL_ERROR "dyninst_add_latex_document: unrecognised: ${LTX_UNPARSED_ARGUMENTS}")
+      FATAL_ERROR
+      "dyninst_add_latex_document: unrecognised: ${LTX_UNPARSED_ARGUMENTS}"
+    )
   endif()
 
   # Beside the CMakeLists.txt that asked for it.  The pass cap is not settable
@@ -125,15 +142,19 @@ function(dyninst_add_latex_document)
         ${CMAKE_COMMAND} -E echo
         "error: cannot build ${_stem}.pdf - pdflatex was not found at configure time"
       COMMAND ${CMAKE_COMMAND} -E false
-      COMMENT "Building ${_stem}.pdf")
+      COMMENT "Building ${_stem}.pdf"
+    )
     add_dependencies(docs ${LTX_TARGET})
     return()
   endif()
 
   add_custom_command(
     OUTPUT "${_pdf}"
-    BYPRODUCTS "${_out_dir}/${_stem}.aux" "${_out_dir}/${_stem}.log"
-               "${_out_dir}/${_stem}.toc" "${_out_dir}/${_stem}.out"
+    BYPRODUCTS
+      "${_out_dir}/${_stem}.aux"
+      "${_out_dir}/${_stem}.log"
+      "${_out_dir}/${_stem}.toc"
+      "${_out_dir}/${_stem}.out"
     # Quote each -D.  Unquoted, a semicolon in the value is a list separator:
     # the argument is cut at it and the remainder handed to cmake as a stray
     # argument it ignores.  ALLOW_WARNINGS is a regular expression, so that
@@ -149,7 +170,8 @@ function(dyninst_add_latex_document)
       "${PROJECT_SOURCE_DIR}/cmake/DyninstRunLaTeX.cmake"
     DEPENDS ${LTX_DEPENDS} ${PROJECT_SOURCE_DIR}/cmake/DyninstRunLaTeX.cmake
     COMMENT "Building ${_stem}.pdf"
-    VERBATIM)
+    VERBATIM
+  )
 
   add_custom_target(${LTX_TARGET} DEPENDS "${_pdf}")
   add_dependencies(docs ${LTX_TARGET})
@@ -159,7 +181,8 @@ function(dyninst_add_latex_document)
       FILES "${_pdf}"
       DESTINATION "${LTX_INSTALL_DESTINATION}"
       COMPONENT docs
-      OPTIONAL)
+      OPTIONAL
+    )
 
     # install(FILES ... OPTIONAL) is silent about a PDF that was never built,
     # so record what a complete install holds; docs/CMakeLists.txt writes the
@@ -188,17 +211,19 @@ function(dyninst_add_manual _module)
   # Over-approximate rather than parse \input, \includegraphics and
   # \lstinputlisting: touching an unrelated file in one manual's directory
   # costs a rebuild of that manual alone, and nothing goes stale silently.
-  set(_patterns
-      "*.tex"
-      "*.c"
-      "*.cc"
-      "*.cpp"
-      "*.C"
-      "*.h"
-      "*.pdf"
-      "*.eps"
-      "*.png"
-      "*.dot")
+  set(
+    _patterns
+    "*.tex"
+    "*.c"
+    "*.cc"
+    "*.cpp"
+    "*.C"
+    "*.h"
+    "*.pdf"
+    "*.eps"
+    "*.png"
+    "*.dot"
+  )
   set(_deps "")
   foreach(_dir "${_src}" "${PROJECT_SOURCE_DIR}/docs/common/manual-latex")
     foreach(_p ${_patterns})
@@ -215,7 +240,8 @@ function(dyninst_add_manual _module)
     DEPENDS ${_deps}
     ALLOW_WARNINGS "${M_ALLOW_WARNINGS}"
     MAX_OVERFULL_PT "${M_MAX_OVERFULL_PT}"
-    INSTALL_DESTINATION "${DYNINST_DOCS_INSTALL_DIR}")
+    INSTALL_DESTINATION "${DYNINST_DOCS_INSTALL_DIR}"
+  )
 
   # dyninst_validate_listings adds this edge when it runs after this function,
   # and cannot when it runs before -- the target it would hang the dependency
@@ -276,12 +302,8 @@ function(_dyninst_listing_targets _roots _out_local _out_imported)
     endif()
   endwhile()
 
-  set(${_out_local}
-      "${_local}"
-      PARENT_SCOPE)
-  set(${_out_imported}
-      "${_imp}"
-      PARENT_SCOPE)
+  set(${_out_local} "${_local}" PARENT_SCOPE)
+  set(${_out_imported} "${_imp}" PARENT_SCOPE)
 endfunction()
 
 function(dyninst_validate_listings _module)
@@ -313,16 +335,25 @@ function(dyninst_validate_listings _module)
 
   foreach(_t ${_local})
     target_include_directories(
-      ${_check} PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_INCLUDE_DIRECTORIES>)
+      ${_check}
+      PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_INCLUDE_DIRECTORIES>
+    )
     target_compile_definitions(
-      ${_check} PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_COMPILE_DEFINITIONS>)
+      ${_check}
+      PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_COMPILE_DEFINITIONS>
+    )
   endforeach()
 
   foreach(_t ${_imported})
     target_include_directories(
-      ${_check} SYSTEM PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_INCLUDE_DIRECTORIES>)
+      ${_check}
+      SYSTEM
+      PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_INCLUDE_DIRECTORIES>
+    )
     target_compile_definitions(
-      ${_check} PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_COMPILE_DEFINITIONS>)
+      ${_check}
+      PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_COMPILE_DEFINITIONS>
+    )
   endforeach()
 
   # Asking for a manual compiles its examples first, but only when the check

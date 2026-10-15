@@ -5,8 +5,15 @@ if(POLICY CMP0076)
   cmake_policy(SET CMP0076 NEW)
 endif()
 
-set(_headers baseTramp.h baseTramp-aarch64.h baseTramp-amdgpu.h baseTramp-ppc.h
-             baseTramp-riscv64.h baseTramp-x86.h)
+set(
+  _headers
+  baseTramp.h
+  baseTramp-aarch64.h
+  baseTramp-amdgpu.h
+  baseTramp-ppc.h
+  baseTramp-riscv64.h
+  baseTramp-x86.h
+)
 
 set(_sources baseTramp.C)
 
@@ -18,7 +25,6 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(APPEND _sources baseTramp-aarch64.C)
 endif()
 
-# cmake-format: off
 dyninst_library(
   dyninstAPI_trampolines
   INTERNAL_LIBRARY
@@ -27,7 +33,8 @@ dyninst_library(
   DYNINST_INTERNAL_DEPS common parseAPI patchAPI pcontrol
 )
 
-set(_inc_dirs
+set(
+  _inc_dirs
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/..
   ${CMAKE_CURRENT_SOURCE_DIR}/../ASTs
@@ -35,7 +42,6 @@ set(_inc_dirs
   ${CMAKE_CURRENT_SOURCE_DIR}/../registerSpace
   ${CMAKE_CURRENT_SOURCE_DIR}/../../h
 )
-# cmake-format: on
 
 target_include_directories(dyninstAPI_trampolines PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
 
