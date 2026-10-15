@@ -66,22 +66,22 @@ PDFs land beside their sources in the build tree, at
 |:------------------------|:------------|
 | `docs`                  | every manual |
 | `docs-install`          | every manual, then install them |
-| `<module>.pdf`          | one manual |
+| `<module>-manual`       | one manual |
 | `<module>-doc-listings` | compile the example sources that manual typesets |
 
 Every target exists whatever the options are set to, so any of them can be
 asked for by name.  What the options decide is which ones an ordinary build
 runs.
 
-`docs` and `<module>.pdf` are in `all` only when `DYNINST_BUILD_DOCS` is on.
+`docs` and `<module>-manual` are in `all` only when `DYNINST_BUILD_DOCS` is on.
 `docs-install` never is: ask for it by name.
 
 `<module>-doc-listings` is in `all` when `DYNINST_DOCS_VALIDATE_LISTINGS` is
 on, which it is by default, and whether or not `DYNINST_BUILD_DOCS` is set --
 so an ordinary build with no LaTeX anywhere still compiles the examples.
-The same option makes it a prerequisite of `<module>.pdf`, so asking for one
+The same option makes it a prerequisite of `<module>-manual`, so asking for one
 manual compiles that manual's examples first.  With the option off there is
-no such edge, and `<module>.pdf` builds without them.
+no such edge, and `<module>-manual` builds without them.
 
 ### What gets checked
 
@@ -100,7 +100,7 @@ whether any of them fails the target or is only printed.
 | option | default | description |
 |:-------|:--------|:------------|
 | `DYNINST_BUILD_DOCS` | `OFF` | Put the manuals in `all`, so they build by default and `install` installs them.  Requires pdflatex: configuring fails if it is missing. |
-| `DYNINST_DOCS_VALIDATE_LISTINGS` | `ON` | Compile the example sources a manual typesets, with the warning flags the library itself uses.  Puts `<module>-doc-listings` in `all`, whether or not `DYNINST_BUILD_DOCS` is set, and makes each a dependency of its `<module>.pdf`.  Off, nothing runs them on its own, but the targets remain and can be asked for by name. |
+| `DYNINST_DOCS_VALIDATE_LISTINGS` | `ON` | Compile the example sources a manual typesets, with the warning flags the library itself uses.  Puts `<module>-doc-listings` in `all`, whether or not `DYNINST_BUILD_DOCS` is set, and makes each a dependency of its `<module>-manual`.  Off, nothing runs them on its own, but the targets remain and can be asked for by name. |
 | `DYNINST_DOCS_FORCE_VALIDATE` | `OFF` | Require Ghostscript, so the page-boundary check cannot be skipped.  The check itself runs whenever Ghostscript is found; this makes a missing one a configure error rather than a silent omission. |
 | `DYNINST_WARNINGS_AS_ERRORS` | `OFF` | Fail the target on a LaTeX warning or an example's compiler warning, rather than printing it.  Existing option, shared with the C++ build. |
 | `DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS` | `OFF` | Report every warning and every box, ignoring `ALLOW_WARNINGS` and `MAX_OVERFULL_PT`.  Existing option, shared with the C++ build. |
@@ -110,7 +110,7 @@ whether any of them fails the target or is only printed.
 
 Make `docs/<module>/manual-latex/` with `<module>.tex` in it.  The file name
 has to match the directory name: `dyninst_add_manual` derives the target
-`<module>.pdf` from it, and fails at configure time if it is not there.
+`<module>-manual` from it, and fails at configure time if it is not there.
 
 Add `docs/<module>/manual-latex/CMakeLists.txt`:
 

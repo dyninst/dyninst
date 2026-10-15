@@ -55,7 +55,7 @@ jobs:
   #    DYNINST_DOCS_FORCE_VALIDATE  Ghostscript is required, and each finished
   #                              PDF is measured for ink reaching the edge
   #
-  #  DYNINST_DOCS_VALIDATE_LISTINGS is ON by default, so <module>.pdf also
+  #  DYNINST_DOCS_VALIDATE_LISTINGS is ON by default, so <module>-manual also
   #  compiles the example sources that manual typesets.
   #
   docs:
