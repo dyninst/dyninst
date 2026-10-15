@@ -52,10 +52,10 @@ toolkit target.
   DYNINST_DEPS
     A list of the Dyninst libraries (not internal libraries) that
     <TargetName> depends on. <TargetName> links each of them, and
-    <TargetName>_static links each one's static variant, or the library
-    itself when it has none. An internal library uses only their
-    <dep>_headers targets: it is absorbed into both variants of a real
-    library, so it has no correct variant to link.
+    <TargetName>_static links each one's static variant, which must
+    exist. An internal library uses only their <dep>_headers targets:
+    it is absorbed into both variants of a real library, so it has no
+    correct variant to link.
 
   DYNINST_INTERNAL_DEPS
     A list of internal libraries that <TargetName> absorbs. They are
@@ -215,13 +215,13 @@ function(dyninst_library _target)
     # are added before their dependents, so the static variant either
     # exists by now or never will.
     foreach(d ${_target_DYNINST_DEPS})
-      if(TARGET ${d}_static)
-        target_link_libraries(${_target}_static PUBLIC ${d}_static)
-      else()
-        # dyninstAPI_RT_static depends on common, which is static only with
-        # ENABLE_STATIC_LIBS
-        target_link_libraries(${_target}_static PUBLIC ${d})
+      if(NOT TARGET ${d}_static)
+        message(
+          FATAL_ERROR
+          "${_target}_static depends on ${d}, which has no static variant"
+        )
       endif()
+      target_link_libraries(${_target}_static PUBLIC ${d}_static)
     endforeach()
   endif()
 
