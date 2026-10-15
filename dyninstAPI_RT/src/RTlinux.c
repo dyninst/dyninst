@@ -664,6 +664,53 @@ void runDYNINSTBaseInit(void)
     r_debugCheck();
    DYNINSTBaseInit();
 }
+
+#if defined(cap_mutatee_traps)
+typedef void (*preinit_func_t)(int, char **, char **);
+
+/* The binary rewriter points a rewritten executable's DT_PREINIT_ARRAY here.
+ * ld.so calls the preinit array after relocating every object and before any
+ * constructor runs, so the trap handler is in place before a library
+ * constructor can reach a trap springboard in a rewritten library (libc, ...).
+ * The RT's own constructor runs too late for that: ld.so runs the constructors
+ * of everything the RT depends on first. libc has not run its own initializer
+ * yet, so this takes the environment from envp instead of calling getenv, and
+ * calls nothing in libc before the handler is installed.
+ */
+DLLEXPORT void DYNINSTpreinit(int argc, char **argv, char **envp)
+{
+   static const char sigill_var[] = "DYNINST_SIGNAL_TRAMPOLINE_SIGILL=";
+   int signo = SIGTRAP;
+   char **env;
+   struct link_map *exe;
+   ElfW(Dyn) *dyn;
+   ElfW(Addr) orig_array = 0;
+   size_t orig_size = 0, i;
+
+   for (env = envp; env && *env; env++) {
+      for (i = 0; sigill_var[i] && (*env)[i] == sigill_var[i]; i++);
+      if (!sigill_var[i]) {
+         signo = SIGILL;
+         break;
+      }
+   }
+   DYNINSTinstallTrapHandler(signo);
+
+   /* Run the preinit functions the executable had before it was rewritten */
+   exe = _r_debug.r_map;
+   if (!exe || !exe->l_ld) return;
+   for (dyn = exe->l_ld; dyn->d_tag != DT_NULL; dyn++) {
+      if (dyn->d_tag == DT_DYNINST_PREINIT_ARRAY)
+         orig_array = dyn->d_un.d_ptr;
+      else if (dyn->d_tag == DT_DYNINST_PREINIT_ARRAYSZ)
+         orig_size = dyn->d_un.d_val;
+   }
+   if (!orig_array) return;
+   for (i = 0; i < orig_size / sizeof(preinit_func_t); i++) {
+      ((preinit_func_t *) (exe->l_addr + orig_array))[i](argc, argv, envp);
+   }
+}
+#endif
 #endif
 
 
