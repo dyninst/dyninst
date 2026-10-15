@@ -146,6 +146,7 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
      llBinEdit->registerInstPointCallback(createBPPointCB);
      llBinEdit->set_up_ptr(this);
      llBinEdit->setupRTLibrary(rtLib);
+     llBinEdit->setPrimary(origBinEdit);
      llBinEdit->setMultiThreadCapable(isMultiThreadCapable());
      for (j = llBinEdits.begin(); j != llBinEdits.end(); j++) {
         llBinEdit->addSibling((*j).second);
@@ -318,6 +319,7 @@ BPatch_object *BPatch_binaryEdit::loadLibrary(const char *libname, bool deps)
     lib.second->registerInstPointCallback(createBPPointCB);
     lib.second->set_up_ptr(this);
     lib.second->setupRTLibrary(rtLib);
+    lib.second->setPrimary(origBinEdit);
     lib.second->setMultiThreadCapable(isMultiThreadCapable());
 
     if (deps)
