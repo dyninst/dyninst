@@ -389,7 +389,7 @@ Find a region (ELF section) with a memory offset of \code{addr}.  Returns \code{
 Region* findEnclosingRegion(const Offset offset);
 \end{apient}
 \apidesc{
-Find the region (ELF section) whose virtual address range contains \code{offset}. Returns the region if found; otherwise returns \code{nullptr}.
+Find the region (ELF section) whose virtual address range contains \code{offset}. Returns the region if found; otherwise returns \code{nullptr}. A TLS NOBITS region (\code{.tbss}) occupies no address space in the image, so it is returned only when no other region covers \code{offset}.
 }
 
 \subsubsection{Insertion and modification}
