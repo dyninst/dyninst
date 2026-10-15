@@ -221,14 +221,16 @@ std::string canonicalize(std::string path, int pid) {
   return resolved.empty() ? root + path : resolved;
 }
 
-// Resolve an absolute target path under root (e.g. /proc/<pid>/root), expanding
-// symlinks component by component: canonical() would follow absolute links on the host.
-// Return the resolved path with its root prefix, or an empty string on failure.
+// Keep symlink resolution inside the container.
+// bf::canonical() can follow an absolute symlink to a host file instead.
 std::string resolve_in_root_fs(std::string const& path, std::string const& root) {
   namespace bf = boost::filesystem;
   bf::path const target(path), root_path(root);
   boost::system::error_code ec;
-  if(!target.is_absolute() || !root_path.is_absolute() || !bf::is_directory(root_path, ec))
+  if(!target.is_absolute() || !root_path.is_absolute())
+    return {};
+  auto const root_is_directory = bf::is_directory(root_path, ec);
+  if(ec || !root_is_directory)
     return {};
 
   bf::path resolved = root_path;
