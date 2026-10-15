@@ -38,7 +38,7 @@ This just forwards its arguments on to one of the OS-specific build actions.
 - **src-dir**
   Location of Dyninst source to build. Default is `/dyninst/src`
 - **num-jobs**
-  Number of CMake build jobs (i.e., `cmake --build --parallel N`). Default is 2
+  Number of CMake build jobs (i.e., `cmake --build --parallel N`). Default is the number of processors (`nproc`)
 - **extra-libs**
   Additional libraries to install via the OS-specific package manager
 
@@ -63,7 +63,7 @@ Only one version of gcc or clang is made available. This is because it is very d
 - **src-dir**
   Location of Dyninst source to build. Default is `/dyninst/src`
 - **num-jobs**
-  Number of CMake build jobs (i.e., `cmake --build --parallel N`). Default is 2
+  Number of CMake build jobs (i.e., `cmake --build --parallel N`). Default is the number of processors (`nproc`)
 - **extra-libs**
   Additional libraries to install via `yum`
 
@@ -88,7 +88,7 @@ Clang-specific libraries are installed automatically. For example, `compiler: 'c
 - **src-dir**
   Location of Dyninst source to build. Default is `/dyninst/src`
 - **num-jobs**
-  Number of CMake build jobs (i.e., `cmake --build --parallel N`). Default is 2
+  Number of CMake build jobs (i.e., `cmake --build --parallel N`). Default is the number of processors (`nproc`)
 - **extra-libs**
   Additional libraries to install via `apt`
 

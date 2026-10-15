@@ -22,7 +22,7 @@ inputs:
     default: "/dyninst/src"
   num-jobs:
     required: false
-    default: 4
+    default: ""
   extra-libs:
     required: false
   tests:

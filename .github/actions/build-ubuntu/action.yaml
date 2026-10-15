@@ -18,7 +18,7 @@ inputs:
     default: "/dyninst/src"
   num-jobs:
     required: false
-    default: 4
+    default: ""
   extra-libs:
     required: false
   tests:
@@ -100,4 +100,5 @@ runs:
           tests="-t ${{ inputs.tests }}"
         fi
         
-        bash ${src}/docker/build.sh $src $dest ${tests} -v -j ${{ inputs.num-jobs }} -c "${cmake_args}"
+        num_jobs="${{ inputs.num-jobs }}"
+        bash ${src}/docker/build.sh $src $dest ${tests} -v -j "${num_jobs:-$(nproc)}" -c "${cmake_args}"
