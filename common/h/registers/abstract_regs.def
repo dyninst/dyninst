@@ -1,0 +1,14 @@
+// The registers of abstract, one DEF_REGISTER or DEF_REGISTER_ALIAS each.
+//
+// No include guard: abstract_regs.h includes this inside its namespace, and
+// common/src/dyn_regs.C includes it again with the macros redefined to
+// build a table of the registers' values and names.
+
+  //          (      name, ID |      arch)
+  DEF_REGISTER(InvalidReg,  0 | Arch_none)
+  DEF_REGISTER( FrameBase,  1 | Arch_none)
+  DEF_REGISTER(ReturnAddr,  2 | Arch_none)
+  DEF_REGISTER(  StackTop,  3 | Arch_none)
+
+  // DWARF-ism; the CFA is the value of the stack pointer in the previous frame
+  DEF_REGISTER(       CFA,  4 | Arch_none)

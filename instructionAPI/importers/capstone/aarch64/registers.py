@@ -44,7 +44,7 @@ class registers:
             cap_dir + "/include/capstone/aarch64.h"
         )
         self.dyninst = _read_dyninst_registers(
-            dyn_dir + "/common/h/registers/aarch64_regs.h"
+            dyn_dir + "/common/h/registers/aarch64_regs.def"
         )
         spec_sysregs = aarch64.sysregs.parse_xml_specs(spec_dir)
 
@@ -181,11 +181,11 @@ def _read_dyninst_registers(file: str):
                 continue
 
             if "DEF_REGISTER_ALIAS" in line:
-                # Format is DEF_REGISTER_ALIAS( X, Y, "aarch64")
+                # Format is DEF_REGISTER_ALIAS( X, Y)
                 name, _ = line[line.index("DEF_REGISTER_ALIAS(") + 19 :].split(",", 1)
                 name = name.strip()
             else:
-                # Format is DEF_REGISTER( x0, 0 | FULL | GPR | Arch_aarch64, "aarch64")
+                # Format is DEF_REGISTER( x0, 0 | FULL | GPR | Arch_aarch64)
                 name, _ = line[line.index("DEF_REGISTER(") + 13 :].split(",", 1)
                 name = name.strip()
 

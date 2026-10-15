@@ -42,6 +42,10 @@
  *  x86::iEAX
  *
  * The value is mostly useful in the 'case' part switch statements.
+ *
+ * The lists of them are in registers/<arch>_regs.def, one per line and with no
+ * trailing semicolon, so that a list can also be expanded into the elements
+ * of an array; the macros supply the semicolons.
  **/
 #if defined(DYN_DEFINE_REGS)
 // DYN_DEFINE_REGS Should only be defined in libcommon.
@@ -54,20 +58,20 @@
 // const.
 #  define DEF_REGISTER(name, value)                                                                \
     const signed int i##name = (value);                                                            \
-    DYNINST_EXPORT MachRegister name(i##name, #name)
+    DYNINST_EXPORT MachRegister name(i##name, #name);
 
 #  define DEF_REGISTER_ALIAS(name, target)                                                         \
     const signed int i##name = i##target;                                                          \
-    DYNINST_EXPORT MachRegister name(i##name, #name)
+    DYNINST_EXPORT MachRegister name(i##name, #name);
 
 #else
 #  define DEF_REGISTER(name, value)                                                                \
     const signed int i##name = (value);                                                            \
-    DYNINST_EXPORT extern MachRegister name
+    DYNINST_EXPORT extern MachRegister name;
 
 #  define DEF_REGISTER_ALIAS(name, target)                                                         \
     const signed int i##name = i##target;                                                          \
-    DYNINST_EXPORT extern MachRegister name
+    DYNINST_EXPORT extern MachRegister name;
 
 #endif
 
