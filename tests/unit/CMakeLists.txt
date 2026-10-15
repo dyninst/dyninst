@@ -8,3 +8,7 @@ add_subdirectory(dyninstAPI)
 add_subdirectory(instructionAPI)
 add_subdirectory(MachRegister)
 add_subdirectory(parseAPI)
+
+if(DYNINST_OS_Linux)
+  add_subdirectory(static_link)
+endif()
