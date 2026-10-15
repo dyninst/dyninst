@@ -11,7 +11,7 @@ inputs:
     required: false
     default: "RELWITHDEBINFO"
   install-dir:
-    required: falsefalse
+    required: false
     default: "/dyninst/install"
   src-dir:
     required: false
