@@ -756,8 +756,6 @@ const int maxGPR=32;           /* More space than is needed */
 #define MAX_BRANCH      0x01fffffc
 #define MAX_CBRANCH     (0x7ffc)  // bc: signed 14-bit word offset, -0x8000..0x7ffc bytes
 
-#define MAX_IMM		0x1<<15		/* 15 plus sign == 16 bits */
-
 // Define bounds for immediate offsets.
 // Use strange definitions to avoid compiler warnings.
 
