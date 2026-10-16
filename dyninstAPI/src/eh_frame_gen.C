@@ -39,6 +39,7 @@
 #include <cstdlib>   // malloc
 #include <cstring>   // memcpy, memset
 #include <map>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -598,7 +599,24 @@ unsigned Dyninst::buildRelocatedEHFrame(Symtab *symObj,
   unsigned nfde=0, nlsda=0;
   // A sampled CFA-or-register rule at a relocated PC. regColumn -1 marks a CFA
   // rule; otherwise it is an index into calleeSavedRegs.
-  struct RuleEvent { Address rpc; int regColumn; int kind; unsigned reg; int64_t val; };
+  struct RuleEvent { Address rpc; Address opc; int regColumn; int kind; unsigned reg; int64_t val; };
+  // Rule rows are sampled at ORIGINAL PCs, but not every original instruction is
+  // relocated: the fall-through after a call Dyninst parses as non-returning
+  // (e.g. into a function that only throws) is never parsed, yet the CFI still
+  // carries that path's rows (clang emits `pop; ret` there). origToReloc folds a
+  // PC outside every tracker onto the START of the preceding tracker -- here the
+  // call itself -- where the row overrides the call's own rule and the unwinder
+  // reads the return address at the wrong CFA. Such a row takes effect at the
+  // next relocated instruction of its original run instead (a later row at the
+  // same reloc PC still supersedes it), or nowhere if the run ends first.
+  auto origToRelocRule = [&](Address a, Address runEnd)->Address {
+    size_t loIdx=0, hiIdx=origRelocMap.size(); // first ent with origAddr > a
+    while (loIdx<hiIdx){ size_t m=(loIdx+hiIdx)/2; if(origRelocMap[m].origAddr<=a) loIdx=m+1; else hiIdx=m; }
+    if (loIdx>0 && a < origRelocMap[loIdx-1].origAddr + origRelocMap[loIdx-1].size)
+      return origToReloc(a);
+    if (loIdx==origRelocMap.size() || origRelocMap[loIdx].origAddr >= runEnd) return 0;
+    return origToReloc(origRelocMap[loIdx].origAddr);
+  };
   for (auto f : funcs) {
     // Sample the CFA and callee-saved rules per ORIGINAL run of THIS function
     // only (never across the foreign functions between a hot/cold split, which
@@ -613,24 +631,26 @@ unsigned Dyninst::buildRelocatedEHFrame(Symtab *symObj,
       std::vector<VariableLocation> cfa;
       if (symObj->getCFALocations(orun.first - loadBias, orun.second+1 - loadBias, cfa))
         for (auto &L : cfa) {
-          Address r = origToReloc(L.lowPC + loadBias);
+          Address r = origToRelocRule(L.lowPC + loadBias, orun.second + 1);
           if (!r) continue;
-          ruleEvents.push_back({ r, -1, 0, dwreg(L.mr_reg), (int64_t)L.frameOffset });
+          ruleEvents.push_back({ r, L.lowPC, -1, 0, dwreg(L.mr_reg), (int64_t)L.frameOffset });
         }
       for (size_t k = 0; k < calleeSavedRegs.size(); ++k) {
         std::vector<Symtab::FrameRegRule> rr;
         if (!symObj->getFrameRegRulesByDwarf(orun.first - loadBias, orun.second+1 - loadBias, calleeSavedRegs[k], rr)) continue;
         for (auto &R : rr) {
-          Address r = origToReloc(R.lowPC + loadBias);
+          Address r = origToRelocRule(R.lowPC + loadBias, orun.second + 1);
           if (!r) continue;
           int64_t v = (R.kind == Symtab::FrameRegRule::InRegister)
                       ? (int64_t)R.regnum : (int64_t)R.offset;
-          ruleEvents.push_back({ r, (int)k, (int)R.kind, calleeSavedRegs[k], v });
+          ruleEvents.push_back({ r, R.lowPC, (int)k, (int)R.kind, calleeSavedRegs[k], v });
         }
       }
     }
+    // Rows sharing a reloc PC and column are applied in original order, so the
+    // one emitted last -- the one in effect -- is the latest original row.
     std::sort(ruleEvents.begin(), ruleEvents.end(), [](const RuleEvent&a,const RuleEvent&b){
-        return a.rpc < b.rpc || (a.rpc == b.rpc && a.regColumn < b.regColumn); });
+        return std::tie(a.rpc, a.regColumn, a.opc) < std::tie(b.rpc, b.regColumn, b.opc); });
 
     // One FDE per relocated run, bounded to the run (never next-func-start, which
     // over-claims an interleaved neighbor). A run carrying an LSDA (lsda != -1)
