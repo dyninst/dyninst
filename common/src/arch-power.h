@@ -767,8 +767,8 @@ const int maxGPR=32;           /* More space than is needed */
                                             // constants. Hopefully, compiler
                                             // will optimize this away.
 
-#define MAX_IMM48      ((long)(-1 >> 17))   // To avoid warnings on 32-bit
-#define MIN_IMM48      ((long)(~MAX_IMM48)) // compilers.
+#define MAX_IMM48      ((long)(~0UL >> 17))   // 2^47 - 1
+#define MIN_IMM48      ((long)(~MAX_IMM48))   // -2^47
 
 class DYNINST_EXPORT instruction {
  private:
