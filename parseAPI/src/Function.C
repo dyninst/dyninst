@@ -462,6 +462,14 @@ Function::name() const
     return _name;
 }
 
+
+bool
+Function::isPLTStub() const
+{
+    return obj()->cs()->linkage().count(addr()) != 0;
+}
+
+
 bool
 Function::contains(Block *b)
 {
