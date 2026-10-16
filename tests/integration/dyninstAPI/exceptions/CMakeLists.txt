@@ -84,6 +84,11 @@ set(
 # tree via generator expressions.
 set(_rt_lib "$<TARGET_FILE:dyninstAPI_RT>")
 set(_ld_path "$<TARGET_FILE_DIR:dyninstAPI_RT>:$<TARGET_FILE_DIR:dyninstAPI>")
+# Third-party libraries dyninstAPI links against must be found as well; pe-parse
+# may live outside the default search path (e.g. /usr/lib on Fedora).
+if(TARGET pe-parse::pe-parse)
+  string(APPEND _ld_path ":$<TARGET_FILE_DIR:pe-parse::pe-parse>")
+endif()
 set(
   _eh_env
   "DYNINSTAPI_RT_LIB=${_rt_lib}"
