@@ -877,6 +877,9 @@ class DYNINST_EXPORT instruction {
     bool isAtomicLoad() const;
     bool isAtomicStore() const;
     bool isUncondBranch() const;
+    bool isBranchToLR() const;
+    bool isBranchToCTR() const;
+    bool isBranchToTAR() const;
     bool isThunk() const;
 
 
