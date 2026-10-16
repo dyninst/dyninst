@@ -1,7 +1,7 @@
 /*
  * The Power instruction predicates that ProcControl's emulated single-step relies on: load-and-reserve and
  * store-conditional of every width (the LL/SC sequence boundaries).
- * Encodings were produced by GNU as (-a64 -mpower9 -mlittle) and read back with objdump.
+ * Instruction words were produced by GNU as (-a64 -mpower9) and read back with objdump.
  */
 #include "common/src/arch-power.h"
 #include <cstdio>
@@ -48,7 +48,10 @@ const atomic_case atomic_cases[] = {
 
 int failures = 0;
 void check(bool ok, const char *what, const char *text) {
-  if (!ok) { std::printf("FAIL: %s for '%s'\n", what, text); ++failures; }
+  if (!ok) {
+    std::printf("FAIL: %s for '%s'\n", what, text);
+    ++failures;
+  }
 }
 
 }  // namespace
@@ -59,6 +62,9 @@ int main() {
     check(insn.isAtomicLoad() == c.is_load_reserve, "isAtomicLoad", c.text);
     check(insn.isAtomicStore() == c.is_store_conditional, "isAtomicStore", c.text);
   }
-  if (failures) { std::printf("%d failure(s)\n", failures); return EXIT_FAILURE; }
+  if (failures) {
+    std::printf("%d failure(s)\n", failures);
+    return EXIT_FAILURE;
+  }
   return EXIT_SUCCESS;
 }

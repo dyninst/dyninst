@@ -239,21 +239,21 @@ async_ret_t ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Ad
     * We need an emulated single step to single step an atomic
     * instruction sequence. The sequence looks something like this:
     *
-    * lwarx
+    * l[bhwdq]arx
     * ...
-    * stwcx.
-    * <breapoint>
+    * st[bhwdq]cx.
+    * <breakpoint>
     *
     * We need to set the breakpoint at the instruction immediately after
-    * stwcx.
+    * the store-conditional.
     */
    Address pc;
    async_ret_t aresult = readPCForSS(thr, pc);
    if (aresult == aret_error || aresult == aret_async)
       return aresult;
 
-    // Check if the next instruction is a lwarx
-    // If it is, scan forward until the terminating stwcx.
+    // Check if the next instruction is a load-and-reserve
+    // If it is, scan forward until the terminating store-conditional
     bool foundEnd = false;
     bool sequenceStarted = false;
     int maxSequenceCount = 24; // arbitrary
