@@ -190,7 +190,7 @@ void insnCodeGen::generateBranch(codeGen &gen,
   disp = toAddr - (fromAddr + 2);
   if (is_disp8(disp)) {
      append_memory_as_byte(insn, 0xEB);
-     *((signed char*) insn) = (signed char) disp;
+     *(reinterpret_cast<signed char*>(insn)) = (signed char) disp;
      insn += sizeof(signed char);
      SET_PTR(insn, gen);
      return;

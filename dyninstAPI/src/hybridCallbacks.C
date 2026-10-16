@@ -472,7 +472,8 @@ static int getPreCallPoints(ParseAPI::Block* blk,
                          BPatch_process *proc, 
                          vector<BPatch_point*> &points) 
 {
-    if (!((parse_block*)blk)->isCallBlock()) {
+    auto *pblock = dynamic_cast<parse_block*>(blk);
+    if (!pblock || !pblock->isCallBlock()) {
         return 0;
     }
 
@@ -485,7 +486,11 @@ static int getPreCallPoints(ParseAPI::Block* blk,
          fit != pFuncs.end(); 
          fit++) 
     {
-        func_instance *iFunc = llproc->findFunction((parse_func*)(*fit));
+        auto *pfunc = dynamic_cast<parse_func*>(*fit);
+        if(!pfunc) {
+            continue;
+        }
+        func_instance *iFunc = llproc->findFunction(pfunc);
         instPoint *iPoint = instPoint::preCall(iFunc, iFunc->obj()->findBlock(blk));
         if (iPoint) {
             BPatch_function *bpFunc = proc->findOrCreateBPFunc(iFunc,NULL);
@@ -528,8 +533,9 @@ void HybridAnalysis::getCallBlocks(Address retAddr,
    for (set<Block*>::iterator bit = callBlocks.begin();
        bit != callBlocks.end();)
    {
+	  auto *pblock = dynamic_cast<parse_block*>(*bit);
       if ((*bit)->end() == (retAddr - callObj->codeBase()) &&
-          ((parse_block*)(*bit))->isCallBlock()) 
+          pblock && pblock->isCallBlock())
       {
           bit++;
       }
