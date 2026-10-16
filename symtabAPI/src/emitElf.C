@@ -2514,6 +2514,7 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
             case DT_INIT:
             case DT_FINI:
             case DT_DYNINST:
+            case DT_DYNINST_EH_FRAME:  // points at the shifted .dyninst_ehframe
                 adjust = address_adjust;
                 break;
             default:

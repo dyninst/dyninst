@@ -81,6 +81,9 @@ bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
     return true;
 }
 
+// No architecture-specific fixup is needed after a non-returning call on aarch64.
+void CFWidget::emitArchNonReturningCallFixup(CodeBuffer & /*buffer*/, const RelocBlock * /*trace*/) {}
+
 bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
     if (isPLT(gen)) {
         relocation_cerr << "\t\t\t isPLT..." << endl;

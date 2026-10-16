@@ -51,6 +51,7 @@
 #include <sys/types.h>
 #include <sys/syscall.h>
 #include <string.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <signal.h>
 #include <sys/mman.h>
@@ -79,6 +80,90 @@ static struct trap_mapping_header *getStaticTrapMap(unsigned long addr);
 unsigned long DYNINSTlinkSave;
 unsigned long DYNINSTtocSave;
 #endif
+
+/* register every rewritten object's synthesized .eh_frame so
+ * libgcc can unwind through instrumented frames (C++ exceptions). binaryEdit
+ * stores the region's link-time vaddr in a DT_DYNINST_EH_FRAME dynamic tag
+ * (the same channel DT_DYNINST uses for the trap table); the loader does not
+ * relocate unknown OS-specific tags, so the load base is added here.
+ * __register_frame lives in libgcc; the ref is weak so uninstrumented /
+ * pure-C binaries link and run unchanged.
+ *
+ * DYNAMIC rewriting only: compiled out of the static RT. The static rewriter
+ * relocates any new global-data reference in the relocated DYNINSTBaseInit to
+ * a bad address (it links the RT at emit, after computing such references),
+ * so static-binary exception support needs a rewriter-aware delivery and is
+ * not attempted here. */
+#if !defined(DYNINST_RT_STATIC_LIB)
+extern void __register_frame(void *) __attribute__((weak));
+
+static int registerEHFrameCB(struct dl_phdr_info *info, size_t size, void *data)
+{
+   ElfW(Half) i;
+   (void)size; (void)data;
+   for (i = 0; i < info->dlpi_phnum; i++) {
+      const ElfW(Dyn) *dyn;
+      if (info->dlpi_phdr[i].p_type != PT_DYNAMIC)
+         continue;
+      dyn = (const ElfW(Dyn) *) (info->dlpi_phdr[i].p_vaddr + info->dlpi_addr);
+      for (; dyn->d_tag != DT_NULL; dyn++) {
+         if (dyn->d_tag == DT_DYNINST_EH_FRAME) {
+            void *frames = (void *) (dyn->d_un.d_ptr + info->dlpi_addr);
+            __register_frame(frames);
+            /* RT lib is libc-only (injected into the mutatee); it cannot call
+             * dyninstAPI's C++ eh_printf, so it gates on the same env var directly. */
+            if (getenv("DYNINST_DEBUG_EH"))
+               fprintf(stderr, "[dyninst-eh] RT register: %s eh_frame=%p\n",
+                       info->dlpi_name && info->dlpi_name[0] ? info->dlpi_name : "(exe)",
+                       frames);
+         }
+      }
+      break;
+   }
+   return 0;
+}
+
+void DYNINSTregisterEHFrames(void)
+{
+   if (__register_frame)
+      dl_iterate_phdr(registerEHFrameCB, NULL);
+   else if (getenv("DYNINST_DEBUG_EH"))
+      fprintf(stderr, "[dyninst-eh] RT register: __register_frame absent, skipping\n");
+}
+
+/* Dynamic-instrumentation delivery. Unlike the rewriter, a live process has no
+ * output ELF / DT tag: dyninstAPI synthesizes the .eh_frame for the in-process
+ * relocated code, writes it into the target, and inferior-RPCs this function
+ * with the region's live address so libgcc's unwinder can unwind through and
+ * catch in the relocated frames. No load base to add -- the address is already
+ * the runtime one. */
+void DYNINSTregisterEHFrame(void *frames)
+{
+   if (__register_frame) {
+      __register_frame(frames);
+      if (getenv("DYNINST_DEBUG_EH"))
+         fprintf(stderr, "[dyninst-eh] RT register (dynamic): eh_frame=%p\n", frames);
+   } else if (getenv("DYNINST_DEBUG_EH")) {
+      fprintf(stderr, "[dyninst-eh] RT register (dynamic): __register_frame absent\n");
+   }
+}
+
+/* Drop a previously-registered dynamic .eh_frame. Each round of dynamic
+ * instrumentation re-relocates the affected functions and synthesizes a fresh
+ * .eh_frame for them; without removing the superseded one, libgcc would keep
+ * stale FDEs covering the same code and could unwind with them. dyninstAPI
+ * deregisters the prior region before registering the new one. */
+extern void __deregister_frame(void *) __attribute__((weak));
+
+void DYNINSTderegisterEHFrame(void *frames)
+{
+   if (__deregister_frame) {
+      __deregister_frame(frames);
+      if (getenv("DYNINST_DEBUG_EH"))
+         fprintf(stderr, "[dyninst-eh] RT deregister (dynamic): eh_frame=%p\n", frames);
+   }
+}
+#endif /* !DYNINST_RT_STATIC_LIB */
 
 /************************************************************************
  * void DYNINSTbreakPoint(void)

@@ -9,3 +9,6 @@ add_subdirectory(InstructionAPI/decoder/x86)
 if(DYNINST_ENABLE_CAPSTONE)
   add_subdirectory(InstructionAPI/decoder/riscv)
 endif()
+
+# C++ exception handling through relocated code (issue #1437)
+add_subdirectory(dyninstAPI/exceptions)
