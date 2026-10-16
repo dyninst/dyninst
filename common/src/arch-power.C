@@ -138,6 +138,21 @@ bool instruction::isAtomicStore() const {
     }
 }
 
+// bclr/bcctr/bctar (XL-form): a branch, conditional or not and with or without LK, whose
+// target is the value of LR, CTR or TAR rather than a field of the instruction, so
+// getTarget() cannot compute it.
+bool instruction::isBranchToLR() const {
+    return XLFORM_OP(*this) == BCLRop && XLFORM_XO(*this) == BCLRxop;
+}
+
+bool instruction::isBranchToCTR() const {
+    return XLFORM_OP(*this) == BCCTRop && XLFORM_XO(*this) == BCCTRxop;
+}
+
+bool instruction::isBranchToTAR() const {
+    return XLFORM_OP(*this) == BCTARop && XLFORM_XO(*this) == BCTARxop;
+}
+
 unsigned instruction::jumpSize(Dyninst::Address from, Dyninst::Address to, unsigned addr_width) {
     Dyninst::Address disp = ABS((long)(to - from));
     return jumpSize(disp, addr_width);
