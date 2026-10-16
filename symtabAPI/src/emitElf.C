@@ -761,13 +761,20 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
                  strcmp(name, "__libc_subfreeres") == 0 || strcmp(name, "__libc_atexit") == 0 ||
                  strcmp(name, "__libc_thread_subfreeres") == 0 || strcmp(name, "__libc_IO_vtables") == 0)) {
             std::vector<Offset> &relr_relocs = object->getRelrDynRelocs();
-            // Every pointer-sized word in this section is shifted by address_adjust.
-            // A word that is also a RELR relocation target was already shifted by the
-            // earlier RELR loop, so skip to avoid offsetting it twice
-            std::unordered_set<Offset> relr_addrs(relr_relocs.begin(), relr_relocs.end());
+            // Every pointer-sized word in this section is shifted by address_adjust,
+            // except a word that is a relocation target owned by another pass:
+            //  - RELR: the earlier RELR loop already shifted it
+            //  - REL: the word is the addend itself, which updateRelocation shifts
+            //    when it is an address (i386 R_386_RELATIVE)
+            // Shifting either here offsets it twice.
+            std::unordered_set<Offset> reloc_owned(relr_relocs.begin(), relr_relocs.end());
+            for (const auto &reloc : object->getDynRelocs()) {
+                if (reloc.regionType() == Region::RT_REL)
+                    reloc_owned.insert(reloc.rel_addr());
+            }
             for(std::size_t off = 0; off < newdata->d_size; off += sizeof(Elf_Addr)) {
                 Offset addr = shdr->sh_addr + off;
-                if (relr_addrs.count(addr)) continue;  // already adjusted as a RELR reloc
+                if (reloc_owned.count(addr)) continue;
 
                 char *loc = static_cast<char*>(newdata->d_buf) + off;
                 Elf_Addr val{};
