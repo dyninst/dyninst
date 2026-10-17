@@ -13,6 +13,7 @@
 #include "Symtab.h"
 
 #include "Function.h"
+#include "Symbol.h"
 #include "frame.h"
 #include "swk_errors.h"
 #include "walker.h"
@@ -71,17 +72,15 @@ namespace {
     }
 
     // Every Linux vDSO this test runs on exports clock_gettime, under an
-    // arch-specific name (__vdso_clock_gettime, __kernel_clock_gettime).
-    std::vector<st::Function*> funcs;
-    symtab->getAllFunctions(funcs);
-    st::Function* target{};
-    for(auto* f : funcs) {
-      for(auto it = f->pretty_names_begin(); !target && it != f->pretty_names_end(); ++it) {
-        if(it->find("clock_gettime") != std::string::npos) {
-          target = f;
-        }
-      }
-      if(target) {
+    // arch-specific name (__vdso_clock_gettime, __kernel_clock_gettime). The
+    // hand-written ppc64 vDSO of older kernels gives it type NOTYPE, so it is
+    // a Symbol but not a Function there.
+    std::vector<st::Symbol*> syms;
+    symtab->getAllSymbols(syms);
+    st::Symbol* target{};
+    for(auto* s : syms) {
+      if(s->getPrettyName().find("clock_gettime") != std::string::npos) {
+        target = s;
         break;
       }
     }
@@ -93,12 +92,19 @@ namespace {
     if(!symtabAt(walker, pid, vdso_base + target->getOffset(), symtab, offset)) {
       return EXIT_FAILURE;
     }
-
-    st::Function* found{};
-    if(!symtab->getContainingFunction(offset, found) || found != target) {
-      std::cerr << "Offset 0x" << std::hex << offset << " does not resolve to "
-                << target->getName() << "\n";
+    if(offset != target->getOffset()) {
+      std::cerr << "Offset 0x" << std::hex << offset << " is not "
+                << target->getPrettyName() << "'s 0x" << target->getOffset() << "\n";
       return EXIT_FAILURE;
+    }
+
+    if(st::Function* func = target->getFunction()) {
+      st::Function* found{};
+      if(!symtab->getContainingFunction(offset, found) || found != func) {
+        std::cerr << "Offset 0x" << std::hex << offset << " does not resolve to "
+                  << func->getName() << "\n";
+        return EXIT_FAILURE;
+      }
     }
     return EXIT_SUCCESS;
   }
