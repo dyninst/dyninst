@@ -100,7 +100,6 @@ jobs:
           tests: "REGRESSION"
 
       - name: Checkout Test Suite
-        if: ${{ matrix.compiler != 'clang' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: dyninst/testsuite
@@ -185,7 +184,6 @@ jobs:
           install-dir: "${GITHUB_WORKSPACE}/install"
 
       - name: Checkout Test Suite
-        if: ${{ matrix.compiler != 'clang' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: dyninst/testsuite
