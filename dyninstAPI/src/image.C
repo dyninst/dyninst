@@ -418,6 +418,177 @@ namespace {
 }
 #endif
 
+#if defined(aarch64_unknown_linux) && defined(DYNINST_CODEGEN_ARCH_AARCH64)
+
+#include <instructionAPI/h/InstructionDecoder.h>
+#include "unaligned_memory_access.h"
+
+namespace {
+    /* On aarch64 glibc's _start passes the address of main to
+       __libc_start_main in x0, and computes it in one of two ways
+       (sysdeps/aarch64/start.S):
+
+           adrp x0, main                    non-PIC _start
+           add  x0, x0, :lo12:main
+
+           adrp x0, :got:main               PIC _start (PIE, and every
+           ldr  x0, [x0, :got_lo12:main]    glibc since 2.34 builds it so)
+
+       In the second form main's address is in a GOT slot, and what puts it
+       there is a dynamic relocation against the slot: R_AARCH64_RELATIVE
+       whose addend is main when main is not exported (the usual stripped
+       PIE), or R_AARCH64_GLOB_DAT / R_AARCH64_ABS64 against main when it is.
+       A static non-PIE link resolves the slot at link time, so with no
+       relocation the slot's contents are main.
+
+       A _start built for BTI begins with bti c, which writes no register
+       and is passed over like the other argument setup.
+     */
+
+    // The relocation types, from the aarch64 ELF ABI.
+    const unsigned long r_aarch64_abs64 = 257;
+    const unsigned long r_aarch64_glob_dat = 1025;
+    const unsigned long r_aarch64_relative = 1027;
+
+    void *get_raw_symtab_ptr(Symtab *linkedFile, Address addr)
+    {
+        Region *reg = linkedFile->findEnclosingRegion(addr);
+        if (reg != NULL && reg->getPtrToRawData() != NULL
+            && reg->getRegionType() != Region::RT_BSS) {
+            char *data = (char*)reg->getPtrToRawData();
+            data += addr - reg->getMemOffset();
+            return data;
+        }
+        return NULL;
+    }
+
+    // The address held in the GOT slot at slot, or 0 if it cannot be known
+    // without running the program.
+    Address read_got_slot(Symtab *linkedFile, Address slot)
+    {
+        std::vector<Region *> regions;
+        linkedFile->getAllRegions(regions);
+        for (Region *reg : regions) {
+            for (SymtabAPI::relocationEntry const& rel : reg->getRelocations()) {
+                if (rel.rel_addr() != slot)
+                    continue;
+                if (rel.getRelType() == r_aarch64_relative)
+                    return rel.addend();
+                if ((rel.getRelType() == r_aarch64_glob_dat
+                     || rel.getRelType() == r_aarch64_abs64)
+                    && rel.getDynSym() != NULL
+                    && rel.getDynSym()->getOffset() != 0)
+                    return rel.getDynSym()->getOffset() + rel.addend();
+                return 0;
+            }
+        }
+
+        // No relocation: the linker wrote the final value.
+        Address *data = (Address *)get_raw_symtab_ptr(linkedFile, slot);
+        return data ? *data : 0;
+    }
+
+    /*
+     * b ends with the call to __libc_start_main.  Returns the address of
+     * main that _start passes in x0, or 0 if b does not set x0 in either of
+     * the ways above.
+     */
+    Address evaluate_main_address(Symtab *linkedFile, Block *b)
+    {
+        using namespace InstructionAPI;
+
+        const unsigned char *code = (const unsigned char *)
+            b->region()->getPtrToInstruction(b->start());
+        if (!code)
+            return 0;
+        InstructionDecoder dec(code, b->end() - b->start(),
+                               b->region()->getArch());
+
+        enum { unknown, address, got_slot } x0_holds = unknown;
+        Address x0 = 0;
+
+        for (Address pc = b->start(); pc + 4 <= b->end(); pc += 4) {
+            Instruction insn = dec.decode();
+            uint32_t raw = 0;
+            Dyninst::read_memory_as(raw, code + (pc - b->start()));
+
+            if ((raw & 0x9f00001fu) == 0x90000000u) {
+                // adrp x0, #imm: x0 = page of pc + imm21 pages
+                int64_t imm = (int64_t)((((raw >> 5) & 0x7ffffu) << 2)
+                                        | ((raw >> 29) & 0x3u));
+                if (imm & ((int64_t)1 << 20))
+                    imm -= ((int64_t)1 << 21);
+                x0 = (pc & ~(Address)0xfff) + (Address)(imm << 12);
+                x0_holds = address;
+            } else if ((raw & 0xff8003ffu) == 0x91000000u) {
+                // add x0, x0, #imm12 {, lsl #12}
+                Address imm = (raw >> 10) & 0xfffu;
+                if (raw & (1u << 22))
+                    imm <<= 12;
+                if (x0_holds == address)
+                    x0 += imm;
+                else
+                    x0_holds = unknown;
+            } else if ((raw & 0xffc003ffu) == 0xf9400000u) {
+                // ldr x0, [x0, #imm12 * 8]
+                if (x0_holds == address) {
+                    x0 += ((raw >> 10) & 0xfffu) * 8;
+                    x0_holds = got_slot;
+                } else {
+                    x0_holds = unknown;
+                }
+            } else {
+                std::set<RegisterAST::Ptr> written;
+                insn.getWriteSet(written);
+                for (auto const& r : written) {
+                    if (r->getID().getBaseRegister()
+                        == aarch64::x0.getBaseRegister())
+                        x0_holds = unknown;
+                }
+            }
+        }
+
+        if (x0_holds == address)
+            return x0;
+        if (x0_holds == got_slot)
+            return read_got_slot(linkedFile, x0);
+        return 0;
+    }
+
+    /*
+     * A non-PIC _start since glibc 2.39 does not pass main itself but
+     * __wrap_main, a stub that start.S defines right after _start:
+     *
+     *     __wrap_main:  bti c (a hint; nop when built without BTI)
+     *                   b     main
+     *
+     * If addr is such a stub close behind the entry point, return where it
+     * branches; otherwise return addr unchanged.  The distance check keeps a
+     * main whose first instruction is a tail call from being taken for it.
+     */
+    Address follow_wrap_main(Symtab *linkedFile, Address entry, Address addr)
+    {
+        if (addr <= entry || addr - entry > 256)
+            return addr;
+        const unsigned char *code =
+            (const unsigned char *)get_raw_symtab_ptr(linkedFile, addr);
+        if (!code)
+            return addr;
+        uint32_t first = 0, second = 0;
+        Dyninst::read_memory_as(first, code);
+        Dyninst::read_memory_as(second, code + 4);
+        // any hint (nop, bti c, ...)  followed by  b #imm26
+        if ((first & 0xfffff01fu) != 0xd503201fu
+            || (second & 0xfc000000u) != 0x14000000u)
+            return addr;
+        int64_t imm = (int64_t)(second & 0x3ffffffu);
+        if (imm & ((int64_t)1 << 25))
+            imm -= ((int64_t)1 << 26);
+        return addr + 4 + (Address)(imm * 4);
+    }
+}
+#endif
+
 #include <Graph.h>
 #include <Node.h>
 #include <DynAST.h>
@@ -592,7 +763,82 @@ int image::findMain()
                     linkedFile->getDefaultModule(),
                     eReg, 
                     0 );
-            linkedFile->addSymbol(newSym);		
+            linkedFile->addSymbol(newSym);
+        }
+    }
+
+#elif defined(aarch64_unknown_linux) && defined(DYNINST_CODEGEN_ARCH_AARCH64)
+    // Only look for main in executables, but do allow position-independent
+    // executables (PIE) which look like shared objects with an INTERP.
+    if (linkedFile->isExec())
+    {
+        vector <SymtabAPI::Function *> funcs;
+        if (!linkedFile->findFunctionsByName(funcs, "main") &&
+            !linkedFile->findFunctionsByName(funcs, "_main"))
+        {
+            logLine("No main symbol found: attempting to create symbol for main\n");
+
+            Address eAddr = linkedFile->getEntryOffset();
+
+            bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
+            SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
+            CodeObject tco(&scs,NULL,NULL,false);
+
+            tco.parse(eAddr,false);
+            set<CodeRegion *> regions;
+            scs.findRegions(eAddr,regions);
+            if(regions.empty())
+                return -1;
+            SymtabCodeRegion * reg =
+                static_cast<SymtabCodeRegion*>(*regions.begin());
+            Function * func = tco.findFuncByEntry(reg,eAddr);
+            if(!func)
+                return -1;
+
+            // As on ppc64: try _start's entry block, which makes the
+            // __libc_start_main call in glibc's _start, then each call-edge
+            // source, until one yields a valid address.
+            std::vector<Block *> candidates;
+            Block * entryBlock = tco.findBlockByEntry(reg,eAddr);
+            if (entryBlock)
+                candidates.push_back(entryBlock);
+            const Function::edgelist & calls = func->callEdges();
+            for (Function::edgelist::const_iterator cit = calls.begin();
+                 cit != calls.end(); ++cit) {
+                if ((*cit)->src() && (*cit)->src() != entryBlock)
+                    candidates.push_back((*cit)->src());
+            }
+
+            Region *pltsec = NULL;
+            linkedFile->findRegion(pltsec, ".plt");
+
+            Address mainAddress = 0;
+            for (std::vector<Block *>::const_iterator bit = candidates.begin();
+                 bit != candidates.end() && mainAddress == 0; ++bit) {
+                Address cand = evaluate_main_address(linkedFile,*bit);
+                if (cand != 0)
+                    cand = follow_wrap_main(linkedFile, eAddr, cand);
+                if (cand != 0 && scs.isValidAddress(cand)
+                    && !(pltsec && pltsec->isOffsetInRegion(cand)))
+                    mainAddress = cand;
+            }
+
+            if(0 == mainAddress) {
+                startup_printf("%s[%d] failed to find main\n",FILE__,__LINE__);
+                return -1;
+            }
+            startup_printf("%s[%d] found main at %lx\n",
+                    FILE__,__LINE__,mainAddress);
+
+            Symbol *newSym= new Symbol( "main",
+                    Symbol::ST_FUNCTION,
+                    Symbol::SL_LOCAL,
+                    Symbol::SV_INTERNAL,
+                    mainAddress,
+                    linkedFile->getDefaultModule(),
+                    linkedFile->findEnclosingRegion(mainAddress),
+                    0 );
+            linkedFile->addSymbol(newSym);
         }
     }
 
