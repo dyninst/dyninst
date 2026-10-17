@@ -68,14 +68,32 @@ bool ppc_process::plat_breakpointAdvancesPC() const
    return false;
 }
 
+// Every load-and-reserve / store-conditional width, not only lwarx/stwcx.: a 64-bit ldarx/stdcx.
+// loop (the common case in ppc64 code) that is not recognised here is single-stepped with the
+// hardware, every step trap clears the reservation, stdcx. always fails and the thread never
+// leaves the loop.
 static bool atomicLoad(const instruction &insn) {
-    return (    (XFORM_OP(insn) == LXop)
-             && (XFORM_XO(insn) == LWARXxop) );
+    return insn.isAtomicLoad();
 }
 
 static bool atomicStore(const instruction &insn) {
-    return (    (XFORM_OP(insn) == STXop)
-             && (XFORM_XO(insn) == STWCXxop) );
+    return insn.isAtomicStore();
+}
+
+// Read a register of a thread stopped for the emulated single-step check. Like the
+// fast path of readPCForSS, this needs synchronous register reads (Linux).
+static async_ret_t readRegForSS(int_thread *thr, MachRegister reg, Address &val) {
+   reg_response::ptr resp = reg_response::createRegResponse();
+   bool result = thr->getRegister(reg, resp);
+   if (!result || resp->hasError()) {
+      pthrd_printf("Error reading %s to check for emulated single step condition\n", reg.name().c_str());
+      return aret_error;
+   }
+   bool ready = resp->isReady();
+   assert(ready);
+   if (!ready) return aret_error;
+   val = (Address) resp->getResult();
+   return aret_success;
 }
 
 static void clear_ss_state_cb(int_thread *thr) {
@@ -237,21 +255,21 @@ async_ret_t ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Ad
     * We need an emulated single step to single step an atomic
     * instruction sequence. The sequence looks something like this:
     *
-    * lwarx
+    * l[bhwdq]arx
     * ...
-    * stwcx.
-    * <breapoint>
+    * st[bhwdq]cx.
+    * <breakpoint>
     *
     * We need to set the breakpoint at the instruction immediately after
-    * stwcx.
+    * the store-conditional.
     */
    Address pc;
    async_ret_t aresult = readPCForSS(thr, pc);
    if (aresult == aret_error || aresult == aret_async)
       return aresult;
 
-    // Check if the next instruction is a lwarx
-    // If it is, scan forward until the terminating stwcx.
+    // Check if the next instruction is a load-and-reserve
+    // If it is, scan forward until the terminating store-conditional
     bool foundEnd = false;
     bool sequenceStarted = false;
     int maxSequenceCount = 24; // arbitrary
@@ -277,8 +295,26 @@ async_ret_t ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Ad
         }
 
         // For control flow instructions, assume target is outside atomic instruction sequence
-        // and place breakpoint there as well
-        Address cfTarget = insn.getTarget(pc);
+        // and place breakpoint there as well. The target of a branch to LR or CTR (bnelr,
+        // bnectr) is not in the instruction, so read the register from the stopped thread:
+        // without a breakpoint there the thread leaves the sequence and runs free, and the
+        // single step is lost. The value read is the one at the start of the sequence.
+        Address cfTarget = 0;
+        if( insn.isBranchToLR() || insn.isBranchToCTR() ) {
+            bool is64 = getTargetArch() == Arch_ppc64;
+            MachRegister reg = insn.isBranchToLR() ? (is64 ? ppc64::lr : ppc32::lr)
+                                                   : (is64 ? ppc64::ctr : ppc32::ctr);
+            aresult = readRegForSS(thr, reg, cfTarget);
+            if (aresult == aret_error || aresult == aret_async)
+               return aresult;
+        }else if( insn.isBranchToTAR() ) {
+            // TAR cannot be read, so there is no address to stop the thread at
+            pthrd_printf("Branch to TAR in an atomic instruction sequence at 0x%lx\n", pc);
+            addrResult.clear();
+            return aret_error;
+        }else{
+            cfTarget = insn.getTarget(pc);
+        }
         if( cfTarget != 0 && sequenceStarted && !foundEnd ) {
             addrResult.push_back(cfTarget);
         }
