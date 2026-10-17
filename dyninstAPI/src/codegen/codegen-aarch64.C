@@ -756,8 +756,17 @@ bool insnCodeGen::modifyData(Dyninst::Address target,
     if (((raw >> 24) & 0x1F) == 0x10) {
         Dyninst::Address offset;
         if((static_cast<uint32_t>(raw) >> 31) & 0x1) {
-            target &= 0xFFFFF000;
-            Dyninst::Address cur = gen.currAddr() & 0xFFFFF000;
+            // From the Arm Architecture Reference Manual:
+            //   "The ADRP instruction shifts a signed, 21-bit immediate left by
+            //   12 bits, adds it to the value of the program counter with the
+            //   bottom 12 bits cleared to zero, and then writes the result to a
+            //   general-purpose register."
+            // So the immediate is the distance in 4 KiB pages between the page
+            // of the instruction and the page of the target. Clear only the
+            // bottom 12 bits of both addresses and keep all 64 bits.
+            const Dyninst::Address page_mask = ~static_cast<Dyninst::Address>(0xFFF);
+            target &= page_mask;
+            Dyninst::Address cur = gen.currAddr() & page_mask;
             offset = isneg ? (cur - target) : (target - cur);
             offset >>= 12;
         } else {
