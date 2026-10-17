@@ -107,7 +107,6 @@ jobs:
           path: "testsuite"  # relative to ${GITHUB_WORKSPACE}
 
       - name: Build testsuite
-        if: ${{ matrix.compiler != 'clang' }}
         shell: bash
         run: |
           set -ex
@@ -193,7 +192,6 @@ jobs:
           path: "testsuite"  # relative to ${GITHUB_WORKSPACE}
 
       - name: Build testsuite
-        if: ${{ matrix.compiler != 'clang' }}
         shell: bash
         run: |
           set -ex
