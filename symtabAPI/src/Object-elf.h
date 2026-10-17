@@ -374,7 +374,11 @@ public:
   Elf_X *elfHdr;
  
   std::vector< std::vector<Offset> > moveSecAddrRange;
+  // One tag per address, so a section that two tags point at keeps only the
+  // tag seen last.  .rela.plt is such a section whenever it is the whole of
+  // the dynamic relocations, which is why DT_JMPREL is also kept on its own.
   dyn_hash_map<Offset, int> secAddrTagMapping;
+  Offset jmprel_addr_;          // the address DT_JMPREL gave, or zero
   dyn_hash_map<int, unsigned long> secTagSizeMapping;
   dyn_hash_map<int, Region*> secTagRegionMapping;
 
