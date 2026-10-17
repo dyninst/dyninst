@@ -394,10 +394,11 @@ bool AuxvParser::readAuxvInfo()
      free(buffer64);
   if (!page_size)
      page_size = getpagesize();
-//#if !defined(DYNINST_HOST_ARCH_X86) && !defined(DYNINST_HOST_ARCH_X86_64)
 #if !defined(DYNINST_HOST_ARCH_X86) && !defined(DYNINST_HOST_ARCH_X86_64) && !defined(DYNINST_HOST_ARCH_AARCH64)
-  //No vsyscall page needed or present
-  return true;
+  // Only AT_SYSINFO_EHDR locates the vDSO here. Without it, the maps scan
+  // below would take any anonymous private mapping for the vsyscall page.
+  if (!dso_start)
+     return true;
 #endif
 
   /**
