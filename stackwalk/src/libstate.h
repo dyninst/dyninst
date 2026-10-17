@@ -66,7 +66,6 @@ class TrackLibState : public LibraryState {
    
    bool updateLibs();
    bool refresh();
-   std::vector<std::pair<LibAddrPair, unsigned> > arch_libs;
 
    void getCurList(std::set<LibAddrPair> &list);
  public:
