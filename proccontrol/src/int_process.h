@@ -948,6 +948,22 @@ public:
    // Emulating single steps with breakpoints
    void addEmulatedSingleStep(emulated_singlestep *es);
    void rmEmulatedSingleStep(emulated_singlestep *es);
+   // Teardown shared by the completion handler and the cancel paths: the
+   // thread's single-step flags back to what the user had set, the object
+   // retired.  The breakpoints must already be out (emulated_singlestep::clear).
+   void finishEmulatedSingleStep(emulated_singlestep *es);
+   // Abandon the emulated single step in flight: its breakpoints out of the
+   // text, a stopped-on-breakpoint mark that names one of them dropped (unless
+   // another breakpoint is still installed there), the thread's single-step
+   // mode as the user last set it.  For a user request that makes the step
+   // moot: turning stepping off, writing a register, detaching.  Breakpoint
+   // removal may be asynchronous: a user-level caller passes no set and the
+   // call waits; a handler passes the set it is collecting responses in, gets
+   // aret_async, and calls finishCancelledEmulatedSingleStep() once they are
+   // ready.
+   async_ret_t cancelEmulatedSingleStep(std::set<response::ptr> *async_out = NULL);
+   void finishCancelledEmulatedSingleStep();
+   void dropMarkForRetiredBreakpoints(emulated_singlestep *es);
    emulated_singlestep *getEmulatedSingleStep();
 
    //RPC Management
@@ -1486,6 +1502,12 @@ class emulated_singlestep {
    async_ret_t add(Address addr);
    async_ret_t clear();
    void restoreSSMode();
+   // The single-step mode the user had set when this emulated step began, which
+   // the thread's own flag no longer shows while the step is in flight.
+   bool savedUserMode() const;
+   // A cancel whose breakpoint removal is still asynchronous; finished by
+   // int_thread::finishCancelledEmulatedSingleStep().
+   bool cancel_pending;
 
    std::set<response::ptr> clear_resps;
 };

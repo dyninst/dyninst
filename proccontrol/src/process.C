@@ -4281,6 +4281,73 @@ emulated_singlestep *int_thread::getEmulatedSingleStep()
    return em_singlestep;
 }
 
+void int_thread::finishEmulatedSingleStep(emulated_singlestep *es)
+{
+   es->restoreSSMode();
+   rmEmulatedSingleStep(es);
+}
+
+// A stopped-on-breakpoint mark that names one of the emulation's breakpoints
+// would make the next continue step the thread over an address with no
+// breakpoint at it, so it is dropped once the breakpoints are out.  It is kept
+// while another breakpoint (a user's) is still installed at that address: then
+// the thread really is stopped on a breakpoint and the step-over must happen.
+// The mark an iRPC has set aside is handled the same way.
+void int_thread::dropMarkForRetiredBreakpoints(emulated_singlestep *es)
+{
+   if (stopped_on_breakpoint_addr && es->containsBreakpoint(stopped_on_breakpoint_addr) && !isStoppedOnBP())
+      markStoppedOnBP(NULL);
+   Address post = postponed_stopped_on_breakpoint_addr;
+   if (post && es->containsBreakpoint(post) && !llproc()->getBreakpoint(post) && !getHWBreakpoint(post))
+      postponed_stopped_on_breakpoint_addr = 0x0;
+}
+
+async_ret_t int_thread::cancelEmulatedSingleStep(std::set<response::ptr> *async_out)
+{
+   emulated_singlestep *es = em_singlestep;
+   if (!es)
+      return aret_success;
+   pthrd_printf("Cancelling emulated single step on %d/%d\n", llproc()->getPid(), getLWP());
+   async_ret_t aresult = es->clear();
+   if (aresult == aret_async) {
+      if (async_out) {
+         // A handler: it collects the responses and comes back through
+         // finishCancelledEmulatedSingleStep() once they are ready.
+         async_out->insert(es->clear_resps.begin(), es->clear_resps.end());
+         es->cancel_pending = true;
+         return aret_async;
+      }
+      // A user operation: wait for the removals here, as the register and
+      // memory APIs do for their own responses.
+      if (!int_process::waitForAsyncEvent(es->clear_resps)) {
+         perr_printf("Error removing emulation breakpoints on %d/%d\n", llproc()->getPid(), getLWP());
+         return aret_error;
+      }
+      aresult = es->clear();
+      assert(aresult == aret_success);
+   }
+   else if (aresult == aret_error) {
+      perr_printf("Error removing emulation breakpoints on %d/%d\n", llproc()->getPid(), getLWP());
+      return aret_error;
+   }
+   dropMarkForRetiredBreakpoints(es);
+   finishEmulatedSingleStep(es);
+   return aret_success;
+}
+
+void int_thread::finishCancelledEmulatedSingleStep()
+{
+   emulated_singlestep *es = em_singlestep;
+   if (!es || !es->cancel_pending)
+      return;
+   if (es->clear() != aret_success) {
+      perr_printf("Emulation breakpoint removal still pending on %d/%d\n", llproc()->getPid(), getLWP());
+      return;
+   }
+   dropMarkForRetiredBreakpoints(es);
+   finishEmulatedSingleStep(es);
+}
+
 void int_thread::clearRegCache()
 {
    regpool_lock.lock();
@@ -7467,6 +7534,13 @@ bool Thread::setAllRegisters(RegisterPool &pool) const
    MTLock lock_this_func;
    THREAD_EXIT_DETACH_STOP_TEST("setAllRegisters", false);
 
+   // A register write makes an emulated step in flight moot: the step's exits
+   // were computed from the registers the thread had.  Cancelling only retires
+   // the emulation's breakpoints and restores the step flag; if the thread is
+   // still at the sequence when it is next continued, the step is set up again
+   // from the new register values.
+   llthread_->cancelEmulatedSingleStep();
+
    result_response::ptr response = result_response::createResultResponse();
    bool result = llthread_->setAllRegisters(*pool.llregpool, response);
    if (!result) {
@@ -7517,6 +7591,11 @@ bool Thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val
    MTLock lock_this_func;
    THREAD_EXIT_DETACH_STOP_TEST("setRegister", false);
 
+   // Any register may decide where the sequence exits (the PC itself, the link
+   // or count register of a return, the register of an indirect branch), so
+   // every write cancels the emulated step in flight; see setAllRegisters.
+   llthread_->cancelEmulatedSingleStep();
+
    result_response::ptr response = result_response::createResultResponse();
    bool result = llthread_->setRegister(reg, val, response);
    if (!result) {
@@ -7562,6 +7641,7 @@ bool Thread::setAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
 {
    MTLock lock_this_func;
    THREAD_EXIT_DETACH_STOP_TEST("getAllRegistersAsync", false);
+   llthread_->cancelEmulatedSingleStep();
    pthrd_printf("User wants to async set registers on %d/%d\n",
                 llthread_->proc()->getPid(), llthread_->getLWP());
 
@@ -7732,6 +7812,18 @@ bool Thread::setSingleStepMode(bool s) const
 {
    MTLock lock_this_func;
    THREAD_EXIT_DETACH_STOP_TEST("setSingleStepMode", false);
+   if (llthread_->getEmulatedSingleStep()) {
+      // An emulated step is in flight: the thread's own flag is off for its
+      // duration and restored from the saved mode when it completes, so a
+      // plain write here would be undone then (and the thread would step on
+      // for ever after the user turned stepping off).  Turning stepping off
+      // makes the step moot: cancel it.  Turning it on changes nothing: an
+      // emulated step only exists for a thread whose saved mode is on.
+      if (s)
+         return true;
+      if (llthread_->cancelEmulatedSingleStep() != aret_success)
+         return false;
+   }
    llthread_->setSingleStepUserMode(s);
    return true;
 }
@@ -7740,7 +7832,10 @@ bool Thread::getSingleStepMode() const
 {
    MTLock lock_this_func;
    THREAD_EXIT_TEST("getSingleStepMode", false);
-   return llthread_->singleStepUserMode();
+   // While an emulated step is in flight the thread's own flag is off; what
+   // the user set is in the emulation's saved mode.
+   emulated_singlestep *es = llthread_->getEmulatedSingleStep();
+   return es ? es->savedUserMode() : llthread_->singleStepUserMode();
 }
 
 bool Thread::setSyscallMode(bool s) const
@@ -8688,7 +8783,8 @@ bool ProcStopEventManager::threadStoppedTo(int_thread *thr, int state_id)
 }
 
 emulated_singlestep::emulated_singlestep(int_thread *thr_) :
-   thr(thr_)
+   thr(thr_),
+   cancel_pending(false)
 {
    bp = new int_breakpoint(Breakpoint::ptr());
    bp->setOneTimeBreakpoint(true);
@@ -8752,6 +8848,11 @@ void emulated_singlestep::restoreSSMode()
 {
    thr->setSingleStepMode(saved_single_step);
    thr->setSingleStepUserMode(saved_user_single_step);
+}
+
+bool emulated_singlestep::savedUserMode() const
+{
+   return saved_user_single_step;
 }
 
 void int_thread::terminate() {
