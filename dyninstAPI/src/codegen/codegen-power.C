@@ -764,10 +764,10 @@ void insnCodeGen::loadPartialImmIntoReg(codeGen &gen, Dyninst::Register rt, long
    
    if (BOT_LO(value) & 0x8000) {
       // high bit of lowest half-word is set, so the sign extension of
-      // the next op will cause the wrong effective addr to be computed.
-      // so we subtract the sign ext value from the other half-words.
-      // sounds odd, but works and saves an instruction - jkh 5/25/95
-      value = ((value >> 16) - (std::numeric_limits<unsigned int>::max() >> 16)) << 16;
+      // the next op subtracts 0x10000 from the effective addr. Add it
+      // back to the upper half-words. (Subtracting 0xffff instead only
+      // matches this modulo 2^32 and drops bit 32 of a 64-bit address.)
+      value = ((value >> 16) + 1) << 16;
    }
    
    if (MIN_IMM32 <= value && value <= MAX_IMM32) {
