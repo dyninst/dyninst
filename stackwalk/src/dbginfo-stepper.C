@@ -310,6 +310,9 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dauxinfo, isVsyscallPage);
    cur_frame = NULL;
 
+   if (gcresult == gcf_stackbottom)
+      return gcresult;
+
    result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(out.getRA(), lib);
    if (!result) return gcf_not_me;
 
@@ -545,6 +548,11 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                                          ret_value, this, frame_error);
    }
    if (!result) {
+      if (frame_error == FE_Undefined_Return_Address) {
+         sw_printf("[%s:%d] - DWARF return address is undefined; stack bottom reached\n",
+                   FILE__, __LINE__);
+         return gcf_stackbottom;
+      }
       sw_printf("[%s:%d] - Couldn't get return debug info at %lx, error: %d\n",
                 FILE__, __LINE__, in.getRA(), frame_error);
       return gcf_not_me;
