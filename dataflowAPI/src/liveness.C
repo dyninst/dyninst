@@ -453,6 +453,11 @@ bool LivenessAnalyzer::query(Location loc, Type type, const MachRegister& machRe
 	bitArray liveRegs;
 	if (query(loc, type, liveRegs)){
         int index = getIndex(machReg);
+        if(index < 0) {
+          // The index holds whole registers (e.g. z<N> on aarch64); a sub-register
+          // such as q<N> or d<N> shares its base register's bit.
+          index = getIndex(machReg.getBaseRegister());
+        }
         assert(index >= 0);
 		live = liveRegs[index];
 		return true;

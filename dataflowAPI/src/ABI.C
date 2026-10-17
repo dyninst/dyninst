@@ -619,11 +619,11 @@ void ABI::initialize64(){
 
 	returnRegs64_ = getBitArray(sz);
     (*returnRegs64_)[aarch64Map[aarch64::x0]] = true;
-    (*returnRegs64_)[aarch64Map[aarch64::q0]] = true;
+    (*returnRegs64_)[aarch64Map[aarch64::z0]] = true;
 
 	returnRead64_ = getBitArray(sz);
     (*returnRead64_)[aarch64Map[aarch64::x0]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::q0]] = true;
+    (*returnRead64_)[aarch64Map[aarch64::z0]] = true;
     //Callee-saved registers
     //First, GPRs...
     (*returnRead64_)[aarch64Map[aarch64::x19]] = true;
@@ -638,14 +638,14 @@ void ABI::initialize64(){
     (*returnRead64_)[aarch64Map[aarch64::x28]] = true;
     (*returnRead64_)[aarch64Map[aarch64::sp]] = true;
     //Now, SIMD regs...
-    (*returnRead64_)[aarch64Map[aarch64::q8]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::q9]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::q10]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::q11]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::q12]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::q13]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::q14]] = true;
-    (*returnRead64_)[aarch64Map[aarch64::q15]] = true;
+    (*returnRead64_)[aarch64Map[aarch64::z8]] = true;
+    (*returnRead64_)[aarch64Map[aarch64::z9]] = true;
+    (*returnRead64_)[aarch64Map[aarch64::z10]] = true;
+    (*returnRead64_)[aarch64Map[aarch64::z11]] = true;
+    (*returnRead64_)[aarch64Map[aarch64::z12]] = true;
+    (*returnRead64_)[aarch64Map[aarch64::z13]] = true;
+    (*returnRead64_)[aarch64Map[aarch64::z14]] = true;
+    (*returnRead64_)[aarch64Map[aarch64::z15]] = true;
 
     callParam64_ = getBitArray(sz);
     (*callParam64_)[aarch64Map[aarch64::x0]] = true;
@@ -668,14 +668,14 @@ void ABI::initialize64(){
 	(*callRead64_)[aarch64Map[aarch64::x6]] = true;
 	(*callRead64_)[aarch64Map[aarch64::x7]] = true;
 	//Now, SIMD regs...
-	(*callRead64_)[aarch64Map[aarch64::q0]] = true;
-	(*callRead64_)[aarch64Map[aarch64::q1]] = true;
-	(*callRead64_)[aarch64Map[aarch64::q2]] = true;
-	(*callRead64_)[aarch64Map[aarch64::q3]] = true;
-	(*callRead64_)[aarch64Map[aarch64::q4]] = true;
-	(*callRead64_)[aarch64Map[aarch64::q5]] = true;
-	(*callRead64_)[aarch64Map[aarch64::q6]] = true;
-	(*callRead64_)[aarch64Map[aarch64::q7]] = true;
+	(*callRead64_)[aarch64Map[aarch64::z0]] = true;
+	(*callRead64_)[aarch64Map[aarch64::z1]] = true;
+	(*callRead64_)[aarch64Map[aarch64::z2]] = true;
+	(*callRead64_)[aarch64Map[aarch64::z3]] = true;
+	(*callRead64_)[aarch64Map[aarch64::z4]] = true;
+	(*callRead64_)[aarch64Map[aarch64::z5]] = true;
+	(*callRead64_)[aarch64Map[aarch64::z6]] = true;
+	(*callRead64_)[aarch64Map[aarch64::z7]] = true;
 
 	callWritten64_ = callRead64_;
 	//First, GPRs...
@@ -687,22 +687,22 @@ void ABI::initialize64(){
 	(*callWritten64_)[aarch64Map[aarch64::x14]] = true;
 	(*callWritten64_)[aarch64Map[aarch64::x15]] = true;
 	//Now, SIMD regs...
-	(*callWritten64_)[aarch64Map[aarch64::q16]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q17]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q18]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q19]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q20]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q21]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q22]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q23]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q24]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q25]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q26]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q27]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q28]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q29]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q30]] = true;
-	(*callWritten64_)[aarch64Map[aarch64::q31]] = true;
+	(*callWritten64_)[aarch64Map[aarch64::z16]] = true;
+	(*callWritten64_)[aarch64Map[aarch64::z17]] = true;
+	(*callWritten64_)[aarch64Map[aarch64::z18]] = true;
+	(*callWritten64_)[aarch64Map[aarch64::z19]] = true;
+	(*callWritten64_)[aarch64Map[aarch64::z20]] = true;
+	(*callWritten64_)[aarch64Map[aarch64::z21]] = true;
+	(*callWritten64_)[aarch64Map[aarch64::z22]] = true;
+	(*callWritten64_)[aarch64Map[aarch64::z23]] = true;
+	(*callWritten64_)[aarch64Map[aarch64::z24]] = true;
+	(*callWritten64_)[aarch64Map[aarch64::z25]] = true;
+	(*callWritten64_)[aarch64Map[aarch64::z26]] = true;
+	(*callWritten64_)[aarch64Map[aarch64::z27]] = true;
+	(*callWritten64_)[aarch64Map[aarch64::z28]] = true;
+	(*callWritten64_)[aarch64Map[aarch64::z29]] = true;
+	(*callWritten64_)[aarch64Map[aarch64::z30]] = true;
+	(*callWritten64_)[aarch64Map[aarch64::z31]] = true;
 
 	syscallRead64_ = &getBitArray(sz)->set();
 	syscallWritten64_ = &getBitArray(sz)->set();
