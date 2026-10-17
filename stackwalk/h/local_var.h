@@ -162,6 +162,8 @@ static Dyninst::SymtabAPI::Function *getFunctionForFrame(Frame f)
    else {
       symtab = getSymtabForName(lib_name);
    }
+   if (!symtab)
+      return NULL;
    Function *func;
    result = symtab->getContainingFunction(offset, func);
    if (!result)
