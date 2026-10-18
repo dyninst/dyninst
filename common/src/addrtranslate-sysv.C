@@ -873,13 +873,17 @@ FCNode::FCNode(string f, dev_t d, ino_t i, SymbolReaderFactory *factory_) :
    symreader(NULL),
    factory(factory_)
 {
+   filename = nodeName(std::move(f));
+}
+
+std::string FCNode::nodeName(std::string f)
+{
    // Names reach here already resolved for the target process. One under
    // /proc/ is a target's file seen through procfs; canonicalize() would
    // follow that link back to this side of the mount namespace.
    if (f.compare(0, 6, "/proc/") == 0)
-      filename = std::move(f);
-   else
-      filename = Dyninst::filesystem::canonicalize(std::move(f));
+      return f;
+   return Dyninst::filesystem::canonicalize(std::move(f));
 }
 
 string FCNode::getFilename() {
@@ -1006,7 +1010,18 @@ FCNode *FileCache::getNode(const string &filename, SymbolReaderFactory *factory)
       if (nodes[i]->inode == buf.st_ino &&
           nodes[i]->device == buf.st_dev)
       {
-         return nodes[i];
+         // Nodes are shared by file, and a node keeps the first name it was
+         // given. A name under /proc/<pid>/ stops reaching the file once that
+         // process exits, or names another file once the pid is reused: then
+         // take the caller's name, which reaches the file now.
+         FCNode *node = nodes[i];
+         struct stat named;
+         if (node->filename != filename &&
+             (stat(node->filename.c_str(), &named) == -1 ||
+              named.st_ino != buf.st_ino || named.st_dev != buf.st_dev))  {
+            node->filename = FCNode::nodeName(filename);
+         }
+         return node;
       }
    }
 

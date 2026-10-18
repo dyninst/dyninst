@@ -11,6 +11,7 @@
 #ifdef __linux__  // os_linux is defined for the libraries, not the unit tests
 #include <sched.h>
 #include <signal.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #endif
@@ -18,16 +19,18 @@
 static int test_canonicalize();
 static int test_resolve_in_root_fs();
 static int test_canonicalize_procfs();
+static int test_executable_path();
 static int test_exists();
 static int test_replace_extension();
 static int test_append_filename_suffix();
 static int test_strip_all_extensions();
 
 int main() {
-  std::array<int(*)(), 7> tests = {{
+  std::array<int(*)(), 8> tests = {{
       test_canonicalize,
       test_resolve_in_root_fs,
       test_canonicalize_procfs,
+      test_executable_path,
       test_exists,
       test_replace_extension,
       test_append_filename_suffix,
@@ -200,6 +203,152 @@ int test_resolve_in_root_fs() {
   }
   bf::remove_all(outer);
   return failed ? EXIT_FAILURE : EXIT_SUCCESS;
+#else
+  return EXIT_SUCCESS;
+#endif
+}
+
+int test_executable_path() {
+#ifdef __linux__
+  namespace bf = boost::filesystem;
+  namespace df = Dyninst::filesystem;
+
+  // A process sharing our filesystem view: the executable's real path.
+  auto const self = getpid();
+  auto const self_exe = "/proc/" + std::to_string(self) + "/exe";
+  if (df::executable_path(self) != bf::canonical(self_exe).string())  {
+    std::cerr << "executable_path: '" << df::executable_path(self) << "' is not this program's path\n";
+    return EXIT_FAILURE;
+  }
+
+  // A process with its own mount namespace: a name inside /proc/<pid>/root
+  // that reaches the running program, and changes when the process execs.
+  int ready[2], go[2];
+  if (pipe(ready) != 0)  {
+    return EXIT_FAILURE;
+  }
+  if (pipe(go) != 0)  {
+    return EXIT_FAILURE;
+  }
+  pid_t const child = fork();
+  if (child < 0)  {
+    return EXIT_FAILURE;
+  }
+  if (child == 0)  {
+    close(ready[0]);
+    close(go[1]);
+    char ok = unshare(CLONE_NEWUSER | CLONE_NEWNS) == 0 ? 1 : 0;
+    if (write(ready[1], &ok, 1) != 1)  {
+      _exit(1);
+    }
+    char c;
+    if (read(go[0], &c, 1) == 1)  {
+      execlp("sleep", "sleep", "60", static_cast<char *>(nullptr));
+    }
+    _exit(1);
+  }
+  close(ready[1]);
+  close(go[0]);
+  char ok = 0;
+  bool const unshared = read(ready[0], &ok, 1) == 1 && ok;
+  auto const proc = "/proc/" + std::to_string(child);
+  auto const exe = proc + "/exe";
+  auto const same_file = [&exe](std::string const& name) {
+    struct stat a{}, b{};
+    return stat(name.c_str(), &a) == 0 && stat(exe.c_str(), &b) == 0 && a.st_dev == b.st_dev &&
+           a.st_ino == b.st_ino;
+  };
+  auto const named_in_root = [&](char const* when, std::string const& name) {
+    if (name.compare(0, proc.size() + 6, proc + "/root/") != 0 || !same_file(name))  {
+      std::cerr << "executable_path " << when << " exec: '" << name << "' is not the program inside "
+                << proc << "/root\n";
+      return false;
+    }
+    return true;
+  };
+  int ret = EXIT_SUCCESS;
+  if (!unshared)  {
+    std::cerr << "skipping the mount-namespace case: unshare() is not permitted here\n";
+  } else if (access((proc + "/root/").c_str(), R_OK) != 0)  {
+    std::cerr << "skipping the mount-namespace case: cannot read " << proc << "/root\n";
+  } else {
+    struct stat before{};
+    stat(exe.c_str(), &before);
+    auto const first = df::executable_path(child);
+    if (!named_in_root("before", first))  {
+      ret = EXIT_FAILURE;
+    }
+    if (write(go[1], "x", 1) != 1)  {
+      ret = EXIT_FAILURE;
+    }
+    // Wait for the exec to replace the program.
+    struct stat after{};
+    for (int i = 0; i < 500; ++i)  {
+      if (stat(exe.c_str(), &after) == 0 && after.st_ino != before.st_ino)  {
+        break;
+      }
+      usleep(10000);
+    }
+    if (after.st_ino == before.st_ino)  {
+      std::cerr << "executable_path: the child did not exec sleep\n";
+      ret = EXIT_FAILURE;
+    } else {
+      auto const second = df::executable_path(child);
+      if (!named_in_root("after", second))  {
+        ret = EXIT_FAILURE;
+      }
+      if (second == first)  {
+        std::cerr << "executable_path: '" << first << "' did not change across exec\n";
+        ret = EXIT_FAILURE;
+      }
+    }
+  }
+  kill(child, SIGKILL);
+  waitpid(child, nullptr, 0);
+  close(ready[0]);
+  close(go[1]);
+
+  // A process chrooted into this program's directory: our view reaches its
+  // root, so the link's text is our own path to the program, but the name is
+  // still the target's path under /proc/<pid>/root.
+  auto const program = bf::canonical(self_exe);
+  if (pipe(ready) != 0)  {
+    return EXIT_FAILURE;
+  }
+  pid_t const jailed = fork();
+  if (jailed < 0)  {
+    return EXIT_FAILURE;
+  }
+  if (jailed == 0)  {
+    close(ready[0]);
+    char jailed_ok = unshare(CLONE_NEWUSER | CLONE_NEWNS) == 0 &&
+                     chroot(program.parent_path().c_str()) == 0 && chdir("/") == 0 ? 1 : 0;
+    if (write(ready[1], &jailed_ok, 1) != 1)  {
+      _exit(1);
+    }
+    pause();
+    _exit(0);
+  }
+  close(ready[1]);
+  ok = 0;
+  bool const chrooted = read(ready[0], &ok, 1) == 1 && ok;
+  auto const jail = "/proc/" + std::to_string(jailed);
+  if (!chrooted)  {
+    std::cerr << "skipping the chroot case: unshare() or chroot() is not permitted here\n";
+  } else if (access((jail + "/root/").c_str(), R_OK) != 0)  {
+    std::cerr << "skipping the chroot case: cannot read " << jail << "/root\n";
+  } else {
+    auto const expected = jail + "/root/" + program.filename().string();
+    auto const name = df::executable_path(jailed);
+    if (name != expected)  {
+      std::cerr << "executable_path in a chroot: expected '" << expected << "', got '" << name << "'\n";
+      ret = EXIT_FAILURE;
+    }
+  }
+  kill(jailed, SIGKILL);
+  waitpid(jailed, nullptr, 0);
+  close(ready[0]);
+  return ret;
 #else
   return EXIT_SUCCESS;
 #endif

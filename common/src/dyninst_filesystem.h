@@ -59,6 +59,16 @@ namespace Dyninst { namespace filesystem {
   DYNINST_EXPORT std::string canonicalize(std::string, int pid);
 
   /*
+   *  The name of process `pid`'s executable, as the caller can open it.
+   *  Without a distinct filesystem view this is canonicalize("/proc/<pid>/exe"),
+   *  the file's real path. With one it is the target's path as canonicalize()
+   *  translates it (/proc/<pid>/root/usr/bin/app), so each program the pid runs
+   *  gets its own name, and canonicalize(name, pid) keeps it unchanged. It falls
+   *  back to /proc/<pid>/exe if the file was deleted or no such name reaches it.
+   */
+  DYNINST_EXPORT std::string executable_path(int pid);
+
+  /*
    *  `path`, an absolute name in the filesystem rooted at `root`, with every
    *  symlink resolved inside `root`: absolute links restart at `root`, and ".."
    *  never goes above it. The result keeps the `root` prefix. It is empty if

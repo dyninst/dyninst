@@ -186,9 +186,7 @@ bool AddressTranslateSysV::setAddressSize()
 string AddressTranslateSysV::getExecName() 
 {
    if (exec_name.empty()) {
-      char name[64];
-      snprintf(name, 64, "/proc/%d/exe", pid);
-      exec_name = Dyninst::filesystem::canonicalize(name, pid);
+      exec_name = Dyninst::filesystem::executable_path(pid);
    }
    return exec_name;
 }

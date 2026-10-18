@@ -60,6 +60,7 @@ protected:
    SymbolReaderFactory *factory;
 
    void parsefile();
+   static string nodeName(string f);
 
 public:
    FCNode(string f, dev_t d, ino_t i, SymbolReaderFactory *factory_);

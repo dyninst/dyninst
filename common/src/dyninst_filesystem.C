@@ -221,6 +221,48 @@ std::string canonicalize(std::string path, int pid) {
   return resolved.empty() ? root + path : resolved;
 }
 
+std::string executable_path(int pid) {
+  auto const exe = "/proc/" + std::to_string(pid) + "/exe";
+#ifdef os_linux
+  if (!has_distinct_filesystem_view(pid))  {
+    return canonicalize(exe);
+  }
+  // /proc/<pid>/exe opens the right file in any view, but it is the same name
+  // for every program the pid runs, and the symbol caches are keyed by name.
+  // Name the file by its path in the target's view instead, rooted like every
+  // other name of the target. The link's text is the file's path as we see it:
+  // when our view reaches the target's root (a chroot, or a mount namespace
+  // whose root we can see), the text starts with the root's own text, and
+  // dropping that prefix gives the target's path. Keep the name only if it
+  // reaches the same file. A deleted file, whose text ends in " (deleted)",
+  // reaches none and keeps /proc/<pid>/exe.
+  struct stat exe_stat{};
+  if (stat(exe.c_str(), &exe_stat) != 0)  {
+    return exe;
+  }
+  boost::system::error_code ec;
+  auto text = boost::filesystem::read_symlink(exe, ec).string();
+  if (ec || text.empty())  {
+    return exe;
+  }
+  auto const root_text =
+      boost::filesystem::read_symlink("/proc/" + std::to_string(pid) + "/root", ec).string();
+  if (!ec && root_text != "/" && text.size() > root_text.size() &&
+      text.compare(0, root_text.size(), root_text) == 0 && text[root_text.size()] == '/')  {
+    text.erase(0, root_text.size());
+  }
+  auto const rooted = canonicalize(text, pid);
+  struct stat rooted_stat{};
+  if (stat(rooted.c_str(), &rooted_stat) == 0 && rooted_stat.st_dev == exe_stat.st_dev &&
+      rooted_stat.st_ino == exe_stat.st_ino)  {
+    return rooted;
+  }
+  return exe;
+#else
+  return canonicalize(exe);
+#endif
+}
+
 // Keep symlink resolution inside the container.
 // bf::canonical() can follow an absolute symlink to a host file instead.
 std::string resolve_in_root_fs(std::string const& path, std::string const& root) {
