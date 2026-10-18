@@ -396,7 +396,8 @@ AddressTranslateSysV::AddressTranslateSysV() :
    current_r_state(0),
    r_debug_addr(0),
    trap_addr(0),
-   real_trap_addr(0)
+   real_trap_addr(0),
+   distinct_view(false)
 {
 }
 
@@ -413,7 +414,8 @@ AddressTranslateSysV::AddressTranslateSysV(int pid_, ProcessReader *reader_,
    current_r_state(0),
    r_debug_addr(0),
    trap_addr(0),
-   real_trap_addr(0)
+   real_trap_addr(0),
+   distinct_view(Dyninst::filesystem::has_distinct_filesystem_view(pid_))
 {
    bool result;
    if (interp_base != (Address) -1) {
@@ -616,6 +618,12 @@ bool AddressTranslateSysV::init() {
 
 LoadedLib *AddressTranslateSysV::getLoadedLibByNameAddr(Address addr, std::string name)
 {
+   // A link-map name is the target's. With its own filesystem view, the same
+   // name here may be a different file or none, so open it through the
+   // target's root. Names already under /proc/<pid>/ come back unchanged.
+   if (distinct_view)  {
+      name = Dyninst::filesystem::canonicalize(std::move(name), pid);
+   }
    Address wrappedAddr = adjustForAddrSpaceWrap(addr, name);
 
    std::pair<Address, std::string> p(wrappedAddr, name);
