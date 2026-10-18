@@ -298,10 +298,10 @@ bool is_rooted_target_path(std::string const& path) {
 std::string resolve_in_root_fs(std::string const& path, std::string const& root) {
   namespace bf = boost::filesystem;
   bf::path const target(path);
-  // The ".." clamp below compares paths as strings, so give the root a single
-  // spelling: "/r/", "/r/." and "/x/../r" all become "/r".
+  // Give the result one spelling of the root: "/r/", "/r/." and "/x/../r" all
+  // become "/r". Boost.Filesystem v3 normalizes "/r/" to "/r/.", v4 to "/r/".
   auto root_path = bf::path(root).lexically_normal();
-  if (root_path.filename() == ".")  {
+  if (root_path.filename() == "." || root_path.filename().empty())  {
     root_path = root_path.parent_path();
   }
   boost::system::error_code ec;
@@ -314,6 +314,9 @@ std::string resolve_in_root_fs(std::string const& path, std::string const& root)
   }
 
   bf::path resolved = root_path;
+  // Components of `resolved` below the root. ".." at depth 0 stays at the
+  // root; this does not depend on how the root is spelled.
+  unsigned depth = 0;
   std::deque<bf::path> pending;
   // Put a symlink target before the path components still to visit.
   auto prepend_components = [&](bf::path const& value) {
@@ -330,14 +333,16 @@ std::string resolve_in_root_fs(std::string const& path, std::string const& root)
     auto component = pending.front();
     pending.pop_front();
 
-    if (component == ".")  {
+    // v4 yields an empty component for a trailing '/', where v3 yields ".".
+    if (component.empty() || component == ".")  {
       continue;
     }
 
     // Process ".." after expanding links, and never walk above the target root.
     if (component == "..")  {
-      if (resolved != root_path)  {
+      if (depth > 0)  {
         resolved = resolved.parent_path();
+        --depth;
       }
       continue;
     }
@@ -362,6 +367,7 @@ std::string resolve_in_root_fs(std::string const& path, std::string const& root)
       // Absolute links restart at the target root, not the tracer's '/'.
       if (destination.is_absolute())  {
         resolved = root_path;
+        depth = 0;
       }
       prepend_components(destination);
       continue;
@@ -372,6 +378,7 @@ std::string resolve_in_root_fs(std::string const& path, std::string const& root)
       return {};
     }
     resolved = next;
+    ++depth;
   }
 
   return resolved.string();
