@@ -72,6 +72,19 @@ int test_canonicalize_procfs() {
     std::cerr << "canonicalize: '" << test_path << "' changed for this process\n";
     return cleanup(EXIT_FAILURE);
   }
+  // No such process (above the kernel's pid limit): the view cannot be
+  // determined, so the name is opened through its /proc/<pid>/root.
+  int const no_pid = 0x7fffffff;
+  if (!df::has_distinct_filesystem_view(no_pid))  {
+    std::cerr << "has_distinct_filesystem_view: false for a pid that does not exist\n";
+    return cleanup(EXIT_FAILURE);
+  }
+  auto const unknown = "/proc/" + std::to_string(no_pid) + "/root" + test_path;
+  if (df::canonicalize(test_path, no_pid) != unknown)  {
+    std::cerr << "canonicalize: expected '" << unknown << "' for a pid that does not exist, got '"
+              << df::canonicalize(test_path, no_pid) << "'\n";
+    return cleanup(EXIT_FAILURE);
+  }
   auto const exe = "/proc/" + std::to_string(self) + "/exe";
   if(df::canonicalize(exe, self) != bf::canonical(exe).string()) {
     std::cerr << "canonicalize: '" << exe << "' did not resolve to the executable\n";

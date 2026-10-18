@@ -137,12 +137,15 @@ namespace Dyninst { namespace filesystem {
   }
 
 #ifdef os_linux
-  // Check whether two paths resolve to different underlying files or directories.
+  // Check whether two paths resolve to different underlying files or
+  // directories. A path that cannot be stat()ed counts as different.
   static bool different_file_identity(std::string const& lhs, std::string const& rhs) {
     struct stat lhs_stat{};
     struct stat rhs_stat{};
-    return stat(lhs.c_str(), &lhs_stat) == 0 && stat(rhs.c_str(), &rhs_stat) == 0 &&
-           (lhs_stat.st_dev != rhs_stat.st_dev || lhs_stat.st_ino != rhs_stat.st_ino);
+    if (stat(lhs.c_str(), &lhs_stat) != 0 || stat(rhs.c_str(), &rhs_stat) != 0)  {
+      return true;
+    }
+    return lhs_stat.st_dev != rhs_stat.st_dev || lhs_stat.st_ino != rhs_stat.st_ino;
   }
 #endif
 
@@ -193,6 +196,9 @@ std::string canonicalize(std::string path) {
 
 bool has_distinct_filesystem_view(int pid) {
 #ifdef os_linux
+  // When this cannot be determined, assume a distinct view: the target's
+  // names then open through /proc/<pid>/root, which reaches its files in
+  // either case, instead of possibly opening a different file here.
   auto const proc = "/proc/" + std::to_string(pid);
   return different_file_identity(proc + "/ns/mnt", "/proc/self/ns/mnt") ||
          different_file_identity(proc + "/root", "/");

@@ -44,7 +44,9 @@ namespace Dyninst { namespace filesystem {
   /*
    *  True when process `pid` resolves absolute paths differently from the
    *  caller: another mount namespace or another root directory (a container or
-   *  a chroot). False when that cannot be determined.
+   *  a chroot). Also true when that cannot be determined, for example when
+   *  /proc/<pid> cannot be read, so that the target's names are opened
+   *  through /proc/<pid>/root rather than on this side.
    */
   DYNINST_EXPORT bool has_distinct_filesystem_view(int pid);
 
