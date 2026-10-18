@@ -144,24 +144,20 @@ function(dyninst_library _target)
 
   set(_all_targets ${_target})
 
+  set(
+    _include_dirs
+    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR};${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>"
+    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+  )
+
   # Internal libraries are absorbed into real ones and have no headers
   # target; their include directories and HEADER_DEPS go on the target itself.
   if(_target_INTERNAL_LIBRARY)
-    target_include_directories(
-      ${_target}
-      PUBLIC
-        "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR};${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>"
-        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
-    )
+    target_include_directories(${_target} PUBLIC "${_include_dirs}")
     target_link_libraries(${_target} PUBLIC ${_target_HEADER_DEPS})
   else()
     add_library(${_target}_headers INTERFACE)
-    target_include_directories(
-      ${_target}_headers
-      INTERFACE
-        "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR};${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>"
-        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
-    )
+    target_include_directories(${_target}_headers INTERFACE "${_include_dirs}")
     foreach(d ${_target_DYNINST_DEPS})
       if(TARGET ${d}_headers)
         target_link_libraries(${_target}_headers INTERFACE ${d}_headers)
