@@ -786,7 +786,8 @@ bool insnCodeGen::modifyData(Dyninst::Address target,
             INSN_SET(newInsn, 29, 30, (imm & 0x3));
             generate(gen, newInsn);
         }
-        // Else put the same value in the same register another way.
+        // Otherwise the offset does not fit: compute the same value into the
+        // same register with other instructions.
         else {
             Dyninst::Register rd = raw & 0x1F;
             signed long page_rel = ((long)(target >> 12)) - ((long)(gen.currAddr() >> 12));
@@ -798,6 +799,10 @@ bool insnCodeGen::modifyData(Dyninst::Address target,
                 instruction newInsn2;
                 newInsn.clear();
                 signed long off = target & 0xFFFF;
+                // ADRP Xd, #page_rel pages
+                //   31 | 30..29 | 28..24 | 23..5 | 4..0
+                //    1 | immlo  | 10000  | immhi |  Rd
+                // with page_rel = immhi:immlo (immhi its upper 19 bits).
                 INSN_SET(newInsn, 0, 4, rd);
                 INSN_SET(newInsn, 5, 23, ((page_rel >> 2) & 0x7FFFF));
                 INSN_SET(newInsn, 24, 28, 0x10);
@@ -805,6 +810,11 @@ bool insnCodeGen::modifyData(Dyninst::Address target,
                 INSN_SET(newInsn, 31, 31, 1);
                 generate(gen, newInsn);
                 newInsn2.clear();
+                // ADD Xd, Xd, #off (64-bit, immediate)
+                //   31..22                   | 21..10 | 9..5 | 4..0
+                //   sf op S 100010 sh        | imm12  |  Rn  |  Rd
+                //    1  0 0        0 = 0x244 |        |      |
+                // INSN_SET keeps only the low 12 bits of off.
                 INSN_SET(newInsn2, 0, 4, rd);
                 INSN_SET(newInsn2, 5, 9, rd);
                 INSN_SET(newInsn2, 10, 21, off);
