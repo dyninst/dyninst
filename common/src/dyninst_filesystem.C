@@ -35,6 +35,7 @@
 #include <boost/filesystem.hpp>
 #include <cstdlib>
 #include <deque>
+#include <limits>
 #include <string>
 
 #ifdef os_windows
@@ -267,6 +268,29 @@ std::string executable_path(int pid) {
 #else
   return canonicalize(exe);
 #endif
+}
+
+bool is_rooted_target_path(std::string const& path) {
+  static char const prefix[] = "/proc/";
+  auto const prefix_size = sizeof(prefix) - 1;
+  if (path.compare(0, prefix_size, prefix) != 0)  {
+    return false;
+  }
+  auto const end = path.find('/', prefix_size);
+  if (end == std::string::npos || end == prefix_size || end - prefix_size > 10)  {
+    return false;
+  }
+  long pid = 0;
+  for (auto i = prefix_size; i < end; ++i)  {
+    if (path[i] < '0' || path[i] > '9')  {
+      return false;
+    }
+    pid = pid * 10 + (path[i] - '0');
+  }
+  if (pid <= 0 || pid > std::numeric_limits<int>::max())  {
+    return false;
+  }
+  return has_distinct_filesystem_view(static_cast<int>(pid));
 }
 
 // Keep symlink resolution inside the container.

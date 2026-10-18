@@ -878,11 +878,13 @@ FCNode::FCNode(string f, dev_t d, ino_t i, SymbolReaderFactory *factory_) :
 
 std::string FCNode::nodeName(std::string f)
 {
-   // Names reach here already resolved for the target process. One under
-   // /proc/ is a target's file seen through procfs; canonicalize() would
-   // follow that link back to this side of the mount namespace.
-   if (f.compare(0, 6, "/proc/") == 0)
+   // Names reach here already resolved for the target process. A target with
+   // its own filesystem view has names under /proc/<pid>/, which canonicalize()
+   // would follow back to this side of the mount namespace. Any other name,
+   // /proc/ ones included, is canonicalized as usual.
+   if (Dyninst::filesystem::is_rooted_target_path(f))  {
       return f;
+   }
    return Dyninst::filesystem::canonicalize(std::move(f));
 }
 

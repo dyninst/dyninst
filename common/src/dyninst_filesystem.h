@@ -71,6 +71,15 @@ namespace Dyninst { namespace filesystem {
   DYNINST_EXPORT std::string executable_path(int pid);
 
   /*
+   *  True when `path` is under /proc/<pid>/ for a process with a distinct
+   *  filesystem view: a name canonicalize(path, pid) or executable_path(pid)
+   *  gave. Such a name already opens the target's file, and canonicalize(path)
+   *  or realpath() would follow /proc/<pid>/root or /proc/<pid>/exe back to
+   *  this side of the mount namespace, so callers must keep it as it is.
+   */
+  DYNINST_EXPORT bool is_rooted_target_path(std::string const& path);
+
+  /*
    *  `path`, an absolute name in the filesystem rooted at `root`, with every
    *  symlink resolved inside `root`: absolute links restart at `root`, and ".."
    *  never goes above it. The result keeps the `root` prefix. It is empty if

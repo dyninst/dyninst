@@ -86,6 +86,17 @@ int test_canonicalize_procfs() {
     return cleanup(EXIT_FAILURE);
   }
   auto const exe = "/proc/" + std::to_string(self) + "/exe";
+  for (auto const& name : {exe, std::string("/proc/self/exe"), std::string("/proc/12a/exe"),
+                           std::string("/procfs/1/exe"), std::string("/proc/"), test_path})  {
+    if (df::is_rooted_target_path(name))  {
+      std::cerr << "is_rooted_target_path: true for '" << name << "'\n";
+      return cleanup(EXIT_FAILURE);
+    }
+  }
+  if (!df::is_rooted_target_path("/proc/" + std::to_string(no_pid) + "/root/lib"))  {
+    std::cerr << "is_rooted_target_path: false for a pid that does not exist\n";
+    return cleanup(EXIT_FAILURE);
+  }
   if(df::canonicalize(exe, self) != bf::canonical(exe).string()) {
     std::cerr << "canonicalize: '" << exe << "' did not resolve to the executable\n";
     return cleanup(EXIT_FAILURE);
@@ -129,6 +140,10 @@ int test_canonicalize_procfs() {
     }
     if(df::canonicalize(proc + "/exe", child) != proc + "/exe") {
       std::cerr << "canonicalize: changed '" << proc << "/exe' for a process in another mount namespace\n";
+      ret = EXIT_FAILURE;
+    }
+    if (!df::is_rooted_target_path(rooted))  {
+      std::cerr << "is_rooted_target_path: false for '" << rooted << "'\n";
       ret = EXIT_FAILURE;
     }
   }
