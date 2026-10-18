@@ -180,6 +180,25 @@ int test_resolve_in_root_fs() {
   check("relative root", "/", "relative-root", "");
   check("file as root", "/", library, "");
   bf::remove_all(root);
+
+  // ".." stops at the root however the root is spelled. Both outer/secret and
+  // outer/root/secret exist, so a walk that climbs out returns outer/secret.
+  auto const outer = bf::temp_directory_path() / bf::unique_path("dyninst-clamp-%%%%-%%%%-%%%%");
+  auto const inner = outer / "root";
+  bf::create_directories(inner / "a");
+  { std::ofstream file((outer / "secret").string()); file << "outside"; }
+  { std::ofstream file((inner / "secret").string()); file << "inside"; }
+  bf::create_symlink("/a/..", inner / "lnk");
+  auto const inside = (inner / "secret").string();
+  for (auto const& spelling : {inner.string(), inner.string() + "/", inner.string() + "//",
+                               inner.string() + "/.", (outer / "a/../root").string()})  {
+    for (auto const* target_path : {"/../secret", "/a/../../secret", "/a/../a/../../secret",
+                                    "/lnk/../secret"})  {
+      auto const scenario = "root '" + spelling + "', " + target_path;
+      check(scenario.c_str(), target_path, spelling, inside);
+    }
+  }
+  bf::remove_all(outer);
   return failed ? EXIT_FAILURE : EXIT_SUCCESS;
 #else
   return EXIT_SUCCESS;

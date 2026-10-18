@@ -225,7 +225,13 @@ std::string canonicalize(std::string path, int pid) {
 // bf::canonical() can follow an absolute symlink to a host file instead.
 std::string resolve_in_root_fs(std::string const& path, std::string const& root) {
   namespace bf = boost::filesystem;
-  bf::path const target(path), root_path(root);
+  bf::path const target(path);
+  // The ".." clamp below compares paths as strings, so give the root a single
+  // spelling: "/r/", "/r/." and "/x/../r" all become "/r".
+  auto root_path = bf::path(root).lexically_normal();
+  if (root_path.filename() == ".")  {
+    root_path = root_path.parent_path();
+  }
   boost::system::error_code ec;
   if(!target.is_absolute() || !root_path.is_absolute())
     return {};
