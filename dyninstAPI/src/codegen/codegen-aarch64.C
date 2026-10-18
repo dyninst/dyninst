@@ -777,8 +777,9 @@ bool insnCodeGen::modifyData(Dyninst::Address target,
 
         // If the new offset fits the signed 21-bit immediate, modify the
         // instruction with it.  For ADR the offset is in bytes (+/- 1 MiB);
-        // for ADRP it is in 4 KiB pages (+/- 4 GiB).
-        if (offset <= (1 << 20)) {
+        // for ADRP it is in 4 KiB pages (+/- 4 GiB).  The immediate reaches
+        // -2^20 .. 2^20 - 1, so a forward offset of 2^20 does not fit.
+        if (isneg ? offset <= (1 << 20) : offset < (1 << 20)) {
             instruction newInsn(insn);
             INSN_SET(newInsn, 5, 23, ((imm >> 2) & 0x7FFFF));
             INSN_SET(newInsn, 29, 30, (imm & 0x3));
