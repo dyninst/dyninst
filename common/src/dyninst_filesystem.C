@@ -210,7 +210,7 @@ bool has_distinct_filesystem_view(int pid) {
 }
 
 std::string canonicalize(std::string path, int pid) {
-  if(!has_distinct_filesystem_view(pid)) {
+  if (!has_distinct_filesystem_view(pid))  {
     return canonicalize(std::move(path));
   }
   // The target has its own filesystem view (a container or a chroot). Paths
@@ -220,7 +220,7 @@ std::string canonicalize(std::string path, int pid) {
   // this side of the mount namespace. If resolution fails, still open them
   // through /proc/<pid>/root: the same path on this side may be a different file.
   auto const proc = "/proc/" + std::to_string(pid) + "/";
-  if(path.empty() || path[0] != '/' || path.compare(0, proc.size(), proc) == 0) {
+  if (path.empty() || path[0] != '/' || path.compare(0, proc.size(), proc) == 0)  {
     return path;
   }
   auto const root = proc + "root";
@@ -305,11 +305,13 @@ std::string resolve_in_root_fs(std::string const& path, std::string const& root)
     root_path = root_path.parent_path();
   }
   boost::system::error_code ec;
-  if(!target.is_absolute() || !root_path.is_absolute())
+  if (!target.is_absolute() || !root_path.is_absolute())  {
     return {};
+  }
   auto const root_is_directory = bf::is_directory(root_path, ec);
-  if(ec || !root_is_directory)
+  if (ec || !root_is_directory)  {
     return {};
+  }
 
   bf::path resolved = root_path;
   std::deque<bf::path> pending;
@@ -324,44 +326,51 @@ std::string resolve_in_root_fs(std::string const& path, std::string const& root)
   constexpr unsigned max_symlinks = 40;
   unsigned links = 0;
 
-  while(!pending.empty()) {
+  while (!pending.empty())  {
     auto component = pending.front();
     pending.pop_front();
 
-    if(component == ".")
+    if (component == ".")  {
       continue;
+    }
 
     // Process ".." after expanding links, and never walk above the target root.
-    if(component == "..") {
-      if(resolved != root_path)
+    if (component == "..")  {
+      if (resolved != root_path)  {
         resolved = resolved.parent_path();
+      }
       continue;
     }
 
     // Inspect this component without following its link on the host.
     auto next = resolved / component;
     auto status = bf::symlink_status(next, ec);
-    if(ec || !bf::exists(status))
+    if (ec || !bf::exists(status))  {
       return {};
+    }
 
-    if(bf::is_symlink(status)) {
-      if(++links > max_symlinks)
+    if (bf::is_symlink(status))  {
+      if (++links > max_symlinks)  {
         return {};
+      }
 
       auto destination = bf::read_symlink(next, ec);
-      if(ec)
+      if (ec)  {
         return {};
+      }
 
       // Absolute links restart at the target root, not the tracer's '/'.
-      if(destination.is_absolute())
+      if (destination.is_absolute())  {
         resolved = root_path;
+      }
       prepend_components(destination);
       continue;
     }
 
     // A nonfinal component must be a directory before resolving its children.
-    if(!pending.empty() && !bf::is_directory(status))
+    if (!pending.empty() && !bf::is_directory(status))  {
       return {};
+    }
     resolved = next;
   }
 
