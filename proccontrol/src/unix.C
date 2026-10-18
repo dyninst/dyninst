@@ -40,6 +40,7 @@
 #include <sys/mman.h>
 
 #include <string>
+#include "common/src/dyninst_filesystem.h"
 #include "common/src/vm_maps.h"
 #if defined(os_linux)
 #include "common/src/linuxKludges.h"
@@ -292,6 +293,11 @@ bool unix_process::plat_supportExec()
 
 std::string int_process::plat_canonicalizeFileName(std::string path)
 {
+   // A container target's names are /proc/<pid>/root/... names that open its
+   // files; realpath() would follow /proc/<pid>/root to our side.
+   if (Dyninst::filesystem::is_rooted_target_path(path))  {
+      return path;
+   }
    char *result = realpath(path.c_str(), NULL);
    if (result) {
       string sresult(result);
