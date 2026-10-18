@@ -819,12 +819,14 @@ bool insnCodeGen::modifyData(Dyninst::Address target,
         }
     } else if (((raw >> 24) & 0x3F) == 0x18 || ((raw >> 24) & 0x3F) == 0x1C) {
         Dyninst::Address offset = !isneg ? (target - gen.currAddr()) : (gen.currAddr() - target);
-        //If offset is within +/- 1 MB, modify the instruction (LDR/LDRSW) with the new offset
-        if (offset <= (1 << 20)) {
+        // If the literal is within reach of the signed 19-bit word offset
+        // (pc - 2^20 .. pc + 2^20 - 4), modify the instruction with it.
+        // target is the literal's address itself: the PC that the caller
+        // binds for AArch64 is the address of the instruction.
+        if (isneg ? offset <= (1 << 20) : offset < (1 << 20)) {
             instruction newInsn(insn);
 
-            isneg ? (offset += 4) : (offset -= 4);
-            signed long imm = isneg ? -(offset >> 2) : (offset >> 2);
+            signed long imm = isneg ? -(signed long)(offset >> 2) : (signed long)(offset >> 2);
             INSN_SET(newInsn, 5, 23, (imm & 0x7FFFF));
 
             generate(gen, newInsn);

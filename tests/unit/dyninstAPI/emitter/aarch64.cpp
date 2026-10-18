@@ -1,11 +1,13 @@
 /*
- * insnCodeGen::modifyData for AArch64 ADR and ADRP.
+ * insnCodeGen::modifyData for AArch64 ADR, ADRP and LDR (literal).
  *
- * Each case relocates an ADR or ADRP to a codeGen placed at a given address and runs what
- * modifyData emitted through a small simulator of the instructions it may emit (ADR, ADRP,
- * ADD (immediate), MOVZ, MOVK).  The register must end up holding what the original
- * instruction computed: the target itself for ADR, the target's 4 KiB page for ADRP.
- * The code is placed above 4 GiB, so a page computation that drops the upper 32 bits shows.
+ * Each case relocates an ADR, ADRP or LDR (literal) to a codeGen placed at a given address
+ * and runs what modifyData emitted through a small simulator of the instructions it may emit
+ * (ADR, ADRP, ADD (immediate), MOVZ, MOVK, LDR (literal)).  The register must end up holding
+ * what the original instruction computed: the target itself for ADR, the target's 4 KiB page
+ * for ADRP.  For LDR (literal) the simulator has no memory to read, so it records the address
+ * the load reads from instead, which must be the literal.  The code is placed above 4 GiB, so
+ * a page computation that drops the upper 32 bits shows.
  */
 #include "codegen/codegen.h"
 
@@ -31,8 +33,13 @@ namespace {
 
   // ADR <Xd>, <label>:   0 immlo(30..29) 10000 immhi(23..5) Rd(4..0)
   // ADRP <Xd>, <label>:  1 immlo(30..29) 10000 immhi(23..5) Rd(4..0)
-  uint32_t encode_adr(bool adrp, unsigned rd) {
-    return (adrp ? 1u << 31 : 0u) | (0x10u << 24) | rd;
+  uint32_t encode_adr(bool is_adrp, unsigned rd) {
+    return (is_adrp ? 1u << 31 : 0u) | (0x10u << 24) | rd;
+  }
+
+  // LDR <Xt>, <label>:  01 011 0 00 imm19(23..5) Rt(4..0)
+  uint32_t encode_ldr_literal(unsigned rt) {
+    return 0x58000000u | rt;
   }
 
   // Run the emitted code, starting at pc, and return the value left in register rd.
@@ -61,6 +68,9 @@ namespace {
         // MOVK, 64-bit: replace the 16 bits at hw * 16
         unsigned const sh = 16 * bits(w, 22, 21);
         x[d] = (x[d] & ~(uint64_t{0xffff} << sh)) | (bits(w, 20, 5) << sh);
+      } else if((w & 0xff000000u) == 0x58000000u) {
+        // LDR (literal), 64-bit: Xt = [pc + imm19 * 4]; record the address it reads
+        x[d] = pc + static_cast<uint64_t>(sign_extend(bits(w, 23, 5), 19) * 4);
       } else {
         std::printf("    unexpected instruction 0x%08" PRIx32 "\n", w);
         return false;
@@ -70,9 +80,11 @@ namespace {
     return true;
   }
 
+  enum kind_t { adr, adrp, ldr };
+
   struct test_case {
     char const *name;
-    bool adrp;
+    kind_t kind;
     Address at;      // where the relocated instruction is placed
     Address target;  // what the original instruction computed
   };
@@ -84,19 +96,24 @@ namespace {
 
   test_case const cases[] = {
     // ADRP, in range
-    {"ADRP across 4 GiB, one page back", true, base, four_gib - page},
-    {"ADRP 2^20 - 1 pages forward", true, base, base + (mib - 1) * page},
-    {"ADRP exactly 2^20 pages back", true, base, base - mib * page},
+    {"ADRP across 4 GiB, one page back", adrp, base, four_gib - page},
+    {"ADRP 2^20 - 1 pages forward", adrp, base, base + (mib - 1) * page},
+    {"ADRP exactly 2^20 pages back", adrp, base, base - mib * page},
     // ADRP, out of range
-    {"ADRP exactly 2^20 pages forward", true, base, base + mib * page},
-    {"ADRP 8 GiB forward", true, base, base + 2 * four_gib},
+    {"ADRP exactly 2^20 pages forward", adrp, base, base + mib * page},
+    {"ADRP 8 GiB forward", adrp, base, base + 2 * four_gib},
     // ADR, in range
-    {"ADR 0x1000 bytes forward", false, base, base + 0x1000},
-    {"ADR exactly 2^20 bytes back", false, base, base - mib},
+    {"ADR 0x1000 bytes forward", adr, base, base + 0x1000},
+    {"ADR exactly 2^20 bytes back", adr, base, base - mib},
     // ADR, out of range
-    {"ADR exactly 2^20 bytes forward", false, base, base + mib},
-    {"ADR 2 MiB forward, page offset 0xf123", false, base, base + 2 * mib + 0xf123 - 0x10},
-    {"ADR 6 GiB forward", false, base, base + (Address{6} << 30)},
+    {"ADR exactly 2^20 bytes forward", adr, base, base + mib},
+    {"ADR 2 MiB forward, page offset 0xf123", adr, base, base + 2 * mib + 0xf123 - 0x10},
+    {"ADR 6 GiB forward", adr, base, base + (Address{6} << 30)},
+    // LDR (literal), in range: the literal is pc - 2^20 .. pc + 2^20 - 4
+    {"LDR literal 0x100 forward", ldr, base, base + 0x100},
+    {"LDR literal 0x100 back", ldr, base, base - 0x100},
+    {"LDR literal 2^20 - 4 forward", ldr, base, base + mib - 4},
+    {"LDR literal exactly 2^20 back", ldr, base, base - mib},
   };
 
 }
@@ -109,10 +126,11 @@ int main() {
     codeGen gen(128);
     gen.setAddr(c.at);
 
-    NS_aarch64::instruction insn(encode_adr(c.adrp, rd));
+    NS_aarch64::instruction insn(c.kind == ldr ? encode_ldr_literal(rd)
+                                               : encode_adr(c.kind == adrp, rd));
     insnCodeGen::modifyData(c.target, insn, gen);
 
-    uint64_t const expected = c.adrp ? (c.target & ~Address{0xfff}) : c.target;
+    uint64_t const expected = c.kind == adrp ? (c.target & ~Address{0xfff}) : c.target;
     uint64_t got = 0;
     unsigned const count = gen.used() / 4;
     bool ok = simulate(static_cast<uint32_t const *>(gen.start_ptr()), count, c.at, rd, got);
