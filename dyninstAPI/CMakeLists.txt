@@ -178,5 +178,3 @@ foreach(sp ${_subprojects})
     INTERFACE "$<BUILD_INTERFACE:$<TARGET_PROPERTY:${sp},INTERFACE_INCLUDE_DIRECTORIES>>"
   )
 endforeach()
-
-unset(_inc_dirs)
