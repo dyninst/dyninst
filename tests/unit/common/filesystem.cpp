@@ -229,6 +229,12 @@ int test_resolve_in_root_fs() {
       check(scenario.c_str(), target_path, spelling, inside);
     }
   }
+  // "/" as the root resolves a host path to itself.
+  auto const host_path = bf::canonical(inner / "secret").string();
+  for (auto const* spelling : {"/", "/."})  {
+    auto const scenario = std::string("root '") + spelling + "'";
+    check(scenario.c_str(), host_path.c_str(), spelling, host_path);
+  }
   bf::remove_all(outer);
   return failed ? EXIT_FAILURE : EXIT_SUCCESS;
 #else

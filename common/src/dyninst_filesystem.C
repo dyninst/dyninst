@@ -301,7 +301,9 @@ std::string resolve_in_root_fs(std::string const& path, std::string const& root)
   // Give the result one spelling of the root: "/r/", "/r/." and "/x/../r" all
   // become "/r". Boost.Filesystem v3 normalizes "/r/" to "/r/.", v4 to "/r/".
   auto root_path = bf::path(root).lexically_normal();
-  if (root_path.filename() == "." || root_path.filename().empty())  {
+  // Under v4, "/" also has an empty filename, so stop at the root directory.
+  while (root_path.has_relative_path() &&
+         (root_path.filename() == "." || root_path.filename().empty()))  {
     root_path = root_path.parent_path();
   }
   boost::system::error_code ec;
