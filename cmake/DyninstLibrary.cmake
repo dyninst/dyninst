@@ -59,6 +59,12 @@ toolkit target.
     An internal library has no _headers target; for it they are PUBLIC
     dependencies of the library itself.
 
+  NO_HEADERS_TARGET
+    Do not create <TargetName>_headers, for a library that nothing
+    compiles against, such as the runtime library loaded into the
+    mutatee. Its include directories and HEADER_DEPS go on each library
+    variant instead, as for an internal library.
+
   PUBLIC_DEPS
     A list of targets that are PUBLIC dependencies of <TargetName>.
 
@@ -118,7 +124,7 @@ function(dyninst_library _target)
   cmake_parse_arguments(
     PARSE_ARGV 0
     _target
-    "FORCE_STATIC;INTERNAL_LIBRARY"
+    "FORCE_STATIC;INTERNAL_LIBRARY;NO_HEADERS_TARGET"
     ""
     "${_keywords}"
   )
@@ -150,12 +156,13 @@ function(dyninst_library _target)
     "$<INSTALL_INTERFACE:${DYNINST_INSTALL_INCLUDEDIR}>"
   )
 
-  # Internal libraries are absorbed into real ones and have no headers
-  # target; their include directories and HEADER_DEPS go on the target itself.
-  if(_target_INTERNAL_LIBRARY)
-    target_include_directories(${_target} PUBLIC "${_include_dirs}")
-    target_link_libraries(${_target} PUBLIC ${_target_HEADER_DEPS})
-  else()
+  # Internal libraries are absorbed into real ones, and nothing compiles
+  # against a NO_HEADERS_TARGET library: neither has a headers target, and
+  # their include directories and HEADER_DEPS go on the targets themselves
+  # (below, once the static variant exists).
+  set(_headers_target)
+  if(NOT _target_INTERNAL_LIBRARY AND NOT _target_NO_HEADERS_TARGET)
+    set(_headers_target ${_target}_headers)
     add_library(${_target}_headers INTERFACE)
     target_include_directories(${_target}_headers INTERFACE "${_include_dirs}")
     foreach(d ${_target_DYNINST_DEPS})
@@ -180,7 +187,9 @@ function(dyninst_library _target)
       ${_target_PRIVATE_HEADER_FILES}
       ${_target_SOURCE_FILES}
     )
-    target_link_libraries(${_target}_static PUBLIC ${_target}_headers)
+    if(_headers_target)
+      target_link_libraries(${_target}_static PUBLIC ${_headers_target})
+    endif()
 
     # When building all libraries as static, they have a '_static' suffix
     # but not when FORCE_STATIC is active
@@ -194,6 +203,13 @@ function(dyninst_library _target)
       target_link_libraries(${_target}_static PUBLIC "${d}${_suffix}")
     endforeach()
     unset(_suffix)
+  endif()
+
+  if(NOT _headers_target)
+    foreach(t ${_all_targets})
+      target_include_directories(${t} PUBLIC "${_include_dirs}")
+      target_link_libraries(${t} PUBLIC ${_target_HEADER_DEPS})
+    endforeach()
   endif()
 
   foreach(t ${_all_targets})
@@ -258,10 +274,7 @@ function(dyninst_library _target)
     target_compile_definitions(${t} PRIVATE ${_dyninst_global_defs} ${_target_DEFINES})
   endforeach()
 
-  set(_installed_targets ${_all_targets})
-  if(NOT _target_INTERNAL_LIBRARY)
-    list(APPEND _installed_targets ${_target}_headers)
-  endif()
+  set(_installed_targets ${_all_targets} ${_headers_target})
 
   install(
     TARGETS ${_installed_targets}
