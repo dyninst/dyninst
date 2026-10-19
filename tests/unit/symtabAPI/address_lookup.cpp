@@ -7,6 +7,7 @@
 #include "ProcReader.h"
 #include "AddrLookup.h"
 
+#include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -31,10 +32,17 @@ namespace st = Dyninst::SymtabAPI;
 static pid_t spawn(bool own_namespace) {
   int ready[2];
   if (pipe(ready) != 0)  {
+    perror("pipe");
     return -1;
   }
   pid_t const parent = getpid();
   pid_t const child = fork();
+  if (child < 0)  {
+    perror("fork");
+    close(ready[0]);
+    close(ready[1]);
+    return -1;
+  }
   if (child == 0)  {
     // Never outlive the test, even if it is killed before it reaps us.
     if (prctl(PR_SET_PDEATHSIG, SIGKILL) != 0 || getppid() != parent)  {
@@ -43,6 +51,7 @@ static pid_t spawn(bool own_namespace) {
     close(ready[0]);
     char ok = !own_namespace || unshare(CLONE_NEWUSER | CLONE_NEWNS) == 0 ? 1 : 0;
     if (write(ready[1], &ok, 1) != 1)  {
+      perror("write");
       _exit(1);
     }
     for (;;)  {
@@ -51,9 +60,9 @@ static pid_t spawn(bool own_namespace) {
   }
   close(ready[1]);
   char ok = 0;
-  bool const started = child > 0 && read(ready[0], &ok, 1) == 1 && ok;
+  bool const started = read(ready[0], &ok, 1) == 1 && ok;
   close(ready[0]);
-  if (child > 0 && !started)  {
+  if (!started)  {
     kill(child, SIGKILL);
     waitpid(child, nullptr, 0);
     return -1;

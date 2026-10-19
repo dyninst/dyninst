@@ -3,9 +3,11 @@
 #include <array>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
+#include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <string>
 
 #ifdef __linux__  // os_linux is defined for the libraries, not the unit tests
@@ -74,7 +76,7 @@ int test_canonicalize_procfs() {
   }
   // No such process (above the kernel's pid limit): the view cannot be
   // determined, so the name is opened through its /proc/<pid>/root.
-  int const no_pid = 0x7fffffff;
+  auto const no_pid = std::numeric_limits<Dyninst::PID>::max();
   if (!df::has_distinct_filesystem_view(no_pid))  {
     std::cerr << "has_distinct_filesystem_view: false for a pid that does not exist\n";
     return cleanup(EXIT_FAILURE);
@@ -105,16 +107,19 @@ int test_canonicalize_procfs() {
   // A process with its own mount namespace: names are opened through /proc/<pid>/root.
   int ready[2];
   if(pipe(ready) != 0) {
+    perror("pipe");
     return cleanup(EXIT_FAILURE);
   }
   pid_t const child = fork();
   if(child < 0) {
+    perror("fork");
     return cleanup(EXIT_FAILURE);
   }
   if(child == 0) {
     close(ready[0]);
     char ok = unshare(CLONE_NEWUSER | CLONE_NEWNS) == 0 ? 1 : 0;
     if(write(ready[1], &ok, 1) != 1) {
+      perror("write");
       _exit(1);
     }
     pause();
@@ -259,13 +264,16 @@ int test_executable_path() {
   // that reaches the running program, and changes when the process execs.
   int ready[2], go[2];
   if (pipe(ready) != 0)  {
+    perror("pipe");
     return EXIT_FAILURE;
   }
   if (pipe(go) != 0)  {
+    perror("pipe");
     return EXIT_FAILURE;
   }
   pid_t const child = fork();
   if (child < 0)  {
+    perror("fork");
     return EXIT_FAILURE;
   }
   if (child == 0)  {
@@ -273,11 +281,12 @@ int test_executable_path() {
     close(go[1]);
     char ok = unshare(CLONE_NEWUSER | CLONE_NEWNS) == 0 ? 1 : 0;
     if (write(ready[1], &ok, 1) != 1)  {
+      perror("write");
       _exit(1);
     }
     char c;
     if (read(go[0], &c, 1) == 1)  {
-      execlp("sleep", "sleep", "60", static_cast<char *>(nullptr));
+      execlp("sleep", "sleep", "60", nullptr);
     }
     _exit(1);
   }
@@ -347,10 +356,12 @@ int test_executable_path() {
   // still the target's path under /proc/<pid>/root.
   auto const program = bf::canonical(self_exe);
   if (pipe(ready) != 0)  {
+    perror("pipe");
     return EXIT_FAILURE;
   }
   pid_t const jailed = fork();
   if (jailed < 0)  {
+    perror("fork");
     return EXIT_FAILURE;
   }
   if (jailed == 0)  {
@@ -358,6 +369,7 @@ int test_executable_path() {
     char jailed_ok = unshare(CLONE_NEWUSER | CLONE_NEWNS) == 0 &&
                      chroot(program.parent_path().c_str()) == 0 && chdir("/") == 0 ? 1 : 0;
     if (write(ready[1], &jailed_ok, 1) != 1)  {
+      perror("write");
       _exit(1);
     }
     pause();
