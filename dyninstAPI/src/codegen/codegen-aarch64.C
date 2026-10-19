@@ -794,11 +794,9 @@ bool insnCodeGen::modifyData(Dyninst::Address target,
             if (!is_adrp && page_rel >= -(1L << 20) && page_rel < (1L << 20)) {
                 // ADR beyond 1 MiB, but the target's page is within ADRP's
                 // reach: ADRP to that page, then ADD the 12-bit offset within
-                // it.
+                // it, if there is one.
                 instruction newInsn;
-                instruction newInsn2;
                 newInsn.clear();
-                signed long off = target & 0xFFFF;
                 // ADRP Xd, #page_rel pages
                 //   31 | 30..29 | 28..24 | 23..5 | 4..0
                 //    1 | immlo  | 10000  | immhi |  Rd
@@ -809,17 +807,9 @@ bool insnCodeGen::modifyData(Dyninst::Address target,
                 INSN_SET(newInsn, 29, 30, (page_rel & 0x3));
                 INSN_SET(newInsn, 31, 31, 1);
                 generate(gen, newInsn);
-                newInsn2.clear();
-                // ADD Xd, Xd, #off (64-bit, immediate)
-                //   31..22                   | 21..10 | 9..5 | 4..0
-                //   sf op S 100010 sh        | imm12  |  Rn  |  Rd
-                //    1  0 0        0 = 0x244 |        |      |
-                // INSN_SET keeps only the low 12 bits of off.
-                INSN_SET(newInsn2, 0, 4, rd);
-                INSN_SET(newInsn2, 5, 9, rd);
-                INSN_SET(newInsn2, 10, 21, off);
-                INSN_SET(newInsn2, 22, 31, 0x244);
-                generate(gen , newInsn2);
+                int const page_offset = static_cast<int>(target & 0xFFF);
+                if (page_offset != 0)
+                    generateAddSubImmediate(gen, Add, 0, page_offset, rd, rd, true);
             } else {
                 // An ADRP that got here is already out of ADRP's reach, and
                 // so is an ADR whose target page is: load the address itself

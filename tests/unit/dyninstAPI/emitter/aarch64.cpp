@@ -87,6 +87,7 @@ namespace {
     kind_t kind;
     Address at;      // where the relocated instruction is placed
     Address target;  // what the original instruction computed
+    unsigned insns;  // instructions modifyData must emit; 0 = not checked
   };
 
   constexpr Address four_gib = Address{1} << 32;
@@ -96,24 +97,25 @@ namespace {
 
   test_case const cases[] = {
     // ADRP, in range
-    {"ADRP across 4 GiB, one page back", adrp, base, four_gib - page},
-    {"ADRP 2^20 - 1 pages forward", adrp, base, base + (mib - 1) * page},
-    {"ADRP exactly 2^20 pages back", adrp, base, base - mib * page},
+    {"ADRP across 4 GiB, one page back", adrp, base, four_gib - page, 1},
+    {"ADRP 2^20 - 1 pages forward", adrp, base, base + (mib - 1) * page, 1},
+    {"ADRP exactly 2^20 pages back", adrp, base, base - mib * page, 1},
     // ADRP, out of range
-    {"ADRP exactly 2^20 pages forward", adrp, base, base + mib * page},
-    {"ADRP 8 GiB forward", adrp, base, base + 2 * four_gib},
+    {"ADRP exactly 2^20 pages forward", adrp, base, base + mib * page, 0},
+    {"ADRP 8 GiB forward", adrp, base, base + 2 * four_gib, 0},
     // ADR, in range
-    {"ADR 0x1000 bytes forward", adr, base, base + 0x1000},
-    {"ADR exactly 2^20 bytes back", adr, base, base - mib},
+    {"ADR 0x1000 bytes forward", adr, base, base + 0x1000, 1},
+    {"ADR exactly 2^20 bytes back", adr, base, base - mib, 1},
     // ADR, out of range
-    {"ADR exactly 2^20 bytes forward", adr, base, base + mib},
-    {"ADR 2 MiB forward, page offset 0xf123", adr, base, base + 2 * mib + 0xf123 - 0x10},
-    {"ADR 6 GiB forward", adr, base, base + (Address{6} << 30)},
+    {"ADR exactly 2^20 bytes forward", adr, base, base + mib, 2},
+    {"ADR 2 MiB forward, page offset 0xf123", adr, base, base + 2 * mib + 0xf123 - 0x10, 2},
+    {"ADR 2 MiB forward, page aligned", adr, base, (base & ~(page - 1)) + 2 * mib, 1},
+    {"ADR 6 GiB forward", adr, base, base + (Address{6} << 30), 0},
     // LDR (literal), in range: the literal is pc - 2^20 .. pc + 2^20 - 4
-    {"LDR literal 0x100 forward", ldr, base, base + 0x100},
-    {"LDR literal 0x100 back", ldr, base, base - 0x100},
-    {"LDR literal 2^20 - 4 forward", ldr, base, base + mib - 4},
-    {"LDR literal exactly 2^20 back", ldr, base, base - mib},
+    {"LDR literal 0x100 forward", ldr, base, base + 0x100, 1},
+    {"LDR literal 0x100 back", ldr, base, base - 0x100, 1},
+    {"LDR literal 2^20 - 4 forward", ldr, base, base + mib - 4, 1},
+    {"LDR literal exactly 2^20 back", ldr, base, base - mib, 1},
   };
 
 }
@@ -134,7 +136,7 @@ int main() {
     uint64_t got = 0;
     unsigned const count = gen.used() / 4;
     bool ok = simulate(static_cast<uint32_t const *>(gen.start_ptr()), count, c.at, rd, got);
-    ok = ok && got == expected;
+    ok = ok && got == expected && (c.insns == 0 || count == c.insns);
     std::printf("%-40s %u insn(s)  x%u = 0x%" PRIx64 "  expected 0x%" PRIx64 "  %s\n", c.name,
                 count, rd, got, expected, ok ? "OK" : "FAILED");
     failed |= !ok;
