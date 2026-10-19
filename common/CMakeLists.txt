@@ -197,8 +197,8 @@ dyninst_library(
   PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
   DEFINES COMMON_LIB
-  HEADER_DEPS Dyninst::TBB Dyninst::Boost_headers
-  PUBLIC_DEPS Dyninst::Boost
+  HEADER_DEPS Dyninst::TBB_headers Dyninst::Boost_headers
+  PUBLIC_DEPS Dyninst::Boost Dyninst::TBB
   PRIVATE_DEPS Dyninst::LibIberty OpenMP::OpenMP_CXX Dyninst::Valgrind Threads::Threads
 )
 

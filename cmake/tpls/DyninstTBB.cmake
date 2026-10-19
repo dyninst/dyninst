@@ -31,15 +31,30 @@ find_package(TBB ${_min_version} COMPONENTS tbb tbbmalloc REQUIRED ${_find_path_
 # Don't let TBB variables seep through
 mark_as_advanced(TBB_DIR)
 
-if(NOT TARGET Dyninst::TBB)
-  add_library(Dyninst::TBB INTERFACE IMPORTED)
-  target_link_libraries(Dyninst::TBB INTERFACE TBB::tbb TBB::tbbmalloc)
+# Dyninst::TBB_headers is what is needed to compile against TBB, with no
+# libraries to link; Dyninst::TBB adds the libraries.
+if(NOT TARGET Dyninst::TBB_headers)
+  add_library(Dyninst::TBB_headers INTERFACE IMPORTED)
   target_include_directories(
-    Dyninst::TBB
+    Dyninst::TBB_headers
     SYSTEM
     INTERFACE
       $<TARGET_PROPERTY:TBB::tbb,INTERFACE_INCLUDE_DIRECTORIES>
       $<TARGET_PROPERTY:TBB::tbbmalloc,INTERFACE_INCLUDE_DIRECTORIES>
+  )
+  target_compile_definitions(
+    Dyninst::TBB_headers
+    INTERFACE
+      $<TARGET_PROPERTY:TBB::tbb,INTERFACE_COMPILE_DEFINITIONS>
+      $<TARGET_PROPERTY:TBB::tbbmalloc,INTERFACE_COMPILE_DEFINITIONS>
+  )
+endif()
+
+if(NOT TARGET Dyninst::TBB)
+  add_library(Dyninst::TBB INTERFACE IMPORTED)
+  target_link_libraries(
+    Dyninst::TBB
+    INTERFACE Dyninst::TBB_headers TBB::tbb TBB::tbbmalloc
   )
 endif()
 
@@ -51,7 +66,7 @@ message(STATUS "TBB include directories: ${_tmp}")
 # To retain support for earlier versions, we conditionally include it
 foreach(_dir ${_tmp})
   if(EXISTS "${_dir}/tbb/version.h")
-    target_compile_definitions(Dyninst::TBB INTERFACE "DYNINST_TBB_HAS_VERSION_H")
+    target_compile_definitions(Dyninst::TBB_headers INTERFACE "DYNINST_TBB_HAS_VERSION_H")
     break()
   endif()
 endforeach()
