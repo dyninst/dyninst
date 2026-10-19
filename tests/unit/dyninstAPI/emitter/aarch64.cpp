@@ -111,7 +111,9 @@ namespace {
     {"ADR 2 MiB forward, page offset 0xf123", adr, base, base + 2 * mib + 0xf123 - 0x10, 2},
     {"ADR 2 MiB forward, page aligned", adr, base, (base & ~(page - 1)) + 2 * mib, 1},
     {"ADR 6 GiB forward", adr, base, base + (Address{6} << 30), 0},
-    // LDR (literal), in range: the literal is pc - 2^20 .. pc + 2^20 - 4
+    // LDR (literal), in range: the literal is pc - 2^20 .. pc + 2^20 - 4.  A literal out of
+    // range is loaded through a scratch register, which needs a register space this codeGen
+    // does not have, so that path is not tested here.
     {"LDR literal 0x100 forward", ldr, base, base + 0x100, 1},
     {"LDR literal 0x100 back", ldr, base, base - 0x100, 1},
     {"LDR literal 2^20 - 4 forward", ldr, base, base + mib - 4, 1},

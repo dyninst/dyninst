@@ -831,7 +831,10 @@ bool insnCodeGen::modifyData(Dyninst::Address target,
 
             generate(gen, newInsn);
         }
-        //If it's larger than |1MB|, move target to register and generate LDR
+        // Otherwise the literal is out of reach: load its address into a
+        // scratch register and load from there.  This always loads 8 bytes
+        // into an X register, which is wrong for LDR Wt, LDRSW and the
+        // SIMD&FP forms.
         else {
             // Get scratch register
             Dyninst::Register scratch = gen.rs()->getScratchRegister(gen);
