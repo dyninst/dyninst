@@ -26,5 +26,11 @@ dyninst_library(
   DYNINST_INTERNAL_DEPS dynElf
 )
 
-# SymLite-elf.h includes Elf_X.h
-target_link_libraries(symLite_headers INTERFACE dynElf)
+# SymLite-elf.h includes Elf_X.h, which includes libelf.h. Take dynElf's
+# include directory rather than dynElf itself, whose link interface would
+# bring the elfutils libraries into symLite_headers.
+target_include_directories(
+  symLite_headers
+  INTERFACE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/elf/h>"
+)
+target_link_libraries(symLite_headers INTERFACE Dyninst::ElfUtils_headers)
