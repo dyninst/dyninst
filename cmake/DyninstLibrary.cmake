@@ -127,6 +127,15 @@ function(dyninst_library _target)
 
   if(_target_INTERNAL_LIBRARY)
     set_target_properties(${_target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+    # Let an object library start compiling without first waiting for the
+    # libraries it depends on to be built: it never links, and nothing here
+    # generates headers, so the Makefile generator's target ordering only
+    # idles the build.  Not for static libraries (see below).  CMake < 3.19
+    # ignores this, and -DCMAKE_OPTIMIZE_DEPENDENCIES=OFF turns it off.
+    if(NOT DEFINED CMAKE_OPTIMIZE_DEPENDENCIES OR CMAKE_OPTIMIZE_DEPENDENCIES)
+      set_target_properties(${_target} PROPERTIES OPTIMIZE_DEPENDENCIES ON)
+    endif()
   endif()
 
   set(_all_targets ${_target})
@@ -139,6 +148,15 @@ function(dyninst_library _target)
       ${_target_PUBLIC_HEADER_FILES}
       ${_target_PRIVATE_HEADER_FILES}
       ${_target_SOURCE_FILES}
+    )
+
+    # A static library archives the objects of the object libraries it
+    # links, so it must wait for them to be built, even when
+    # CMAKE_OPTIMIZE_DEPENDENCIES=ON would drop that ordering.
+    set_target_properties(
+      ${_target}_static
+      PROPERTIES
+        OPTIMIZE_DEPENDENCIES OFF
     )
 
     # When building all libraries as static, they have a '_static' suffix
