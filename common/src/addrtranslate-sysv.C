@@ -880,7 +880,7 @@ std::string FCNode::nodeName(std::string f)
 {
    // Names reach here already resolved for the target process. A target with
    // its own filesystem view has names under /proc/<pid>/, which canonicalize()
-   // would follow back to this side of the mount namespace. Any other name,
+   // would follow back into this process's own filesystem view. Any other name,
    // /proc/ ones included, is canonicalized as usual.
    if (Dyninst::filesystem::is_rooted_target_path(f))  {
       return f;

@@ -195,7 +195,7 @@ std::string canonicalize(std::string path) {
   return canonical_path.string();
 }
 
-bool has_distinct_filesystem_view(int pid) {
+bool has_distinct_filesystem_view(PID pid) {
 #ifdef os_linux
   // When this cannot be determined, assume a distinct view: the target's
   // names then open through /proc/<pid>/root, which reaches its files in
@@ -209,16 +209,17 @@ bool has_distinct_filesystem_view(int pid) {
 #endif
 }
 
-std::string canonicalize(std::string path, int pid) {
+std::string canonicalize(std::string path, PID pid) {
   if (!has_distinct_filesystem_view(pid))  {
     return canonicalize(std::move(path));
   }
   // The target has its own filesystem view (a container or a chroot). Paths
   // under /proc/<pid>/ already open the target's files. Other absolute paths
   // are the target's: resolve them inside /proc/<pid>/root. canonical() cannot
-  // do that, because it follows the procfs links and absolute symlinks back to
-  // this side of the mount namespace. If resolution fails, still open them
-  // through /proc/<pid>/root: the same path on this side may be a different file.
+  // do that, because it follows the procfs links and absolute symlinks back
+  // into the caller's own filesystem view. If resolution fails, still open them
+  // through /proc/<pid>/root: the same path in the caller's view may be a
+  // different file.
   auto const proc = "/proc/" + std::to_string(pid) + "/";
   if (path.empty() || path[0] != '/' || path.compare(0, proc.size(), proc) == 0)  {
     return path;
@@ -228,7 +229,7 @@ std::string canonicalize(std::string path, int pid) {
   return resolved.empty() ? root + path : resolved;
 }
 
-std::string executable_path(int pid) {
+std::string executable_path(PID pid) {
   auto const exe = "/proc/" + std::to_string(pid) + "/exe";
 #ifdef os_linux
   if (!has_distinct_filesystem_view(pid))  {
@@ -287,10 +288,10 @@ bool is_rooted_target_path(std::string const& path) {
     }
     pid = pid * 10 + (path[i] - '0');
   }
-  if (pid <= 0 || pid > std::numeric_limits<int>::max())  {
+  if (pid <= 0 || pid > std::numeric_limits<PID>::max())  {
     return false;
   }
-  return has_distinct_filesystem_view(static_cast<int>(pid));
+  return has_distinct_filesystem_view(static_cast<PID>(pid));
 }
 
 // Keep symlink resolution inside the container.

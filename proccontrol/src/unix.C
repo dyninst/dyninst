@@ -294,7 +294,8 @@ bool unix_process::plat_supportExec()
 std::string int_process::plat_canonicalizeFileName(std::string path)
 {
    // A container target's names are /proc/<pid>/root/... names that open its
-   // files; realpath() would follow /proc/<pid>/root to our side.
+   // files; realpath() would follow /proc/<pid>/root back into this process's
+   // own filesystem view, where the same path may be a different file.
    if (Dyninst::filesystem::is_rooted_target_path(path))  {
       return path;
    }

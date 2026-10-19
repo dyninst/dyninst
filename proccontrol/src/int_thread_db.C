@@ -957,7 +957,8 @@ td_thragent_t *thread_db_process::getThreadDBAgent() {
 static std::string canonicalPath(const std::string &name)
 {
    // A container target's names are already /proc/<pid>/root/... names that
-   // open its files; canonicalizing them would follow that link to our side.
+   // open its files; canonicalizing them would follow that link back into this
+   // process's own filesystem view.
    if (Dyninst::filesystem::is_rooted_target_path(name))  {
       return name;
    }

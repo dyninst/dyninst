@@ -32,6 +32,7 @@
 #define DYNINST_COMMON_PATHNAME_H
 
 #include "dyninst_visibility.h"
+#include "dyntypes.h"
 
 #include <string>
 
@@ -46,9 +47,10 @@ namespace Dyninst { namespace filesystem {
    *  caller: another mount namespace or another root directory (a container or
    *  a chroot). Also true when that cannot be determined, for example when
    *  /proc/<pid> cannot be read, so that the target's names are opened
-   *  through /proc/<pid>/root rather than on this side.
+   *  through /proc/<pid>/root rather than as paths in the caller's own
+   *  filesystem view.
    */
-  DYNINST_EXPORT bool has_distinct_filesystem_view(int pid);
+  DYNINST_EXPORT bool has_distinct_filesystem_view(PID pid);
 
   /*
    *  `path`, a name read from process `pid` (its link map, PT_INTERP or
@@ -56,9 +58,9 @@ namespace Dyninst { namespace filesystem {
    *  view this is canonicalize(path). With one, names under /proc/<pid>/ are
    *  returned unchanged, and other absolute names become /proc/<pid>/root<path>
    *  with their symlinks resolved inside that root by resolve_in_root_fs()
-   *  (where libc.so.6 is a link, it becomes libc-2.28.so), or unresolved if that fails.
+   *  (e.g., where libc.so.6 is a link, it becomes libc-2.28.so), or unresolved if that fails.
    */
-  DYNINST_EXPORT std::string canonicalize(std::string, int pid);
+  DYNINST_EXPORT std::string canonicalize(std::string, PID pid);
 
   /*
    *  The name of process `pid`'s executable, as the caller can open it.
@@ -68,14 +70,16 @@ namespace Dyninst { namespace filesystem {
    *  gets its own name, and canonicalize(name, pid) keeps it unchanged. It falls
    *  back to /proc/<pid>/exe if the file was deleted or no such name reaches it.
    */
-  DYNINST_EXPORT std::string executable_path(int pid);
+  DYNINST_EXPORT std::string executable_path(PID pid);
 
   /*
    *  True when `path` is under /proc/<pid>/ for a process with a distinct
    *  filesystem view: a name canonicalize(path, pid) or executable_path(pid)
    *  gave. Such a name already opens the target's file, and canonicalize(path)
-   *  or realpath() would follow /proc/<pid>/root or /proc/<pid>/exe back to
-   *  this side of the mount namespace, so callers must keep it as it is.
+   *  or realpath() would follow /proc/<pid>/root or /proc/<pid>/exe back into
+   *  the caller's own filesystem view, where the same path may be another file.
+   *
+   *  Callers must keep such a name exactly as it is.
    */
   DYNINST_EXPORT bool is_rooted_target_path(std::string const& path);
 
