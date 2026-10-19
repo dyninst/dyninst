@@ -7,12 +7,31 @@ toolkit target.
 
   dyninst_library
 
-  This command is a wrapper around `add_library` that creates a
-  SHARED and, optionally, STATIC library for a Dyninst toolkit, plus
-  an INTERFACE target <TargetName>_headers that carries what is needed
-  to compile against the toolkit: its public include directories, the
-  <dep>_headers of each Dyninst dependency, and HEADER_DEPS. Both
-  library variants link <TargetName>_headers.
+  This command is a wrapper around `add_library`. For a Dyninst
+  toolkit <TargetName> it creates up to three targets, all of them
+  installed and exported in the Dyninst:: namespace:
+
+  <TargetName>
+    The shared library. It links its DYNINST_DEPS and PUBLIC_DEPS, so
+    linking it brings everything a program needs to use the toolkit.
+
+  <TargetName>_static
+    The static library, created when ENABLE_STATIC_LIBS or FORCE_STATIC
+    is on. DYNINST_DEPS below says which variant of each dependency it
+    links.
+
+  <TargetName>_headers
+    An INTERFACE target with what is needed to compile against the
+    toolkit, and no libraries to link: its public include directories,
+    the <dep>_headers of each Dyninst dependency, and HEADER_DEPS. Both
+    library variants link it. A program that uses the toolkit still
+    links <TargetName> or <TargetName>_static; <TargetName>_headers
+    alone is for code that only needs the declarations.
+
+  An INTERNAL_LIBRARY or NO_HEADERS_TARGET library has no _headers
+  target. An internal library is an OBJECT library absorbed into the
+  real libraries that list it in DYNINST_INTERNAL_DEPS; its exported
+  target is not meant for use outside Dyninst.
 
     dyninst_library(<TargetName>
       [PRIVATE_HEADER_FILES <file>...]
@@ -20,9 +39,13 @@ toolkit target.
       [SOURCE_FILES <file>...]
       [DEFINES <val>...]
       [DYNINST_DEPS <target>...]
+      [DYNINST_INTERNAL_DEPS <target>...]
       [HEADER_DEPS <target>...]
       [PUBLIC_DEPS <target>...]
       [PRIVATE_DEPS <target>...]
+      [FORCE_STATIC]
+      [INTERNAL_LIBRARY]
+      [NO_HEADERS_TARGET]
     )
 
   The <TargetName>_TARGETS variable will contain the names of the
@@ -52,24 +75,42 @@ toolkit target.
     is created, it will link against the corresponding static target for
     each library container here.
 
+  DYNINST_INTERNAL_DEPS
+    A list of targets that are PRIVATE dependencies of every variant of
+    <TargetName>, such as the internal libraries it absorbs.
+
   HEADER_DEPS
     A list of third-party targets that the public headers of
     <TargetName> need. They are linked to <TargetName>_headers, so that
     their include directories keep SYSTEM and their compile options.
     An internal library has no _headers target; for it they are PUBLIC
-    dependencies of the library itself.
+    dependencies of the library itself. For any other library, every
+    entry must be a compile-only target, such as Dyninst::Boost_headers
+    or Dyninst::TBB_headers: its link libraries would come along into
+    <TargetName>_headers.
+
+  PUBLIC_DEPS
+    A list of targets that are PUBLIC dependencies of <TargetName>. This
+    is where a third-party library goes that code using <TargetName>
+    must link, as common lists Dyninst::Boost and Dyninst::TBB, while
+    their headers go in HEADER_DEPS.
+
+  PRIVATE_DEPS
+    A list of targets that are PRIVATE dependencies of <TargetName>.
+
+  FORCE_STATIC
+    Create <TargetName>_static even when ENABLE_STATIC_LIBS is off.
+
+  INTERNAL_LIBRARY
+    Create an OBJECT library, absorbed into the real libraries that list
+    it in DYNINST_INTERNAL_DEPS, with no static variant and no _headers
+    target.
 
   NO_HEADERS_TARGET
     Do not create <TargetName>_headers, for a library that nothing
     compiles against, such as the runtime library loaded into the
     mutatee. Its include directories and HEADER_DEPS go on each library
     variant instead, as for an internal library.
-
-  PUBLIC_DEPS
-    A list of targets that are PUBLIC dependencies of <TargetName>.
-
-  PRIVATE_DEPS
-    A list of targets that are PRIVATE dependencies of <TargetName>.
 
 #]=======================================================================]
 
