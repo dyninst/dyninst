@@ -93,11 +93,16 @@ namespace Dyninst { namespace filesystem {
   DYNINST_EXPORT bool is_rooted_target_path(std::string const& path);
 
   /*
-   *  `path`, an absolute name in the filesystem rooted at `root`, with every
-   *  symlink resolved inside `root`: absolute links restart at `root`, and ".."
-   *  never goes above it. The result keeps the `root` prefix. It is empty if
-   *  the name cannot be resolved: a missing component, a non-directory before
-   *  the last component, or more than 40 links.
+   *  Internal: the resolution step of canonicalize(path, pid) for a target with
+   *  its own filesystem view, which passes the target's own absolute name and
+   *  /proc/<pid>/root as `root`. It is exported only for its unit test; other
+   *  code should call canonicalize(path, pid).
+   *
+   *  Returns `path` with every symlink resolved inside `root`: absolute links
+   *  restart at `root`, and ".." never goes above it. The result keeps the
+   *  `root` prefix. It is empty if `path` or `root` is not absolute, `root` is
+   *  not a directory, or the name cannot be resolved: a missing component, a
+   *  non-directory before the last component, or more than 40 links.
    */
   DYNINST_EXPORT std::string resolve_in_root_fs(std::string const& path, std::string const& root);
 
