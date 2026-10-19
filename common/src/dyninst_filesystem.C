@@ -226,7 +226,7 @@ std::string canonicalize(std::string path, PID pid) {
     return path;
   }
   auto const root = proc + "root";
-  auto resolved = resolve_in_root_fs(path, root);
+  auto resolved = detail::resolve_in_root_fs(path, root);
   return resolved.empty() ? root + path : resolved;
 }
 
@@ -298,7 +298,7 @@ bool is_rooted_target_path(std::string const& path) {
 
 // Keep symlink resolution inside the container.
 // bf::canonical() can follow an absolute symlink to a host file instead.
-std::string resolve_in_root_fs(std::string const& path, std::string const& root) {
+std::string detail::resolve_in_root_fs(std::string const& path, std::string const& root) {
   namespace bf = boost::filesystem;
   bf::path const target(path);
   // Give the result one spelling of the root: "/r/", "/r/." and "/x/../r" all

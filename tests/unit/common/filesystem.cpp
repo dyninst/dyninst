@@ -205,7 +205,7 @@ int test_resolve_in_root_fs() {
   bool failed = false;
   auto check = [&](const char *scenario, const char *target_path, bf::path const& target_root,
                    std::string const& expected_host_path) {
-    auto result = Dyninst::filesystem::resolve_in_root_fs(target_path, target_root.string());
+    auto result = Dyninst::filesystem::detail::resolve_in_root_fs(target_path, target_root.string());
     if(result != expected_host_path) {
       std::cerr << scenario << ": expected '" << expected_host_path << "', got '" << result << "'\n";
       failed = true;

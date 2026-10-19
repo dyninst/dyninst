@@ -62,7 +62,7 @@ namespace Dyninst { namespace filesystem {
    *  /proc/<pid>/exe), as the caller can open it. Without a distinct filesystem
    *  view this is canonicalize(path). With one, names under /proc/<pid>/ are
    *  returned unchanged, and other absolute names become /proc/<pid>/root<path>
-   *  with their symlinks resolved inside that root by resolve_in_root_fs()
+   *  with their symlinks resolved inside that root by detail::resolve_in_root_fs()
    *  (e.g., where libc.so.6 is a link, it becomes libc-2.28.so), or unresolved if that fails.
    */
   DYNINST_EXPORT std::string canonicalize(std::string, PID pid);
@@ -92,19 +92,23 @@ namespace Dyninst { namespace filesystem {
    */
   DYNINST_EXPORT bool is_rooted_target_path(std::string const& path);
 
-  /*
-   *  Internal: the resolution step of canonicalize(path, pid) for a target with
-   *  its own filesystem view, which passes the target's own absolute name and
-   *  /proc/<pid>/root as `root`. It is exported only for its unit test; other
-   *  code should call canonicalize(path, pid).
-   *
-   *  Returns `path` with every symlink resolved inside `root`: absolute links
-   *  restart at `root`, and ".." never goes above it. The result keeps the
-   *  `root` prefix. It is empty if `path` or `root` is not absolute, `root` is
-   *  not a directory, or the name cannot be resolved: a missing component, a
-   *  non-directory before the last component, or more than 40 links.
-   */
-  DYNINST_EXPORT std::string resolve_in_root_fs(std::string const& path, std::string const& root);
+  namespace detail {
+
+    /*
+     *  Internal: the resolution step of canonicalize(path, pid) for a target with
+     *  its own filesystem view, which passes the target's own absolute name and
+     *  /proc/<pid>/root as `root`. It is exported only for its unit test; other
+     *  code should call canonicalize(path, pid).
+     *
+     *  Returns `path` with every symlink resolved inside `root`: absolute links
+     *  restart at `root`, and ".." never goes above it. The result keeps the
+     *  `root` prefix. It is empty if `path` or `root` is not absolute, `root` is
+     *  not a directory, or the name cannot be resolved: a missing component, a
+     *  non-directory before the last component, or more than 40 links.
+     */
+    DYNINST_EXPORT std::string resolve_in_root_fs(std::string const& path, std::string const& root);
+
+  }
 
   DYNINST_EXPORT bool exists(std::string const& path);
 
