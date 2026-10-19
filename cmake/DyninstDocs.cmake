@@ -4,7 +4,7 @@
 #
 # Targets
 #   docs                    every manual
-#   <module>.pdf            one manual
+#   <module>-manual         one manual
 #   docs-install            install the manuals under CMAKE_INSTALL_DOCDIR
 #   <module>-doc-listings   the example sources that manual typesets
 #
@@ -14,7 +14,7 @@
 #                           a missing pdflatex is reported by the target
 #   DYNINST_DOCS_VALIDATE_LISTINGS
 #                           put <module>-doc-listings in 'all', whether or not
-#                           DYNINST_BUILD_DOCS is set, and make <module>.pdf
+#                           DYNINST_BUILD_DOCS is set, and make <module>-manual
 #                           wait for it.  The targets exist either way
 #   DYNINST_DOCS_FORCE_VALIDATE
 #                           require Ghostscript rather than skip the page
@@ -233,8 +233,12 @@ function(dyninst_add_manual _module)
   endforeach()
   list(REMOVE_DUPLICATES _deps)
 
+  # Not <module>.pdf: Ninja gives every target a per-directory alias,
+  # docs/<module>/manual-latex/<target>, and for a target named after the PDF
+  # that alias is the PDF's own path, so Ninja refuses the build ("multiple
+  # rules generate").
   dyninst_add_latex_document(
-    TARGET ${_module}.pdf
+    TARGET ${_module}-manual
     SOURCE_DIR "${_src}"
     MAIN "${_module}.tex"
     DEPENDS ${_deps}
@@ -249,7 +253,7 @@ function(dyninst_add_manual _module)
   # CMakeLists.txt may call the two in either order and get the same build.
   # Whichever runs second finds the other's target and adds the edge once.
   if(DYNINST_DOCS_VALIDATE_LISTINGS AND TARGET ${_module}-doc-listings)
-    add_dependencies(${_module}.pdf ${_module}-doc-listings)
+    add_dependencies(${_module}-manual ${_module}-doc-listings)
   endif()
 endfunction()
 
@@ -259,9 +263,10 @@ endfunction()
 # Compiles the sources a manual typesets, so an example that stops matching
 # the API it documents fails a build rather than the reader's first attempt.
 # In 'all' whether or not DYNINST_BUILD_DOCS is set, because the change that
-# breaks an example is a change to the library; <module>.pdf depends on it too.
+# breaks an example is a change to the library; <module>-manual depends on it
+# too.
 # Turning DYNINST_DOCS_VALIDATE_LISTINGS off takes it out of 'all' and off
-# <module>.pdf, leaving the target to be asked for by name.
+# <module>-manual, leaving the target to be asked for by name.
 #
 # USES names the library targets whose headers the examples include, default
 # <module>.  Borrow their usage requirements; do not link them, or "make docs"
@@ -320,7 +325,7 @@ function(dyninst_validate_listings _module)
   set(_check ${_module}-doc-listings)
 
   # The target exists either way, so it can always be asked for by name --
-  # the same bargain <module>.pdf makes with DYNINST_BUILD_DOCS.  What
+  # the same bargain <module>-manual makes with DYNINST_BUILD_DOCS.  What
   # DYNINST_DOCS_VALIDATE_LISTINGS decides is whether an ordinary build runs
   # it.  On, it joins 'all': the change that breaks an example is made by
   # someone with no reason to build a manual, so the check has to reach them,
@@ -357,9 +362,9 @@ function(dyninst_validate_listings _module)
   endforeach()
 
   # Asking for a manual compiles its examples first, but only when the check
-  # is on; off, <module>.pdf does not wait for a target the build was told
+  # is on; off, <module>-manual does not wait for a target the build was told
   # not to run.
-  if(DYNINST_DOCS_VALIDATE_LISTINGS AND TARGET ${_module}.pdf)
-    add_dependencies(${_module}.pdf ${_check})
+  if(DYNINST_DOCS_VALIDATE_LISTINGS AND TARGET ${_module}-manual)
+    add_dependencies(${_module}-manual ${_check})
   endif()
 endfunction()
