@@ -892,7 +892,7 @@ bool insnCodeGen::modifyJcc(Dyninst::Address target,
 
   long disp = target - gen.currAddr();
 
-  if (ABS(disp) >= MAX_CBRANCH) {
+  if (ABS(disp) > MAX_CBRANCH) {
     if ((BFORM_OP(insn) == BCop) && ((BFORM_BO(insn) & BALWAYSmask) == BALWAYScond)) {
       // Make sure to use the (to, from) version of generateBranch()
       // in case the branch is too far, and trap-based instrumentation
