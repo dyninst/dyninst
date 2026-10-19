@@ -702,7 +702,12 @@ void
 {
 #pragma omp parallel shared(work_queue)
     {
-#pragma omp master
+        // One thread creates the tasks; the rest of the team runs them.
+        // Not 'masked', which GCC 16 suggests in place of the deprecated
+        // 'master': Clang before 13 rejects it, and GCC before 12 ignores
+        // it as an unknown pragma, so every thread would run this.  Which
+        // thread it is does not matter here.
+#pragma omp single
         LaunchWork(work_queue->steal(), recursive);
     }
 }
