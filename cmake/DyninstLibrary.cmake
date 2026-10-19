@@ -153,11 +153,7 @@ function(dyninst_library _target)
     # A static library archives the objects of the object libraries it
     # links, so it must wait for them to be built, even when
     # CMAKE_OPTIMIZE_DEPENDENCIES=ON would drop that ordering.
-    set_target_properties(
-      ${_target}_static
-      PROPERTIES
-        OPTIMIZE_DEPENDENCIES OFF
-    )
+    set_target_properties(${_target}_static PROPERTIES OPTIMIZE_DEPENDENCIES OFF)
 
     # When building all libraries as static, they have a '_static' suffix
     # but not when FORCE_STATIC is active
