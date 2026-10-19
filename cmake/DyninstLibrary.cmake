@@ -147,7 +147,7 @@ function(dyninst_library _target)
   set(
     _include_dirs
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR};${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>"
-    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+    "$<INSTALL_INTERFACE:${DYNINST_INSTALL_INCLUDEDIR}>"
   )
 
   # Internal libraries are absorbed into real ones and have no headers
@@ -269,7 +269,6 @@ function(dyninst_library _target)
     RUNTIME DESTINATION ${DYNINST_INSTALL_BINDIR}
     LIBRARY DESTINATION ${DYNINST_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${DYNINST_INSTALL_LIBDIR}
-    INCLUDES DESTINATION ${DYNINST_INSTALL_INCLUDEDIR}
   )
 
   # Install headers, preserving the directory structure under h/.
