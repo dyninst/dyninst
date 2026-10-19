@@ -198,8 +198,9 @@ std::string canonicalize(std::string path) {
 bool has_distinct_filesystem_view(PID pid) {
 #ifdef os_linux
   // When this cannot be determined, assume a distinct view: the target's
-  // names then open through /proc/<pid>/root, which reaches its files in
-  // either case, instead of possibly opening a different file here.
+  // names then open through /proc/<pid>/root, which fails if /proc/<pid>
+  // cannot be read, instead of possibly opening a different file in the
+  // caller's own filesystem view.
   auto const proc = "/proc/" + std::to_string(pid);
   return different_file_identity(proc + "/ns/mnt", "/proc/self/ns/mnt") ||
          different_file_identity(proc + "/root", "/");
@@ -238,9 +239,10 @@ std::string executable_path(PID pid) {
   // /proc/<pid>/exe opens the right file in any view, but it is the same name
   // for every program the pid runs, and the symbol caches are keyed by name.
   // Name the file by its path in the target's view instead, rooted like every
-  // other name of the target. The link's text is the file's path as we see it:
-  // when our view reaches the target's root (a chroot, or a mount namespace
-  // whose root we can see), the text starts with the root's own text, and
+  // other name of the target. The link's text is the file's path as the caller
+  // sees it: when the caller's view reaches the target's root (a chroot, or a
+  // mount namespace whose root it can see), the text starts with the root's
+  // own text, and
   // dropping that prefix gives the target's path. Keep the name only if it
   // reaches the same file. A deleted file, whose text ends in " (deleted)",
   // reaches none and keeps /proc/<pid>/exe.

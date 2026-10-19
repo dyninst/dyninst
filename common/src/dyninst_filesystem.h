@@ -45,10 +45,15 @@ namespace Dyninst { namespace filesystem {
   /*
    *  True when process `pid` resolves absolute paths differently from the
    *  caller: another mount namespace or another root directory (a container or
-   *  a chroot). Also true when that cannot be determined, for example when
-   *  /proc/<pid> cannot be read, so that the target's names are opened
-   *  through /proc/<pid>/root rather than as paths in the caller's own
-   *  filesystem view.
+   *  a chroot).
+   *
+   *  The answer is only meaningful for a process whose /proc/<pid> the caller
+   *  can read, as it can for any process it has attached to with ptrace;
+   *  callers must make sure of that first. When the view cannot be determined,
+   *  for example because the process has exited, this returns true: the
+   *  target's names are then opened through /proc/<pid>/root, which fails if
+   *  /proc/<pid> cannot be read, rather than as paths in the caller's own
+   *  filesystem view, where they could open a different file.
    */
   DYNINST_EXPORT bool has_distinct_filesystem_view(PID pid);
 
@@ -65,10 +70,14 @@ namespace Dyninst { namespace filesystem {
   /*
    *  The name of process `pid`'s executable, as the caller can open it.
    *  Without a distinct filesystem view this is canonicalize("/proc/<pid>/exe"),
-   *  the file's real path. With one it is the target's path as canonicalize()
-   *  translates it (/proc/<pid>/root/usr/bin/app), so each program the pid runs
-   *  gets its own name, and canonicalize(name, pid) keeps it unchanged. It falls
-   *  back to /proc/<pid>/exe if the file was deleted or no such name reaches it.
+   *  the file's real path, or "" if the file was deleted: the link's text then
+   *  ends in " (deleted)" and names no file.
+   *
+   *  With one it is the target's path as canonicalize() translates it
+   *  (/proc/<pid>/root/usr/bin/app), so each program the pid runs gets its own
+   *  name, and canonicalize(name, pid) keeps it unchanged. If the file was
+   *  deleted, or no such name reaches it, it is /proc/<pid>/exe, which still
+   *  opens the running program's file.
    */
   DYNINST_EXPORT std::string executable_path(PID pid);
 
