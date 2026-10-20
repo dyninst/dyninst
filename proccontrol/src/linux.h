@@ -32,6 +32,8 @@
 
 //#define debug_async_simulate
 
+#include <atomic>
+
 #include "Generator.h"
 #include "Event.h"
 #include "Decoder.h"
@@ -239,9 +241,14 @@ class linux_thread : virtual public thread_db_thread
    virtual bool suppressSanityChecks();
 
    void setGeneratorExiting() { generator_started_exit_processing = true; }
+   // Set by the generator when it decodes this thread's exit, which creates the
+   // thread's Post-LWPDestroy event. Read by plat_handle_ghost_thread on the
+   // handler or user thread.
+   void setExitDecoded() { exit_decoded = true; }
  private:
    ArchEventLinux *postponed_syscall_event;
    bool generator_started_exit_processing;
+   std::atomic<bool> exit_decoded;
 };
 
 class linux_x86_thread : virtual public linux_thread, virtual public x86_thread
