@@ -124,7 +124,7 @@ class LVReader : public MemRegReader
       Offset offset;
       void *symtab_v{};
       std::string lib;
-      Symtab *symtab = NULL;
+      Symtab *symtab{};
       if (g.getLibOffset(lib, offset, symtab_v))
          symtab = symtab_v ? static_cast<Symtab *>(symtab_v) : getSymtabForName(lib);
 
