@@ -34,6 +34,8 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem.hpp>
 #include <cstdlib>
+#include <deque>
+#include <limits>
 #include <string>
 
 #ifdef os_windows
@@ -49,6 +51,7 @@ namespace Dyninst {
 #else
 
 #include <pwd.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
@@ -134,6 +137,19 @@ namespace Dyninst { namespace filesystem {
     return full_path.string();
   }
 
+#ifdef os_linux
+  // Check whether two paths resolve to different underlying files or
+  // directories. A path that cannot be stat()ed counts as different.
+  static bool different_file_identity(std::string const& lhs, std::string const& rhs) {
+    struct stat lhs_stat{};
+    struct stat rhs_stat{};
+    if (stat(lhs.c_str(), &lhs_stat) != 0 || stat(rhs.c_str(), &rhs_stat) != 0)  {
+      return true;
+    }
+    return lhs_stat.st_dev != rhs_stat.st_dev || lhs_stat.st_ino != rhs_stat.st_ino;
+  }
+#endif
+
 #endif
 
 std::string extract_filename(const std::string& path) {
@@ -177,6 +193,200 @@ std::string canonicalize(std::string path) {
   }
 
   return canonical_path.string();
+}
+
+bool has_distinct_filesystem_view(PID pid) {
+#ifdef os_linux
+  // When this cannot be determined, assume a distinct view: the target's
+  // names then open through /proc/<pid>/root, which fails if /proc/<pid>
+  // cannot be read, instead of possibly opening a different file in the
+  // caller's own filesystem view.
+  auto const proc = "/proc/" + std::to_string(pid);
+  return different_file_identity(proc + "/ns/mnt", "/proc/self/ns/mnt") ||
+         different_file_identity(proc + "/root", "/");
+#else
+  (void)pid;
+  return false;
+#endif
+}
+
+std::string canonicalize(std::string path, PID pid) {
+  if (!has_distinct_filesystem_view(pid))  {
+    return canonicalize(std::move(path));
+  }
+  // The target has its own filesystem view (a container or a chroot). Paths
+  // under /proc/<pid>/ already open the target's files. Other absolute paths
+  // are the target's: resolve them inside /proc/<pid>/root. canonical() cannot
+  // do that, because it follows the procfs links and absolute symlinks back
+  // into the caller's own filesystem view. If resolution fails, still open them
+  // through /proc/<pid>/root: the same path in the caller's view may be a
+  // different file.
+  auto const proc = "/proc/" + std::to_string(pid) + "/";
+  if (path.empty() || path[0] != '/' || path.compare(0, proc.size(), proc) == 0)  {
+    return path;
+  }
+  auto const root = proc + "root";
+  auto resolved = detail::resolve_in_root_fs(path, root);
+  return resolved.empty() ? root + path : resolved;
+}
+
+std::string executable_path(PID pid) {
+  auto const exe = "/proc/" + std::to_string(pid) + "/exe";
+#ifdef os_linux
+  if (!has_distinct_filesystem_view(pid))  {
+    return canonicalize(exe);
+  }
+  // /proc/<pid>/exe opens the right file in any view, but it is the same name
+  // for every program the pid runs, and the symbol caches are keyed by name.
+  // Name the file by its path in the target's view instead, rooted like every
+  // other name of the target. The link's text is the file's path as the caller
+  // sees it: when the caller's view reaches the target's root (a chroot, or a
+  // mount namespace whose root it can see), the text starts with the root's
+  // own text, and
+  // dropping that prefix gives the target's path. Keep the name only if it
+  // reaches the same file. A deleted file, whose text ends in " (deleted)",
+  // reaches none and keeps /proc/<pid>/exe.
+  struct stat exe_stat{};
+  if (stat(exe.c_str(), &exe_stat) != 0)  {
+    return exe;
+  }
+  boost::system::error_code ec;
+  auto text = boost::filesystem::read_symlink(exe, ec).string();
+  if (ec || text.empty())  {
+    return exe;
+  }
+  auto const root_text =
+      boost::filesystem::read_symlink("/proc/" + std::to_string(pid) + "/root", ec).string();
+  if (!ec && root_text != "/" && text.size() > root_text.size() &&
+      text.compare(0, root_text.size(), root_text) == 0 && text[root_text.size()] == '/')  {
+    text.erase(0, root_text.size());
+  }
+  auto const rooted = canonicalize(text, pid);
+  struct stat rooted_stat{};
+  if (stat(rooted.c_str(), &rooted_stat) == 0 && rooted_stat.st_dev == exe_stat.st_dev &&
+      rooted_stat.st_ino == exe_stat.st_ino)  {
+    return rooted;
+  }
+  return exe;
+#else
+  return canonicalize(exe);
+#endif
+}
+
+bool is_rooted_target_path(std::string const& path) {
+  static char const prefix[] = "/proc/";
+  auto const prefix_size = sizeof(prefix) - 1;
+  if (path.compare(0, prefix_size, prefix) != 0)  {
+    return false;
+  }
+  auto const end = path.find('/', prefix_size);
+  if (end == std::string::npos || end == prefix_size || end - prefix_size > 10)  {
+    return false;
+  }
+  long pid = 0;
+  for (auto i = prefix_size; i < end; ++i)  {
+    if (path[i] < '0' || path[i] > '9')  {
+      return false;
+    }
+    pid = pid * 10 + (path[i] - '0');
+  }
+  if (pid <= 0 || pid > std::numeric_limits<PID>::max())  {
+    return false;
+  }
+  return has_distinct_filesystem_view(static_cast<PID>(pid));
+}
+
+// Keep symlink resolution inside the container.
+// bf::canonical() can follow an absolute symlink to a host file instead.
+std::string detail::resolve_in_root_fs(std::string const& path, std::string const& root) {
+  namespace bf = boost::filesystem;
+  bf::path const target(path);
+  // Give the result one spelling of the root: "/r/", "/r/." and "/x/../r" all
+  // become "/r". Boost.Filesystem v3 normalizes "/r/" to "/r/.", v4 to "/r/".
+  auto root_path = bf::path(root).lexically_normal();
+  // Under v4, "/" also has an empty filename, so stop at the root directory.
+  while (root_path.has_relative_path() &&
+         (root_path.filename() == "." || root_path.filename().empty()))  {
+    root_path = root_path.parent_path();
+  }
+  boost::system::error_code ec;
+  if (!target.is_absolute() || !root_path.is_absolute())  {
+    return {};
+  }
+  auto const root_is_directory = bf::is_directory(root_path, ec);
+  if (ec || !root_is_directory)  {
+    return {};
+  }
+
+  bf::path resolved = root_path;
+  // Components of `resolved` below the root. ".." at depth 0 stays at the
+  // root; this does not depend on how the root is spelled.
+  unsigned depth = 0;
+  std::deque<bf::path> pending;
+  // Put a symlink target before the path components still to visit.
+  auto prepend_components = [&](bf::path const& value) {
+    auto relative = value.relative_path();
+    pending.insert(pending.begin(), relative.begin(), relative.end());
+  };
+  prepend_components(target);
+
+  // Match Linux's symlink-following limit to bound cycles and excessively long chains.
+  constexpr unsigned max_symlinks = 40;
+  unsigned links = 0;
+
+  while (!pending.empty())  {
+    auto component = pending.front();
+    pending.pop_front();
+
+    // v4 yields an empty component for a trailing '/', where v3 yields ".".
+    if (component.empty() || component == ".")  {
+      continue;
+    }
+
+    // Process ".." after expanding links, and never walk above the target root.
+    if (component == "..")  {
+      if (depth > 0)  {
+        resolved = resolved.parent_path();
+        --depth;
+      }
+      continue;
+    }
+
+    // Inspect this component without following its link on the host.
+    auto next = resolved / component;
+    auto status = bf::symlink_status(next, ec);
+    if (ec || !bf::exists(status))  {
+      return {};
+    }
+
+    if (bf::is_symlink(status))  {
+      if (++links > max_symlinks)  {
+        return {};
+      }
+
+      auto destination = bf::read_symlink(next, ec);
+      if (ec)  {
+        return {};
+      }
+
+      // Absolute links restart at the target root, not the tracer's '/'.
+      if (destination.is_absolute())  {
+        resolved = root_path;
+        depth = 0;
+      }
+      prepend_components(destination);
+      continue;
+    }
+
+    // A nonfinal component must be a directory before resolving its children.
+    if (!pending.empty() && !bf::is_directory(status))  {
+      return {};
+    }
+    resolved = next;
+    ++depth;
+  }
+
+  return resolved.string();
 }
 
 bool exists(std::string const& path) {

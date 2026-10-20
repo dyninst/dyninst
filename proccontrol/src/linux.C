@@ -1100,9 +1100,7 @@ bool linux_process::plat_execed()
    if (!result)
       return false;
 
-   char proc_exec_name[128];
-   snprintf(proc_exec_name, 128, "/proc/%d/exe", getPid());
-   executable = Dyninst::filesystem::canonicalize(proc_exec_name);
+   executable = Dyninst::filesystem::executable_path(getPid());
    return true;
 }
 
