@@ -72,8 +72,11 @@ toolkit target.
 
   DYNINST_DEPS
     A list of dependent Dyninst targets. <TargetName> links each of them.
-    <TargetName>_static links the static variant of each one that has a
-    static variant, and the library itself otherwise.
+    <TargetName>_static links each one's static variant when it has one.
+    Otherwise it links the dependency itself: an OBJECT or INTERFACE
+    library has only one variant, and a SHARED library without a static
+    variant stays shared. The only such case is dyninstAPI_RT_static,
+    which FORCE_STATIC creates even when common_static does not exist.
 
   DYNINST_INTERNAL_DEPS
     A list of targets that are PRIVATE dependencies of every variant of
