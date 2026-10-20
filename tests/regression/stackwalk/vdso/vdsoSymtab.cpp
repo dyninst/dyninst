@@ -71,6 +71,15 @@ namespace {
       return EXIT_FAILURE;
     }
 
+    // Older x86 kernels link the vDSO at a fixed address. Its symbol offsets
+    // are then link-time addresses, while the walker's library offsets are
+    // relative to where the vDSO is mapped, so the two cannot be compared.
+    if(symtab->getLoadOffset() != 0) {
+      std::cout << "The vDSO is linked at 0x" << std::hex << symtab->getLoadOffset()
+                << ", not 0\n";
+      return skipped;
+    }
+
     // Every Linux vDSO this test runs on exports clock_gettime, under an
     // arch-specific name (__vdso_clock_gettime, __kernel_clock_gettime). The
     // hand-written ppc64 vDSO of older kernels gives it type NOTYPE, so it is
