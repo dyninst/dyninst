@@ -206,7 +206,8 @@ class int_iRPC : public boost::enable_shared_from_this<int_iRPC>
    void *binary_blob;
    unsigned long binary_size;
    unsigned long start_offset;
-   int_thread *thrd;
+   // Phase A: RPCs are long-lived and cross waits; hold the wrapper.
+   Thread::ptr thrd;
    Address inffree_target;
    iRPCAllocation::ptr cur_allocation;
    iRPCAllocation::ptr target_allocation;
