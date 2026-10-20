@@ -106,6 +106,24 @@ bool instruction::isCondBranch() const {
     return isInsnType(Bmask, BCmatch);
 }
 
+// lwarx/ldarx/lbarx/lharx/lqarx: X-form, primary opcode 31, distinguished by the extended opcode.
+bool instruction::isAtomicLoad() const {
+    if (XFORM_OP(*this) != LXop) return false;
+    switch (XFORM_XO(*this)) {
+        case LWARXxop: case LDARXxop: case LBARXxop: case LHARXxop: case LQARXxop: return true;
+        default: return false;
+    }
+}
+
+// stwcx./stdcx./stbcx./sthcx./stqcx.: the store-conditional that ends the sequence.
+bool instruction::isAtomicStore() const {
+    if (XFORM_OP(*this) != STXop) return false;
+    switch (XFORM_XO(*this)) {
+        case STWCXxop: case STDCXxop: case STBCXxop: case STHCXxop: case STQCXxop: return true;
+        default: return false;
+    }
+}
+
 unsigned instruction::jumpSize(Dyninst::Address from, Dyninst::Address to, unsigned addr_width) {
     Dyninst::Address disp = ABS((long)(to - from));
     return jumpSize(disp, addr_width);
