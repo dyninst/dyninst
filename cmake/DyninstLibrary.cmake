@@ -71,9 +71,12 @@ toolkit target.
     always PRIVATE attributes of the target.
 
   DYNINST_DEPS
-    A list of dependent Dyninst targets. If a target for a static library
-    is created, it will link against the corresponding static target for
-    each library container here.
+    A list of dependent Dyninst targets. <TargetName> links each of them.
+    <TargetName>_static links each one's static variant when it has one.
+    Otherwise it links the dependency itself: an OBJECT or INTERFACE
+    library has only one variant, and a SHARED library without a static
+    variant stays shared. The only such case is dyninstAPI_RT_static,
+    which FORCE_STATIC creates even when common_static does not exist.
 
   DYNINST_INTERNAL_DEPS
     A list of targets that are PRIVATE dependencies of every variant of
@@ -246,18 +249,19 @@ function(dyninst_library _target)
     # CMAKE_OPTIMIZE_DEPENDENCIES=ON would drop that ordering.
     set_target_properties(${_target}_static PROPERTIES OPTIMIZE_DEPENDENCIES OFF)
 
-    # When building all libraries as static, they have a '_static' suffix
-    # but not when FORCE_STATIC is active
-    if(NOT _target_FORCE_STATIC)
-      set(_suffix "_static")
-    endif()
-
-    # Link against the corresponding static Dyninst target
+    # Depending on another Dyninst library is always public. Dependencies
+    # are added before their dependents, so the static variant either
+    # exists by now or never will.
     foreach(d ${_target_DYNINST_DEPS})
-      # Depending on another Dyninst library is always public
-      target_link_libraries(${_target}_static PUBLIC "${d}${_suffix}")
+      if(TARGET ${d}_static)
+        target_link_libraries(${_target}_static PUBLIC ${d}_static)
+      else()
+        # An OBJECT or INTERFACE library has only one variant. A SHARED one
+        # without a static variant is linked as is: dyninstAPI_RT_static
+        # depends on common, which is static only with ENABLE_STATIC_LIBS.
+        target_link_libraries(${_target}_static PUBLIC ${d})
+      endif()
     endforeach()
-    unset(_suffix)
   endif()
 
   if(NOT _headers_target)
@@ -267,11 +271,11 @@ function(dyninst_library _target)
     endforeach()
   endif()
 
+  # Depending on another Dyninst library is always public
+  target_link_libraries(${_target} PUBLIC ${_target_DYNINST_DEPS})
+
   foreach(t ${_all_targets})
     message(STATUS "Adding library '${t}'")
-
-    # Depending on another Dyninst library is always public
-    target_link_libraries(${t} PUBLIC ${_target_DYNINST_DEPS})
 
     # Internal library dependencies are NOT public
     target_link_libraries(${t} PRIVATE ${_target_DYNINST_INTERNAL_DEPS})
