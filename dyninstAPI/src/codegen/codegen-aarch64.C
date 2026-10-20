@@ -754,10 +754,20 @@ bool insnCodeGen::modifyData(Dyninst::Address target,
         isneg = true;
 
     if (((raw >> 24) & 0x1F) == 0x10) {
+        bool const is_adrp = (static_cast<uint32_t>(raw) >> 31) & 0x1;
         Dyninst::Address offset;
-        if((static_cast<uint32_t>(raw) >> 31) & 0x1) {
-            target &= 0xFFFFF000;
-            Dyninst::Address cur = gen.currAddr() & 0xFFFFF000;
+        if(is_adrp) {
+            // From the Arm Architecture Reference Manual:
+            //   "The ADRP instruction shifts a signed, 21-bit immediate left by
+            //   12 bits, adds it to the value of the program counter with the
+            //   bottom 12 bits cleared to zero, and then writes the result to a
+            //   general-purpose register."
+            // So the immediate is the distance in 4 KiB pages between the page
+            // of the instruction and the page of the target. Clear only the
+            // bottom 12 bits of both addresses and keep all 64 bits.
+            const Dyninst::Address page_mask = ~static_cast<Dyninst::Address>(0xFFF);
+            target &= page_mask;
+            Dyninst::Address cur = gen.currAddr() & page_mask;
             offset = isneg ? (cur - target) : (target - cur);
             offset >>= 12;
         } else {
@@ -766,49 +776,65 @@ bool insnCodeGen::modifyData(Dyninst::Address target,
         }
         signed long imm = isneg ? -((signed long)offset) : offset;
 
-        //If offset is within +/- 1 MB, modify the instruction (ADR/ADRP) with the new offset
-        if (offset <= (1 << 20)) {
+        // If the new offset fits the signed 21-bit immediate, modify the
+        // instruction with it.  For ADR the offset is in bytes (+/- 1 MiB);
+        // for ADRP it is in 4 KiB pages (+/- 4 GiB).  The immediate reaches
+        // -2^20 .. 2^20 - 1, so a forward offset of 2^20 does not fit.
+        if (isneg ? offset <= (1 << 20) : offset < (1 << 20)) {
             instruction newInsn(insn);
             INSN_SET(newInsn, 5, 23, ((imm >> 2) & 0x7FFFF));
             INSN_SET(newInsn, 29, 30, (imm & 0x3));
             generate(gen, newInsn);
         }
-        //Else, generate move instructions to move the value to the same register
+        // Otherwise the offset does not fit: compute the same value into the
+        // same register with other instructions.
         else {
-            //Dyninst::Register rd = raw & 0x1F;
-            //loadImmIntoReg(gen, rd, target);
-            instruction newInsn;
-            instruction newInsn2;
-            newInsn.clear();
+            Dyninst::Register rd = raw & 0x1F;
             signed long page_rel = ((long)(target >> 12)) - ((long)(gen.currAddr() >> 12));
-            signed long off = target & 0xFFFF;
-            INSN_SET(newInsn, 0, 4, raw & 0x1F);
-            INSN_SET(newInsn, 5, 23, ((page_rel >> 2) & 0x7FFFF));
-            INSN_SET(newInsn, 24, 28, 0x10);
-            INSN_SET(newInsn, 29, 30, (page_rel & 0x3));
-            INSN_SET(newInsn, 31, 31, 1);
-            generate(gen, newInsn);
-            newInsn2.clear();
-            INSN_SET(newInsn2, 0, 4, raw & 0x1F);
-            INSN_SET(newInsn2, 5, 9, raw & 0x1F);
-            INSN_SET(newInsn2, 10, 21, off);
-            INSN_SET(newInsn2, 22, 31, 0x244);
-            generate(gen , newInsn2);
-
+            if (!is_adrp && page_rel >= -(1L << 20) && page_rel < (1L << 20)) {
+                // ADR beyond 1 MiB, but the target's page is within ADRP's
+                // reach: ADRP to that page, then ADD the 12-bit offset within
+                // it, if there is one.
+                instruction newInsn;
+                newInsn.clear();
+                // ADRP Xd, #page_rel pages
+                //   31 | 30..29 | 28..24 | 23..5 | 4..0
+                //    1 | immlo  | 10000  | immhi |  Rd
+                // with page_rel = immhi:immlo (immhi its upper 19 bits).
+                INSN_SET(newInsn, 0, 4, rd);
+                INSN_SET(newInsn, 5, 23, ((page_rel >> 2) & 0x7FFFF));
+                INSN_SET(newInsn, 24, 28, 0x10);
+                INSN_SET(newInsn, 29, 30, (page_rel & 0x3));
+                INSN_SET(newInsn, 31, 31, 1);
+                generate(gen, newInsn);
+                int const page_offset = static_cast<int>(target & 0xFFF);
+                if (page_offset != 0)
+                    generateAddSubImmediate(gen, Add, 0, page_offset, rd, rd, true);
+            } else {
+                // An ADRP that got here is already out of ADRP's reach, and
+                // so is an ADR whose target page is: load the address itself
+                // (for ADRP, target is the page address computed above).
+                loadImmIntoReg(gen, rd, target);
+            }
         }
     } else if (((raw >> 24) & 0x3F) == 0x18 || ((raw >> 24) & 0x3F) == 0x1C) {
         Dyninst::Address offset = !isneg ? (target - gen.currAddr()) : (gen.currAddr() - target);
-        //If offset is within +/- 1 MB, modify the instruction (LDR/LDRSW) with the new offset
-        if (offset <= (1 << 20)) {
+        // If the literal is within reach of the signed 19-bit word offset
+        // (pc - 2^20 .. pc + 2^20 - 4), modify the instruction with it.
+        // target is the literal's address itself: the PC that the caller
+        // binds for AArch64 is the address of the instruction.
+        if (isneg ? offset <= (1 << 20) : offset < (1 << 20)) {
             instruction newInsn(insn);
 
-            isneg ? (offset += 4) : (offset -= 4);
-            signed long imm = isneg ? -(offset >> 2) : (offset >> 2);
+            signed long imm = isneg ? -(signed long)(offset >> 2) : (signed long)(offset >> 2);
             INSN_SET(newInsn, 5, 23, (imm & 0x7FFFF));
 
             generate(gen, newInsn);
         }
-        //If it's larger than |1MB|, move target to register and generate LDR
+        // Otherwise the literal is out of reach: load its address into a
+        // scratch register and load from there.  This always loads 8 bytes
+        // into an X register, which is wrong for LDR Wt, LDRSW and the
+        // SIMD&FP forms.
         else {
             // Get scratch register
             Dyninst::Register scratch = gen.rs()->getScratchRegister(gen);
