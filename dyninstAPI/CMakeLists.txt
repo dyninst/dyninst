@@ -79,6 +79,8 @@ set(
   src/addressSpace.C
   src/binaryEdit.C
   src/codeRange.C
+  src/eh_frame_arch.C
+  src/eh_frame_gen.C
   src/debug.C
   src/hybridCallbacks.C
   src/hybridInstrumentation.C

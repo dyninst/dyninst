@@ -54,6 +54,9 @@ bool CFWidget::generateIndirectCall(CodeBuffer & /* buffer */, Register /*reg*/,
   return true;
 }
 
+// No architecture-specific fixup is needed after a non-returning call on AMDGPU.
+void CFWidget::emitArchNonReturningCallFixup(CodeBuffer & /*buffer*/, const RelocBlock * /*trace*/) {}
+
 bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
   int targetLabel = target->label(buf);
 
