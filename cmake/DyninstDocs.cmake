@@ -270,7 +270,9 @@ endfunction()
 #
 # USES names the library targets whose headers the examples include, default
 # <module>.  Borrow their usage requirements; do not link them, or "make docs"
-# builds all of Dyninst to typeset a manual.
+# builds all of Dyninst to typeset a manual.  The target has to exist: when
+# one of them is not part of this configuration, there is no check to make
+# and none is created.
 #
 # Borrow include directories as $<TARGET_PROPERTY:...>, never with
 # get_target_property: the value holds $<BUILD_INTERFACE:a;b;c>, and any list
@@ -319,6 +321,23 @@ function(dyninst_validate_listings _module)
   if(NOT V_USES)
     set(V_USES ${_module})
   endif()
+
+  # A configuration that does not build a library takes its examples with it:
+  # LIGHTWEIGHT_SYMTAB leaves out dyninstAPI and dynC_API, whose manuals are
+  # still typeset.  There are then no usage requirements to borrow, and the
+  # check would compile the examples with no include path at all and stop at
+  # the first #include.  Skip it, and say which target is missing so that a
+  # name that is merely misspelled does not look like a library that was
+  # switched off.
+  foreach(_t ${V_USES})
+    if(NOT TARGET ${_t})
+      message(
+        STATUS
+        "Target '${_t}' is not built; not validating the ${_module} listings"
+      )
+      return()
+    endif()
+  endforeach()
 
   _dyninst_listing_targets("${V_USES}" _local _imported)
 
