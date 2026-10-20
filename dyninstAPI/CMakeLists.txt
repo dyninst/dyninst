@@ -144,7 +144,7 @@ dyninst_library(
   SOURCE_FILES ${_sources}
   DYNINST_DEPS common instructionAPI stackwalk pcontrol patchAPI parseAPI symtabAPI
   DYNINST_INTERNAL_DEPS dynDwarf dynElf ${_subprojects}
-  PUBLIC_DEPS Dyninst::Boost_headers
+  HEADER_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS Threads::Threads Dyninst::PeParse
 )
 
@@ -170,13 +170,11 @@ foreach(t ${dyninstAPI_TARGETS})
       PRIVATE "DYNINST_COMPILER_SEARCH_DIRS=${DYNINST_COMPILER_SEARCH_DIRS}"
     )
   endif()
-
-  foreach(sp ${_subprojects})
-    target_include_directories(
-      ${t}
-      PUBLIC "$<BUILD_INTERFACE:$<TARGET_PROPERTY:${sp},INTERFACE_INCLUDE_DIRECTORIES>>"
-    )
-  endforeach()
 endforeach()
 
-unset(_inc_dirs)
+foreach(sp ${_subprojects})
+  target_include_directories(
+    dyninstAPI_headers
+    INTERFACE "$<BUILD_INTERFACE:$<TARGET_PROPERTY:${sp},INTERFACE_INCLUDE_DIRECTORIES>>"
+  )
+endforeach()

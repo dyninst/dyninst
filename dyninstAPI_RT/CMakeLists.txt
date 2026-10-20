@@ -62,6 +62,7 @@ dyninst_library(
   DYNINST_DEPS common
   PRIVATE_DEPS Threads::Threads
   FORCE_STATIC
+  NO_HEADERS_TARGET
 )
 
 foreach(t ${dyninstAPI_RT_TARGETS})
@@ -119,6 +120,7 @@ if(BUILD_RTLIB_32)
     SOURCE_FILES ${_sources} src/RTthread-x86.c src/RTtlsgetaddr-x86.S
     DEFINES "MUTATEE_32"
     PRIVATE_DEPS Threads::Threads ${_force_static}
+    NO_HEADERS_TARGET
   )
 
   foreach(t ${dyninstAPI_RT_m32_TARGETS})

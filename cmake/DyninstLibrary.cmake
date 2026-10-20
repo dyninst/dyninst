@@ -7,8 +7,31 @@ toolkit target.
 
   dyninst_library
 
-  This command is a wrapper around `add_library` that creates a
-  SHARED and, optionally, STATIC library for a Dyninst toolkit.
+  This command is a wrapper around `add_library`. For a Dyninst
+  toolkit <TargetName> it creates up to three targets, all of them
+  installed and exported in the Dyninst:: namespace:
+
+  <TargetName>
+    The shared library. It links its DYNINST_DEPS and PUBLIC_DEPS, so
+    linking it brings everything a program needs to use the toolkit.
+
+  <TargetName>_static
+    The static library, created when ENABLE_STATIC_LIBS or FORCE_STATIC
+    is on. DYNINST_DEPS below says which variant of each dependency it
+    links.
+
+  <TargetName>_headers
+    An INTERFACE target with what is needed to compile against the
+    toolkit, and no libraries to link: its public include directories,
+    the <dep>_headers of each Dyninst dependency, and HEADER_DEPS. Both
+    library variants link it. A program that uses the toolkit still
+    links <TargetName> or <TargetName>_static; <TargetName>_headers
+    alone is for code that only needs the declarations.
+
+  An INTERNAL_LIBRARY or NO_HEADERS_TARGET library has no _headers
+  target. An internal library is an OBJECT library absorbed into the
+  real libraries that list it in DYNINST_INTERNAL_DEPS; its exported
+  target is not meant for use outside Dyninst.
 
     dyninst_library(<TargetName>
       [PRIVATE_HEADER_FILES <file>...]
@@ -16,12 +39,17 @@ toolkit target.
       [SOURCE_FILES <file>...]
       [DEFINES <val>...]
       [DYNINST_DEPS <target>...]
+      [DYNINST_INTERNAL_DEPS <target>...]
+      [HEADER_DEPS <target>...]
       [PUBLIC_DEPS <target>...]
       [PRIVATE_DEPS <target>...]
+      [FORCE_STATIC]
+      [INTERNAL_LIBRARY]
+      [NO_HEADERS_TARGET]
     )
 
   The <TargetName>_TARGETS variable will contain the names of the
-  created targets for this toolkit.
+  created library targets for this toolkit (not <TargetName>_headers).
 
   The options are:
 
@@ -47,11 +75,42 @@ toolkit target.
     is created, it will link against the corresponding static target for
     each library container here.
 
+  DYNINST_INTERNAL_DEPS
+    A list of targets that are PRIVATE dependencies of every variant of
+    <TargetName>, such as the internal libraries it absorbs.
+
+  HEADER_DEPS
+    A list of third-party targets that the public headers of
+    <TargetName> need. They are linked to <TargetName>_headers, so that
+    their include directories keep SYSTEM and their compile options.
+    An internal library has no _headers target; for it they are PUBLIC
+    dependencies of the library itself. For any other library, every
+    entry must be a compile-only target, such as Dyninst::Boost_headers
+    or Dyninst::TBB_headers: its link libraries would come along into
+    <TargetName>_headers.
+
   PUBLIC_DEPS
-    A list of targets that are PUBLIC dependencies of <TargetName>.
+    A list of targets that are PUBLIC dependencies of <TargetName>. This
+    is where a third-party library goes that code using <TargetName>
+    must link, as common lists Dyninst::Boost and Dyninst::TBB, while
+    their headers go in HEADER_DEPS.
 
   PRIVATE_DEPS
     A list of targets that are PRIVATE dependencies of <TargetName>.
+
+  FORCE_STATIC
+    Create <TargetName>_static even when ENABLE_STATIC_LIBS is off.
+
+  INTERNAL_LIBRARY
+    Create an OBJECT library, absorbed into the real libraries that list
+    it in DYNINST_INTERNAL_DEPS, with no static variant and no _headers
+    target.
+
+  NO_HEADERS_TARGET
+    Do not create <TargetName>_headers, for a library that nothing
+    compiles against, such as the runtime library loaded into the
+    mutatee. Its include directories and HEADER_DEPS go on each library
+    variant instead, as for an internal library.
 
 #]=======================================================================]
 
@@ -98,6 +157,7 @@ function(dyninst_library _target)
     DEFINES
     DYNINST_DEPS
     DYNINST_INTERNAL_DEPS
+    HEADER_DEPS
     PUBLIC_DEPS
     PRIVATE_DEPS
   )
@@ -105,7 +165,7 @@ function(dyninst_library _target)
   cmake_parse_arguments(
     PARSE_ARGV 0
     _target
-    "FORCE_STATIC;INTERNAL_LIBRARY"
+    "FORCE_STATIC;INTERNAL_LIBRARY;NO_HEADERS_TARGET"
     ""
     "${_keywords}"
   )
@@ -140,6 +200,34 @@ function(dyninst_library _target)
 
   set(_all_targets ${_target})
 
+  set(
+    _include_dirs
+    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR};${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>"
+    "$<INSTALL_INTERFACE:${DYNINST_INSTALL_INCLUDEDIR}>"
+  )
+
+  # Internal libraries are absorbed into real ones, and nothing compiles
+  # against a NO_HEADERS_TARGET library: neither has a headers target, and
+  # their include directories and HEADER_DEPS go on the targets themselves
+  # (below, once the static variant exists).
+  set(_headers_target)
+  if(NOT _target_INTERNAL_LIBRARY AND NOT _target_NO_HEADERS_TARGET)
+    set(_headers_target ${_target}_headers)
+    add_library(${_target}_headers INTERFACE)
+    target_include_directories(${_target}_headers INTERFACE "${_include_dirs}")
+    foreach(d ${_target_DYNINST_DEPS})
+      if(TARGET ${d}_headers)
+        target_link_libraries(${_target}_headers INTERFACE ${d}_headers)
+      endif()
+    endforeach()
+    target_link_libraries(${_target}_headers INTERFACE ${_target_HEADER_DEPS})
+
+    # Linked before anything else, so that the library's own include
+    # directories come before those of its dependencies: several components
+    # have headers with the same name (e.g. util.h in common and parseAPI).
+    target_link_libraries(${_target} PUBLIC ${_target}_headers)
+  endif()
+
   if(NOT _target_INTERNAL_LIBRARY AND (_target_FORCE_STATIC OR ENABLE_STATIC_LIBS))
     list(APPEND _all_targets ${_target}_static)
     add_library(
@@ -149,6 +237,9 @@ function(dyninst_library _target)
       ${_target_PRIVATE_HEADER_FILES}
       ${_target_SOURCE_FILES}
     )
+    if(_headers_target)
+      target_link_libraries(${_target}_static PUBLIC ${_headers_target})
+    endif()
 
     # A static library archives the objects of the object libraries it
     # links, so it must wait for them to be built, even when
@@ -167,6 +258,13 @@ function(dyninst_library _target)
       target_link_libraries(${_target}_static PUBLIC "${d}${_suffix}")
     endforeach()
     unset(_suffix)
+  endif()
+
+  if(NOT _headers_target)
+    foreach(t ${_all_targets})
+      target_include_directories(${t} PUBLIC "${_include_dirs}")
+      target_link_libraries(${t} PUBLIC ${_target_HEADER_DEPS})
+    endforeach()
   endif()
 
   foreach(t ${_all_targets})
@@ -220,13 +318,6 @@ function(dyninst_library _target)
       unset(_d)
     endforeach()
 
-    target_include_directories(
-      ${t}
-      PUBLIC
-        "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR};${CMAKE_CURRENT_SOURCE_DIR}/src;${CMAKE_CURRENT_SOURCE_DIR}/h>"
-        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
-    )
-
     set_target_properties(
       ${t}
       PROPERTIES
@@ -238,13 +329,14 @@ function(dyninst_library _target)
     target_compile_definitions(${t} PRIVATE ${_dyninst_global_defs} ${_target_DEFINES})
   endforeach()
 
+  set(_installed_targets ${_all_targets} ${_headers_target})
+
   install(
-    TARGETS ${_all_targets}
+    TARGETS ${_installed_targets}
     EXPORT dyninst-targets
     RUNTIME DESTINATION ${DYNINST_INSTALL_BINDIR}
     LIBRARY DESTINATION ${DYNINST_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${DYNINST_INSTALL_LIBDIR}
-    INCLUDES DESTINATION ${DYNINST_INSTALL_INCLUDEDIR}
   )
 
   # Install headers, preserving the directory structure under h/.
