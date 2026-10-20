@@ -115,7 +115,8 @@ toolkit target.
     Do not create <TargetName>_headers, for a library that nothing
     compiles against, such as the runtime library loaded into the
     mutatee. Its include directories and HEADER_DEPS go on each library
-    variant instead, as for an internal library.
+    variant instead, as for an internal library. It cannot be listed in
+    DYNINST_DEPS.
 
 #]=======================================================================]
 
@@ -203,21 +204,34 @@ function(dyninst_library _target)
     endif()
   endif()
 
+  # Internal libraries are the OBJECT libraries, and real ones are SHARED
+  # or STATIC. A NO_HEADERS_TARGET library is real but has no _headers
+  # target, so that alone does not tell the two apart.
   foreach(d ${_target_DYNINST_DEPS})
-    if(NOT TARGET ${d}_headers)
+    set(_dep_type)
+    if(TARGET ${d})
+      get_target_property(_dep_type ${d} TYPE)
+    endif()
+    if(_dep_type STREQUAL "OBJECT_LIBRARY")
       message(
         FATAL_ERROR
-        "${_target}: ${d} is not a Dyninst library; "
-        "list internal libraries in DYNINST_INTERNAL_DEPS"
+        "${_target}: ${d} is an internal library; "
+        "list it in DYNINST_INTERNAL_DEPS"
+      )
+    elseif(NOT TARGET ${d}_headers)
+      message(
+        FATAL_ERROR
+        "${_target}: ${d} is not a Dyninst library with a _headers target"
       )
     endif()
   endforeach()
   foreach(d ${_target_DYNINST_INTERNAL_DEPS})
-    if(TARGET ${d}_headers)
-      message(
-        FATAL_ERROR
-        "${_target}: ${d} is a Dyninst library; list it in DYNINST_DEPS"
-      )
+    set(_dep_type)
+    if(TARGET ${d})
+      get_target_property(_dep_type ${d} TYPE)
+    endif()
+    if(_dep_type MATCHES "^(SHARED|STATIC)_LIBRARY$")
+      message(FATAL_ERROR "${_target}: ${d} is not an internal library")
     endif()
   endforeach()
 
