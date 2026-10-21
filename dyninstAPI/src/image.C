@@ -426,7 +426,10 @@ namespace {
 #include <instructionAPI/h/InstructionDecoder.h>
 #include "registers/aarch64_regs.h"
 
+// A namespace of their own inside the anonymous one: the ppc64 helpers above use some of
+// the same names, and both are compiled on a ppc64 build.
 namespace {
+namespace aarch64_findmain {
     /* On aarch64 glibc's _start passes the address of main to
        __libc_start_main in x0, and computes it in one of two ways
        (sysdeps/aarch64/start.S):
@@ -864,6 +867,7 @@ namespace {
         }
         return 0;
     }
+} // namespace aarch64_findmain
 }
 
 #include <Graph.h>
@@ -952,7 +956,8 @@ int image::findMain()
     // Chosen by the binary's architecture, not by how Dyninst was built:
     // finding main only reads the binary.
     if (linkedFile->getArchitecture() == Arch_aarch64)
-        return find_main_aarch64(linkedFile, filt, BPatch_normalMode != mode_);
+        return aarch64_findmain::find_main_aarch64(linkedFile, filt,
+                                                   BPatch_normalMode != mode_);
 
 #if defined(ppc64_linux) && defined(DYNINST_CODEGEN_ARCH_POWER)
     using namespace Dyninst::InstructionAPI;
