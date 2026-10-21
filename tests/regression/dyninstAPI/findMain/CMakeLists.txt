@@ -11,7 +11,15 @@ add_executable(findMainCheck findMainCheck.cpp)
 target_compile_options(findMainCheck PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
 target_link_libraries(findMainCheck PRIVATE dyninstAPI)
 
-foreach(_form adrp got literal not_glibc)
+foreach(
+  _form
+  adrp
+  got
+  literal
+  wrap_main
+  wrap_main_hint
+  not_glibc
+)
   set(_fixture findMain_${_form})
   add_executable(${_fixture} start.S)
   target_compile_definitions(${_fixture} PRIVATE FORM_${_form})

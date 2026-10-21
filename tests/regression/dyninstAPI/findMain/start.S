@@ -6,6 +6,8 @@
  *   FORM_adrp            adrp x0, main; add x0, x0, :lo12:main     (non-PIC _start)
  *   FORM_got             adrp x0, :got:main; ldr x0, [x0, ...]     (PIC _start, PIE)
  *   FORM_literal         ldr  x0, =main                            (older non-PIC _start)
+ *   FORM_wrap_main       x0 = __wrap_main:  b main                 (older glibc)
+ *   FORM_wrap_main_hint  x0 = __wrap_main:  bti c; b main          (newer glibc)
  *   FORM_not_glibc       _start passes a string, not main, to the first call
  *
  * FORM_got is linked as a PIE, so main's GOT slot holds no address in the file, only an
@@ -30,6 +32,9 @@ _start:
 	ldr	x0, [x0, :got_lo12:main]
 #elif defined(FORM_literal)
 	ldr	x0, =main
+#elif defined(FORM_wrap_main) || defined(FORM_wrap_main_hint)
+	adrp	x0, __wrap_main
+	add	x0, x0, :lo12:__wrap_main
 #elif defined(FORM_not_glibc)
 	adrp	x0, message
 	add	x0, x0, :lo12:message
@@ -44,6 +49,14 @@ _start:
 	bl	abort_here
 #if defined(FORM_literal)
 	.ltorg
+#endif
+#if defined(FORM_wrap_main) || defined(FORM_wrap_main_hint)
+	.type	__wrap_main, %function
+__wrap_main:
+#if defined(FORM_wrap_main_hint)
+	hint	#34		// bti c
+#endif
+	b	main
 #endif
 
 	.globl	main

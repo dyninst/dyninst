@@ -726,6 +726,56 @@ namespace {
         }
         return ConstantAST::convert(folded)->val().val;
     }
+
+    // How far after the entry point __wrap_main may lie.  It follows
+    // _start directly, and glibc's _start is about 14 instructions; the
+    // limit leaves room for alignment padding while keeping a main that
+    // starts with a tail call, further away, from being taken for it.
+    const Address wrap_main_max_distance = 256;
+
+    /*
+     * A non-PIC _start does not pass main itself but __wrap_main, a stub
+     * that start.S defines right after _start:
+     *
+     *     __wrap_main:  b     main
+     *
+     * Newer glibc puts a hint in front of the branch (bti c, or nop when
+     * built without BTI); older ones, such as Ubuntu's glibc 2.31, have the
+     * bare branch.
+     *
+     * If addr is such a stub close behind the entry point, return where it
+     * branches; otherwise return addr unchanged.  The distance check keeps a
+     * main whose first instruction is a tail call from being taken for it.
+     */
+    Address follow_wrap_main(Symtab *linkedFile, Address entry, Address addr)
+    {
+        using namespace InstructionAPI;
+
+        if (addr <= entry || addr - entry > wrap_main_max_distance)
+            return addr;
+        const unsigned char *code =
+            (const unsigned char *)get_raw_symtab_ptr(linkedFile, addr);
+        if (!code)
+            return addr;
+        // two instructions at most: an optional hint, then the branch
+        InstructionDecoder dec(code, 8, Arch_aarch64);
+        Address pc = addr;
+        Instruction insn = dec.decode();
+        if (insn.getOperation().getID() == aarch64_op_hint
+            || insn.getOperation().getID() == aarch64_op_nop_hint) {
+            pc += insn.size();
+            insn = dec.decode();
+        }
+        if (!insn.isValid() || insn.getOperation().getID() != aarch64_op_b_uncond)
+            return addr;
+        Expression::Ptr target = insn.getControlFlowTarget();
+        if (!target)
+            return addr;
+        RegisterAST thePC(MachRegister::getPC(Arch_aarch64));
+        target->bind(&thePC, Result(u64, pc));
+        Result res = target->eval();
+        return res.defined ? res.convert<Address>() : addr;
+    }
 }
 #endif
 
@@ -956,6 +1006,8 @@ int image::findMain()
             for (std::vector<Block *>::const_iterator bit = candidates.begin();
                  bit != candidates.end() && mainAddress == 0; ++bit) {
                 Address cand = evaluate_main_address(linkedFile,func,*bit);
+                if (cand != 0)
+                    cand = follow_wrap_main(linkedFile, eAddr, cand);
                 if (cand != 0 && scs.isValidAddress(cand)
                     && is_code_address(linkedFile, cand)
                     && !(pltsec && pltsec->isOffsetInRegion(cand)))
