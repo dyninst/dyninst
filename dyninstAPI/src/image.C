@@ -510,8 +510,6 @@ namespace aarch64_findmain {
         return data ? *data : 0;
     }
 
-    class Default_Predicates : public Slicer::Predicates {};
-
     /*
      * Folds the expression SymEval gives for x0 to an address.  The PC is
      * the address of the instruction that reads it (SymEval leaves it as an
@@ -696,7 +694,7 @@ namespace aarch64_findmain {
         }
 
         Slicer slc(x0_assign, b, f, true, false);   // no stack analysis
-        Default_Predicates preds;
+        Slicer::Predicates preds;
         Graph::Ptr slg = slc.backwardSlice(preds);
         NodeIterator nbegin, nend;
         slg->allNodes(nbegin, nend);
