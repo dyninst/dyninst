@@ -47,6 +47,29 @@ virtual bool getRegValue(Dyninst::MachRegister reg,
 }
 
 \begin{apient}
+virtual bool getInstructionPacMask(Dyninst::THR_ID thread,
+                                   Dyninst::MachRegisterVal& mask);
+\end{apient}
+\apidesc{
+    This method returns in \code{mask} the bits of a return address that hold an
+    AArch64 pointer authentication code (PAC) in thread \code{thread} of the target
+    process. Before a third party walk uses a return address on AArch64,
+    StackwalkerAPI clears these bits (see \code{Frame::getRA}).
+
+    The default implementation sets \code{mask} to zero and returns
+    \code{true}, meaning no return address bits are removed. \code{ProcDebug}
+    asks the operating system for the mask (see
+    \code{Thread::getInstructionPacMask} in ProcControlAPI) and also returns
+    \code{true} with a zero mask on targets without PAC. A \code{ProcessState}
+    subclass that walks AArch64 processes using PAC can override this method to
+    supply the mask; without an override, signed return addresses are used as
+    they are.
+
+    This method returns \code{false} on error. Return addresses are then used
+    unchanged.
+}
+
+\begin{apient}
 virtual bool readMem(void* dest, Address source, size_t size) = 0;
 \end{apient}
 \apidesc{
