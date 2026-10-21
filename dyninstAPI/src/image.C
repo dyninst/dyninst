@@ -418,10 +418,13 @@ namespace {
 }
 #endif
 
-#if defined(aarch64_unknown_linux) && defined(DYNINST_CODEGEN_ARCH_AARCH64)
+/* findMain for aarch64 executables.  This only reads the binary, so it is
+   compiled for every host and code-generation target and chosen at run time
+   by the binary's architecture (see image::findMain). */
 
 #include <elf.h>
 #include <instructionAPI/h/InstructionDecoder.h>
+#include "registers/aarch64_regs.h"
 
 namespace {
     /* On aarch64 glibc's _start passes the address of main to
@@ -776,8 +779,92 @@ namespace {
         Result res = target->eval();
         return res.defined ? res.convert<Address>() : addr;
     }
+
+    /*
+     * findMain for an aarch64 executable with no symbol for main: work out
+     * main from _start and add a local symbol for it.  Returns 0 when main
+     * was found or nothing had to be done, -1 when main cannot be found.
+     */
+    int find_main_aarch64(Symtab *linkedFile,
+                          SymtabCodeSource::hint_filt *filt,
+                          bool parseInAllLoadableRegions)
+    {
+        // Only look for main in executables, but do allow position-independent
+        // executables (PIE) which look like shared objects with an INTERP.
+        if (linkedFile->isExec())
+        {
+            vector <SymtabAPI::Function *> funcs;
+            if (!linkedFile->findFunctionsByName(funcs, "main") &&
+                !linkedFile->findFunctionsByName(funcs, "_main"))
+            {
+                logLine("No main symbol found: attempting to create symbol for main\n");
+
+                Address eAddr = linkedFile->getEntryOffset();
+
+                SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
+                CodeObject tco(&scs,NULL,NULL,false);
+
+                tco.parse(eAddr,false);
+                set<CodeRegion *> regions;
+                scs.findRegions(eAddr,regions);
+                if(regions.empty())
+                    return -1;
+                SymtabCodeRegion * reg =
+                    static_cast<SymtabCodeRegion*>(*regions.begin());
+                Function * func = tco.findFuncByEntry(reg,eAddr);
+                if(!func)
+                    return -1;
+
+                // As on ppc64: try _start's entry block, which makes the
+                // __libc_start_main call in glibc's _start, then each call-edge
+                // source, until one yields a valid address.
+                std::vector<Block *> candidates;
+                Block * entryBlock = tco.findBlockByEntry(reg,eAddr);
+                if (entryBlock)
+                    candidates.push_back(entryBlock);
+                const Function::edgelist & calls = func->callEdges();
+                for (Function::edgelist::const_iterator cit = calls.begin();
+                     cit != calls.end(); ++cit) {
+                    if ((*cit)->src() && (*cit)->src() != entryBlock)
+                        candidates.push_back((*cit)->src());
+                }
+
+                Region *pltsec = NULL;
+                linkedFile->findRegion(pltsec, ".plt");
+
+                Address mainAddress = 0;
+                for (std::vector<Block *>::const_iterator bit = candidates.begin();
+                     bit != candidates.end() && mainAddress == 0; ++bit) {
+                    Address cand = evaluate_main_address(linkedFile,func,*bit);
+                    if (cand != 0)
+                        cand = follow_wrap_main(linkedFile, eAddr, cand);
+                    if (cand != 0 && scs.isValidAddress(cand)
+                        && is_code_address(linkedFile, cand)
+                        && !(pltsec && pltsec->isOffsetInRegion(cand)))
+                        mainAddress = cand;
+                }
+
+                if(0 == mainAddress) {
+                    startup_printf("%s[%d] failed to find main\n",FILE__,__LINE__);
+                    return -1;
+                }
+                startup_printf("%s[%d] found main at %lx\n",
+                        FILE__,__LINE__,mainAddress);
+
+                Symbol *newSym= new Symbol( "main",
+                        Symbol::ST_FUNCTION,
+                        Symbol::SL_LOCAL,
+                        Symbol::SV_INTERNAL,
+                        mainAddress,
+                        linkedFile->getDefaultModule(),
+                        linkedFile->findEnclosingRegion(mainAddress),
+                        0 );
+                linkedFile->addSymbol(newSym);
+            }
+        }
+        return 0;
+    }
 }
-#endif
 
 #include <Graph.h>
 #include <Node.h>
@@ -862,6 +949,11 @@ class FindMainVisitor : public ASTVisitor
  */
 int image::findMain()
 {
+    // Chosen by the binary's architecture, not by how Dyninst was built:
+    // finding main only reads the binary.
+    if (linkedFile->getArchitecture() == Arch_aarch64)
+        return find_main_aarch64(linkedFile, filt, BPatch_normalMode != mode_);
+
 #if defined(ppc64_linux) && defined(DYNINST_CODEGEN_ARCH_POWER)
     using namespace Dyninst::InstructionAPI;
 
@@ -952,82 +1044,6 @@ int image::findMain()
                     mainAddress,
                     linkedFile->getDefaultModule(),
                     eReg, 
-                    0 );
-            linkedFile->addSymbol(newSym);
-        }
-    }
-
-#elif defined(aarch64_unknown_linux) && defined(DYNINST_CODEGEN_ARCH_AARCH64)
-    // Only look for main in executables, but do allow position-independent
-    // executables (PIE) which look like shared objects with an INTERP.
-    if (linkedFile->isExec())
-    {
-        vector <SymtabAPI::Function *> funcs;
-        if (!linkedFile->findFunctionsByName(funcs, "main") &&
-            !linkedFile->findFunctionsByName(funcs, "_main"))
-        {
-            logLine("No main symbol found: attempting to create symbol for main\n");
-
-            Address eAddr = linkedFile->getEntryOffset();
-
-            bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
-            SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
-            CodeObject tco(&scs,NULL,NULL,false);
-
-            tco.parse(eAddr,false);
-            set<CodeRegion *> regions;
-            scs.findRegions(eAddr,regions);
-            if(regions.empty())
-                return -1;
-            SymtabCodeRegion * reg =
-                static_cast<SymtabCodeRegion*>(*regions.begin());
-            Function * func = tco.findFuncByEntry(reg,eAddr);
-            if(!func)
-                return -1;
-
-            // As on ppc64: try _start's entry block, which makes the
-            // __libc_start_main call in glibc's _start, then each call-edge
-            // source, until one yields a valid address.
-            std::vector<Block *> candidates;
-            Block * entryBlock = tco.findBlockByEntry(reg,eAddr);
-            if (entryBlock)
-                candidates.push_back(entryBlock);
-            const Function::edgelist & calls = func->callEdges();
-            for (Function::edgelist::const_iterator cit = calls.begin();
-                 cit != calls.end(); ++cit) {
-                if ((*cit)->src() && (*cit)->src() != entryBlock)
-                    candidates.push_back((*cit)->src());
-            }
-
-            Region *pltsec = NULL;
-            linkedFile->findRegion(pltsec, ".plt");
-
-            Address mainAddress = 0;
-            for (std::vector<Block *>::const_iterator bit = candidates.begin();
-                 bit != candidates.end() && mainAddress == 0; ++bit) {
-                Address cand = evaluate_main_address(linkedFile,func,*bit);
-                if (cand != 0)
-                    cand = follow_wrap_main(linkedFile, eAddr, cand);
-                if (cand != 0 && scs.isValidAddress(cand)
-                    && is_code_address(linkedFile, cand)
-                    && !(pltsec && pltsec->isOffsetInRegion(cand)))
-                    mainAddress = cand;
-            }
-
-            if(0 == mainAddress) {
-                startup_printf("%s[%d] failed to find main\n",FILE__,__LINE__);
-                return -1;
-            }
-            startup_printf("%s[%d] found main at %lx\n",
-                    FILE__,__LINE__,mainAddress);
-
-            Symbol *newSym= new Symbol( "main",
-                    Symbol::ST_FUNCTION,
-                    Symbol::SL_LOCAL,
-                    Symbol::SV_INTERNAL,
-                    mainAddress,
-                    linkedFile->getDefaultModule(),
-                    linkedFile->findEnclosingRegion(mainAddress),
                     0 );
             linkedFile->addSymbol(newSym);
         }

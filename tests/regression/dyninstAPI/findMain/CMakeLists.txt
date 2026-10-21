@@ -1,8 +1,9 @@
 include_guard(GLOBAL)
 
 # The fixtures are aarch64 assembly (see start.S), built by the host toolchain and checked
-# after stripping. findMain's aarch64 code is likewise built only on an aarch64 host, so a
-# cross build (DYNINST_CODEGEN_ARCH=aarch64 on another host) has nothing to test here.
+# after stripping, so they need an aarch64 host; a cross build (DYNINST_CODEGEN_ARCH=aarch64
+# on another host) cannot assemble them. The test is also kept to builds whose
+# code-generation target is aarch64, where these fixtures are opened for editing.
 if(NOT DYNINST_HOST_ARCH_AARCH64 OR NOT DYNINST_CODEGEN_ARCH_AARCH64 OR NOT CMAKE_STRIP)
   return()
 endif()
