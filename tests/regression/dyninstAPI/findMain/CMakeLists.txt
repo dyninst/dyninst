@@ -1,16 +1,39 @@
 include_guard(GLOBAL)
 
-# The fixtures are aarch64 assembly (see start.S), built by the host toolchain and checked
-# after stripping, so they need an aarch64 host; a cross build (DYNINST_CODEGEN_ARCH=aarch64
-# on another host) cannot assemble them. The test is also kept to builds whose
-# code-generation target is aarch64, where these fixtures are opened for editing.
-if(NOT DYNINST_HOST_ARCH_AARCH64 OR NOT DYNINST_CODEGEN_ARCH_AARCH64 OR NOT CMAKE_STRIP)
-  return()
-endif()
-
+# findMain only reads the binary and is chosen by the binary's architecture, so these tests
+# open aarch64 executables on any host and for any code-generation target.  Each checks that
+# findMain names, in a stripped executable, the main of its unstripped twin.
 add_executable(findMainCheck findMainCheck.cpp)
 target_compile_options(findMainCheck PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
 target_link_libraries(findMainCheck PRIVATE dyninstAPI)
+
+# Prebuilt aarch64 executables from the test_binaries repository, each a pair
+# <name>.stripped / <name>.nostripped: one test per pair, named after it, so a pair added
+# there is tested once CMake is run again.
+if(DYNINST_ENABLE_EXTERNAL_BINARY_TESTS)
+  set(_fpath "${DYNINST_TEST_BINARIES_DIR}/dyninstAPI/findMain/aarch64")
+  file(GLOB _stripped RELATIVE "${_fpath}" "${_fpath}/*.stripped")
+  foreach(_file ${_stripped})
+    string(REGEX REPLACE "\\.stripped$" "" _binary "${_file}")
+    set(_tname dyninstAPI_findMain_aarch64_${_binary})
+    add_test(
+      NAME ${_tname}
+      COMMAND findMainCheck "${_fpath}/${_binary}.nostripped" "${_fpath}/${_file}"
+    )
+    set_tests_properties(
+      ${_tname}
+      PROPERTIES
+        LABELS "regression"
+        ENVIRONMENT "DYNINSTAPI_RT_LIB=$<TARGET_FILE:dyninstAPI_RT>"
+    )
+  endforeach()
+endif()
+
+# Fixtures for the _start forms the prebuilt set does not have (see start.S).  They are
+# aarch64 assembly built by the host toolchain, so they need an aarch64 host.
+if(NOT DYNINST_HOST_ARCH_AARCH64 OR NOT CMAKE_STRIP)
+  return()
+endif()
 
 foreach(
   _form
