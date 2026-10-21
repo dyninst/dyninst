@@ -102,6 +102,34 @@ bool ProcessState::preStackwalk(Dyninst::THR_ID)
    return true;
 }
 
+bool ProcessState::getInstructionPacMask(THR_ID, MachRegisterVal &mask)
+{
+   mask = 0;
+   return true;
+}
+
+Address ProcessState::normalizeReturnAddress(Address address, THR_ID thread)
+{
+   // PAC bits are not yet removed from return addresses when walking our own
+   // process's stack (first-party).
+   if (!address || getArchitecture() != Arch_aarch64 || isFirstParty())
+      return address;
+   // Normalization is best effort: when the mask cannot be read (e.g. the
+   // thread is not stopped yet), keep the address and the caller's error state.
+   err_t saved_err = getLastError();
+   const char *saved_msg = getLastErrorMsg();
+   MachRegisterVal mask = 0;
+   // Frames from Frame::newFrame carry no thread. The mask is the same for
+   // every thread of the process, so any thread can answer the query.
+   // Ask the target; a fixed virtual-address width would strip the wrong bits.
+   if ((thread == NULL_THR_ID && !getDefaultThread(thread)) ||
+       !getInstructionPacMask(thread, mask)) {
+      setLastError(saved_err, saved_msg);
+      return address;
+   }
+   return address & ~mask;
+}
+
 bool ProcessState::postStackwalk(Dyninst::THR_ID)
 {
    return true;

@@ -132,6 +132,27 @@ error a subsequent call to getLastError returns details on the error.
 }
 
 \begin{apient}
+bool getInstructionPacMask(Dyninst::MachRegisterVal& mask) const;
+\end{apient}
+
+\apidesc{
+This function returns in \code{mask} the bits of an instruction address that
+hold an AArch64 pointer authentication code (PAC) in this thread's process.
+Clearing these bits from a signed return address gives the address that the
+function returns to. On Linux the mask comes from the \code{NT\_ARM\_PAC\_MASK}
+register set.
+
+If the target is not AArch64, or the operating system does not support PAC,
+this function sets \code{mask} to zero and returns true.
+
+It is an error to call this function on a thread that is not in the stopped
+state.
+
+Upon success this function returns true, otherwise it returns false. Upon an
+error a subsequent call to getLastError returns details on the error.
+}
+
+\begin{apient}
 bool getAllRegisters(RegisterPool& pool) const;
 \end{apient}
 
