@@ -261,7 +261,8 @@ class image : public codeRange {
  public:
    static image *parseImage(fileDescriptor &desc, 
                             BPatch_hybridMode mode,
-                            bool parseGaps);
+                            bool parseGaps,
+                            bool delayedParse);
 
    // And to get rid of them if we need to re-parse
    static void removeImage(image *img);
@@ -274,9 +275,11 @@ class image : public codeRange {
 
    image(fileDescriptor &desc, bool &err, 
          BPatch_hybridMode mode,
-         bool parseGaps);
+         bool parseGaps,
+         bool delayedParse);
 
    void analyzeIfNeeded();
+   void analyzeIfDeferred();
    bool isParsed() { return parseState_ == analyzed; }
    parse_func* addFunction(Address functionEntryAddr, const char *name=NULL);
 
@@ -421,6 +424,10 @@ class image : public codeRange {
    bool determineImageType();
    bool addSymtabVariables();
 
+   // Parse the PLT stubs for an external name, located via the linkage table so
+   // no CFG is needed. False when the name is not linked through a stub.
+   bool parsePltStubs(const std::string &name);
+
    void setModuleLanguages(std::unordered_map<std::string, SymtabAPI::supportedLanguages> *mod_langs);
 
    // We have a _lot_ of lookup types; this handles proper entry
@@ -498,11 +505,14 @@ class image : public codeRange {
 
    int refCount;
    imageParseState_t parseState_;
+   bool deferredParse_;
    bool parseGaps_;
    BPatch_hybridMode mode_;
    Dyninst::Architecture arch;
 
    dyn_hash_map<string, parse_func*> plt_parse_funcs;
+   std::map<std::string, std::vector<Address> > pltStubAddrs_;
+   bool pltStubAddrsInitialized_;
 
 };
 
