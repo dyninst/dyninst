@@ -4518,16 +4518,35 @@ void ObjectELF::get_riscv_extensions() {
 
     // Obtain information from .riscv.attributes
 
-    std::string arch_string = riscv_attrs.riscv_extension_string;
+    const std::string arch_string = riscv_attrs.riscv_extension_string;
     if (arch_string.length() == 0) {
         create_printf("%s[%d]:  Tag_RISCV_arch is empty\n", FILE__, __LINE__);
         return;
     }
+    const size_t len = arch_string.length();
 
-    for (size_t i = 0; i < arch_string.length(); i++) {
+    // Every scan below has to stop at the end of the string.  The last
+    // extension in the string is not followed by an underscore -- no arch
+    // string ends with one -- so a scan looking for the next separator runs
+    // off the end of the buffer, and what it finds there decides whether the
+    // read is merely out of bounds or a crash.
+    auto number = [&arch_string](size_t beg, size_t end, int &out) {
+        if (end <= beg) {
+            return false;
+        }
+        for (size_t k = beg; k < end; k++) {
+            if (!isdigit((unsigned char) arch_string[k])) {
+                return false;
+            }
+        }
+        out = std::stoi(arch_string.substr(beg, end - beg));
+        return true;
+    };
+
+    for (size_t i = 0; i < len; i++) {
         // Get the extension string
 
-        int ext_beg = i;
+        size_t ext_beg = i;
         // Special case: base extension
         if (i == 0) {
             if ((arch_string.rfind("rv32i", 0) != 0) &&
@@ -4537,34 +4556,50 @@ void ObjectELF::get_riscv_extensions() {
                 create_printf("%s[%d]:  Corrupted base extension: should be one of rv32i, rv64i, rv128i, rv32e\n", FILE__, __LINE__);
                 return;
             }
-            while (arch_string[i] != 'i' && arch_string[i] != 'e') {
+            while (i < len && arch_string[i] != 'i' && arch_string[i] != 'e') {
                 i++;
             }
             i++;
         }
         else {
             // Get the extension string
-            while (!isdigit(arch_string[i])) {
+            while (i < len && !isdigit((unsigned char) arch_string[i])) {
                 i++;
             }
+        }
+        if (i >= len) {
+            create_printf("%s[%d]:  Tag_RISCV_arch ends in an extension with no version: %s\n",
+                          FILE__, __LINE__, arch_string.c_str());
+            return;
         }
         std::string ext = arch_string.substr(ext_beg, i - ext_beg);
 
         // Get the major number
-        int major_beg = i;
-        while (arch_string[i] != 'p') {
+        size_t major_beg = i;
+        while (i < len && arch_string[i] != 'p') {
             i++;
         }
-        int major_num = std::stoi(arch_string.substr(major_beg, i - major_beg));
+        int major_num = 0;
+        if (i >= len || !number(major_beg, i, major_num)) {
+            create_printf("%s[%d]:  Tag_RISCV_arch has no major version for %s: %s\n",
+                          FILE__, __LINE__, ext.c_str(), arch_string.c_str());
+            return;
+        }
 
         i++; // ignore 'p'
 
-        // Get the minor number
-        int minor_beg = i;
-        while (arch_string[i] != '_') {
+        // Get the minor number.  The last extension has no trailing '_', so
+        // the end of the string ends it just as a separator would.
+        size_t minor_beg = i;
+        while (i < len && arch_string[i] != '_') {
             i++;
         }
-        int minor_num = std::stoi(arch_string.substr(minor_beg, i - minor_beg));
+        int minor_num = 0;
+        if (!number(minor_beg, i, minor_num)) {
+            create_printf("%s[%d]:  Tag_RISCV_arch has no minor version for %s: %s\n",
+                          FILE__, __LINE__, ext.c_str(), arch_string.c_str());
+            return;
+        }
 
         riscv_attrs.riscv_extensions[ext] = std::make_pair(major_num, minor_num);
     }
