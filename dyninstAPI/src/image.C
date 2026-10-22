@@ -159,6 +159,7 @@ int codeBytesSeen = 0;
 #include <dataflowAPI/h/Absloc.h>
 #include <dataflowAPI/h/DynAST.h>
 #include <instructionAPI/h/InstructionAST.h>
+#include "unaligned_memory_access.h"
 
 namespace {
     /* On PPC GLIBC (32 & 64 bit) the address of main is in a structure
@@ -239,11 +240,10 @@ namespace {
         }
     };
 
-    // Pointer to the file contents of [addr, addr + size), or NULL when no
-    // region holds those bytes on disk (unmapped, or NOBITS such as .bss).
-    void *get_raw_symtab_ptr(Symtab *linkedFile, Address addr, Address size)
+    // Pointer to reg's file contents of [addr, addr + size), or NULL when reg
+    // does not hold those bytes on disk (no region, or NOBITS such as .bss).
+    void *get_raw_symtab_ptr(Region *reg, Address addr, Address size)
     {
-        Region *reg = linkedFile->findEnclosingRegion(addr);
         if (reg == NULL || reg->getPtrToRawData() == NULL)
             return NULL;
         Address off = addr - reg->getMemOffset();
@@ -252,25 +252,29 @@ namespace {
         return (char*)reg->getPtrToRawData() + off;
     }
 
-    // Read one word of the binary's own width (not the host's) at addr.
-    bool read_target_word(Symtab *linkedFile, Address addr, Address &word)
+    // Read one word of the binary's own width (not the host's) at addr,
+    // which lies in reg.
+    bool read_target_word(Symtab *linkedFile, Region *reg, Address addr,
+                          Address &word)
     {
         unsigned width = linkedFile->getAddressWidth();
-        void *data = get_raw_symtab_ptr(linkedFile, addr, width);
+        void *data = get_raw_symtab_ptr(reg, addr, width);
         if (data == NULL)
             return false;
         if (width == 8) {
-            uint64_t w;
-            memcpy(&w, data, sizeof w);
-            word = static_cast<Address>(w);
+            word = static_cast<Address>(read_memory_as<uint64_t>(data));
         } else if (width == 4) {
-            uint32_t w;
-            memcpy(&w, data, sizeof w);
-            word = static_cast<Address>(w);
+            word = static_cast<Address>(read_memory_as<uint32_t>(data));
         } else {
             return false;
         }
         return true;
+    }
+
+    bool read_target_word(Symtab *linkedFile, Address addr, Address &word)
+    {
+        return read_target_word(linkedFile,
+                                linkedFile->findEnclosingRegion(addr), addr, word);
     }
 
     Address deref_opd(Symtab *linkedFile, Address addr)
@@ -279,7 +283,7 @@ namespace {
         if (reg && reg->getRegionName() == ".opd") {
             // opd symbol needing dereference
             Address target;
-            if (read_target_word(linkedFile, addr, target))
+            if (read_target_word(linkedFile, reg, addr, target))
                 return target;
         }
         return addr;
