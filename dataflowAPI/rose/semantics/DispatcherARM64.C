@@ -1523,11 +1523,7 @@ namespace rose {
 
                         data = d->readMemory(address, d->ldStrLiteralAccessSize(raw));
 
-                        if ((EXTR(23, 23) == 1)) {
-                            d->write(args[0], d->SignExtend(data, 64));
-                        } else {
-                            d->write(args[0], data);
-                        }
+                        d->write(args[0], data);
 
                     }
                 };
@@ -1539,11 +1535,7 @@ namespace rose {
 
                         data = d->readMemory(address, d->ldStrLiteralAccessSize(raw));
 
-                        if ((EXTR(23, 23) == 1)) {
-                            d->write(args[0], d->SignExtend(data, 64));
-                        } else {
-                            d->write(args[0], data);
-                        }
+                        d->write(args[0], d->SignExtend(data, 64));
 
                     }
                 };
@@ -4189,7 +4181,7 @@ namespace rose {
                         int dbytes = d->getDatasize(raw) / 8;
 
                         data = d->readMemory(address, dbytes);
-                        d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                        d->write(args[0], d->ZeroExtend(data, 32 << EXTR(30, 30)));
 
                     }
                 };
