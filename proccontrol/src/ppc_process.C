@@ -307,6 +307,8 @@ async_ret_t ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Ad
             aresult = readRegForSS(thr, reg, cfTarget);
             if (aresult == aret_error || aresult == aret_async)
                return aresult;
+            // The branch ignores the low two bits of LR or CTR (the target is reg[0:61] || 0b00)
+            cfTarget &= ~(Address) 3;
         }else if( insn.isBranchToTAR() ) {
             // TAR cannot be read, so there is no address to stop the thread at
             pthrd_printf("Branch to TAR in an atomic instruction sequence at 0x%lx\n", pc);
