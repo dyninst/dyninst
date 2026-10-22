@@ -2,6 +2,7 @@
 #include "Symtab.h"
 
 #include <cstdlib>
+#include <initializer_list>
 #include <iostream>
 #include <string>
 
@@ -20,38 +21,76 @@
 // address, never .tbss. findMain reads _start's start_addresses structure at
 // 0x100ec928; resolving it to .tbss dereferenced a null raw-data pointer.
 
+namespace st = Dyninst::SymtabAPI;
+
+namespace {
+
+  bool check(st::Symtab *symtab, Dyninst::Offset addr, char const *name) {
+    st::Region *reg = symtab->findEnclosingRegion(addr);
+    std::string const found = reg ? reg->getRegionName() : "<none>";
+    if (found == name) {
+      return true;
+    }
+    std::cerr << "findEnclosingRegion(0x" << std::hex << addr << ") gave '" << found
+              << "', expected '" << name << "'\n";
+    return false;
+  }
+
+  struct region_spec {
+    Dyninst::Offset addr;
+    unsigned int size;
+    char const *name;
+    bool tbss;
+  };
+
+  // A Symtab holding only the given regions, so the binary search's path is
+  // fixed: each layout below makes it land on the .tbss region first.
+  //
+  // It is not deleted: ~Symtab deletes a region added with addRegion twice
+  // (it is in both regions_ and the user-region list).
+  st::Symtab *make_symtab(std::initializer_list<region_spec> regions) {
+    static char bytes[0x200];
+    auto *symtab = new st::Symtab();
+    for (auto const &r : regions) {
+      symtab->addRegion(r.addr, bytes, r.size, r.name,
+                        r.tbss ? st::Region::RT_BSS : st::Region::RT_DATA, true, 8, r.tbss);
+    }
+    return symtab;
+  }
+
+}
+
 int main(int argc, char **argv) {
   if (argc != 2) {
     std::cerr << "Usage: " << argv[0] << " <binary path>\n";
     return EXIT_FAILURE;
   }
 
-  namespace st = Dyninst::SymtabAPI;
   st::Symtab *symtab;
   if (!st::Symtab::openFile(symtab, argv[1])) {
     std::cerr << "Unable to open '" << argv[1] << "'\n";
     return EXIT_FAILURE;
   }
 
-  struct {
-    Dyninst::Offset addr;
-    char const *name;
-  } const expected[] = {
-      {0x100ec8e8, ".tdata"},
-      {0x100ec908, ".ctors"},
-      {0x100ec918, ".dtors"},
-      {0x100ec928, ".data.rel.ro"},
-  };
-
   bool ok = true;
-  for (auto const &e : expected) {
-    st::Region *reg = symtab->findEnclosingRegion(e.addr);
-    std::string const found = reg ? reg->getRegionName() : "<none>";
-    if (found != e.name) {
-      std::cerr << "findEnclosingRegion(0x" << std::hex << e.addr << ") gave '"
-                << found << "', expected '" << e.name << "'\n";
-      ok = false;
-    }
-  }
+  ok &= check(symtab, 0x100ec8e8, ".tdata");
+  ok &= check(symtab, 0x100ec908, ".ctors");
+  ok &= check(symtab, 0x100ec918, ".dtors");
+  ok &= check(symtab, 0x100ec928, ".data.rel.ro");
+
+  // A region that starts before .tbss and extends into it.
+  ok &= check(make_symtab({{0x1000, 0x180, "before", false},
+                           {0x1100, 0x100, ".tbss", true},
+                           {0x3000, 0x10, "after", false}}),
+              0x1140, "before");
+
+  // Several regions inside .tbss: the smallest one wins, not the first one
+  // in address order.
+  ok &= check(make_symtab({{0x800, 0x10, "before", false},
+                           {0x1100, 0x100, ".tbss", true},
+                           {0x1100, 0x200, "outer", false},
+                           {0x1180, 0x10, "inner", false}}),
+              0x1184, "inner");
+
   return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
