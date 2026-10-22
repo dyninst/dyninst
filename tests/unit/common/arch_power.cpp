@@ -1,6 +1,7 @@
 /*
  * The Power instruction predicates that ProcControl's emulated single-step relies on: load-and-reserve and
- * store-conditional of every width (the LL/SC sequence boundaries).
+ * store-conditional of every width (the LL/SC sequence boundaries), and the branches to LR, CTR and TAR
+ * (exits whose target is not in the instruction).
  * Instruction words were produced by GNU as (-a64 -mpower9) and read back with objdump.
  */
 #include "common/src/arch-power.h"
@@ -44,6 +45,31 @@ const atomic_case atomic_cases[] = {
   {"cmpw 3,4",         0x7c032000, false, false},
   {"addi 3,3,1",       0x38630001, false, false},
 };
+
+struct branch_case { const char *text; unsigned raw; bool to_lr; bool to_ctr; bool to_tar; };
+
+const branch_case branch_cases[] = {
+  {"blr",              0x4e800020, true,  false, false},
+  {"blrl",             0x4e800021, true,  false, false},   // LK bit
+  {"beqlr",            0x4d820020, true,  false, false},
+  {"bnelr",            0x4c820020, true,  false, false},
+  {"bdnzlr",           0x4e000020, true,  false, false},
+  {"bctr",             0x4e800420, false, true,  false},
+  {"bctrl",            0x4e800421, false, true,  false},
+  {"bnectr",           0x4c820420, false, true,  false},
+  {"bctar 20,0",       0x4e800460, false, false, true},
+  {"bctarl 20,0",      0x4e800461, false, false, true},
+  // branches with the target in the instruction, moves to/from LR and CTR, and other
+  // opcode-19 instructions are none of them
+  {"b .+8",            0x48000008, false, false, false},
+  {"bl .+8",           0x48000009, false, false, false},
+  {"beq .+8",          0x41820008, false, false, false},
+  {"mtlr 3",           0x7c6803a6, false, false, false},
+  {"mfctr 3",          0x7c6902a6, false, false, false},
+  {"isync",            0x4c00012c, false, false, false},
+  {"crclr 0",          0x4c000182, false, false, false},
+  {"rfid",             0x4c000024, false, false, false},
+};
 // clang-format on
 
 int failures = 0;
@@ -61,6 +87,12 @@ int main() {
     instruction insn(c.raw);
     check(insn.isAtomicLoad() == c.is_load_reserve, "isAtomicLoad", c.text);
     check(insn.isAtomicStore() == c.is_store_conditional, "isAtomicStore", c.text);
+  }
+  for (const auto &c : branch_cases) {
+    instruction insn(c.raw);
+    check(insn.isBranchToLR() == c.to_lr, "isBranchToLR", c.text);
+    check(insn.isBranchToCTR() == c.to_ctr, "isBranchToCTR", c.text);
+    check(insn.isBranchToTAR() == c.to_tar, "isBranchToTAR", c.text);
   }
   if (failures) {
     std::printf("%d failure(s)\n", failures);
