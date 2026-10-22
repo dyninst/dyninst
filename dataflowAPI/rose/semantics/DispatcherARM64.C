@@ -872,33 +872,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
@@ -930,28 +914,12 @@ namespace rose {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if (rt_unknown) {
+                            data = ops->unspecified_(1);
+                        } else {
+                            data = d->read(args[0]);
                         }
+                        d->writeMemory(address, 0x8 << EXTR(30, 31), data);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
@@ -976,33 +944,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
@@ -1034,28 +986,12 @@ namespace rose {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if (rt_unknown) {
+                            data = ops->unspecified_(1);
+                        } else {
+                            data = d->read(args[0]);
                         }
+                        d->writeMemory(address, 0x8 << EXTR(30, 31), data);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
@@ -1080,33 +1016,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
@@ -1132,33 +1052,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
@@ -1184,33 +1088,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
@@ -1236,34 +1124,18 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
 //						 fprintf(stderr, "xxx %d %d\n", 0x8 << EXTR(30, 31), EXTR(30, 31));
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+                        data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
@@ -1295,28 +1167,12 @@ namespace rose {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if (rt_unknown) {
+                            data = ops->unspecified_(1);
+                        } else {
+                            data = d->read(args[0]);
                         }
+                        d->writeMemory(address, 0x8 << EXTR(30, 31), data);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
@@ -1341,33 +1197,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
@@ -1393,33 +1233,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
@@ -1445,33 +1269,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
@@ -1497,33 +1305,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
@@ -1549,33 +1341,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
@@ -1601,33 +1377,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
@@ -1659,28 +1419,12 @@ namespace rose {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if (rt_unknown) {
+                            data = ops->unspecified_(1);
+                        } else {
+                            data = d->read(args[0]);
                         }
+                        d->writeMemory(address, 0x8 << EXTR(30, 31), data);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
@@ -1711,28 +1455,12 @@ namespace rose {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if (rt_unknown) {
+                            data = ops->unspecified_(1);
+                        } else {
+                            data = d->read(args[0]);
                         }
+                        d->writeMemory(address, 0x8 << EXTR(30, 31), data);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
@@ -1763,28 +1491,12 @@ namespace rose {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if (rt_unknown) {
+                            data = ops->unspecified_(1);
+                        } else {
+                            data = d->read(args[0]);
                         }
+                        d->writeMemory(address, 0x8 << EXTR(30, 31), data);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
@@ -1809,17 +1521,12 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->ldStrLiteralAccessSize(raw));
+                        data = d->readMemory(address, d->ldStrLiteralAccessSize(raw));
 
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, 64));
-                                } else {
-                                    d->write(args[0], data);
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, 64));
+                        } else {
+                            d->write(args[0], data);
                         }
 
                     }
@@ -1830,17 +1537,12 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->ldStrLiteralAccessSize(raw));
+                        data = d->readMemory(address, d->ldStrLiteralAccessSize(raw));
 
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, 64));
-                                } else {
-                                    d->write(args[0], data);
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, 64));
+                        } else {
+                            d->write(args[0], data);
                         }
 
                     }
@@ -2863,43 +2565,19 @@ namespace rose {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown && EXTR(0, 4) == EXTR(5, 9)) {
-                                    data1 = ops->unspecified_(1);
-                                } else {
-                                    data1 = d->read(args[0]);
-                                }
-
-                                if (rt_unknown && EXTR(10, 14) == EXTR(5, 9)) {
-                                    data2 = ops->unspecified_(1);
-                                } else {
-                                    data2 = d->read(args[1]);
-                                }
-                                d->writeMemory(ops->add(address, ops->number_(32, 0)), dbytes, data1);
-                                d->writeMemory(ops->add(address, ops->number_(32, dbytes)), dbytes, data2);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data1 = d->readMemory(ops->add(address, ops->number_(32, 0)), dbytes);
-                                data2 = d->readMemory(ops->add(address, ops->number_(32, dbytes)), dbytes);
-
-                                if (rt_unknown) {
-                                    data1 = ops->unspecified_(1);
-                                    data2 = ops->unspecified_(1);
-                                }
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data1, 64));
-                                    d->write(args[1], d->SignExtend(data2, 64));
-                                } else {
-                                    d->write(args[0], data1);
-                                    d->write(args[1], data2);
-                                }
-                            }
-                                break;
+                        if (rt_unknown && EXTR(0, 4) == EXTR(5, 9)) {
+                            data1 = ops->unspecified_(1);
+                        } else {
+                            data1 = d->read(args[0]);
                         }
+
+                        if (rt_unknown && EXTR(10, 14) == EXTR(5, 9)) {
+                            data2 = ops->unspecified_(1);
+                        } else {
+                            data2 = d->read(args[1]);
+                        }
+                        d->writeMemory(ops->add(address, ops->number_(32, 0)), dbytes, data1);
+                        d->writeMemory(ops->add(address, ops->number_(32, dbytes)), dbytes, data2);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
@@ -2932,42 +2610,20 @@ namespace rose {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data1 = d->readMemory(ops->add(address, ops->number_(32, 0)), dbytes);
+                        data2 = d->readMemory(ops->add(address, ops->number_(32, dbytes)), dbytes);
 
-                                if (rt_unknown && EXTR(0, 4) == EXTR(5, 9)) {
-                                    data1 = ops->unspecified_(1);
-                                } else {
-                                    data1 = d->read(args[0]);
-                                }
+                        if (rt_unknown) {
+                            data1 = ops->unspecified_(1);
+                            data2 = ops->unspecified_(1);
+                        }
 
-                                if (rt_unknown && EXTR(10, 14) == EXTR(5, 9)) {
-                                    data2 = ops->unspecified_(1);
-                                } else {
-                                    data2 = d->read(args[1]);
-                                }
-                                d->writeMemory(ops->add(address, ops->number_(32, 0)), dbytes, data1);
-                                d->writeMemory(ops->add(address, ops->number_(32, dbytes)), dbytes, data2);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data1 = d->readMemory(ops->add(address, ops->number_(32, 0)), dbytes);
-                                data2 = d->readMemory(ops->add(address, ops->number_(32, dbytes)), dbytes);
-
-                                if (rt_unknown) {
-                                    data1 = ops->unspecified_(1);
-                                    data2 = ops->unspecified_(1);
-                                }
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data1, 64));
-                                    d->write(args[1], d->SignExtend(data2, 64));
-                                } else {
-                                    d->write(args[0], data1);
-                                    d->write(args[1], data2);
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data1, 64));
+                            d->write(args[1], d->SignExtend(data2, 64));
+                        } else {
+                            d->write(args[0], data1);
+                            d->write(args[1], data2);
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
@@ -3001,42 +2657,20 @@ namespace rose {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data1 = d->readMemory(ops->add(address, ops->number_(32, 0)), dbytes);
+                        data2 = d->readMemory(ops->add(address, ops->number_(32, dbytes)), dbytes);
 
-                                if (rt_unknown && EXTR(0, 4) == EXTR(5, 9)) {
-                                    data1 = ops->unspecified_(1);
-                                } else {
-                                    data1 = d->read(args[0]);
-                                }
+                        if (rt_unknown) {
+                            data1 = ops->unspecified_(1);
+                            data2 = ops->unspecified_(1);
+                        }
 
-                                if (rt_unknown && EXTR(10, 14) == EXTR(5, 9)) {
-                                    data2 = ops->unspecified_(1);
-                                } else {
-                                    data2 = d->read(args[1]);
-                                }
-                                d->writeMemory(ops->add(address, ops->number_(32, 0)), dbytes, data1);
-                                d->writeMemory(ops->add(address, ops->number_(32, dbytes)), dbytes, data2);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data1 = d->readMemory(ops->add(address, ops->number_(32, 0)), dbytes);
-                                data2 = d->readMemory(ops->add(address, ops->number_(32, dbytes)), dbytes);
-
-                                if (rt_unknown) {
-                                    data1 = ops->unspecified_(1);
-                                    data2 = ops->unspecified_(1);
-                                }
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data1, 64));
-                                    d->write(args[1], d->SignExtend(data2, 64));
-                                } else {
-                                    d->write(args[0], data1);
-                                    d->write(args[1], data2);
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data1, 64));
+                            d->write(args[1], d->SignExtend(data2, 64));
+                        } else {
+                            d->write(args[0], data1);
+                            d->write(args[1], data2);
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
@@ -3069,37 +2703,15 @@ namespace rose {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data1 = d->readMemory(ops->add(address, ops->number_(32, 0)), dbytes);
+                        data2 = d->readMemory(ops->add(address, ops->number_(32, dbytes)), dbytes);
 
-                                if (rt_unknown && EXTR(0, 4) == EXTR(5, 9)) {
-                                    data1 = ops->unspecified_(1);
-                                } else {
-                                    data1 = d->read(args[0]);
-                                }
-
-                                if (rt_unknown && EXTR(10, 14) == EXTR(5, 9)) {
-                                    data2 = ops->unspecified_(1);
-                                } else {
-                                    data2 = d->read(args[1]);
-                                }
-                                d->writeMemory(ops->add(address, ops->number_(32, 0)), dbytes, data1);
-                                d->writeMemory(ops->add(address, ops->number_(32, dbytes)), dbytes, data2);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data1 = d->readMemory(ops->add(address, ops->number_(32, 0)), dbytes);
-                                data2 = d->readMemory(ops->add(address, ops->number_(32, dbytes)), dbytes);
-
-                                if (rt_unknown) {
-                                    data1 = ops->unspecified_(1);
-                                    data2 = ops->unspecified_(1);
-                                }
-                                d->write(args[0], data1);
-                                d->write(args[1], data2);
-                            }
-                                break;
+                        if (rt_unknown) {
+                            data1 = ops->unspecified_(1);
+                            data2 = ops->unspecified_(1);
                         }
+                        d->write(args[0], data1);
+                        d->write(args[1], data2);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
@@ -3129,37 +2741,19 @@ namespace rose {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown && EXTR(0, 4) == EXTR(5, 9)) {
-                                    data1 = ops->unspecified_(1);
-                                } else {
-                                    data1 = d->read(args[0]);
-                                }
-
-                                if (rt_unknown && EXTR(10, 14) == EXTR(5, 9)) {
-                                    data2 = ops->unspecified_(1);
-                                } else {
-                                    data2 = d->read(args[1]);
-                                }
-                                d->writeMemory(ops->add(address, ops->number_(32, 0)), dbytes, data1);
-                                d->writeMemory(ops->add(address, ops->number_(32, dbytes)), dbytes, data2);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data1 = d->readMemory(ops->add(address, ops->number_(32, 0)), dbytes);
-                                data2 = d->readMemory(ops->add(address, ops->number_(32, dbytes)), dbytes);
-
-                                if (rt_unknown) {
-                                    data1 = ops->unspecified_(1);
-                                    data2 = ops->unspecified_(1);
-                                }
-                                d->write(args[0], data1);
-                                d->write(args[1], data2);
-                            }
-                                break;
+                        if (rt_unknown && EXTR(0, 4) == EXTR(5, 9)) {
+                            data1 = ops->unspecified_(1);
+                        } else {
+                            data1 = d->read(args[0]);
                         }
+
+                        if (rt_unknown && EXTR(10, 14) == EXTR(5, 9)) {
+                            data2 = ops->unspecified_(1);
+                        } else {
+                            data2 = d->read(args[1]);
+                        }
+                        d->writeMemory(ops->add(address, ops->number_(32, 0)), dbytes, data1);
+                        d->writeMemory(ops->add(address, ops->number_(32, dbytes)), dbytes, data2);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
@@ -3182,33 +2776,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, d->getDatasize(raw) / 8);
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
@@ -3234,33 +2812,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, d->getDatasize(raw) / 8);
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
@@ -3286,33 +2848,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, d->getDatasize(raw) / 8);
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
@@ -3338,33 +2884,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, d->getDatasize(raw) / 8);
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
@@ -3390,33 +2920,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, d->getDatasize(raw) / 8);
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
@@ -3448,28 +2962,12 @@ namespace rose {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if (rt_unknown) {
+                            data = ops->unspecified_(1);
+                        } else {
+                            data = d->read(args[0]);
                         }
+                        d->writeMemory(address, d->getDatasize(raw) / 8, data);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
@@ -3500,28 +2998,12 @@ namespace rose {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if (rt_unknown) {
+                            data = ops->unspecified_(1);
+                        } else {
+                            data = d->read(args[0]);
                         }
+                        d->writeMemory(address, d->getDatasize(raw) / 8, data);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
@@ -3552,28 +3034,12 @@ namespace rose {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if (rt_unknown) {
+                            data = ops->unspecified_(1);
+                        } else {
+                            data = d->read(args[0]);
                         }
+                        d->writeMemory(address, d->getDatasize(raw) / 8, data);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
@@ -3598,33 +3064,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, d->getDatasize(raw) / 8);
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
@@ -3650,33 +3100,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, d->getDatasize(raw) / 8);
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
@@ -3702,33 +3136,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, d->getDatasize(raw) / 8);
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
@@ -3754,33 +3172,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, d->getDatasize(raw) / 8);
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
@@ -3806,33 +3208,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, d->getDatasize(raw) / 8);
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
@@ -3858,33 +3244,17 @@ namespace rose {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
+                        data = d->readMemory(address, d->getDatasize(raw) / 8);
 
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if ((EXTR(23, 23) == 1)) {
+                            d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                        } else {
+                            d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
@@ -3916,28 +3286,12 @@ namespace rose {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if (rt_unknown) {
+                            data = ops->unspecified_(1);
+                        } else {
+                            data = d->read(args[0]);
                         }
+                        d->writeMemory(address, d->getDatasize(raw) / 8, data);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
@@ -3968,28 +3322,12 @@ namespace rose {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if (rt_unknown) {
+                            data = ops->unspecified_(1);
+                        } else {
+                            data = d->read(args[0]);
                         }
+                        d->writeMemory(address, d->getDatasize(raw) / 8, data);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
@@ -4020,28 +3358,12 @@ namespace rose {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown) {
-                                    data = ops->unspecified_(1);
-                                } else {
-                                    data = d->read(args[0]);
-                                }
-                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                } else {
-                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                                }
-                            }
-                                break;
+                        if (rt_unknown) {
+                            data = ops->unspecified_(1);
+                        } else {
+                            data = d->read(args[0]);
                         }
+                        d->writeMemory(address, d->getDatasize(raw) / 8, data);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
@@ -4758,18 +4080,8 @@ namespace rose {
                         BaseSemantics::SValuePtr data;
                         int dbytes = d->getDatasize(raw) / 8;
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-                                data = d->read(args[0]);
-                                d->writeMemory(address, dbytes, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, dbytes);
-                                d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                            }
-                                break;
-                        }
+                        data = d->readMemory(address, dbytes);
+                        d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
 
                     }
                 };
@@ -4780,18 +4092,8 @@ namespace rose {
                         BaseSemantics::SValuePtr data;
                         int dbytes = d->getDatasize(raw) / 8;
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-                                data = d->read(args[0]);
-                                d->writeMemory(address, dbytes, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, dbytes);
-                                d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                            }
-                                break;
-                        }
+                        data = d->readMemory(address, dbytes);
+                        d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
 
                     }
                 };
@@ -4802,18 +4104,8 @@ namespace rose {
                         BaseSemantics::SValuePtr data;
                         int dbytes = d->getDatasize(raw) / 8;
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-                                data = d->read(args[0]);
-                                d->writeMemory(address, dbytes, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, dbytes);
-                                d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                            }
-                                break;
-                        }
+                        data = d->readMemory(address, dbytes);
+                        d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
 
                     }
                 };
@@ -4824,18 +4116,8 @@ namespace rose {
                         BaseSemantics::SValuePtr data;
                         int dbytes = d->getDatasize(raw) / 8;
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-                                data = d->read(args[0]);
-                                d->writeMemory(address, dbytes, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, dbytes);
-                                d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                            }
-                                break;
-                        }
+                        data = d->read(args[0]);
+                        d->writeMemory(address, dbytes, data);
 
                     }
                 };
@@ -4846,18 +4128,8 @@ namespace rose {
                         BaseSemantics::SValuePtr data;
                         int dbytes = d->getDatasize(raw) / 8;
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-                                data = d->read(args[0]);
-                                d->writeMemory(address, dbytes, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, dbytes);
-                                d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                            }
-                                break;
-                        }
+                        data = d->read(args[0]);
+                        d->writeMemory(address, dbytes, data);
 
                     }
                 };
@@ -4868,18 +4140,8 @@ namespace rose {
                         BaseSemantics::SValuePtr data;
                         int dbytes = d->getDatasize(raw) / 8;
 
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-                                data = d->read(args[0]);
-                                d->writeMemory(address, dbytes, data);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data = d->readMemory(address, dbytes);
-                                d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                            }
-                                break;
-                        }
+                        data = d->read(args[0]);
+                        d->writeMemory(address, dbytes, data);
 
                     }
                 };
