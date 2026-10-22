@@ -18,13 +18,16 @@
 #include "swk_errors.h"
 #include "walker.h"
 
+#include <cerrno>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <csignal>
 #include <sys/auxv.h>
 #include <sys/prctl.h>
+#include <sys/ptrace.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <vector>
@@ -35,6 +38,28 @@ namespace st = Dyninst::SymtabAPI;
 namespace {
 
   constexpr int skipped = 77;
+
+  enum class ptrace_probe { allowed, refused, failed };
+
+  // Attach to the child and detach again. Only a ptrace that yama or a
+  // container refuses is a reason to skip; any other attach failure is the
+  // walker's to report.
+  ptrace_probe probePtrace(pid_t pid) {
+    if(ptrace(PTRACE_ATTACH, pid, nullptr, nullptr) != 0) {
+      if(errno == EPERM) {
+        return ptrace_probe::refused;
+      }
+      std::cerr << "PTRACE_ATTACH of " << pid << " failed: " << std::strerror(errno) << "\n";
+      return ptrace_probe::failed;
+    }
+    int status{};
+    if(waitpid(pid, &status, 0) != pid || !WIFSTOPPED(status) ||
+       ptrace(PTRACE_DETACH, pid, nullptr, nullptr) != 0) {
+      std::cerr << "Could not stop and detach from " << pid << "\n";
+      return ptrace_probe::failed;
+    }
+    return ptrace_probe::allowed;
+  }
 
   bool symtabAt(sw::Walker* walker, pid_t pid, Dyninst::Address addr, st::Symtab*& symtab,
                 Dyninst::Offset& offset) {
@@ -144,14 +169,23 @@ int main() {
     }
   }
 
-  // Attaching needs ptrace, which yama or a container may forbid.
-  int result = skipped;
-  if(sw::Walker* walker = sw::Walker::newWalker(child)) {
-    result = check(walker, child, vdso_base);
-    delete walker;
-  } else {
-    std::cout << "Unable to attach a walker to " << child << ": "
-              << sw::getLastErrorMsg() << "\n";
+  int result = EXIT_FAILURE;
+  switch(probePtrace(child)) {
+    case ptrace_probe::refused:
+      std::cout << "ptrace is not permitted here (yama or a container)\n";
+      result = skipped;
+      break;
+    case ptrace_probe::failed:
+      break;
+    case ptrace_probe::allowed:
+      if(sw::Walker* walker = sw::Walker::newWalker(child)) {
+        result = check(walker, child, vdso_base);
+        delete walker;
+      } else {
+        std::cerr << "Unable to attach a walker to " << child << ": "
+                  << sw::getLastErrorMsg() << "\n";
+      }
+      break;
   }
 
   kill(child, SIGKILL);
