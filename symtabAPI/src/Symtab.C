@@ -1223,9 +1223,10 @@ Symtab::~Symtab()
    dataRegions_.clear();
    regionsByEntryAddr.clear();
 
-   // addRegion puts every user region in regions_ too, which owns them.
    std::vector<Region *> *user_regions = NULL;
    getAnnotation(user_regions, UserRegionsAnno);
+   // Its regions are also in regions_, which owns them and freed them above,
+   // so free only the vector.
    delete user_regions;
 
    // Symbols are copied from linkedFile, and NOT deleted
