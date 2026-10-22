@@ -81,8 +81,8 @@ toolkit target.
     library, so it has no correct variant to link.
 
   DYNINST_INTERNAL_DEPS
-    A list of internal libraries that <TargetName> absorbs. They are
-    PRIVATE dependencies.
+    A list of internal libraries that <TargetName> absorbs or, for an
+    internal library, uses. They are PRIVATE dependencies.
 
   HEADER_DEPS
     A list of third-party targets that the public headers of
@@ -225,11 +225,18 @@ function(dyninst_library _target)
       )
     endif()
   endforeach()
+  # Every internal library, and the INTERFACE stub of a disabled one, is
+  # defined before the libraries that list it, so a name that is not a target
+  # yet is a typo or a real library added later, such as dyninstAPI_RT.
   foreach(d ${_target_DYNINST_INTERNAL_DEPS})
-    set(_dep_type)
-    if(TARGET ${d})
-      get_target_property(_dep_type ${d} TYPE)
+    if(NOT TARGET ${d})
+      message(
+        FATAL_ERROR
+        "${_target}: ${d} is not a target; an internal library must be "
+        "defined before the libraries that list it"
+      )
     endif()
+    get_target_property(_dep_type ${d} TYPE)
     if(_dep_type MATCHES "^(SHARED|STATIC)_LIBRARY$")
       message(FATAL_ERROR "${_target}: ${d} is not an internal library")
     endif()
