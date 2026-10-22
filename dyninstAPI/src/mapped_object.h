@@ -285,7 +285,8 @@ public:
     // we've lost the module name.
 
     const std::vector<func_instance *> *findFuncVectorByPretty(const std::string &funcname);
-    const std::vector<func_instance *> *findFuncVectorByMangled(const std::string &funcname);
+    const std::vector<func_instance *> *findFuncVectorByMangled(const std::string &funcname,
+                                                                bool includePLTStubs = false);
 
     bool findFuncsByAddr(std::vector<func_instance *> &funcs);
     bool findBlocksByAddr(std::vector<block_instance *> &blocks);
