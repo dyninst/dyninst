@@ -704,6 +704,10 @@ Dispatcher::read(SgAsmExpression *e, size_t value_nbits/*=0*/, size_t addr_nbits
 	    SgAsmExpression *lhs = lsr->get_lhs();
 	    SgAsmExpression *rhs = lsr->get_rhs();
 	    retval = operators->shiftRight(read(lhs, lhs->get_nBits()), read(rhs, rhs->get_nBits()));
+    } else if (SgAsmBinaryRor *ror = isSgAsmBinaryRor(e)) {
+        SgAsmExpression *lhs = ror->get_lhs();
+        SgAsmExpression *rhs = ror->get_rhs();
+        retval = operators->rotateRight(read(lhs, lhs->get_nBits()), read(rhs, rhs->get_nBits()));
     } else {
         ASSERT_not_implemented(e->class_name());
     }
