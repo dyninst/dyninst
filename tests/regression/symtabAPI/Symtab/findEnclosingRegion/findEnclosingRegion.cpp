@@ -77,6 +77,7 @@ int main(int argc, char **argv) {
   ok &= check(symtab, 0x100ec908, ".ctors");
   ok &= check(symtab, 0x100ec918, ".dtors");
   ok &= check(symtab, 0x100ec928, ".data.rel.ro");
+  st::Symtab::closeSymtab(symtab);
 
   // A region that starts before .tbss and extends into it.
   ok &= check(make_symtab({{0x1000, 0x180, "before", false},
