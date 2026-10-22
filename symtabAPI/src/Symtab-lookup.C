@@ -510,10 +510,10 @@ bool Symtab::findRegionByEntry(Region *&ret, const Offset offset)
  * address range only describes the TLS initialization template, and the
  * sections placed at or after its start (e.g. .init_array, .data.rel.ro)
  * hold the actual bytes there. When the search lands on such a region,
- * prefer an overlapping neighbor that does occupy the address. .tbss is
- * the only allocated ELF section the linker lets overlap others, so any
- * other region covering an address in its range starts at or inside it:
- * at its start (sorted before it, being smaller) or after it.
+ * return the smallest other region that contains the address instead.
+ * Linkers only overlap .tbss with sections that start at or inside it,
+ * but regions added with addRegion may start anywhere, so every region
+ * is checked; this path is taken only for addresses inside .tbss.
  */
 Region *Symtab::findEnclosingRegion(const Offset where)
 {
@@ -531,18 +531,13 @@ Region *Symtab::findEnclosingRegion(const Offset where)
         if (contains(curreg)) {
             if (!isTLSBss(curreg))
                 return curreg;
-            // regions sharing curreg's start sort before it (smaller size)
-            for (int i = mid - 1; i >= 0
-                 && regions_[i]->getMemOffset() == curreg->getMemOffset(); --i) {
-                if (contains(regions_[i]) && !isTLSBss(regions_[i]))
-                    return regions_[i];
+            Region *inner = nullptr;
+            for (Region *r : regions_) {
+                if (contains(r) && !isTLSBss(r)
+                    && (!inner || r->getMemSize() < inner->getMemSize()))
+                    inner = r;
             }
-            for (int i = mid + 1; i < (int) regions_.size()
-                 && regions_[i]->getMemOffset() <= where; ++i) {
-                if (contains(regions_[i]) && !isTLSBss(regions_[i]))
-                    return regions_[i];
-            }
-            return curreg;
+            return inner ? inner : curreg;
         }
         else if (where < curreg->getMemOffset()) {
             last = mid - 1;
