@@ -901,7 +901,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -953,7 +953,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1005,7 +1005,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1057,7 +1057,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1109,7 +1109,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1161,7 +1161,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1213,7 +1213,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1266,7 +1266,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1318,7 +1318,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -3211,7 +3211,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -3263,7 +3263,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -3315,7 +3315,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -3367,7 +3367,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -3419,7 +3419,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -3471,7 +3471,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -3523,7 +3523,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -3575,7 +3575,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -3627,7 +3627,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -3679,7 +3679,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -3731,7 +3731,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -3783,7 +3783,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -3835,7 +3835,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -3887,7 +3887,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -3939,7 +3939,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -3991,7 +3991,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -4043,7 +4043,7 @@ namespace rose {
                                 break;
                         }
 
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
