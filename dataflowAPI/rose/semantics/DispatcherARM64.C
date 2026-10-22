@@ -531,11 +531,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
 
                         BaseSemantics::SValuePtr target = d->read(args[0]);
-                        if (EXTR (31, 31) == 1)
-                            d->writeRegister(d->findRegister("x30", 64),
-                                             ops->add(d->readRegister(d->REG_PC),
-                                                      ops->number_(32, 4)));
-
                         d->BranchTo(target);
                     }
                 };
