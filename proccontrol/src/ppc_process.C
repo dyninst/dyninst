@@ -274,6 +274,7 @@ async_ret_t ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Ad
     bool sequenceStarted = false;
     int maxSequenceCount = 24; // arbitrary
     int currentCount = 0;
+    bool lrWritten = false, ctrWritten = false; // by an mtlr/mtctr earlier in the sequence
     do {
         // Read the current instruction
         unsigned int rawInsn;
@@ -298,9 +299,17 @@ async_ret_t ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Ad
         // and place breakpoint there as well. The target of a branch to LR or CTR (bnelr,
         // bnectr) is not in the instruction, so read the register from the stopped thread:
         // without a breakpoint there the thread leaves the sequence and runs free, and the
-        // single step is lost. The value read is the one at the start of the sequence.
+        // single step is lost. The value read is the one at the start of the sequence, so a
+        // sequence that sets LR or CTR (mtlr, mtctr) before branching through it fails the step.
         Address cfTarget = 0;
-        if( insn.isBranchToLR() || insn.isBranchToCTR() ) {
+        if( (insn.isBranchToLR() && lrWritten) || (insn.isBranchToCTR() && ctrWritten) ) {
+            // The sequence sets the register before the branch, so the value it has now is not
+            // where the branch goes: as for TAR, there is no address to stop the thread at
+            pthrd_printf("Branch to %s set inside an atomic instruction sequence at 0x%lx\n",
+                         insn.isBranchToLR() ? "LR" : "CTR", pc);
+            addrResult.clear();
+            return aret_error;
+        }else if( insn.isBranchToLR() || insn.isBranchToCTR() ) {
             bool is64 = getTargetArch() == Arch_ppc64;
             MachRegister reg = insn.isBranchToLR() ? (is64 ? ppc64::lr : ppc32::lr)
                                                    : (is64 ? ppc64::ctr : ppc32::ctr);
@@ -320,6 +329,8 @@ async_ret_t ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Ad
         if( cfTarget != 0 && sequenceStarted && !foundEnd ) {
             addrResult.push_back(cfTarget);
         }
+        if( insn.isMoveToLR() ) lrWritten = true;
+        if( insn.isMoveToCTR() ) ctrWritten = true;
 
         currentCount++;
         pc += 4;
