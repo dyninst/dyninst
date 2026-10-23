@@ -878,6 +878,9 @@ class DYNINST_EXPORT instruction {
     bool isBranchToLR() const;
     bool isBranchToCTR() const;
     bool isBranchToTAR() const;
+    // mtspr to LR / CTR (mtlr, mtctr)
+    bool isMoveToLR() const;
+    bool isMoveToCTR() const;
     bool isThunk() const;
 
 

@@ -153,6 +153,21 @@ bool instruction::isBranchToTAR() const {
     return XLFORM_OP(*this) == BCTARop && XLFORM_XO(*this) == BCTARxop;
 }
 
+// mtspr (XFX-form, opcode 31): the SPR number is split, its low five bits in the RA field
+// and its high five bits in the RB field (as generateMoveToSPR() writes them).
+static bool isMoveToSPR(const instruction &insn, unsigned spr) {
+    return XFXFORM_OP(insn) == MTSPRop && XFXFORM_XO(insn) == MTSPRxop
+        && XFORM_RA(insn) == (spr & 0x1f) && XFORM_RB(insn) == ((spr >> 5) & 0x1f);
+}
+
+bool instruction::isMoveToLR() const {
+    return isMoveToSPR(*this, SPR_LR);
+}
+
+bool instruction::isMoveToCTR() const {
+    return isMoveToSPR(*this, SPR_CTR);
+}
+
 unsigned instruction::jumpSize(Dyninst::Address from, Dyninst::Address to, unsigned addr_width) {
     Dyninst::Address disp = ABS((long)(to - from));
     return jumpSize(disp, addr_width);

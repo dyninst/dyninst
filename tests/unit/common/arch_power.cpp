@@ -1,7 +1,8 @@
 /*
  * The Power instruction predicates that ProcControl's emulated single-step relies on: load-and-reserve and
- * store-conditional of every width (the LL/SC sequence boundaries), and the branches to LR, CTR and TAR
- * (exits whose target is not in the instruction).
+ * store-conditional of every width (the LL/SC sequence boundaries), the branches to LR, CTR and TAR
+ * (exits whose target is not in the instruction), and the moves to LR and CTR (which change that target
+ * inside a sequence, so the step is refused).
  * Instruction words were produced by GNU as (-a64 -mpower9) and read back with objdump.
  */
 #include "common/src/arch-power.h"
@@ -70,6 +71,24 @@ const branch_case branch_cases[] = {
   {"crclr 0",          0x4c000182, false, false, false},
   {"rfid",             0x4c000024, false, false, false},
 };
+
+struct move_case { const char *text; unsigned raw; bool to_lr; bool to_ctr; };
+
+const move_case move_cases[] = {
+  {"mtlr 3",           0x7c6803a6, true,  false},
+  {"mtlr 0",           0x7c0803a6, true,  false},
+  {"mtctr 3",          0x7c6903a6, false, true},
+  {"mtctr 12",         0x7d8903a6, false, true},
+  // reads of LR/CTR, other SPRs (including ones that share LR's low five SPR bits), branches
+  {"mflr 3",           0x7c6802a6, false, false},
+  {"mfctr 3",          0x7c6902a6, false, false},
+  {"mtxer 3",          0x7c6103a6, false, false},
+  {"mtspr 256,3",      0x7c6043a6, false, false},
+  {"mtspr 264,3",      0x7c6843a6, false, false},
+  {"mtspr 815,3",      0x7c6fcba6, false, false},
+  {"blr",              0x4e800020, false, false},
+  {"bctr",             0x4e800420, false, false},
+};
 // clang-format on
 
 int failures = 0;
@@ -93,6 +112,11 @@ int main() {
     check(insn.isBranchToLR() == c.to_lr, "isBranchToLR", c.text);
     check(insn.isBranchToCTR() == c.to_ctr, "isBranchToCTR", c.text);
     check(insn.isBranchToTAR() == c.to_tar, "isBranchToTAR", c.text);
+  }
+  for (const auto &c : move_cases) {
+    instruction insn(c.raw);
+    check(insn.isMoveToLR() == c.to_lr, "isMoveToLR", c.text);
+    check(insn.isMoveToCTR() == c.to_ctr, "isMoveToCTR", c.text);
   }
   if (failures) {
     std::printf("%d failure(s)\n", failures);
