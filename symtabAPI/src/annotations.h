@@ -51,5 +51,4 @@ using namespace std;
 
 extern AnnotationClass<std::vector<std::string> > SymbolVersionNamesAnno;
 extern AnnotationClass<std::string> SymbolFileNameAnno;
-extern AnnotationClass<dyn_hash_map<Address, Symbol *> > IdToSymAnno;
 #endif
