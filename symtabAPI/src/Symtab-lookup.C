@@ -406,20 +406,9 @@ bool Symtab::getDataRegions(std::vector<Region *>&ret)
 
 bool Symtab::getAllNewRegions(std::vector<Region *>&ret)
 {
-   std::vector<Region *> *retp = NULL;
-
-   if (!getAnnotation(retp, UserRegionsAnno))
-   {
+   if (impl->addedRegions.empty())
       return false;
-   }
-
-   if (!retp)
-   {
-      return false;
-   }
-
-   ret = *retp;
-
+   ret = impl->addedRegions;
    return true;
 }
 

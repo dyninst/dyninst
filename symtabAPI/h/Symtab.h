@@ -451,7 +451,6 @@ class DYNINST_EXPORT Symtab : public LookupInterface,
    void parseTypes();
    bool setDefaultNamespacePrefix(std::string str);
 
-   bool addUserRegion(Region *newreg);
    bool addUserType(Type *newtypeg);
 
    void setTOCOffset(Offset offset);

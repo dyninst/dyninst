@@ -1223,16 +1223,6 @@ Symtab::~Symtab()
    dataRegions_.clear();
    regionsByEntryAddr.clear();
 
-   std::vector<Region *> *user_regions = NULL;
-   getAnnotation(user_regions, UserRegionsAnno);
-
-   if (user_regions)
-   {
-      for (unsigned i = 0; i < user_regions->size(); ++i) 
-         delete (*user_regions)[i];
-      user_regions->clear();
-   }
-
    // Symbols are copied from linkedFile, and NOT deleted
    impl->everyDefinedSymbol.clear();
    impl->undefDynSyms.clear();
@@ -1441,33 +1431,8 @@ bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::str
       regions_.push_back(sec);
    }
 
-   addUserRegion(sec);
+   impl->addedRegions.push_back(sec);
    std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
-   return true;
-}
-
-bool Symtab::addUserRegion(Region *reg)
-{
-   std::vector<Region *> *user_regions = NULL;
-
-   if (!getAnnotation(user_regions, UserRegionsAnno))
-   {
-      user_regions = new std::vector<Region *>();
-      if (!addAnnotation(user_regions, UserRegionsAnno))
-      {
-         create_printf("%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
-         return false;
-      }
-   }
-
-   if (!user_regions)
-   {
-      create_printf("%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
-      return false;
-   }
-
-   user_regions->push_back(reg);
-
    return true;
 }
 

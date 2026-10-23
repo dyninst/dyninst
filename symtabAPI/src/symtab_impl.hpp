@@ -12,6 +12,7 @@
 #include <mutex>
 #include <string>
 #include <set>
+#include <vector>
 
 namespace Dyninst { namespace SymtabAPI {
 
@@ -40,6 +41,10 @@ namespace Dyninst { namespace SymtabAPI {
     Module* default_module{};
 
     MappedFile *mf{};
+
+    // Regions created by Symtab::addRegion, in the order they were added.
+    // regions_ owns them; this only records which ones are new.
+    std::vector<Region *> addedRegions{};
 
     Module* getContainingModule(Offset offset) const {
       std::set<ModRange*> mods;
