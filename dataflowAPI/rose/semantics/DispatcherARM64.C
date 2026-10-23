@@ -871,11 +871,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
@@ -887,9 +882,7 @@ namespace rose {
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
@@ -899,7 +892,6 @@ namespace rose {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
-
                     }
                 };
 
@@ -907,25 +899,13 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-                        bool rt_unknown = false;
 
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
-
-                        if (rt_unknown) {
-                            data = ops->unspecified_(1);
-                        } else {
-                            data = d->read(args[0]);
-                        }
+                        data = d->read(args[0]);
                         d->writeMemory(address, 0x8 << EXTR(30, 31), data);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
@@ -935,7 +915,6 @@ namespace rose {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
-
                     }
                 };
 
@@ -943,11 +922,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
@@ -959,9 +933,7 @@ namespace rose {
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
@@ -971,7 +943,6 @@ namespace rose {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
-
                     }
                 };
 
@@ -979,25 +950,13 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-                        bool rt_unknown = false;
 
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
-
-                        if (rt_unknown) {
-                            data = ops->unspecified_(1);
-                        } else {
-                            data = d->read(args[0]);
-                        }
+                        data = d->read(args[0]);
                         d->writeMemory(address, 0x8 << EXTR(30, 31), data);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
@@ -1007,7 +966,6 @@ namespace rose {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
-
                     }
                 };
 
@@ -1015,11 +973,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
@@ -1031,9 +984,7 @@ namespace rose {
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
@@ -1043,7 +994,6 @@ namespace rose {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
-
                     }
                 };
 
@@ -1051,11 +1001,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
@@ -1067,9 +1012,7 @@ namespace rose {
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
@@ -1079,7 +1022,6 @@ namespace rose {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
-
                     }
                 };
 
@@ -1087,11 +1029,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
@@ -1103,9 +1040,7 @@ namespace rose {
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
@@ -1115,7 +1050,6 @@ namespace rose {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
-
                     }
                 };
 
@@ -1123,13 +1057,7 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
 
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
-
-//						 fprintf(stderr, "xxx %d %d\n", 0x8 << EXTR(30, 31), EXTR(30, 31));
                         data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
                         if ((EXTR(23, 23) == 1)) {
@@ -1140,9 +1068,7 @@ namespace rose {
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
@@ -1152,7 +1078,6 @@ namespace rose {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
-
                     }
                 };
 
@@ -1160,25 +1085,13 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-                        bool rt_unknown = false;
 
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
-
-                        if (rt_unknown) {
-                            data = ops->unspecified_(1);
-                        } else {
-                            data = d->read(args[0]);
-                        }
+                        data = d->read(args[0]);
                         d->writeMemory(address, 0x8 << EXTR(30, 31), data);
 
                         if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
 
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
@@ -1188,7 +1101,6 @@ namespace rose {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
-
                     }
                 };
 
@@ -1196,11 +1108,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
@@ -1209,22 +1116,6 @@ namespace rose {
                         } else {
                             d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -1232,11 +1123,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
@@ -1245,22 +1131,6 @@ namespace rose {
                         } else {
                             d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -1268,11 +1138,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
@@ -1281,22 +1146,6 @@ namespace rose {
                         } else {
                             d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -1304,11 +1153,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
@@ -1317,22 +1161,6 @@ namespace rose {
                         } else {
                             d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -1340,11 +1168,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
@@ -1353,22 +1176,6 @@ namespace rose {
                         } else {
                             d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -1376,11 +1183,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
@@ -1389,22 +1191,6 @@ namespace rose {
                         } else {
                             d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -1412,35 +1198,9 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-                        bool rt_unknown = false;
 
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
-
-                        if (rt_unknown) {
-                            data = ops->unspecified_(1);
-                        } else {
-                            data = d->read(args[0]);
-                        }
+                        data = d->read(args[0]);
                         d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -1448,35 +1208,9 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-                        bool rt_unknown = false;
 
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
-
-                        if (rt_unknown) {
-                            data = ops->unspecified_(1);
-                        } else {
-                            data = d->read(args[0]);
-                        }
+                        data = d->read(args[0]);
                         d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -1484,35 +1218,9 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-                        bool rt_unknown = false;
 
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
-
-                        if (rt_unknown) {
-                            data = ops->unspecified_(1);
-                        } else {
-                            data = d->read(args[0]);
-                        }
+                        data = d->read(args[0]);
                         d->writeMemory(address, 0x8 << EXTR(30, 31), data);
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -1524,7 +1232,6 @@ namespace rose {
                         data = d->readMemory(address, d->ldStrLiteralAccessSize(raw));
 
                         d->write(args[0], data);
-
                     }
                 };
 
@@ -1536,7 +1243,6 @@ namespace rose {
                         data = d->readMemory(address, d->ldStrLiteralAccessSize(raw));
 
                         d->write(args[0], d->SignExtend(data, 64));
-
                     }
                 };
 
@@ -2875,11 +2581,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, d->getDatasize(raw) / 8);
 
@@ -2888,22 +2589,6 @@ namespace rose {
                         } else {
                             d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -2911,11 +2596,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, d->getDatasize(raw) / 8);
 
@@ -2924,22 +2604,6 @@ namespace rose {
                         } else {
                             d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -2947,11 +2611,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, d->getDatasize(raw) / 8);
 
@@ -2960,22 +2619,6 @@ namespace rose {
                         } else {
                             d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -2983,11 +2626,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, d->getDatasize(raw) / 8);
 
@@ -2996,22 +2634,6 @@ namespace rose {
                         } else {
                             d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -3019,11 +2641,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, d->getDatasize(raw) / 8);
 
@@ -3032,22 +2649,6 @@ namespace rose {
                         } else {
                             d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -3055,35 +2656,13 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-                        bool rt_unknown = false;
 
                         /*f (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
                         }*/
 
-                        if (rt_unknown) {
-                            data = ops->unspecified_(1);
-                        } else {
-                            data = d->read(args[0]);
-                        }
+                        data = d->read(args[0]);
                         d->writeMemory(address, d->getDatasize(raw) / 8, data);
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -3091,35 +2670,9 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-                        bool rt_unknown = false;
 
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
-
-                        if (rt_unknown) {
-                            data = ops->unspecified_(1);
-                        } else {
-                            data = d->read(args[0]);
-                        }
+                        data = d->read(args[0]);
                         d->writeMemory(address, d->getDatasize(raw) / 8, data);
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -3127,35 +2680,9 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-                        bool rt_unknown = false;
 
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
-
-                        if (rt_unknown) {
-                            data = ops->unspecified_(1);
-                        } else {
-                            data = d->read(args[0]);
-                        }
+                        data = d->read(args[0]);
                         d->writeMemory(address, d->getDatasize(raw) / 8, data);
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -3163,11 +2690,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, d->getDatasize(raw) / 8);
 
@@ -3176,22 +2698,6 @@ namespace rose {
                         } else {
                             d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                //address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -3199,11 +2705,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, d->getDatasize(raw) / 8);
 
@@ -3212,22 +2713,6 @@ namespace rose {
                         } else {
                             d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -3235,11 +2720,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, d->getDatasize(raw) / 8);
 
@@ -3248,22 +2728,6 @@ namespace rose {
                         } else {
                             d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -3271,11 +2735,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, d->getDatasize(raw) / 8);
 
@@ -3284,22 +2743,6 @@ namespace rose {
                         } else {
                             d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -3307,11 +2750,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, d->getDatasize(raw) / 8);
 
@@ -3320,22 +2758,6 @@ namespace rose {
                         } else {
                             d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -3343,11 +2765,6 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
 
                         data = d->readMemory(address, d->getDatasize(raw) / 8);
 
@@ -3356,22 +2773,6 @@ namespace rose {
                         } else {
                             d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                         }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, ops->number_(EXTR(12,20),9));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -3379,35 +2780,9 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-                        bool rt_unknown = false;
 
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
-
-                        if (rt_unknown) {
-                            data = ops->unspecified_(1);
-                        } else {
-                            data = d->read(args[0]);
-                        }
+                        data = d->read(args[0]);
                         d->writeMemory(address, d->getDatasize(raw) / 8, data);
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -3415,35 +2790,9 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-                        bool rt_unknown = false;
 
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
-
-                        if (rt_unknown) {
-                            data = ops->unspecified_(1);
-                        } else {
-                            data = d->read(args[0]);
-                        }
+                        data = d->read(args[0]);
                         d->writeMemory(address, d->getDatasize(raw) / 8, data);
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -3451,35 +2800,9 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        bool wb_unknown = false;
-                        bool rt_unknown = false;
 
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
-
-                        if (rt_unknown) {
-                            data = ops->unspecified_(1);
-                        } else {
-                            data = d->read(args[0]);
-                        }
+                        data = d->read(args[0]);
                         d->writeMemory(address, d->getDatasize(raw) / 8, data);
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0) && EXTR(10, 10) == 1) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
                     }
                 };
 
@@ -4182,7 +3505,6 @@ namespace rose {
 
                         data = d->readMemory(address, dbytes);
                         d->write(args[0], d->ZeroExtend(data, 32 << EXTR(30, 30)));
-
                     }
                 };
 
@@ -4194,7 +3516,6 @@ namespace rose {
 
                         data = d->readMemory(address, dbytes);
                         d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-
                     }
                 };
 
@@ -4206,7 +3527,6 @@ namespace rose {
 
                         data = d->readMemory(address, dbytes);
                         d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-
                     }
                 };
 
@@ -4218,7 +3538,6 @@ namespace rose {
 
                         data = d->read(args[0]);
                         d->writeMemory(address, dbytes, data);
-
                     }
                 };
 
@@ -4230,7 +3549,6 @@ namespace rose {
 
                         data = d->read(args[0]);
                         d->writeMemory(address, dbytes, data);
-
                     }
                 };
 
@@ -4242,7 +3560,6 @@ namespace rose {
 
                         data = d->read(args[0]);
                         d->writeMemory(address, dbytes, data);
-
                     }
                 };
 
