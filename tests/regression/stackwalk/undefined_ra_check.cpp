@@ -3,8 +3,11 @@
 //
 // worker: glibc's thread_start marks the return address undefined. The walk
 //         must stop there; reading the RA as same-value instead repeats
-//         thread_start's frame forever.
-// main:   the walk must reach _start.
+//         thread_start's frame forever. thread_start and start_thread are
+//         local symbols of libc, which distributions often strip, so the
+//         bottom is checked by library: the two frames below worker()
+//         (start_thread, thread_start) must both be in libc.
+// main:   the walk must reach _start (in the target executable).
 //
 // Exit codes: 0 pass, 1 fail, 77 skip (ctest SKIP_RETURN_CODE).
 
@@ -42,8 +45,24 @@ bool walk_reaches_thread_start() {
 #endif
 }
 
-bool check_walk(sw::Walker *walker, Dyninst::THR_ID tid, char const *thread,
-                char const *bottom) {
+std::string frame_name(sw::Frame const &f) {
+    std::string name;
+    f.getName(name);
+    return name;
+}
+
+bool in_libc(sw::Frame const &f) {
+    std::string lib;
+    Dyninst::Offset off = 0;
+    void *symtab = nullptr;
+    if (!f.getLibOffset(lib, off, symtab))
+        return false;
+    return lib.compare(lib.rfind('/') + 1, 7, "libc.so") == 0;
+}
+
+// The walk must succeed without repeating a frame. For the worker, exactly two
+// frames below worker(), both in libc; for main, ending at _start.
+bool check_walk(sw::Walker *walker, Dyninst::THR_ID tid, bool is_main) {
     std::vector<sw::Frame> frames;
     bool const walked = walker->walkStack(frames, tid);
 
@@ -55,16 +74,25 @@ bool check_walk(sw::Walker *walker, Dyninst::THR_ID tid, char const *thread,
             repeats = true;
     }
 
-    std::string last;
-    if (!frames.empty())
-        frames.back().getName(last);
-
-    std::printf("%s thread %lu: walk %s, %zu frames, last '%s'%s\n", thread,
-                static_cast<unsigned long>(tid), walked ? "ok" : "FAILED",
-                frames.size(), last.c_str(), repeats ? ", repeated frames" : "");
+    std::printf("%s thread %lu: walk %s, %zu frames%s\n", is_main ? "main" : "worker",
+                static_cast<unsigned long>(tid), walked ? "ok" : "FAILED", frames.size(),
+                repeats ? ", repeated frames" : "");
+    for (sw::Frame const &f : frames)
+        std::printf("  '%s'%s\n", frame_name(f).c_str(), in_libc(f) ? " (libc)" : "");
     if (!walked)
         std::printf("  error: %s\n", sw::getLastErrorMsg());
-    return walked && !repeats && last == bottom;
+    if (!walked || repeats || frames.empty())
+        return false;
+
+    if (is_main)
+        return frame_name(frames.back()) == "_start";
+
+    size_t w = 0;
+    while (w < frames.size() && frame_name(frames[w]) != "worker")
+        w++;
+    if (frames.size() - w != 3)
+        return false;
+    return in_libc(frames[w + 1]) && in_libc(frames[w + 2]);
 }
 
 }  // namespace
@@ -121,9 +149,7 @@ int main(int argc, char **argv) {
         } else {
             ok = true;
             for (Dyninst::THR_ID tid : threads) {
-                bool const is_main = (tid == static_cast<Dyninst::THR_ID>(pid));
-                ok &= check_walk(walker, tid, is_main ? "main" : "worker",
-                                 is_main ? "_start" : "thread_start");
+                ok &= check_walk(walker, tid, tid == static_cast<Dyninst::THR_ID>(pid));
             }
         }
         delete walker;
