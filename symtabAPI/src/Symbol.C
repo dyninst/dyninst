@@ -36,7 +36,6 @@
 #include "Function.h"
 #include "Variable.h"
 #include <string>
-#include "annotations.h"
 #include "symbolDemangleWithCache.h"
 
 #include <iostream>
@@ -44,6 +43,7 @@
 
 using namespace Dyninst;
 using namespace SymtabAPI;
+using namespace std;
 
 Symbol *Symbol::magicEmitElfSymbol() {
 	// I have no idea why this is the way it is,
@@ -208,69 +208,36 @@ DYNINST_EXPORT bool Symbol::setSymbolType(SymbolType sType)
 
 DYNINST_EXPORT bool Symbol::setVersionFileName(std::string fileName)
 {
-   std::string *fn_p = NULL;
-   if (getAnnotation(fn_p, SymbolFileNameAnno)) 
-   {
+   if (hasVersionFileName_)
       return false;
-   }
-   else
-   {
-      //  not sure if we need to copy here or not, so let's do it...
-      std::string *fn = new std::string(std::move(fileName));
-      if (!addAnnotation(fn, SymbolFileNameAnno)) 
-      {
-         return false;
-      }
-      return true;
-   }
-
-   return false;
+   versionFileName_ = std::move(fileName);
+   hasVersionFileName_ = true;
+   return true;
 }
 
 DYNINST_EXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
 {
-   std::vector<std::string> *vn_p = NULL;
-   if (getAnnotation(vn_p, SymbolVersionNamesAnno)) 
-   {
+   if (hasVersionNames_)
       return false;
-   }
-   else
-   {
-      addAnnotation(&vers, SymbolVersionNamesAnno);
-   }
-
+   verNames_ = vers;
+   hasVersionNames_ = true;
    return true;
 }
 
 DYNINST_EXPORT bool Symbol::getVersionFileName(std::string &fileName) const
 {
-   std::string *fn_p = NULL;
-
-   if (getAnnotation(fn_p, SymbolFileNameAnno)) 
-   {
-      if (fn_p) 
-         fileName = *fn_p;
-
-      return true;
-   }
-
-   return false;
+   if (!hasVersionFileName_)
+      return false;
+   fileName = versionFileName_;
+   return true;
 }
 
 DYNINST_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers) const
 {
-   std::vector<std::string> *vn_p = NULL;
-
-   if (getAnnotation(vn_p, SymbolVersionNamesAnno)) 
-   {
-      if (vn_p) 
-      {
-         vers = vn_p;
-         return true;
-      } 
-   }
-
-   return false;
+   if (!hasVersionNames_)
+      return false;
+   vers = const_cast<std::vector<std::string> *>(&verNames_);
+   return true;
 }
 
 DYNINST_EXPORT bool Symbol::setMangledName(std::string name)
@@ -388,16 +355,7 @@ Symbol::Symbol(const std::string& name,
 {
 }
 
-Symbol::~Symbol ()
-{
-	std::string *sfa_p = NULL;
-
-	if (getAnnotation(sfa_p, SymbolFileNameAnno))
-	{
-           removeAnnotation(SymbolFileNameAnno);
-           delete (sfa_p);
-	}
-}
+Symbol::~Symbol() = default;
 
 void Symbol::setReferringSymbol(Symbol* referringSymbol) 
 {

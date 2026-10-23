@@ -33,7 +33,5 @@
 #include "annotations.h"
 #include "Annotatable.h"
 
-AnnotationClass<std::vector<std::string> > SymbolVersionNamesAnno("SymbolVersionNamesAnno");
-AnnotationClass<std::string> SymbolFileNameAnno("SymbolFileNameAnno");
 AnnotationClass<std::vector<Region *> > UserRegionsAnno("UserRegionsAnno");
 AnnotationClass<std::vector<Type *> > UserTypesAnno("UserTypesAnno");
