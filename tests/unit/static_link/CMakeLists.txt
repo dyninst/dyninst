@@ -21,10 +21,6 @@ foreach(l ${_libs})
   if(NOT TARGET ${l}_static)
     continue()
   endif()
-  # dyninstAPI_RT_static links the shared common unless ENABLE_STATIC_LIBS is on
-  if(l STREQUAL "dyninstAPI_RT")
-    continue()
-  endif()
 
   add_executable(static_link_${l} static_link.cpp)
   target_link_libraries(static_link_${l} PRIVATE ${l}_static)
