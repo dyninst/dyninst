@@ -31,6 +31,7 @@
 #include "stackanalysis.h"
 
 #include <boost/bind/bind.hpp>
+#include <memory>
 #include <queue>
 #include <stack>
 #include <vector>
@@ -49,7 +50,6 @@
 #include "common/h/compiler_diagnostics.h"
 
 #include "ABI.h"
-#include "Annotatable.h"
 #include "debug_dataflow.h"
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"
@@ -66,16 +66,32 @@ const StackAnalysis::Height StackAnalysis::Height::bottom(
 const StackAnalysis::Height StackAnalysis::Height::top(
    StackAnalysis::Height::uninitialized, StackAnalysis::Height::TOP);
 
-namespace
-{
-AnnotationClass<StackAnalysis::Intervals>
-        Stack_Anno_Intervals(std::string("Stack_Anno_Intervals"), NULL);
-AnnotationClass<StackAnalysis::BlockEffects>
-        Stack_Anno_Block_Effects(std::string("Stack_Anno_Block_Effects"), NULL);
-AnnotationClass<StackAnalysis::InstructionEffects>
-        Stack_Anno_Insn_Effects(std::string("Stack_Anno_Insn_Effects"), NULL);
-AnnotationClass<StackAnalysis::CallEffects>
-        Stack_Anno_Call_Effects(std::string("Stack_Anno_Call_Effects"), NULL);
+namespace Dyninst {
+// Results cached on a ParseAPI::Function so that later StackAnalysis objects
+// for the same function reuse them.
+struct StackAnalysisCache {
+   std::unique_ptr<StackAnalysis::Intervals> intervals;
+   std::unique_ptr<StackAnalysis::BlockEffects> blockEffects;
+   std::unique_ptr<StackAnalysis::InstructionEffects> insnEffects;
+   std::unique_ptr<StackAnalysis::CallEffects> callEffects;
+};
+}
+
+StackAnalysisCache &StackAnalysis::cacheOf(Function *f) {
+   if (!f->stack_analysis_cache_) {
+      f->stack_analysis_cache_ = std::make_shared<StackAnalysisCache>();
+   }
+   return *static_cast<StackAnalysisCache *>(f->stack_analysis_cache_.get());
+}
+
+StackAnalysis::Intervals *StackAnalysis::cachedIntervals(Function *f) {
+   boost::lock_guard<Function> g(*f);
+   return cacheOf(f).intervals.get();
+}
+
+void StackAnalysis::clearCache(Function *f) {
+   boost::lock_guard<Function> g(*f);
+   f->stack_analysis_cache_.reset();
 }
 
 template class std::list<Dyninst::StackAnalysis::TransferFunc*>;
@@ -116,7 +132,17 @@ bool StackAnalysis::analyze() {
    stackanalysis_printf("\tCreating SP interval tree\n");
    summarize();
 
-   func->addAnnotation(intervals_, Stack_Anno_Intervals);
+   {
+      boost::lock_guard<Function> g(*func);
+      StackAnalysisCache &cache = cacheOf(func);
+      if (cache.intervals) {
+         // Another analysis of this function finished first; use its result.
+         delete intervals_;
+         intervals_ = cache.intervals.get();
+      } else {
+         cache.intervals.reset(intervals_);
+      }
+   }
 
    if (df_debug_stackanalysis_on()) {
       debug();
@@ -134,9 +160,13 @@ bool StackAnalysis::genInsnEffects() {
    if (blockEffects != NULL && insnEffects != NULL && callEffects != NULL) {
       return true;
    }
-   func->getAnnotation(blockEffects, Stack_Anno_Block_Effects);
-   func->getAnnotation(insnEffects, Stack_Anno_Insn_Effects);
-   func->getAnnotation(callEffects, Stack_Anno_Call_Effects);
+   {
+      boost::lock_guard<Function> g(*func);
+      StackAnalysisCache &cache = cacheOf(func);
+      blockEffects = cache.blockEffects.get();
+      insnEffects = cache.insnEffects.get();
+      callEffects = cache.callEffects.get();
+   }
    if (blockEffects != NULL && insnEffects != NULL && callEffects != NULL) {
       return true;
    }
@@ -167,10 +197,24 @@ bool StackAnalysis::genInsnEffects() {
    stackanalysis_printf("\tGenerating final block effects\n");
    summarizeBlocks(true);
 
-   // Annotate insnEffects and blockEffects to avoid rework
-   func->addAnnotation(blockEffects, Stack_Anno_Block_Effects);
-   func->addAnnotation(insnEffects, Stack_Anno_Insn_Effects);
-   func->addAnnotation(callEffects, Stack_Anno_Call_Effects);
+   // Cache the effects on the function to avoid rework
+   {
+      boost::lock_guard<Function> g(*func);
+      StackAnalysisCache &cache = cacheOf(func);
+      if (cache.blockEffects && cache.insnEffects && cache.callEffects) {
+         // Another analysis of this function finished first; use its results.
+         delete blockEffects;
+         delete insnEffects;
+         delete callEffects;
+         blockEffects = cache.blockEffects.get();
+         insnEffects = cache.insnEffects.get();
+         callEffects = cache.callEffects.get();
+      } else {
+         cache.blockEffects.reset(blockEffects);
+         cache.insnEffects.reset(insnEffects);
+         cache.callEffects.reset(callEffects);
+      }
+   }
 
    stackanalysis_printf("Finished insn effect generation for function %s\n",
       func->name().c_str());
@@ -903,8 +947,8 @@ void StackAnalysis::findDefinedHeights(ParseAPI::Block* b, Address addr,
    if (func == NULL) return;
 
    if (!intervals_) {
-      // Check annotation
-      func->getAnnotation(intervals_, Stack_Anno_Intervals);
+      // Check the cache
+      intervals_ = cachedIntervals(func);
    }
    if (!intervals_) {
       // Analyze?
@@ -925,8 +969,8 @@ void StackAnalysis::findDefHeightPairs(Block *b, Address addr,
    if (func == NULL) return;
 
    if (!intervals_) {
-      // Check annotation
-      func->getAnnotation(intervals_, Stack_Anno_Intervals);
+      // Check the cache
+      intervals_ = cachedIntervals(func);
    }
    if (!intervals_) {
       // Analyze?
@@ -949,8 +993,8 @@ StackAnalysis::DefHeightSet StackAnalysis::findDefHeight(Block *b, Address addr,
    if (func == NULL) return ret;
 
    if (!intervals_) {
-      // Check annotation
-      func->getAnnotation(intervals_, Stack_Anno_Intervals);
+      // Check the cache
+      intervals_ = cachedIntervals(func);
    }
    if (!intervals_) {
       // Analyze?
@@ -994,8 +1038,8 @@ StackAnalysis::Height StackAnalysis::find(Block *b, Address addr, Absloc loc) {
    if (func == NULL) return ret;
 
    if (!intervals_) {
-      // Check annotation
-      func->getAnnotation(intervals_, Stack_Anno_Intervals);
+      // Check the cache
+      intervals_ = cachedIntervals(func);
    }
    if (!intervals_) {
       // Analyze?
