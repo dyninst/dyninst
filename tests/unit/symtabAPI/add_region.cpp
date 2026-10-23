@@ -9,12 +9,12 @@
 namespace st = Dyninst::SymtabAPI;
 
 int main(int argc, char **argv) {
-  if (argc < 1) {
+  if (argc < 1)  {
     std::fprintf(stderr, "no program name\n");
     return 1;
   }
   st::Symtab *obj = nullptr;
-  if (!st::Symtab::openFile(obj, argv[0])) {
+  if (!st::Symtab::openFile(obj, argv[0]))  {
     std::fprintf(stderr, "cannot open %s\n", argv[0]);
     return 1;
   }
@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
                  st::Region::RT_OTHER, false);
 
   std::vector<st::Region *> added;
-  if (!obj->getAllNewRegions(added) || added.size() != 3) {
+  if (!obj->getAllNewRegions(added) || added.size() != 3)  {
     std::fprintf(stderr, "expected 3 new regions, got %zu\n", added.size());
     return 1;
   }
