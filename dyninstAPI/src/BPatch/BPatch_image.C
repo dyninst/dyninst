@@ -36,7 +36,7 @@
 #include <assert.h>
 #include <string.h>
 #include <string>
-
+#include <algorithm>
 #include "patching/instPoint.h"
 #include "patching/function.h"
 
@@ -142,7 +142,7 @@ bool BPatch_image::getSourceObj(BPatch_Vector<BPatch_sourceObj *> &vect)
 {
    BPatch_Vector<BPatch_module *> *temp = getModules();
    if (temp) {
-      vect = * (BPatch_Vector<BPatch_sourceObj *> *) temp;
+      vect.assign(temp->begin(), temp->end());
       return (true);
    } else {
       return (false);

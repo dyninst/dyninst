@@ -457,7 +457,7 @@ async_ret_t memCache::readMemorySync(void *buffer, Address addr, unsigned long s
    assert(size == 1);
    Address aligned_addr = addr - (addr % sizeof(word_cache));
    if (!word_cache_valid || aligned_addr != word_cache_addr) {
-      mem_response::ptr memresult = mem_response::createMemResponse((char *) &word_cache, sizeof(word_cache));
+      mem_response::ptr memresult = mem_response::createMemResponse(reinterpret_cast<char *>(&word_cache), sizeof(word_cache));
       bool result = proc->readMem(aligned_addr, memresult, reading_thread);
       if (!result) {
          pthrd_printf("Failed to read memory for proc reader\n");
@@ -468,7 +468,7 @@ async_ret_t memCache::readMemorySync(void *buffer, Address addr, unsigned long s
       word_cache_addr = aligned_addr;
       word_cache_valid = true;
    }
-   *((char *) buffer) = ((char *) &word_cache)[addr - aligned_addr];
+   *(reinterpret_cast<char *>(buffer)) = (reinterpret_cast<char *>(&word_cache))[addr - aligned_addr];
    return aret_success;
 }
 

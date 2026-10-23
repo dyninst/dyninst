@@ -415,7 +415,13 @@ bool FunctionBase::operator==(const FunctionBase &f) const
 			return false;
 		}
 
-	return ((const Aggregate &)(*this)) == ((const Aggregate &)f);
+	auto *agg_this = dynamic_cast<const Aggregate*>(this);
+	auto *agg_f = dynamic_cast<const Aggregate*>(&f);
+	if(agg_this && agg_f) {
+	  return *agg_this == *agg_f;
+	}
+
+	return false;
 }
 
 InlinedFunction::InlinedFunction(FunctionBase *parent) :

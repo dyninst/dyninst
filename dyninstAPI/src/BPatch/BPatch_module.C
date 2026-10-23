@@ -851,7 +851,11 @@ bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
     lowlevel_mod()->getAnalyzedCodePages(pageAddrs);
 
     // get proc from which we can call changeMemoryProtections
-    PCProcess *proc = ((BPatch_process*)addSpace)->lowlevel_process();
+    PCProcess *proc = [this](){
+    	auto *as = dynamic_cast<BPatch_process*>(addSpace);
+    	assert(as);
+    	return as->lowlevel_process();
+    }();
     assert(proc);
     if (!proc->isStopped()) {
         if (!proc->stopProcess())

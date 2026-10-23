@@ -2363,7 +2363,9 @@ bool PCProcess::generateRequiredPatches(instPoint *callPoint,
          fit != callFuncs.end();
          fit++)
     {
-        func_instance *callF = findFunction((parse_func*)*fit);
+    	auto *f = dynamic_cast<parse_func*>(*fit);
+    	assert(f);
+        func_instance *callF = findFunction(f);
         instPoint *callP = instPoint::preCall(callF, callB);
         Relocation::CodeTracker::RelocatedElements reloc;
         CodeTrackers::reverse_iterator rit;
@@ -2501,7 +2503,9 @@ void PCProcess::addSignalHandler(Address addr, unsigned size) {
         return; // we're already tracking this location
     }
     handlerLoc = new signal_handler_location(addr, size);
-    signalHandlerLocations_.insert((signal_handler_location *)handlerLoc);
+    auto *h = dynamic_cast<signal_handler_location *>(handlerLoc);
+    assert(h);
+    signalHandlerLocations_.insert(h);
 }
 
 bool PCProcess::mappedObjIsDeleted(mapped_object *obj) {
