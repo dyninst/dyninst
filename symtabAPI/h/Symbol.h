@@ -246,8 +246,11 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
 
    bool          isCommonStorage_{false};
 
+   std::string versionFileName_;
    std::vector<std::string> verNames_;
 
+   bool hasVersionFileName_{false};
+   bool hasVersionNames_{false};
    bool versionHidden_{false};
 };
 
