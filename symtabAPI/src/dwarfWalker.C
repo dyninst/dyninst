@@ -50,6 +50,7 @@
 #include <dwarf/src/dwarf_subrange.h>
 #include <dwarf_names.h>
 #include <dwarf_cu_info.h>
+#include <algorithm>
 #include <stack>
 #include "symbolDemangleWithCache.h"
 
@@ -166,10 +167,20 @@ public:
     Dwarf *operator[](unsigned i) const { return handles[i]; }
 };
 
-unsigned worker_count() {
+/*
+ * Every worker re-reads into its own handle the unit and abbreviation data the others
+ * have already read, so past a point more workers make the parse slower and larger.
+ * The parse was fastest with 8 to 16 workers on every file measured, and at 96 took
+ * 1.3 to 3.3 times as long as at 16.
+ */
+constexpr unsigned max_workers = 16;
+
+unsigned worker_count(size_t units) {
 #ifdef _OPENMP
-    return (unsigned) omp_get_max_threads();
+    size_t n = std::min<size_t>(omp_get_max_threads(), max_workers);
+    return (unsigned) std::max<size_t>(1, std::min(n, units));
 #else
+    (void) units;
     return 1u;
 #endif
 }
@@ -253,12 +264,12 @@ bool DwarfWalker::parse() {
     compile_offset = 0;
     dwarf_printf("Modules from dwarf_nextcu: %zu\n", units.size() - total_from_unit);
 
-    unsigned const workers = worker_count();
-    DwarfHandlePool pool(dbg(), workers);
+    unsigned const workers = worker_count(units.size());
+    DwarfHandlePool pool(dbg(), workers > 1 ? workers : 0);
 
-    if (!pool.holds(workers)) {
-        // No private handles, so the parse has to stay on the one shared handle.
-        dwarf_printf("Parsing %zu units serially: no per-worker Dwarf handles\n", units.size());
+    if (workers < 2 || !pool.holds(workers)) {
+        // One worker, or no private handles: parse on the one shared handle.
+        dwarf_printf("Parsing %zu units serially with %u worker(s)\n", units.size(), workers);
         DwarfWalker w(symtab(), dbg());
         for (unsigned int i = 0; i < units.size(); i++) {
             Dwarf_Die die;
@@ -268,7 +279,7 @@ bool DwarfWalker::parse() {
             w.pop();
         }
     } else {
-#pragma omp parallel
+#pragma omp parallel num_threads(workers)
     {
     Dwarf *worker_dbg = pool[worker_index()];
     DwarfWalker w(symtab(), worker_dbg, parsedFuncs);
