@@ -47,7 +47,6 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-AnnotationClass<BPatch_field> FieldUpPtrAnno("FieldUpPtrAnno", NULL);
 //static int findIntrensicType(const char *name);
 
 // This is the ID that is decremented for each type a user defines. It is
@@ -287,10 +286,6 @@ Dyninst::SymtabAPI::dataClass BPatch_type::convertToSymtabType(BPatch_dataClass 
 BPatch_field::BPatch_field(Dyninst::SymtabAPI::Field *fld_, BPatch_dataClass typeDescriptor, int value_, int size_) :
     typeDes(typeDescriptor), value(value_), size(size_), fld(fld_)
 {
-	if (!fld_->addAnnotation(this, FieldUpPtrAnno))
-	{
-		fprintf(stderr, "%s[%d]: failed to add field list anno here\n", FILE__, __LINE__);
-	}
 }
 
 void BPatch_field::copy(BPatch_field &oField) 
@@ -485,17 +480,7 @@ BPatch_Vector<BPatch_field *> *BPatch_cblock::getComponents()
 	{
 		Field *f = (*vars)[i];
 		assert(f);
-		BPatch_field *bpf = NULL;
-
-		if (!f->getAnnotation(bpf, FieldUpPtrAnno))
-		{
-			fprintf(stderr, "%s[%d]:  no up ptr anno here\n", FILE__, __LINE__);
-		}
-		else
-		{
-			assert (bpf);
-			components->push_back(bpf);
-		}
+		components->push_back(new BPatch_field(f));
 	}
 
 	return components;
