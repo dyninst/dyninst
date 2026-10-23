@@ -1,6 +1,8 @@
-/* Walked by undefined_ra_check. The worker blocks in poll(2), so its stack
- * ends in glibc's thread_start, whose CFI marks the return address undefined.
- * The main thread blocks in pthread_join, so its stack ends in _start. */
+/* Walked by undefined_ra_check. The worker writes one byte once it is
+ * running, then loops in poll(2); the main thread waits in pthread_join. The
+ * checker may walk either thread before it gets there, but the worker's stack
+ * always ends in glibc's thread_start, whose CFI marks the return address
+ * undefined, and the main thread's in _start. */
 #include <poll.h>
 #include <pthread.h>
 #include <unistd.h>
