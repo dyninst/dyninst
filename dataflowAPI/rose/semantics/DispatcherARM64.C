@@ -2850,330 +2850,79 @@ namespace rose {
                     }
                 };
 
+                // Writeback for the load/store pair processors. Bits 24:23 select the addressing:
+                // 01 post-index and 11 pre-index write the address back to the base register,
+                // 10 (signed offset) does not. After a post-index access the offset, a separate
+                // operand, is added.
+                static void pairWriteBack(DispatcherARM64 *d, BaseSemantics::RiscOperators *ops,
+                                          const SgAsmExpressionPtrList &args, uint32_t raw,
+                                          BaseSemantics::SValuePtr address) {
+                    if (IntegerOps::extract2<uint32_t>(23, 23, raw) == 0)
+                        return;
+                    if (IntegerOps::extract2<uint32_t>(24, 24, raw) == 0)
+                        address = ops->add(address, d->read(args[3]));
+                    if (IntegerOps::extract2<uint32_t>(5, 9, raw) == 31)
+                        d->writeRegister(d->REG_SP, address);
+                    else
+                        d->write(d->getWriteBackTarget(args[2]), address);
+                }
+
                 struct IP_stp_gen_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
-                        BaseSemantics::SValuePtr data1;
-                        BaseSemantics::SValuePtr data2;
-                        int dbytes = d->getDatasize(raw) / 8;
-                        bool rt_unknown = false;
-                        bool wb_unknown = false;
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[2]);
+                        int dbits = d->getDatasize(raw) / 8; // getDatasize gives bits x 8
 
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
-
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown && EXTR(0, 4) == EXTR(5, 9)) {
-                                    data1 = ops->unspecified_(1);
-                                } else {
-                                    data1 = d->read(args[0]);
-                                }
-
-                                if (rt_unknown && EXTR(10, 14) == EXTR(5, 9)) {
-                                    data2 = ops->unspecified_(1);
-                                } else {
-                                    data2 = d->read(args[1]);
-                                }
-                                d->writeMemory(ops->add(address, ops->number_(32, 0)), dbytes, data1);
-                                d->writeMemory(ops->add(address, ops->number_(32, dbytes)), dbytes, data2);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data1 = d->readMemory(ops->add(address, ops->number_(32, 0)), dbytes);
-                                data2 = d->readMemory(ops->add(address, ops->number_(32, dbytes)), dbytes);
-
-                                if (rt_unknown) {
-                                    data1 = ops->unspecified_(1);
-                                    data2 = ops->unspecified_(1);
-                                }
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data1, 64));
-                                    d->write(args[1], d->SignExtend(data2, 64));
-                                } else {
-                                    d->write(args[0], data1);
-                                    d->write(args[1], data2);
-                                }
-                            }
-                                break;
-                        }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
+                        d->writeMemory(ops->add(address, ops->number_(32, 0)), dbits, d->read(args[0]));
+                        d->writeMemory(ops->add(address, ops->number_(32, dbits / 8)), dbits, d->read(args[1]));
+                        pairWriteBack(d, ops, args, raw, address);
                     }
                 };
 
                 struct IP_ldp_gen_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[2]);
-                        BaseSemantics::SValuePtr data1;
-                        BaseSemantics::SValuePtr data2;
-                        int dbytes = d->getDatasize(raw) / 8;
-                        bool rt_unknown = false;
-                        bool wb_unknown = false;
+                        int dbits = d->getDatasize(raw) / 8; // getDatasize gives bits x 8
 
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
-
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown && EXTR(0, 4) == EXTR(5, 9)) {
-                                    data1 = ops->unspecified_(1);
-                                } else {
-                                    data1 = d->read(args[0]);
-                                }
-
-                                if (rt_unknown && EXTR(10, 14) == EXTR(5, 9)) {
-                                    data2 = ops->unspecified_(1);
-                                } else {
-                                    data2 = d->read(args[1]);
-                                }
-                                d->writeMemory(ops->add(address, ops->number_(32, 0)), dbytes, data1);
-                                d->writeMemory(ops->add(address, ops->number_(32, dbytes)), dbytes, data2);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data1 = d->readMemory(ops->add(address, ops->number_(32, 0)), dbytes);
-                                data2 = d->readMemory(ops->add(address, ops->number_(32, dbytes)), dbytes);
-
-                                if (rt_unknown) {
-                                    data1 = ops->unspecified_(1);
-                                    data2 = ops->unspecified_(1);
-                                }
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data1, 64));
-                                    d->write(args[1], d->SignExtend(data2, 64));
-                                } else {
-                                    d->write(args[0], data1);
-                                    d->write(args[1], data2);
-                                }
-                            }
-                                break;
-                        }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[3]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
+                        BaseSemantics::SValuePtr data1 = d->readMemory(ops->add(address, ops->number_(32, 0)), dbits);
+                        BaseSemantics::SValuePtr data2 = d->readMemory(ops->add(address, ops->number_(32, dbits / 8)), dbits);
+                        d->write(args[0], data1);
+                        d->write(args[1], data2);
+                        pairWriteBack(d, ops, args, raw, address);
                     }
                 };
 
                 struct IP_ldpsw_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
-                        BaseSemantics::SValuePtr data1;
-                        BaseSemantics::SValuePtr data2;
-                        int dbytes = d->getDatasize(raw) / 8;
-                        bool rt_unknown = false;
-                        bool wb_unknown = false;
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[2]);
+                        int dbits = d->getDatasize(raw) / 8; // getDatasize gives bits x 8
 
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
-
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown && EXTR(0, 4) == EXTR(5, 9)) {
-                                    data1 = ops->unspecified_(1);
-                                } else {
-                                    data1 = d->read(args[0]);
-                                }
-
-                                if (rt_unknown && EXTR(10, 14) == EXTR(5, 9)) {
-                                    data2 = ops->unspecified_(1);
-                                } else {
-                                    data2 = d->read(args[1]);
-                                }
-                                d->writeMemory(ops->add(address, ops->number_(32, 0)), dbytes, data1);
-                                d->writeMemory(ops->add(address, ops->number_(32, dbytes)), dbytes, data2);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data1 = d->readMemory(ops->add(address, ops->number_(32, 0)), dbytes);
-                                data2 = d->readMemory(ops->add(address, ops->number_(32, dbytes)), dbytes);
-
-                                if (rt_unknown) {
-                                    data1 = ops->unspecified_(1);
-                                    data2 = ops->unspecified_(1);
-                                }
-
-                                if ((EXTR(23, 23) == 1)) {
-                                    d->write(args[0], d->SignExtend(data1, 64));
-                                    d->write(args[1], d->SignExtend(data2, 64));
-                                } else {
-                                    d->write(args[0], data1);
-                                    d->write(args[1], data2);
-                                }
-                            }
-                                break;
-                        }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
-
-                            if (wb_unknown) {
-                                address = ops->unspecified_(1);
-                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
+                        BaseSemantics::SValuePtr data1 = d->readMemory(ops->add(address, ops->number_(32, 0)), dbits);
+                        BaseSemantics::SValuePtr data2 = d->readMemory(ops->add(address, ops->number_(32, dbits / 8)), dbits);
+                        d->write(args[0], d->SignExtend(data1, 64));
+                        d->write(args[1], d->SignExtend(data2, 64));
+                        pairWriteBack(d, ops, args, raw, address);
                     }
                 };
 
                 struct IP_ldnp_gen_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
-                        BaseSemantics::SValuePtr data1;
-                        BaseSemantics::SValuePtr data2;
-                        int dbytes = d->getDatasize(raw) / 8;
-                        bool rt_unknown = false;
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[2]);
+                        int dbits = d->getDatasize(raw) / 8; // getDatasize gives bits x 8
 
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
-
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown && EXTR(0, 4) == EXTR(5, 9)) {
-                                    data1 = ops->unspecified_(1);
-                                } else {
-                                    data1 = d->read(args[0]);
-                                }
-
-                                if (rt_unknown && EXTR(10, 14) == EXTR(5, 9)) {
-                                    data2 = ops->unspecified_(1);
-                                } else {
-                                    data2 = d->read(args[1]);
-                                }
-                                d->writeMemory(ops->add(address, ops->number_(32, 0)), dbytes, data1);
-                                d->writeMemory(ops->add(address, ops->number_(32, dbytes)), dbytes, data2);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data1 = d->readMemory(ops->add(address, ops->number_(32, 0)), dbytes);
-                                data2 = d->readMemory(ops->add(address, ops->number_(32, dbytes)), dbytes);
-
-                                if (rt_unknown) {
-                                    data1 = ops->unspecified_(1);
-                                    data2 = ops->unspecified_(1);
-                                }
-                                d->write(args[0], data1);
-                                d->write(args[1], data2);
-                            }
-                                break;
-                        }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
-
-                            if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
+                        BaseSemantics::SValuePtr data1 = d->readMemory(ops->add(address, ops->number_(32, 0)), dbits);
+                        BaseSemantics::SValuePtr data2 = d->readMemory(ops->add(address, ops->number_(32, dbits / 8)), dbits);
+                        d->write(args[0], data1);
+                        d->write(args[1], data2);
                     }
                 };
 
                 struct IP_stnp_gen_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
-                        BaseSemantics::SValuePtr data1;
-                        BaseSemantics::SValuePtr data2;
-                        int dbytes = d->getDatasize(raw) / 8;
-                        bool rt_unknown = false;
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[2]);
+                        int dbits = d->getDatasize(raw) / 8; // getDatasize gives bits x 8
 
-                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                            address = ops->add(address, d->read(args[2]));
-                        }*/
-
-                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                            case MemOp_STORE: {
-
-                                if (rt_unknown && EXTR(0, 4) == EXTR(5, 9)) {
-                                    data1 = ops->unspecified_(1);
-                                } else {
-                                    data1 = d->read(args[0]);
-                                }
-
-                                if (rt_unknown && EXTR(10, 14) == EXTR(5, 9)) {
-                                    data2 = ops->unspecified_(1);
-                                } else {
-                                    data2 = d->read(args[1]);
-                                }
-                                d->writeMemory(ops->add(address, ops->number_(32, 0)), dbytes, data1);
-                                d->writeMemory(ops->add(address, ops->number_(32, dbytes)), dbytes, data2);
-                            }
-                                break;
-                            case MemOp_LOAD: {
-                                data1 = d->readMemory(ops->add(address, ops->number_(32, 0)), dbytes);
-                                data2 = d->readMemory(ops->add(address, ops->number_(32, dbytes)), dbytes);
-
-                                if (rt_unknown) {
-                                    data1 = ops->unspecified_(1);
-                                    data2 = ops->unspecified_(1);
-                                }
-                                d->write(args[0], data1);
-                                d->write(args[1], data2);
-                            }
-                                break;
-                        }
-
-                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
-
-                            if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
-                            }
-
-                            if (EXTR(5, 9) == 31) {
-                                d->writeRegister(d->REG_SP, address);
-                            } else {
-                                d->write(d->getWriteBackTarget(args[1]), address);
-                            }
-                        }
-
+                        d->writeMemory(ops->add(address, ops->number_(32, 0)), dbits, d->read(args[0]));
+                        d->writeMemory(ops->add(address, ops->number_(32, dbits / 8)), dbits, d->read(args[1]));
                     }
                 };
 
@@ -5437,7 +5186,11 @@ namespace rose {
                     int retval, v30_31 = IntegerOps::extract2<uint32_t>(30, 31, raw);;
 
                     if (v27_29 == 0x5 && v23_25 < 0x4) {
-                        retval = 0x8 << (2 + (v30_31 & 0x1));
+                        // A load/store pair of general registers: opc (bits 31:30) 00 and 01 (LDPSW) access
+                        // 32-bit words, 10 64-bit ones. This repeats the decoder's rule for the pair's memory
+                        // operand (scale = 2 + bit 31, makeMemRefPair_offset7). SIMD&FP pairs never get here:
+                        // no processor is registered for them.
+                        retval = 0x8 << (2 + (v30_31 >> 1));
                     } else {
                         retval = 0x8 << v30_31;
                     }
