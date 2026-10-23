@@ -3980,7 +3980,11 @@ namespace rose {
                     int retval, v30_31 = IntegerOps::extract2<uint32_t>(30, 31, raw);;
 
                     if (v27_29 == 0x5 && v23_25 < 0x4) {
-                        retval = 0x8 << (2 + (IntegerOps::extract2<uint32_t>(26, 26, raw) ? v30_31 : (v30_31 >> 1)));
+                        // A load/store pair of general registers: opc (bits 31:30) 00 and 01 (LDPSW) access
+                        // 32-bit words, 10 64-bit ones. This repeats the decoder's rule for the pair's memory
+                        // operand (scale = 2 + bit 31, makeMemRefPair_offset7). SIMD&FP pairs never get here:
+                        // no processor is registered for them.
+                        retval = 0x8 << (2 + (v30_31 >> 1));
                     } else {
                         retval = 0x8 << v30_31;
                     }
