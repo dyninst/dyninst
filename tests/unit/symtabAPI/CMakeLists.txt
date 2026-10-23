@@ -29,3 +29,10 @@ dyninst_add_test(
   SOURCE_FILES add_region.cpp
   DEPS symtabAPI
 )
+
+dyninst_add_test(
+  symtabAPI_symbol_versions
+  TYPE unit
+  SOURCE_FILES symbol_versions.cpp
+  DEPS symtabAPI
+)
