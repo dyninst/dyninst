@@ -488,6 +488,7 @@ class image : public codeRange {
    std::unordered_map<Address, std::string> *pltFuncs;
 
    std::unordered_map <Address, image_variable *> varsByAddr;
+   std::unordered_map<const SymtabAPI::Variable *, image_variable *> varsBySymtabVar;
 
    vector<pair<string, Address> > codeHeaps_;
    vector<pair<string, Address> > dataHeaps_;

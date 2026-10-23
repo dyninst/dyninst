@@ -66,7 +66,6 @@
 // For callbacks
 #include "dyninstAPI/src/mapped_object.h"
 
-AnnotationClass<image_variable> ImageVariableUpPtrAnno("ImageVariableUpPtrAnno", NULL);
 std::vector<image*> allImages;
 
 using namespace std;
@@ -1022,10 +1021,7 @@ bool image::addSymtabVariables()
 
        assert(use);
        image_variable *var = new image_variable(symVar, use);
-       if (!var->svar()->addAnnotation(var, ImageVariableUpPtrAnno)) {
-           fprintf(stderr, "%s[%d]: failed to add annotation here\n", FILE__, __LINE__);
-           return false;
-       }
+       varsBySymtabVar[symVar] = var;
 
        // If this is a Dyninst dynamic heap placeholder, add it to the
        // list of inferior heaps...
@@ -1901,18 +1897,13 @@ const std::vector <image_variable *> *image::findVarVectorByPretty(const std::st
     linkedFile->findVariablesByName(vars, name, SymtabAPI::prettyName);
     
     for (unsigned index=0; index < vars.size(); index++) {
-        Variable *symVar = vars[index];
-        image_variable *imv = NULL;
-        
-        if (!symVar->getAnnotation(imv, ImageVariableUpPtrAnno)) {
-            fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
+        auto it = varsBySymtabVar.find(vars[index]);
+        if (it == varsBySymtabVar.end()) {
+            fprintf(stderr, "%s[%d]:  no image_variable for this variable\n", FILE__, __LINE__);
             delete res;
             return NULL;
         }
-
-       if (imv) {
-           res->push_back(imv);
-       }
+        res->push_back(it->second);
     }	    
     if(res->size())	
 	return res;	    
@@ -1930,18 +1921,13 @@ const std::vector <image_variable *> *image::findVarVectorByMangled(const std::s
     linkedFile->findVariablesByName(vars, name, SymtabAPI::mangledName);
     
     for (unsigned index=0; index < vars.size(); index++) {
-        Variable *symVar = vars[index];
-        image_variable *imv = NULL;
-        
-        if (!symVar->getAnnotation(imv, ImageVariableUpPtrAnno)) {
-            fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
+        auto it = varsBySymtabVar.find(vars[index]);
+        if (it == varsBySymtabVar.end()) {
+            fprintf(stderr, "%s[%d]:  no image_variable for this variable\n", FILE__, __LINE__);
             delete res;
             return NULL;
         }
-
-        if (imv) {
-            res->push_back(imv);
-        }
+        res->push_back(it->second);
     }	    
     if(res->size())	
 	return res;	    
@@ -2079,10 +2065,7 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
 
     image_variable *ret = new image_variable(sVar, mod);
 
-    extern AnnotationClass<image_variable> ImageVariableUpPtrAnno;
-    if (!sVar->addAnnotation(ret, ImageVariableUpPtrAnno)) {
-        fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
-    }
+    varsBySymtabVar[sVar] = ret;
 
     createdVariables.push_back(ret);
     everyUniqueVariable.push_back(ret);
