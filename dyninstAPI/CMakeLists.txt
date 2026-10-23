@@ -3,6 +3,9 @@ include_guard(GLOBAL)
 # dyninstAPI doesn't work with symlite
 if(LIGHTWEIGHT_SYMTAB)
   message(STATUS "LIGHTWEIGHT_SYMTAB enabled; dyninstAPI not built.")
+  # Left out on purpose; dyninst_validate_listings reads this to tell it
+  # from a misspelled target name.
+  set_property(GLOBAL APPEND PROPERTY DYNINST_SKIPPED_TARGETS dyninstAPI)
   return()
 endif()
 

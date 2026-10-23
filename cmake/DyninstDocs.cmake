@@ -270,7 +270,10 @@ endfunction()
 #
 # USES names the library targets whose headers the examples include, default
 # <module>.  Borrow their usage requirements; do not link them, or "make docs"
-# builds all of Dyninst to typeset a manual.
+# builds all of Dyninst to typeset a manual.  Each must be a target, or be
+# named in the global property DYNINST_SKIPPED_TARGETS by the directory that
+# leaves it out of this configuration; then there is no check to make, and
+# none is created.  Any other name stops configure.
 #
 # Borrow include directories as $<TARGET_PROPERTY:...>, never with
 # get_target_property: the value holds $<BUILD_INTERFACE:a;b;c>, and any list
@@ -320,16 +323,42 @@ function(dyninst_validate_listings _module)
     set(V_USES ${_module})
   endif()
 
+  # A configuration that does not build a library takes its examples with it:
+  # LIGHTWEIGHT_SYMTAB leaves out dyninstAPI and dynC_API, whose manuals are
+  # still typeset.  There are then no usage requirements to borrow, and the
+  # check would compile the examples with no include path at all and stop at
+  # the first #include, so skip it.  A directory that leaves its library out
+  # names it in DYNINST_SKIPPED_TARGETS.  Any other name that is not a target
+  # is a mistake, most likely a misspelling, and stops configure rather than
+  # quietly dropping the check.
+  get_property(_skipped GLOBAL PROPERTY DYNINST_SKIPPED_TARGETS)
+  foreach(_t ${V_USES})
+    if(NOT TARGET ${_t})
+      if(NOT _t IN_LIST _skipped)
+        message(
+          FATAL_ERROR
+          "dyninst_validate_listings(${_module}): USES '${_t}' is not a target"
+        )
+      endif()
+      message(
+        STATUS
+        "Target '${_t}' is not built; not validating the ${_module} listings"
+      )
+      return()
+    endif()
+  endforeach()
+
   _dyninst_listing_targets("${V_USES}" _local _imported)
 
   set(_check ${_module}-doc-listings)
 
-  # The target exists either way, so it can always be asked for by name --
-  # the same bargain <module>-manual makes with DYNINST_BUILD_DOCS.  What
-  # DYNINST_DOCS_VALIDATE_LISTINGS decides is whether an ordinary build runs
-  # it.  On, it joins 'all': the change that breaks an example is made by
-  # someone with no reason to build a manual, so the check has to reach them,
-  # and nine small object libraries needing no LaTeX is a cheap way to do it.
+  # Once the libraries it uses are built, the target exists either way, so it
+  # can always be asked for by name -- the same bargain <module>-manual makes
+  # with DYNINST_BUILD_DOCS.  What DYNINST_DOCS_VALIDATE_LISTINGS decides is
+  # whether an ordinary build runs it.  On, it joins 'all': the change that
+  # breaks an example is made by someone with no reason to build a manual, so
+  # the check has to reach them, and nine small object libraries needing no
+  # LaTeX is a cheap way to do it.
   if(DYNINST_DOCS_VALIDATE_LISTINGS)
     add_library(${_check} OBJECT ${V_SOURCES})
   else()

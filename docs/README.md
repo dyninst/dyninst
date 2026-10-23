@@ -100,7 +100,7 @@ whether any of them fails the target or is only printed.
 | option | default | description |
 |:-------|:--------|:------------|
 | `DYNINST_BUILD_DOCS` | `OFF` | Put the manuals in `all`, so they build by default and `install` installs them.  Requires pdflatex: configuring fails if it is missing. |
-| `DYNINST_DOCS_VALIDATE_LISTINGS` | `ON` | Compile the example sources a manual typesets, with the warning flags the library itself uses.  Puts `<module>-doc-listings` in `all`, whether or not `DYNINST_BUILD_DOCS` is set, and makes each a dependency of its `<module>-manual`.  Off, nothing runs them on its own, but the targets remain and can be asked for by name. |
+| `DYNINST_DOCS_VALIDATE_LISTINGS` | `ON` | Compile the example sources a manual typesets, with the warning flags the library itself uses.  Puts `<module>-doc-listings` in `all`, whether or not `DYNINST_BUILD_DOCS` is set, and makes each a dependency of its `<module>-manual`.  Off, nothing runs them on its own, but the targets remain and can be asked for by name.  A manual whose library this configuration does not build — dyninstAPI's and dynC_API's with `LIGHTWEIGHT_SYMTAB` — has none. |
 | `DYNINST_DOCS_FORCE_VALIDATE` | `OFF` | Require Ghostscript, so the page-boundary check cannot be skipped.  The check itself runs whenever Ghostscript is found; this makes a missing one a configure error rather than a silent omission. |
 | `DYNINST_WARNINGS_AS_ERRORS` | `OFF` | Fail the target on a LaTeX warning or an example's compiler warning, rather than printing it.  Existing option, shared with the C++ build. |
 | `DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS` | `OFF` | Report every warning and every box, ignoring `ALLOW_WARNINGS` and `MAX_OVERFULL_PT`.  Existing option, shared with the C++ build. |

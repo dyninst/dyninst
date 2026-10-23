@@ -5,6 +5,9 @@ include(DyninstLibrary)
 # dynC requires symtabAPI
 if(LIGHTWEIGHT_SYMTAB)
   message(STATUS "LIGHTWEIGHT_SYMTAB enabled; dynC_API not built.")
+  # Left out on purpose; dyninst_validate_listings reads this to tell it
+  # from a misspelled target name.
+  set_property(GLOBAL APPEND PROPERTY DYNINST_SKIPPED_TARGETS dynC_API)
   return()
 endif()
 
