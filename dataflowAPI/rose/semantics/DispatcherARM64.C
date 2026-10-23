@@ -3501,9 +3501,9 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        int dbytes = d->getDatasize(raw) / 8;
+                        int dbits = d->getDatasize(raw) / 8; // getDatasize gives bits x 8
 
-                        data = d->readMemory(address, dbytes);
+                        data = d->readMemory(address, dbits);
                         d->write(args[0], d->ZeroExtend(data, 32 << EXTR(30, 30)));
                     }
                 };
@@ -3512,9 +3512,9 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        int dbytes = d->getDatasize(raw) / 8;
+                        int dbits = d->getDatasize(raw) / 8; // getDatasize gives bits x 8
 
-                        data = d->readMemory(address, dbytes);
+                        data = d->readMemory(address, dbits);
                         d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                     }
                 };
@@ -3523,9 +3523,9 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        int dbytes = d->getDatasize(raw) / 8;
+                        int dbits = d->getDatasize(raw) / 8; // getDatasize gives bits x 8
 
-                        data = d->readMemory(address, dbytes);
+                        data = d->readMemory(address, dbits);
                         d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                     }
                 };
@@ -3534,10 +3534,10 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        int dbytes = d->getDatasize(raw) / 8;
+                        int dbits = d->getDatasize(raw) / 8; // getDatasize gives bits x 8
 
                         data = d->read(args[0]);
-                        d->writeMemory(address, dbytes, data);
+                        d->writeMemory(address, dbits, data);
                     }
                 };
 
@@ -3545,10 +3545,10 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        int dbytes = d->getDatasize(raw) / 8;
+                        int dbits = d->getDatasize(raw) / 8; // getDatasize gives bits x 8
 
                         data = d->read(args[0]);
-                        d->writeMemory(address, dbytes, data);
+                        d->writeMemory(address, dbits, data);
                     }
                 };
 
@@ -3556,10 +3556,10 @@ namespace rose {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
-                        int dbytes = d->getDatasize(raw) / 8;
+                        int dbits = d->getDatasize(raw) / 8; // getDatasize gives bits x 8
 
                         data = d->read(args[0]);
-                        d->writeMemory(address, dbytes, data);
+                        d->writeMemory(address, dbits, data);
                     }
                 };
 
