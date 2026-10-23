@@ -418,6 +418,456 @@ namespace {
 }
 #endif
 
+/* findMain for aarch64 executables.  This only reads the binary, so it is
+   compiled for every host and code-generation target and chosen at run time
+   by the binary's architecture (see image::findMain). */
+
+#include <elf.h>
+#include <instructionAPI/h/InstructionDecoder.h>
+#include "registers/aarch64_regs.h"
+
+// A namespace of their own inside the anonymous one: the ppc64 helpers above use some of
+// the same names, and both are compiled on a ppc64 build.
+namespace {
+namespace aarch64_findmain {
+    /* On aarch64 glibc's _start passes the address of main to
+       __libc_start_main in x0, and computes it in one of two ways
+       (sysdeps/aarch64/start.S):
+
+           adrp x0, main                    non-PIC _start
+           add  x0, x0, :lo12:main
+
+           adrp x0, :got:main               PIC _start (PIE, and every
+           ldr  x0, [x0, :got_lo12:main]    glibc since 2.34 builds it so)
+
+       Older glibc's non-PIC _start loads main from a literal pool placed
+       after the code instead:
+
+           ldr  x0, =main                   (ldr x0, <literal>)
+
+       In the last two forms main's address is in a word in memory: a GOT
+       slot or a literal.  What puts it there is a dynamic relocation
+       against the word: R_AARCH64_RELATIVE whose addend is main when main
+       is not exported (the usual stripped PIE), or R_AARCH64_GLOB_DAT /
+       R_AARCH64_ABS64 against main when it is.  A static non-PIE link
+       resolves the word at link time, so with no relocation its contents
+       are main.
+
+       A _start built for BTI begins with bti c, which writes no register
+       and is passed over like the other argument setup.
+
+       Rather than match these sequences, findMain slices back from the
+       instruction that sets x0 before the call and lets SymEval work out
+       its value, as the ppc64 and x86 branches do.
+     */
+
+    void *get_raw_symtab_ptr(Symtab *linkedFile, Address addr)
+    {
+        Region *reg = linkedFile->findEnclosingRegion(addr);
+        if (reg != NULL && reg->getPtrToRawData() != NULL
+            && reg->getRegionType() != Region::RT_BSS) {
+            char *data = (char*)reg->getPtrToRawData();
+            data += addr - reg->getMemOffset();
+            return data;
+        }
+        return NULL;
+    }
+
+    // Whether addr lies in code.  isValidAddress accepts any loadable region
+    // when a binary is opened for rewriting, and when _start is not glibc's
+    // the x0 of some other call can be a string in .rodata.
+    bool is_code_address(Symtab *linkedFile, Address addr)
+    {
+        Region *reg = linkedFile->findEnclosingRegion(addr);
+        return reg != NULL
+            && (reg->getRegionType() == Region::RT_TEXT
+                || reg->getRegionType() == Region::RT_TEXTDATA);
+    }
+
+    // The address held in the GOT slot or literal at slot, or 0 if it cannot
+    // be known without running the program.
+    Address read_got_slot(Symtab *linkedFile, Address slot)
+    {
+        std::vector<Region *> regions;
+        linkedFile->getAllRegions(regions);
+        for (Region *reg : regions) {
+            for (SymtabAPI::relocationEntry const& rel : reg->getRelocations()) {
+                if (rel.rel_addr() != slot)
+                    continue;
+                if (rel.getRelType() == R_AARCH64_RELATIVE)
+                    return rel.addend();
+                if ((rel.getRelType() == R_AARCH64_GLOB_DAT
+                     || rel.getRelType() == R_AARCH64_ABS64)
+                    && rel.getDynSym() != NULL
+                    && rel.getDynSym()->getOffset() != 0)
+                    return rel.getDynSym()->getOffset() + rel.addend();
+                return 0;
+            }
+        }
+
+        // No relocation: the linker wrote the final value.
+        Address *data = (Address *)get_raw_symtab_ptr(linkedFile, slot);
+        return data ? *data : 0;
+    }
+
+    /*
+     * Folds the expression SymEval gives for x0 to an address.  The PC is
+     * the address of the instruction that reads it (SymEval leaves it as an
+     * input variable at that address).  Constants and their sums, masks,
+     * shifts, bit extracts and sign extensions fold; a load from a constant
+     * address is resolved with read_got_slot, because the word it reads (a
+     * GOT slot or a literal) is filled by a relocation or by the linker, not
+     * by any instruction.  Anything else (another input register, an
+     * unknown load) stays unresolved.
+     */
+    class MainAddressVisitor : public ASTVisitor {
+        using ASTVisitor::visit;
+        Symtab *linkedFile;
+
+    public:
+        explicit MainAddressVisitor(Symtab *obj) : linkedFile(obj) {}
+
+        virtual ASTPtr visit(AST *a) { return a->ptr(); }
+        virtual ASTPtr visit(DataflowAPI::BottomAST *a) { return a->ptr(); }
+        virtual ASTPtr visit(DataflowAPI::ConstantAST *c) { return c->ptr(); }
+        virtual ASTPtr visit(DataflowAPI::VariableAST *v) {
+            using namespace DataflowAPI;
+            Absloc const &loc = v->val().reg.absloc();
+            if (loc.type() == Absloc::Register
+                && loc.reg() == MachRegister::getPC(Arch_aarch64))
+                return ConstantAST::create(Constant(v->val().addr));
+            return v->ptr();
+        }
+
+        virtual ASTPtr visit(DataflowAPI::RoseAST *r) {
+            using namespace DataflowAPI;
+
+            AST::Children kids;
+            for (unsigned i = 0; i < r->numChildren(); ++i)
+                kids.push_back(r->child(i)->accept(this));
+
+            auto constant = [&](unsigned i, Address &v) {
+                if (i >= kids.size() || kids[i]->getID() != AST::V_ConstantAST)
+                    return false;
+                v = ConstantAST::convert(kids[i])->val().val;
+                return true;
+            };
+            Address a = 0, b = 0;
+            switch (r->val().op) {
+                case ROSEOperation::addOp:
+                    if (constant(0, a) && constant(1, b))
+                        return ConstantAST::create(Constant(a + b));
+                    break;
+                case ROSEOperation::andOp:
+                    if (constant(0, a) && constant(1, b))
+                        return ConstantAST::create(Constant(a & b));
+                    break;
+                case ROSEOperation::orOp:
+                    if (constant(0, a) && constant(1, b))
+                        return ConstantAST::create(Constant(a | b));
+                    break;
+                case ROSEOperation::shiftLOp:
+                    if (constant(0, a) && constant(1, b) && b < 64)
+                        return ConstantAST::create(Constant(a << b));
+                    break;
+                case ROSEOperation::extractOp: {
+                    // extract(value, lo, hi): bits lo..hi of value; an
+                    // upper bound of 0 or past bit 63 keeps the rest
+                    Address lo = 0, hi = 0;
+                    if (constant(0, a) && constant(1, lo) && constant(2, hi)
+                        && lo < 64) {
+                        Address v = a >> lo;
+                        if (hi > lo && hi - lo < 64)
+                            v &= ((Address)1 << (hi - lo)) - 1;
+                        return ConstantAST::create(Constant(v));
+                    }
+                    break;
+                }
+                case ROSEOperation::signExtendOp:
+                    // signExtend(value, width): only a width below 64 changes
+                    // a 64-bit value
+                    if (constant(0, a) && constant(1, b)) {
+                        if (b > 0 && b < 64 && (a & ((Address)1 << (b - 1))))
+                            a |= ~(((Address)1 << b) - 1);
+                        return ConstantAST::create(Constant(a));
+                    }
+                    break;
+                case ROSEOperation::derefOp:
+                    if (constant(0, a)) {
+                        Address word = read_got_slot(linkedFile, a);
+                        if (word != 0)
+                            return ConstantAST::create(Constant(word));
+                    }
+                    break;
+                default:
+                    break;
+            }
+            return RoseAST::create(r->val(), kids);
+        }
+    };
+
+    /*
+     * The expression for node's assignment, with the expressions of the
+     * assignments that define its inputs substituted in.  This is what
+     * SymEval::expand does for a whole slice, less its stack simplification:
+     * that needs StackAnalysis, which is not implemented for aarch64.
+     */
+    AST::Ptr expand_slice_node(SliceNode::Ptr node,
+                               std::map<SliceNode::Ptr, AST::Ptr> &done)
+    {
+        using namespace DataflowAPI;
+
+        auto known = done.find(node);
+        if (known != done.end())
+            return known->second;
+        done[node] = AST::Ptr();    // no expression while on the path (cycles)
+        if (!node->assign())
+            return AST::Ptr();
+        AST::Ptr ast = SymEval::expand(node->assign(), false).first;
+        if (!ast)
+            return ast;
+        EdgeIterator begin, end;
+        node->ins(begin, end);
+        for (; begin != end; ++begin) {
+            SliceEdge::Ptr edge = boost::static_pointer_cast<SliceEdge>(*begin);
+            SliceNode::Ptr source =
+                boost::static_pointer_cast<SliceNode>(edge->source());
+            AST::Ptr definition = expand_slice_node(source, done);
+            if (!definition)
+                continue;
+            VariableAST::Ptr use =
+                VariableAST::create(DataflowAPI::Variable(edge->data(), node->addr()));
+            ast = AST::substitute(ast, use, definition);
+        }
+        done[node] = ast;
+        return ast;
+    }
+
+    /*
+     * b ends with the call to __libc_start_main.  Returns the address of
+     * main that _start passes in x0, or 0 if it cannot be worked out from
+     * the code: slice back from the last instruction in b that writes x0,
+     * expand the slice to an expression, and fold it.
+     */
+    Address evaluate_main_address(Symtab *linkedFile, Function *f, Block *b)
+    {
+        using namespace DataflowAPI;
+        using namespace InstructionAPI;
+
+        Block::Insns insns;
+        b->getInsns(insns);
+        Instruction x0_def;
+        Address x0_def_addr = 0;
+        for (auto const &i : insns) {
+            std::set<RegisterAST::Ptr> written;
+            i.second.getWriteSet(written);
+            for (auto const &r : written) {
+                if (r->getID().getBaseRegister()
+                    == aarch64::x0.getBaseRegister()) {
+                    x0_def = i.second;
+                    x0_def_addr = i.first;
+                }
+            }
+        }
+        if (x0_def_addr == 0) {
+            startup_printf("%s[%d] no x0 write in block %lx\n", FILE__,
+                           __LINE__, b->start());
+            return 0;
+        }
+
+        // No stack analysis: x0 does not involve the stack, and stack
+        // analysis is not implemented for aarch64.
+        AssignmentConverter conv(true, false);
+        std::vector<Assignment::Ptr> assigns;
+        conv.convert(x0_def, x0_def_addr, f, b, assigns);
+        Assignment::Ptr x0_assign;
+        for (auto const &a : assigns) {
+            if (a->out().absloc().type() == Absloc::Register
+                && a->out().absloc().reg().getBaseRegister()
+                   == aarch64::x0.getBaseRegister())
+                x0_assign = a;
+        }
+        if (!x0_assign) {
+            startup_printf("%s[%d] no x0 assignment at %lx (%lu)\n", FILE__,
+                           __LINE__, x0_def_addr, (unsigned long)assigns.size());
+            return 0;
+        }
+
+        Slicer slc(x0_assign, b, f, true, false);   // no stack analysis
+        Slicer::Predicates preds;
+        Graph::Ptr slg = slc.backwardSlice(preds);
+        NodeIterator nbegin, nend;
+        slg->allNodes(nbegin, nend);
+        std::map<SliceNode::Ptr, AST::Ptr> done;
+        AST::Ptr value;
+        // The slicer converts the instruction again, so the root node holds
+        // its own copy of the assignment: find it by address and output.
+        for (; nbegin != nend; ++nbegin) {
+            SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*nbegin);
+            Assignment::Ptr a = node->assign();
+            if (a && a->addr() == x0_def_addr && a->out() == x0_assign->out())
+                value = expand_slice_node(node, done);
+        }
+        // SymEval gives no expression for a load from a fixed address, such
+        // as LDR (literal): its assignment's only input is that memory word.
+        if (!value) {
+            std::vector<AbsRegion> const &in = x0_assign->inputs();
+            if (in.size() == 1 && in[0].absloc().type() == Absloc::Heap)
+                return read_got_slot(linkedFile, in[0].absloc().addr());
+            startup_printf("%s[%d] x0 at %lx: no expression\n", FILE__,
+                           __LINE__, x0_def_addr);
+            return 0;
+        }
+        startup_printf("%s[%d] x0 at %lx: %s\n", FILE__, __LINE__,
+                       x0_def_addr, value->format().c_str());
+
+        MainAddressVisitor fold(linkedFile);
+        AST::Ptr folded = value->accept(&fold);
+        if (folded->getID() != AST::V_ConstantAST) {
+            startup_printf("%s[%d] x0 at %lx does not fold: %s\n", FILE__,
+                           __LINE__, x0_def_addr, folded->format().c_str());
+            return 0;
+        }
+        return ConstantAST::convert(folded)->val().val;
+    }
+
+    // How far after the entry point __wrap_main may lie.  It follows
+    // _start directly, and glibc's _start is about 14 instructions; the
+    // limit leaves room for alignment padding while keeping a main that
+    // starts with a tail call, further away, from being taken for it.
+    const Address wrap_main_max_distance = 256;
+
+    /*
+     * A non-PIC _start does not pass main itself but __wrap_main, a stub
+     * that start.S defines right after _start:
+     *
+     *     __wrap_main:  b     main
+     *
+     * Newer glibc puts a hint in front of the branch (bti c, or nop when
+     * built without BTI); older ones, such as Ubuntu's glibc 2.31, have the
+     * bare branch.
+     *
+     * If addr is such a stub close behind the entry point, return where it
+     * branches; otherwise return addr unchanged.  The distance check keeps a
+     * main whose first instruction is a tail call from being taken for it.
+     */
+    Address follow_wrap_main(Symtab *linkedFile, Address entry, Address addr)
+    {
+        using namespace InstructionAPI;
+
+        if (addr <= entry || addr - entry > wrap_main_max_distance)
+            return addr;
+        const unsigned char *code =
+            (const unsigned char *)get_raw_symtab_ptr(linkedFile, addr);
+        if (!code)
+            return addr;
+        // two instructions at most: an optional hint, then the branch
+        InstructionDecoder dec(code, 8, Arch_aarch64);
+        Address pc = addr;
+        Instruction insn = dec.decode();
+        if (insn.getOperation().getID() == aarch64_op_hint
+            || insn.getOperation().getID() == aarch64_op_nop_hint) {
+            pc += insn.size();
+            insn = dec.decode();
+        }
+        if (!insn.isValid() || insn.getOperation().getID() != aarch64_op_b_uncond)
+            return addr;
+        Expression::Ptr target = insn.getControlFlowTarget();
+        if (!target)
+            return addr;
+        RegisterAST thePC(MachRegister::getPC(Arch_aarch64));
+        target->bind(&thePC, Result(u64, pc));
+        Result res = target->eval();
+        return res.defined ? res.convert<Address>() : addr;
+    }
+
+    /*
+     * findMain for an aarch64 executable with no symbol for main: work out
+     * main from _start and add a local symbol for it.  Returns 0 when main
+     * was found or nothing had to be done, -1 when main cannot be found.
+     */
+    int find_main_aarch64(Symtab *linkedFile,
+                          SymtabCodeSource::hint_filt *filt,
+                          bool parseInAllLoadableRegions)
+    {
+        // Only look for main in executables, but do allow position-independent
+        // executables (PIE) which look like shared objects with an INTERP.
+        if (linkedFile->isExec())
+        {
+            vector <SymtabAPI::Function *> funcs;
+            if (!linkedFile->findFunctionsByName(funcs, "main") &&
+                !linkedFile->findFunctionsByName(funcs, "_main"))
+            {
+                logLine("No main symbol found: attempting to create symbol for main\n");
+
+                Address eAddr = linkedFile->getEntryOffset();
+
+                SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
+                CodeObject tco(&scs,NULL,NULL,false);
+
+                tco.parse(eAddr,false);
+                set<CodeRegion *> regions;
+                scs.findRegions(eAddr,regions);
+                if(regions.empty())
+                    return -1;
+                SymtabCodeRegion * reg =
+                    static_cast<SymtabCodeRegion*>(*regions.begin());
+                Function * func = tco.findFuncByEntry(reg,eAddr);
+                if(!func)
+                    return -1;
+
+                // As on ppc64: try _start's entry block, which makes the
+                // __libc_start_main call in glibc's _start, then each call-edge
+                // source, until one yields a valid address.
+                std::vector<Block *> candidates;
+                Block * entryBlock = tco.findBlockByEntry(reg,eAddr);
+                if (entryBlock)
+                    candidates.push_back(entryBlock);
+                const Function::edgelist & calls = func->callEdges();
+                for (Function::edgelist::const_iterator cit = calls.begin();
+                     cit != calls.end(); ++cit) {
+                    if ((*cit)->src() && (*cit)->src() != entryBlock)
+                        candidates.push_back((*cit)->src());
+                }
+
+                Region *pltsec = NULL;
+                linkedFile->findRegion(pltsec, ".plt");
+
+                Address mainAddress = 0;
+                for (std::vector<Block *>::const_iterator bit = candidates.begin();
+                     bit != candidates.end() && mainAddress == 0; ++bit) {
+                    Address cand = evaluate_main_address(linkedFile,func,*bit);
+                    if (cand != 0)
+                        cand = follow_wrap_main(linkedFile, eAddr, cand);
+                    if (cand != 0 && scs.isValidAddress(cand)
+                        && is_code_address(linkedFile, cand)
+                        && !(pltsec && pltsec->isOffsetInRegion(cand)))
+                        mainAddress = cand;
+                }
+
+                if(0 == mainAddress) {
+                    startup_printf("%s[%d] failed to find main\n",FILE__,__LINE__);
+                    return -1;
+                }
+                startup_printf("%s[%d] found main at %lx\n",
+                        FILE__,__LINE__,mainAddress);
+
+                Symbol *newSym= new Symbol( "main",
+                        Symbol::ST_FUNCTION,
+                        Symbol::SL_LOCAL,
+                        Symbol::SV_INTERNAL,
+                        mainAddress,
+                        linkedFile->getDefaultModule(),
+                        linkedFile->findEnclosingRegion(mainAddress),
+                        0 );
+                linkedFile->addSymbol(newSym);
+            }
+        }
+        return 0;
+    }
+} // namespace aarch64_findmain
+}
+
 #include <Graph.h>
 #include <Node.h>
 #include <DynAST.h>
@@ -501,6 +951,12 @@ class FindMainVisitor : public ASTVisitor
  */
 int image::findMain()
 {
+    // Chosen by the binary's architecture, not by how Dyninst was built:
+    // finding main only reads the binary.
+    if (linkedFile->getArchitecture() == Arch_aarch64)
+        return aarch64_findmain::find_main_aarch64(linkedFile, filt,
+                                                   BPatch_normalMode != mode_);
+
 #if defined(ppc64_linux) && defined(DYNINST_CODEGEN_ARCH_POWER)
     using namespace Dyninst::InstructionAPI;
 
@@ -592,7 +1048,7 @@ int image::findMain()
                     linkedFile->getDefaultModule(),
                     eReg, 
                     0 );
-            linkedFile->addSymbol(newSym);		
+            linkedFile->addSymbol(newSym);
         }
     }
 
