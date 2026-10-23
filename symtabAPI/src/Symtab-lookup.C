@@ -406,10 +406,12 @@ bool Symtab::getDataRegions(std::vector<Region *>&ret)
 
 bool Symtab::getAllNewRegions(std::vector<Region *>&ret)
 {
-   if (impl->addedRegions.empty())
-      return false;
-   ret = impl->addedRegions;
-   return true;
+   if (impl->addedRegions.size() > 0)
+   {
+      ret = impl->addedRegions;
+      return true;
+   }
+   return false;
 }
 
 bool Symtab::getAllExceptions(std::vector<ExceptionBlock *> &exceptions)
