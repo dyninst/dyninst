@@ -2,6 +2,7 @@
 #include "Region.h"
 #include "Symtab.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -32,6 +33,21 @@ int main(int argc, char **argv) {
   if (!obj->getAllNewRegions(added) || added.size() != 3)  {
     std::fprintf(stderr, "expected 3 new regions, got %zu\n", added.size());
     return 1;
+  }
+
+  // ~Symtab frees the regions through getAllRegions' list only, so every
+  // added region has to be in it.
+  std::vector<st::Region *> all;
+  if (!obj->getAllRegions(all))  {
+    std::fprintf(stderr, "getAllRegions failed\n");
+    return 1;
+  }
+  for (auto *r : added)  {
+    if (std::find(all.begin(), all.end(), r) == all.end())  {
+      std::fprintf(stderr, "added region %s is not in getAllRegions\n",
+                   r->getRegionName().c_str());
+      return 1;
+    }
   }
 
   st::Symtab::closeSymtab(obj);
