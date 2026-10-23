@@ -48,7 +48,6 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
 AnnotationClass<BPatch_field> FieldUpPtrAnno("FieldUpPtrAnno", NULL);
-AnnotationClass<BPatch_type> TypeUpPtrAnno("TypeUpPtr", NULL);
 //static int findIntrensicType(const char *name);
 
 // This is the ID that is decremented for each type a user defines. It is
@@ -81,33 +80,7 @@ BPatch_type *BPatch_type::createFake(const char *_name) {
 BPatch_type::BPatch_type(boost::shared_ptr<Type> typ_): ID(typ_->getID()), typ(typ_),
     refCount(1)
 {
-	// if a derived type, make sure the upPtr is set for the base type.
-	// if it is not set, create a new BPatch_type for the upPtr
-
-	if (typ_->isDerivedType()) 
-	{
-		auto base = typ_->asDerivedType().getConstituentType(Dyninst::SymtabAPI::Type::share);
-
-		assert(base);
-		BPatch_type *bpt = NULL;
-
-		if (!base->getAnnotation(bpt, TypeUpPtrAnno))
-		{
-			//fprintf(stderr, "%s[%d]:  failed to get up ptr here\n", FILE__, __LINE__);
-
-			//BPatch_type* dyninstType = new BPatch_type(base);
-			// We might consider registering this new type in BPatch.
-			// For now, just silence the warning:
-			//(void) dyninstType;
-		}
-		else
-		{
-			assert (bpt);
-		}
-	}
-
 	assert(typ_);
-	typ_->addAnnotation(this, TypeUpPtrAnno);
 
 	type_ = convertToBPatchdataClass(typ_->getDataClass());
 	type_map[typ.get()] = this;
@@ -121,8 +94,6 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type) :
 	else
 		typ = Type::make_shared<Type>("", ID, convertToSymtabType(_type));
 	assert(typ);
-
-	typ->addAnnotation(this, TypeUpPtrAnno);
 
 	type_map[typ.get()] = this;
 }
@@ -187,17 +158,7 @@ BPatch_type *BPatch_type::getConstituentType() const
    else if(typ->isArrayType()) ctype = typ->asArrayType().getBaseType(Type::share);
    else return NULL;
    
-   BPatch_type *bpt = NULL;
-   
-   if (!ctype->getAnnotation(bpt, TypeUpPtrAnno))
-   {
-      bpt = new BPatch_type(ctype);
-   }
-   else
-   {
-      assert(bpt);
-   }
-   return bpt;
+   return findOrCreateType(ctype);
 }
 
 BPatch_Vector<BPatch_field *> *BPatch_type::getComponents() const{
@@ -362,17 +323,9 @@ const char *BPatch_field::getName()
 
 BPatch_type *BPatch_field::getType()
 {
-	BPatch_type *bpt= NULL;
 	assert(fld);
     assert(fld->getType(Type::share));
-	if (!fld->getType(Type::share)->getAnnotation(bpt, TypeUpPtrAnno))
-	{
-		//fprintf(stderr, "%s[%d]:  failed to get up ptr here\n", FILE__, __LINE__);
-		return new BPatch_type(fld->getType(Type::share));
-	}
-
-	assert(bpt);
-	return bpt;
+	return BPatch_type::findOrCreateType(fld->getType(Type::share));
 }
 
 int BPatch_field::getValue()
@@ -411,15 +364,7 @@ BPatch_localVar::BPatch_localVar(localVar *lVar_) : lVar(lVar_)
 	auto t = lVar->getType(Type::share);
 	assert(t);
 	
-	if (!t->getAnnotation(type, TypeUpPtrAnno))
-	{
-		//fprintf(stderr, "%s[%d]:  failed to get up ptr here\n", FILE__, __LINE__);
-		type = new BPatch_type(t);
-	}
-	else
-	{
-		assert(type);
-	}
+	type = BPatch_type::findOrCreateType(t);
 
 	type->incrRefCount();
 

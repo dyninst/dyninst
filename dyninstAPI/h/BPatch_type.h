@@ -266,10 +266,6 @@ protected:
  protected:
   // Simple Destructor
   virtual ~BPatch_type();
-  static BPatch_type *findOrCreateType(boost::shared_ptr<Dyninst::SymtabAPI::Type> type);
-  static BPatch_type *findOrCreateType(Dyninst::SymtabAPI::Type* ty) {
-    return findOrCreateType(ty->reshare());
-  }
   
   // A few convenience functions
   BPatch_dataClass convertToBPatchdataClass(Dyninst::SymtabAPI::dataClass type);
@@ -285,6 +281,10 @@ public:
   BPatch_type(boost::shared_ptr<Dyninst::SymtabAPI::Type> typ_);
   BPatch_type(Dyninst::SymtabAPI::Type* t)
     : BPatch_type(t->reshare()) {}
+  static BPatch_type *findOrCreateType(boost::shared_ptr<Dyninst::SymtabAPI::Type> type);
+  static BPatch_type *findOrCreateType(Dyninst::SymtabAPI::Type* ty) {
+    return findOrCreateType(ty->reshare());
+  }
   virtual bool operator==(const BPatch_type &) const;
 
   int  getID() const { return ID;}

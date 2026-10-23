@@ -794,16 +794,7 @@ void BPatch_function::constructVarsAndParams()
 	auto ret_type = lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType(Dyninst::SymtabAPI::Type::share);
 	assert(ret_type);
 
-	extern AnnotationClass<BPatch_type> TypeUpPtrAnno;
-
-	if (!ret_type->getAnnotation(retType, TypeUpPtrAnno))
-	{
-		//  BPatch_type ctor adds the annotation to the lowlevel symtab type, so 
-		//  no need to do it here.
-		retType = new BPatch_type(ret_type);
-	}
-	else
-		assert(retType);
+	retType = BPatch_type::findOrCreateType(ret_type);
 
     varsAndParamsValid = true;
 }

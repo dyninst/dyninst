@@ -284,22 +284,12 @@ bool BPatch_module::parseTypesIfNecessary()
 
 	for (unsigned i=0; i<globalVars.size(); i++)
 	{
-		BPatch_type *var_type = NULL;
-		extern AnnotationClass<BPatch_type> TypeUpPtrAnno;
-
 		auto ll_var_type = globalVars[i].second;
 		std::string &var_name = globalVars[i].first;
 
 		assert(ll_var_type);
 
-		if (!ll_var_type->getAnnotation(var_type, TypeUpPtrAnno))
-		{
-			var_type = new BPatch_type(globalVars[i].second);
-		}
-		else
-		{
-			assert(var_type);
-		}
+		BPatch_type *var_type = BPatch_type::findOrCreateType(ll_var_type);
 
 		moduleTypes->addGlobalVariable(var_name.c_str(), var_type);
 	}

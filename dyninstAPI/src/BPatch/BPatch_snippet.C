@@ -265,19 +265,7 @@ codeGenASTPtr generateArrayRef(const BPatch_snippet &lOperand,
           return operandAST::DataIndir(operatorAST::plus(arrayBase, std::move(rhs)));
         }();
 
-        BPatch_type *elem_bptype = NULL;
-        extern AnnotationClass<BPatch_type> TypeUpPtrAnno;
-
-        if (!elementType->getAnnotation(elem_bptype, TypeUpPtrAnno))
-        {
-                //  BPatch_type ctor adds itself as an anonotation to the symtab
-                //  type, so no need to do it here.
-                elem_bptype = new BPatch_type(elementType);
-        }
-        else
-        {
-                assert(elem_bptype);
-        }
+        BPatch_type *elem_bptype = BPatch_type::findOrCreateType(elementType);
 
         ast->setType(elem_bptype);
 
@@ -367,23 +355,9 @@ codeGenASTPtr generateFieldRef(const BPatch_snippet &lOperand,
           return operandAST::DataIndir(std::move(rhs));
         }();
 
-        extern AnnotationClass<BPatch_type> TypeUpPtrAnno;
-        BPatch_type *field_bptype = NULL;
         auto field_type = field->getType(Type::share);
         assert(field_type);
-
-
-        if (!field_type->getAnnotation(field_bptype, TypeUpPtrAnno))
-        {
-                //  BPatch_type ctor adds itself as an annotation of the symtab type
-                //  so no need to do it here.
-
-                field_bptype = new BPatch_type(field_type);
-        }
-        else
-        {
-                assert(field_bptype);
-        }
+        BPatch_type *field_bptype = BPatch_type::findOrCreateType(field_type);
 
         ast->setType(field_bptype);
 
