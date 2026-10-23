@@ -130,34 +130,56 @@ namespace {
  * are perfectly valid, and parse_int() treats that as fatal, so a whole module's
  * types disappear.
  *
+ * A supplementary file (dwz -m, named by .gnu_debugaltlink) is shared state too: its
+ * units are interned lazily as references reach them (#914), and like any unit they
+ * hold a dwarf_getlocations() cache (#2410). So each worker also gets its own handle
+ * for the supplementary file, over the original's, attached with dwarf_setalt().
+ *
  * The handles are minted here, serially, because dwarf_begin_elf() reads the section
  * table through the shared Elf. Afterwards each handle touches only its own state and
  * the Elf's section data, which is read-only from this point on.
  *
  * A handle owns none of the Elf, so dwarf_end() on it leaves the original untouched.
+ * dwarf_end() does not end a handle attached with dwarf_setalt(), so the pool ends the
+ * supplementary handles itself.
  */
 class DwarfHandlePool {
     std::vector<Dwarf *> handles;
+    std::vector<Dwarf *> alt_handles;
 
 public:
     DwarfHandlePool(Dwarf *original, unsigned workers) {
-        // A supplementary (DWZ) file would have to be attached to each handle with
-        // dwarf_setalt(); the caller parses those serially instead.
-        if(!original || dwarf_getalt(original)) return;
+        if(!original) return;
 
         Elf *elf = dwarf_getelf(original);
         if(!elf) return;
+
+        Elf *alt_elf = nullptr;
+        if(Dwarf *alt = dwarf_getalt(original)) {
+            alt_elf = dwarf_getelf(alt);
+            if(!alt_elf) return;
+        }
 
         handles.reserve(workers);
         for(unsigned i = 0; i < workers; i++) {
             Dwarf *d = dwarf_begin_elf(elf, DWARF_C_READ, NULL);
             if(!d) break;
+            if(alt_elf) {
+                Dwarf *a = dwarf_begin_elf(alt_elf, DWARF_C_READ, NULL);
+                if(!a) {
+                    dwarf_end(d);
+                    break;
+                }
+                dwarf_setalt(d, a);
+                alt_handles.push_back(a);
+            }
             handles.push_back(d);
         }
     }
 
     ~DwarfHandlePool() {
         for(auto *d : handles) dwarf_end(d);
+        for(auto *a : alt_handles) dwarf_end(a);
     }
 
     DwarfHandlePool(DwarfHandlePool const &) = delete;
