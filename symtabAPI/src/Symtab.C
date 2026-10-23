@@ -1436,30 +1436,6 @@ bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::str
    return true;
 }
 
-bool Symtab::addUserType(Type *t)
-{
-   std::vector<Type *> *user_types = NULL;
-
-   if (!getAnnotation(user_types, UserTypesAnno))
-   {
-      user_types = new std::vector<Type *>();
-      if (!addAnnotation(user_types, UserTypesAnno))
-      {
-         create_printf("%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
-         return false;
-      }
-   }
-   if (!user_types)
-   {
-      create_printf("%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
-      return false;
-   }
-
-   user_types->push_back(t);
-
-   return true;
-}
-
 void Symtab::parseLineInformation()
 {
    Object *linkedFile = getObject();
@@ -1560,12 +1536,9 @@ void Symtab::parseTypes()
 
 }
 
-bool Symtab::addType(Type *type)
+// Nothing reads the type back: findType does not see it.
+bool Symtab::addType(Type *)
 {
-  bool result = addUserType(type);
-  if (!result)
-    return false;
-
   return true;
 }
 
