@@ -161,6 +161,9 @@ std::vector<st::Symbol*> get_missing_symbols(st::Symtab* linkedFile, Dyninst::Ad
   // Windows PE has no startup/shutdown (e.g., .init/.fini) so treat it separately
   // NOTE: adds global symbols with default visibility
   if(linkedFile->getFileFormat() == st::FileFormat::PE) {
+    if(address_of_main == Dyninst::ADDR_NULL) {
+      return new_symbols;
+    }
 
     auto make_sym_ = [&](std::string const& name, Dyninst::Address addr, unsigned size) {
       // clang-format off
@@ -205,34 +208,38 @@ std::vector<st::Symbol*> get_missing_symbols(st::Symtab* linkedFile, Dyninst::Ad
     // clang-format on
   };
 
-  // Add either a static or dynamic symbol for 'main', unless it already has one
-  if(!has_main_symbol(linkedFile)) {
-    st::Region* region{};
-    bool const has_plt = linkedFile->findRegion(region, ".plt");
-    if(has_plt && region->isOffsetInRegion(address_of_main)) {
-      auto* s = make_sym_("DYNINST_pltMain", address_of_main, entry_region);
-      new_symbols.push_back(s);
-    } else {
-      new_symbols.push_back(make_sym_("main", address_of_main, entry_region));
-    }
-  }
-
-  {
-    std::vector<st::Function*> funcs{};
-    if(!linkedFile->findFunctionsByName(funcs, "_start")) {
-      auto s = make_sym_("_start", entry_region->getMemOffset(), entry_region);
-      new_symbols.push_back(s);
-    }
-  }
-
-  // Add symbols for init/fini
-  for(std::string sec : {"init", "fini"}) {
-    std::vector<st::Function*> funcs{};
-    if(!linkedFile->findFunctionsByName(funcs, "_"+sec)) {
-      st::Region* reg{};
-      if(linkedFile->findRegion(reg, "."+sec)) {
-        auto* s = make_sym_("_"+sec, reg->getMemOffset(), reg);
+  // Startup and shutdown symbols are only meaningful in executables. They
+  // are added even when 'main' could not be found.
+  if(linkedFile->isExec() && entry_region) {
+    // Add either a static or dynamic symbol for 'main', unless it already has one
+    if(address_of_main != Dyninst::ADDR_NULL && !has_main_symbol(linkedFile)) {
+      st::Region* region{};
+      bool const has_plt = linkedFile->findRegion(region, ".plt");
+      if(has_plt && region->isOffsetInRegion(address_of_main)) {
+        auto* s = make_sym_("DYNINST_pltMain", address_of_main, entry_region);
         new_symbols.push_back(s);
+      } else {
+        new_symbols.push_back(make_sym_("main", address_of_main, entry_region));
+      }
+    }
+
+    {
+      std::vector<st::Function*> funcs{};
+      if(!linkedFile->findFunctionsByName(funcs, "_start")) {
+        auto s = make_sym_("_start", entry_region->getMemOffset(), entry_region);
+        new_symbols.push_back(s);
+      }
+    }
+
+    // Add symbols for init/fini
+    for(std::string sec : {"init", "fini"}) {
+      std::vector<st::Function*> funcs{};
+      if(!linkedFile->findFunctionsByName(funcs, "_"+sec)) {
+        st::Region* reg{};
+        if(linkedFile->findRegion(reg, "."+sec)) {
+          auto* s = make_sym_("_"+sec, reg->getMemOffset(), reg);
+          new_symbols.push_back(s);
+        }
       }
     }
   }
