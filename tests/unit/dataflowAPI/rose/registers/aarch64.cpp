@@ -48,6 +48,8 @@ int main() {
   ROSEREG_CHECK(Dyninst::aarch64::hq0.getBaseRegister(), armv8_regclass_simd_fpr, armv8_simdfpr_v0, 0);
   ROSEREG_CHECK(Dyninst::aarch64::hq30, armv8_regclass_simd_fpr, armv8_simdfpr_v30, 64);
   ROSEREG_CHECK(Dyninst::aarch64::hq30.getBaseRegister(), armv8_regclass_simd_fpr, armv8_simdfpr_v30, 0);
+  ROSEREG_CHECK(Dyninst::aarch64::z0, armv8_regclass_simd_fpr, armv8_simdfpr_v0, 0);
+  ROSEREG_CHECK(Dyninst::aarch64::z30, armv8_regclass_simd_fpr, armv8_simdfpr_v30, 0);
 
   ROSEREG_CHECK(Dyninst::aarch64::n, armv8_regclass_pstate, 0, armv8_pstatefield_n);
   ROSEREG_CHECK(Dyninst::aarch64::n.getBaseRegister(), armv8_regclass_pstate, 0, 0);
