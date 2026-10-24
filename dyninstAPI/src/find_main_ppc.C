@@ -209,16 +209,18 @@ namespace {
       // (POWER10 pc-relative code sets up no TOC at all; its r8 load
       // does not read r2, so this branch is never reached for it.)
       if(TOC == 0) {
-        const uint32_t* entry_code = (const uint32_t*)b->region()->getPtrToInstruction(f->addr());
-        if(entry_code && f->addr() + 8 <= b->region()->high() &&
-           (entry_code[1] & 0xffff0000) == 0x38420000) // addi r2,r2,L
-        {
-          Dyninst::Address hi = (Dyninst::Address)(int16_t)(entry_code[0] & 0xffff) << 16;
-          Dyninst::Address lo = (Dyninst::Address)(int16_t)(entry_code[1] & 0xffff);
-          if((entry_code[0] & 0xffff0000) == 0x3c4c0000) { // addis r2,r12,H
-            TOC = f->addr() + hi + lo;
-          } else if((entry_code[0] & 0xffff0000) == 0x3c400000) { // lis r2,H
-            TOC = hi + lo;
+        const auto* entry_code = static_cast<const char*>(b->region()->getPtrToInstruction(f->addr()));
+        if(entry_code && f->addr() + 8 <= b->region()->high()) {
+          const auto insn0 = Dyninst::read_memory_as<uint32_t>(entry_code);
+          const auto insn1 = Dyninst::read_memory_as<uint32_t>(entry_code + 4);
+          if((insn1 & 0xffff0000) == 0x38420000) { // addi r2,r2,L
+            const auto hi = static_cast<Dyninst::Address>(static_cast<int16_t>(insn0 & 0xffff)) << 16;
+            const auto lo = static_cast<Dyninst::Address>(static_cast<int16_t>(insn1 & 0xffff));
+            if((insn0 & 0xffff0000) == 0x3c4c0000) { // addis r2,r12,H
+              TOC = f->addr() + hi + lo;
+            } else if((insn0 & 0xffff0000) == 0x3c400000) { // lis r2,H
+              TOC = hi + lo;
+            }
           }
         }
       }
