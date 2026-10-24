@@ -2,6 +2,7 @@
 #include "dyninstAPI/src/find_main.h"
 #include "Symtab.h"
 
+#include <algorithm>
 #include <array>
 #include <iostream>
 #include <vector>
@@ -32,8 +33,9 @@ bool test_find_main(char const* filename, Dyninst::Address symtab_main_addr) {
 }
 
 // get_missing_symbols must only add symbols the file does not already have,
-// and must add 'main' to a file whose main symbol was stripped.
-bool test_missing_symbols(char const* filename, Dyninst::Address symtab_main_addr) {
+// must add 'main' to a file whose main symbol was stripped, and must place
+// each symbol where the unstripped file has it.
+bool test_missing_symbols(char const* filename, st::Symtab* reference) {
   std::cout << "Checking missing symbols for " << filename << "\n";
 
   st::Symtab* symtab{};
@@ -48,21 +50,26 @@ bool test_missing_symbols(char const* filename, Dyninst::Address symtab_main_add
   bool ok = true;
   bool added_main = false;
   for(auto* s : dd::get_missing_symbols(symtab, dd::find_main(symtab))) {
-    std::cout << "  adds '" << s->getMangledName() << "' at 0x" << std::hex << s->getOffset() << "\n";
+    const auto& name = s->getMangledName();
+    std::cout << "  adds '" << name << "' at 0x" << std::hex << s->getOffset() << "\n";
 
     std::vector<st::Symbol*> existing;
-    if(symtab->findSymbol(existing, s->getMangledName(), st::Symbol::ST_UNKNOWN, st::mangledName)) {
-      std::cerr << "'" << s->getMangledName() << "' is already present\n";
+    if(symtab->findSymbol(existing, name, st::Symbol::ST_UNKNOWN, st::mangledName)) {
+      std::cerr << "'" << name << "' is already present\n";
       ok = false;
     }
-    if(s->getMangledName() == "main") {
-      added_main = true;
-      if(s->getOffset() != symtab_main_addr) {
-        std::cerr << "'main' added at 0x" << std::hex << s->getOffset() << ", expected 0x" << symtab_main_addr
-                  << "\n";
+
+    std::vector<st::Symbol*> expected;
+    if(reference->findSymbol(expected, name, st::Symbol::ST_UNKNOWN, st::mangledName)) {
+      auto same_offset = [s](st::Symbol* e) { return e->getOffset() == s->getOffset(); };
+      if(std::none_of(expected.begin(), expected.end(), same_offset)) {
+        std::cerr << "'" << name << "' added at 0x" << std::hex << s->getOffset() << ", expected 0x"
+                  << expected[0]->getOffset() << "\n";
         ok = false;
       }
     }
+
+    added_main = added_main || name == "main";
     delete s;
   }
 
@@ -118,12 +125,12 @@ int main(int argc, char** argv) {
   }
 
   std::cout << "Testing get_missing_symbols with symbols...\n";
-  if(!test_missing_symbols(argv[1], symtab_main_addr)) {
+  if(!test_missing_symbols(argv[1], symtab)) {
     return EXIT_FAILURE;
   }
 
   std::cout << "Testing get_missing_symbols without symbols...\n";
-  if(!test_missing_symbols(argv[2], symtab_main_addr)) {
+  if(!test_missing_symbols(argv[2], symtab)) {
     return EXIT_FAILURE;
   }
 
