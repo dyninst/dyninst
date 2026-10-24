@@ -14,6 +14,25 @@
 namespace st = Dyninst::SymtabAPI;
 namespace pa = Dyninst::ParseAPI;
 
+namespace {
+
+  // The functions named by the first name in main_function_names() that has any
+  std::vector<st::Function*> find_main_symbol(st::Symtab* linkedFile) {
+    std::vector<st::Function*> funcs;
+    for(const char* name : main_function_names()) {
+      if(linkedFile->findFunctionsByName(funcs, name)) {
+        break;
+      }
+    }
+    return funcs;
+  }
+
+  bool has_main_symbol(st::Symtab* linkedFile) {
+    return !find_main_symbol(linkedFile).empty();
+  }
+
+}
+
 namespace Dyninst { namespace DyninstAPI {
 
 Dyninst::Address find_main(st::Symtab* linkedFile) {
@@ -39,9 +58,9 @@ Dyninst::Address find_main(st::Symtab* linkedFile) {
   }
 
   // Check for a known symbol name
-  for(const char* name : main_function_names()) {
-    std::vector<st::Function*> funcs;
-    if(linkedFile->findFunctionsByName(funcs, name)) {
+  {
+    std::vector<st::Function*> funcs = find_main_symbol(linkedFile);
+    if(!funcs.empty()) {
       if(dyn_debug_startup) {
         startup_printf("find_main: found ");
         for(auto* f : funcs) {
@@ -186,8 +205,8 @@ std::vector<st::Symbol*> get_missing_symbols(st::Symtab* linkedFile, Dyninst::Ad
     // clang-format on
   };
 
-  // Add either a static or dynamic symbol for 'main'
-  {
+  // Add either a static or dynamic symbol for 'main', unless it already has one
+  if(!has_main_symbol(linkedFile)) {
     st::Region* region{};
     bool const has_plt = linkedFile->findRegion(region, ".plt");
     if(has_plt && region->isOffsetInRegion(address_of_main)) {
