@@ -335,6 +335,8 @@ void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::const_ptr> &bps) co
    if (!int_bp)
       return;
    bp_instance *ibp = int_bp->lookupInstalledBreakpoint();
+   if (!ibp)
+      return;   // removed since the hit (e.g. a cancelled emulated single step)
    std::set<Breakpoint::ptr>::iterator i;
    for (i = ibp->hl_bps.begin(); i != ibp->hl_bps.end(); ++i) {
       bps.push_back(*i);
@@ -346,6 +348,8 @@ void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::ptr> &bps)
    if (!int_bp)
       return;
    bp_instance *ibp = int_bp->lookupInstalledBreakpoint();
+   if (!ibp)
+      return;   // removed since the hit (e.g. a cancelled emulated single step)
    std::set<Breakpoint::ptr>::iterator i;
    for (i = ibp->hl_bps.begin(); i != ibp->hl_bps.end(); i++) {
       bps.push_back(*i);
