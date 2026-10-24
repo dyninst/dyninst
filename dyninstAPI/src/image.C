@@ -700,10 +700,8 @@ image::image(fileDescriptor &desc,
    {
      namespace dd = Dyninst::DyninstAPI;
      this->address_of_main = dd::find_main(this->linkedFile);
-     if(address_of_main != Dyninst::ADDR_NULL) {
-       for(auto *s : dd::get_missing_symbols(this->linkedFile, address_of_main)) {
-         linkedFile->addSymbol(s);
-       }
+     for(auto *s : dd::get_missing_symbols(this->linkedFile, address_of_main)) {
+       linkedFile->addSymbol(s);
      }
    }
 
