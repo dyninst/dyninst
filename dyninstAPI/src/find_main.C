@@ -236,7 +236,7 @@ std::vector<st::Symbol*> get_missing_symbols(st::Symtab* linkedFile, Dyninst::Ad
     {
       std::vector<st::Function*> funcs{};
       if(!linkedFile->findFunctionsByName(funcs, "_start")) {
-        auto s = make_sym_("_start", entry_region->getMemOffset(), entry_region);
+        auto s = make_sym_("_start", entry_address, entry_region);
         new_symbols.push_back(s);
       }
     }
