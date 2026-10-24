@@ -228,7 +228,7 @@ std::vector<st::Symbol*> get_missing_symbols(st::Symtab* linkedFile, Dyninst::Ad
   // Add symbols for init/fini
   for(std::string sec : {"init", "fini"}) {
     std::vector<st::Function*> funcs{};
-    if(linkedFile->findFunctionsByName(funcs, "_"+sec)) {
+    if(!linkedFile->findFunctionsByName(funcs, "_"+sec)) {
       st::Region* reg{};
       if(linkedFile->findRegion(reg, "."+sec)) {
         auto* s = make_sym_("_"+sec, reg->getMemOffset(), reg);
