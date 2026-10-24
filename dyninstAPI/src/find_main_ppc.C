@@ -294,6 +294,22 @@ namespace {
 
 namespace Dyninst { namespace DyninstAPI { namespace ppc {
 
+  /*
+   *  In the ELFv1 ABI (big-endian ppc64), the entry point and function
+   *  symbols address a function descriptor in .opd. Its first word is
+   *  the address of the code.
+   */
+  Dyninst::Address deref_opd(st::Symtab* linkedFile, Dyninst::Address addr) {
+    st::Region* reg = linkedFile->findEnclosingRegion(addr);
+    if(reg && reg->getRegionName() == ".opd") {
+      Dyninst::Address target;
+      if(read_target_word(linkedFile, reg, addr, target)) {
+        return target;
+      }
+    }
+    return addr;
+  }
+
   Dyninst::Address find_main(st::Symtab* linkedFile, pa::Function* f) {
     // Candidate blocks for the __libc_start_main call setup:
     // glibc's dynamic _start makes the call from its entry block,
@@ -314,7 +330,7 @@ namespace Dyninst { namespace DyninstAPI { namespace ppc {
     }
 
     for(auto* b : candidates) {
-      auto main_addr = evaluate_main_address(linkedFile, f, b);
+      auto main_addr = deref_opd(linkedFile, evaluate_main_address(linkedFile, f, b));
       if(main_addr != Dyninst::ADDR_NULL && f->obj()->cs()->isValidAddress(main_addr)) {
         return main_addr;
       }

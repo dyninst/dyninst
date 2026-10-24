@@ -31,6 +31,16 @@ namespace {
     return !find_main_symbol(linkedFile).empty();
   }
 
+  // The address of the first instruction executed
+  Dyninst::Address get_entry_address(st::Symtab* linkedFile) {
+    const auto addr = static_cast<Dyninst::Address>(linkedFile->getEntryOffset());
+    const auto file_arch = linkedFile->getArchitecture();
+    if(file_arch == Dyninst::Arch_ppc32 || file_arch == Dyninst::Arch_ppc64) {
+      return Dyninst::DyninstAPI::ppc::deref_opd(linkedFile, addr);
+    }
+    return addr;
+  }
+
 }
 
 namespace Dyninst { namespace DyninstAPI {
@@ -81,7 +91,7 @@ Dyninst::Address find_main(st::Symtab* linkedFile) {
   // We need to do actual binary analysis from here
   startup_printf("find_main: no symbol found; attempting manual search\n");
 
-  const auto entry_address = static_cast<Dyninst::Address>(linkedFile->getEntryOffset());
+  const auto entry_address = get_entry_address(linkedFile);
   const st::Region* entry_region = linkedFile->findEnclosingRegion(entry_address);
 
   if(!entry_region) {
@@ -155,7 +165,7 @@ std::vector<st::Symbol*> get_missing_symbols(st::Symtab* linkedFile, Dyninst::Ad
 
   std::vector<st::Symbol*> new_symbols{};
 
-  const auto entry_address = static_cast<Dyninst::Address>(linkedFile->getEntryOffset());
+  const auto entry_address = get_entry_address(linkedFile);
   st::Region* entry_region = linkedFile->findEnclosingRegion(entry_address);
 
   // Windows PE has no startup/shutdown (e.g., .init/.fini) so treat it separately
