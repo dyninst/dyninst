@@ -522,12 +522,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 
       Symtab *symObj = mobj->parse_img()->getObject();
 
-      // link to the runtime library if tramp guards are currently enabled
-      if ( !symObj->isStaticBinary() && !BPatch::bpatch->isTrampRecursive() ) {
-          assert(!runtime_lib.empty());
-          addRuntimeLibPrereq();
-      }
-
       if( symObj->isStaticBinary() && isDirty() ) {
          if( !doStaticBinarySpecialCases() ) {
 	   cerr << "Failed to write file " << newFileName << ": static binary handler failed" << endl;
@@ -789,10 +783,24 @@ void BinaryEdit::addLibraryPrereq(std::string libname) {
    symObj->addLibraryPrereq(libname);
 }
 
-void BinaryEdit::addRuntimeLibPrereq() {
-   if (runtime_lib.empty()) return;
-   std::string const rtName = (*runtime_lib.begin())->fileName();
+void BinaryEdit::linkRuntimeLib() {
    Symtab *symObj = mobj->parse_img()->getObject();
+   if (symObj->isStaticBinary()) return;
+
+   // Relocation can still add trap mappings (replaceTrapHandler's call rewrites
+   // are relocated here), so relocate before asking whether there are any. The
+   // relocate() in writeFile then has nothing left to do.
+   relocate();
+
+   // Tramp guards live in the runtime library; so does the handler for traps.
+   bool const guards = !BPatch::bpatch->isTrampRecursive();
+   bool const traps = canUseTraps() && trapMapping.needsUpdating();
+   if (!guards && !traps) return;
+   if (runtime_lib.empty()) {
+      assert(!guards);
+      return;
+   }
+   std::string const rtName = (*runtime_lib.begin())->fileName();
 
    // A dependency written alongside the object the user opened gets no entry when
    // the runtime library itself depends on it; the opened object carries the entry

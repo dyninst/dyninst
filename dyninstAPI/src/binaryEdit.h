@@ -163,9 +163,11 @@ class BinaryEdit : public AddressSpace {
     // Add a library prerequisite
     void addLibraryPrereq(std::string libname);
 
-    // Add a DT_NEEDED entry for the runtime library. A dependency the runtime
-    // library itself needs leaves the entry to the object the user opened.
-    void addRuntimeLibPrereq();
+    // Relocate, then add a DT_NEEDED entry for the runtime library if this
+    // object's instrumentation needs it (tramp guards or trap mappings). A
+    // dependency the runtime library itself needs leaves the entry to the object
+    // the user opened. Called once per object, before any object is written.
+    void linkRuntimeLib();
 
    void setupRTLibrary(std::vector<BinaryEdit *> &r);
    std::vector<BinaryEdit *> &rtLibrary();
