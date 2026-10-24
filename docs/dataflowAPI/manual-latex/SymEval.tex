@@ -55,6 +55,15 @@ static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t& res);
 \apidesc{This interface expands a slice and returns an AST for each assignment in
 the slice. This function will perform substitution of ASTs.}
 
+\begin{apient}
+static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t& res, bool applyVisitors);
+\end{apient}
+\apidesc{As above. If \code{applyVisitors} is \code{false}, the ASTs are not
+simplified: stack pointer and frame pointer references are not replaced by stack
+heights, which needs stack analysis of the function, and no boolean
+simplification is applied. The two-argument version is the same as passing
+\code{true}.}
+
 We use an AST to represent the symbolic expressions of an assignment. A symbolic
 expression AST contains internal node type \code{RoseAST}, which abstracts the
 operations performed with its child nodes, and two leave node types:
