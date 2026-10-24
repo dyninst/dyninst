@@ -16,6 +16,7 @@ namespace Dyninst { namespace DyninstAPI {
 
   namespace ppc {
     Dyninst::Address find_main(st::Symtab*, pa::Function*);
+    Dyninst::Address deref_opd(st::Symtab*, Dyninst::Address);
   }
 
   namespace x86 {
