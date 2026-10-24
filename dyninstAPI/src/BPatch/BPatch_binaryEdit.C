@@ -223,6 +223,13 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
       (*i).second->trapMapping.flush();
    }
 
+   // Decide every DT_NEEDED entry on the runtime library before writing anything:
+   // a dependency's entry can move to the opened object, which is written first.
+   origBinEdit->linkRuntimeLib();
+   for (auto const &i : llBinEdits) {
+      if (i.second != origBinEdit && i.second->isDirty())
+         i.second->linkRuntimeLib();
+   }
 
    progress_printf("write: writing primary output file %s\n", outFile);
    if( !origBinEdit->writeFile(outFile) ) return false;
