@@ -936,6 +936,8 @@ public:
    bool singleStep() const;
    void markClearingBreakpoint(bp_instance *bp);
    bp_instance *isClearingBreakpoint();
+   void abortBreakpointStepOver();
+   void abandonContinue();
    void markStoppedOnBP(bp_instance *bp);
    bp_instance *isStoppedOnBP();
 

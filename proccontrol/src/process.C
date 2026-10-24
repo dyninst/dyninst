@@ -2984,6 +2984,16 @@ bool int_thread::intCont()
    else if (aret == aret_error) {
       pthrd_printf("Error in intCont %d/%d during single-step handling\n",
                    llproc()->getPid(), getLWP());
+      // The continue does not happen: undo a breakpoint step-over set up for it, and leave
+      // the threads stopped (see abandonContinue).
+      if (llproc()->plat_processGroupContinues()) {
+         int_threadPool *pool = llproc()->threadPool();
+         for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++)
+            (*i)->abandonContinue();
+      }
+      else {
+         abandonContinue();
+      }
       return false;
    }
 
@@ -4154,6 +4164,50 @@ void int_thread::markClearingBreakpoint(bp_instance *bp)
    else {
       clearing_bp_count.dec();
    }
+}
+
+/**
+ * Undo what HandleBreakpointClear set up for a step over the breakpoint this thread is
+ * stopped on, when the continue that would run the step fails (for example, the platform
+ * refuses an emulated single step). HandleBreakpointRestore normally does this after the
+ * step; here the thread has not moved, so it is left stopped on the breakpoint, and the
+ * next continue steps over it again.
+ **/
+void int_thread::abortBreakpointStepOver()
+{
+   bp_instance *bp = clearing_breakpoint;
+   if (!bp)
+      return;
+   pthrd_printf("Aborting the step over the breakpoint at 0x%lx on %d/%d\n", bp->getAddr(),
+                llproc()->getPid(), getLWP());
+   markClearingBreakpoint(NULL);
+   setSingleStepMode(false);
+
+   std::set<response::ptr> resps;
+   async_ret_t result = bp->resume(llproc(), resps);
+   if (result == aret_error)
+      pthrd_printf("Error putting the breakpoint at 0x%lx back\n", bp->getAddr());
+   else if (result == aret_async)
+      pthrd_printf("Breakpoint at 0x%lx is put back asynchronously\n", bp->getAddr());
+   markStoppedOnBP(bp);
+
+   if (bp->swBP())
+      getBreakpointResumeState().restoreStateProc();
+   else
+      getBreakpointResumeState().restoreState();
+}
+
+/**
+ * A continue of this thread failed before it ran. Undo a breakpoint step-over set up for
+ * it: the step will never run, and the ClearingBPs count it holds would block every later
+ * waitAndHandleEvents. A thread the user had continued still has a running user state
+ * from continueThread, although it never ran; set that back to stopped.
+ **/
+void int_thread::abandonContinue()
+{
+   abortBreakpointStepOver();
+   if (getUserState().getState() == int_thread::running)
+      getUserState().setState(int_thread::stopped);
 }
 
 void int_thread::markStoppedOnBP(bp_instance *bp)
