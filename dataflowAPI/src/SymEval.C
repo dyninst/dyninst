@@ -58,7 +58,7 @@ using namespace DataflowAPI;
 using namespace rose::BinaryAnalysis::InstructionSemantics2;
 
 static bool expandInsn(const Instruction &, const uint64_t, Result_t &);
-static SymEval::Retval_t process(SliceNode::Ptr, Result_t &, std::set<Edge::Ptr> &);
+static SymEval::Retval_t process(SliceNode::Ptr, Result_t &, std::set<Edge::Ptr> &, bool applyVisitors);
 static AST::Ptr simplifyStack(AST::Ptr, Address, ParseAPI::Function *, ParseAPI::Block *);
 
 std::pair<AST::Ptr, bool> SymEval::expand(const Assignment::Ptr &assignment, bool applyVisitors) {
@@ -306,6 +306,10 @@ bool vectorSort(SliceNode::Ptr ptr1, SliceNode::Ptr ptr2) {
 // Do the previous, but use a Graph as a guide for
 // performing forward substitution on the AST results
 SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res) {
+  return expand(slice, res, true);
+}
+
+SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res, bool applyVisitors) {
   bool failedTranslation = false;
   bool skippedInput = false;
 
@@ -380,7 +384,7 @@ SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result
     assert(order == 0); // there are no loops
 
     AST::Ptr prev = res[aNode->assign()];
-    Retval_t result = process(aNode, res, worklist.skipEdges());
+    Retval_t result = process(aNode, res, worklist.skipEdges(), applyVisitors);
     AST::Ptr post = res[aNode->assign()];
     switch(result) {
       case FAILED:
@@ -655,7 +659,7 @@ static bool expandInsn(const Instruction &insn, const uint64_t addr, Result_t &r
   return true;
 }
 
-SymEval::Retval_t process(SliceNode::Ptr ptr, Result_t &dbase, std::set<Edge::Ptr> &skipEdges) {
+SymEval::Retval_t process(SliceNode::Ptr ptr, Result_t &dbase, std::set<Edge::Ptr> &skipEdges, bool applyVisitors) {
   bool failedTranslation;
   bool skippedEdge = false;
   bool skippedInput = false;
@@ -699,7 +703,7 @@ SymEval::Retval_t process(SliceNode::Ptr ptr, Result_t &dbase, std::set<Edge::Pt
   // If not (like this one), add it
 
   AST::Ptr ast;
-  boost::tie(ast, failedTranslation) = SymEval::expand(ptr->assign());
+  boost::tie(ast, failedTranslation) = SymEval::expand(ptr->assign(), applyVisitors);
   // expand_cerr << "\t ... resulting in " << dbase.format() << endl;
 
   // We have an AST. Now substitute in all of its predecessors.
@@ -749,7 +753,9 @@ SymEval::Retval_t process(SliceNode::Ptr ptr, Result_t &dbase, std::set<Edge::Pt
               << endl;
 
   // And attempt simplification again
-  ast = simplifyStack(ast, ptr->addr(), ptr->func(), ptr->block());
+  if(applyVisitors) {
+    ast = simplifyStack(ast, ptr->addr(), ptr->func(), ptr->block());
+  }
   expand_cerr << "Result of post-substitution simplification: " << ptr->assign()->format()
               << " == " << (ast ? ast->format() : "<NULL AST>") << endl;
 
