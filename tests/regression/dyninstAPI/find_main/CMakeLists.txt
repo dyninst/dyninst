@@ -19,8 +19,9 @@ set(
   #  "i686/stat.pie"
   #
   #  # ppc64le doesn't support static PIE
-  #  "ppc64le/dyn.nopie"
-  #  "ppc64le/dyn.pie"
+  "ppc64le/dyn.nopie"
+  "ppc64le/dyn.pie"
+  #  # find_main faults reading the startup structure of the stripped static binary
   #  "ppc64le/stat.nopie"
   "x86_64/dyn.nopie"
   "x86_64/dyn.pie"
