@@ -31,14 +31,19 @@ namespace {
     return !find_main_symbol(linkedFile).empty();
   }
 
-  // The address of the first instruction executed
-  Dyninst::Address get_entry_address(st::Symtab* linkedFile) {
-    const auto addr = static_cast<Dyninst::Address>(linkedFile->getEntryOffset());
+  // The code address for a function address from the file header or the
+  // dynamic section, which on ELFv1 ppc64 is that of a function descriptor
+  Dyninst::Address code_address(st::Symtab* linkedFile, Dyninst::Address addr) {
     const auto file_arch = linkedFile->getArchitecture();
     if(file_arch == Dyninst::Arch_ppc32 || file_arch == Dyninst::Arch_ppc64) {
       return Dyninst::DyninstAPI::ppc::deref_opd(linkedFile, addr);
     }
     return addr;
+  }
+
+  // The address of the first instruction executed
+  Dyninst::Address get_entry_address(st::Symtab* linkedFile) {
+    return code_address(linkedFile, static_cast<Dyninst::Address>(linkedFile->getEntryOffset()));
   }
 
 }
@@ -241,14 +246,26 @@ std::vector<st::Symbol*> get_missing_symbols(st::Symtab* linkedFile, Dyninst::Ad
       }
     }
 
-    // Add symbols for init/fini
-    for(std::string sec : {"init", "fini"}) {
+    // Add symbols for init/fini. DT_INIT/DT_FINI name them exactly; without
+    // them (static executables), assume each starts its section. That does
+    // not hold everywhere: on ppc64le the linker can place a call stub at the
+    // start of .init, before _init.
+    const std::pair<std::string, Dyninst::Address> startup_funcs[] = {
+      {"init", code_address(linkedFile, linkedFile->getInitOffset())},
+      {"fini", code_address(linkedFile, linkedFile->getFiniOffset())}
+    };
+    for(const auto& sf : startup_funcs) {
+      const std::string& sec = sf.first;
       std::vector<st::Function*> funcs{};
       if(!linkedFile->findFunctionsByName(funcs, "_"+sec)) {
         st::Region* reg{};
-        if(linkedFile->findRegion(reg, "."+sec)) {
-          auto* s = make_sym_("_"+sec, reg->getMemOffset(), reg);
-          new_symbols.push_back(s);
+        if(sf.second != 0) {
+          reg = linkedFile->findEnclosingRegion(sf.second);
+          if(reg) {
+            new_symbols.push_back(make_sym_("_"+sec, sf.second, reg));
+          }
+        } else if(linkedFile->findRegion(reg, "."+sec)) {
+          new_symbols.push_back(make_sym_("_"+sec, reg->getMemOffset(), reg));
         }
       }
     }
