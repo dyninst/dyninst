@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <initializer_list>
 #include <iostream>
+#include <memory>
 #include <string>
 
 // See test_binaries/dyninstAPI/findMain/ppc64le/stat.nopie.stripped
@@ -45,12 +46,9 @@ namespace {
 
   // A Symtab holding only the given regions, so the binary search's path is
   // fixed: each layout below makes it land on the .tbss region first.
-  //
-  // It is not deleted: ~Symtab deletes a region added with addRegion twice
-  // (it is in both regions_ and the user-region list).
-  st::Symtab *make_symtab(std::initializer_list<region_spec> regions) {
+  std::unique_ptr<st::Symtab> make_symtab(std::initializer_list<region_spec> regions) {
     static char bytes[0x200];
-    auto *symtab = new st::Symtab();
+    std::unique_ptr<st::Symtab> symtab(new st::Symtab());
     for (auto const &r : regions) {
       symtab->addRegion(r.addr, bytes, r.size, r.name,
                         r.tbss ? st::Region::RT_BSS : st::Region::RT_DATA, true, 8, r.tbss);
@@ -82,7 +80,7 @@ int main(int argc, char **argv) {
   // A region that starts before .tbss and extends into it.
   ok &= check(make_symtab({{0x1000, 0x180, "before", false},
                            {0x1100, 0x100, ".tbss", true},
-                           {0x3000, 0x10, "after", false}}),
+                           {0x3000, 0x10, "after", false}}).get(),
               0x1140, "before");
 
   // Several regions inside .tbss: the smallest one wins, not the first one
@@ -90,7 +88,7 @@ int main(int argc, char **argv) {
   ok &= check(make_symtab({{0x800, 0x10, "before", false},
                            {0x1100, 0x100, ".tbss", true},
                            {0x1100, 0x200, "outer", false},
-                           {0x1180, 0x10, "inner", false}}),
+                           {0x1180, 0x10, "inner", false}}).get(),
               0x1184, "inner");
 
   return ok ? EXIT_SUCCESS : EXIT_FAILURE;
