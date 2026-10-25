@@ -49,6 +49,9 @@
 #include <cstdlib>
 
 #include "ASTs/ast.h"
+#include "ASTs/AmdgpuTTraceData.h"
+#include "BPatch_flowGraph.h"
+#include "BPatch_basicBlock.h"
 #include "debug.h"
 
 #include <cassert>
@@ -176,6 +179,43 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
 
   AmdgpuPrologueSnippet prologueSnippet(prologueNodePtr);
   insertPrologueAtPoints(prologueSnippet, entryPoints);
+
+  // PROTOTYPE (SQTT/ATT marker delivery): when DYNINST_TTRACE_MARKER=<u32> is set, also insert a
+  // register-only, NO-CALL `s_mov_b32 m0,<marker>; s_ttracedata` at each entry point. The SQ streams
+  // the marker into the hardware thread trace only while a trace session is active (host-side), so it
+  // is a NOP with zero overhead otherwise. Assumes M0 is dead. Mirrors insertPrologueAtPoints' pushBack.
+  boost::shared_ptr<AmdgpuTTraceData> ttPtr;
+  if (const char *rg = getenv("DYNINST_TTRACE_REG")) {
+    // Read a live ARCH register into the marker. "exec" -> exec_lo (126); otherwise an SSRC encoding
+    // (s0..s101 = 0..101). This is the BPatch_registerExpr-style "read an arch value" form.
+    uint32_t src = (std::string(rg) == "exec") ? 126u : (uint32_t)strtoul(rg, nullptr, 0);
+    ttPtr = boost::make_shared<AmdgpuTTraceData>(AmdgpuTTraceData::FromReg{}, src);
+  } else if (const char *mk = getenv("DYNINST_TTRACE_MARKER")) {
+    ttPtr = boost::make_shared<AmdgpuTTraceData>((uint32_t)strtoul(mk, nullptr, 0));
+  }
+  if (ttPtr) {
+    DyninstAPI::codeGenASTPtr ttNodePtr = boost::make_shared<AmdgpuTTraceDataNode>(ttPtr);
+    AmdgpuTTraceDataSnippet ttSnippet(ttNodePtr);
+    std::vector<BPatch_point *> targets;
+    if (getenv("DYNINST_TTRACE_ALLBB")) {
+      // Sample EXEC across the whole kernel: a marker at every basic-block entry, so DIVERGENT blocks
+      // (where EXEC != all-ones) are captured too (e.g. an i&1 if-block runs under the odd-lane mask).
+      if (BPatch_flowGraph *cfg = function->getCFG()) {
+        std::set<BPatch_basicBlock *> blocks;
+        cfg->getAllBasicBlocks(blocks);
+        for (BPatch_basicBlock *bb : blocks)
+          if (BPatch_point *pt = function->findPoint(bb->getStartAddress()))
+            targets.push_back(pt);
+      }
+    } else {
+      targets = entryPoints;
+    }
+    for (BPatch_point *point : targets) {
+      auto *iPoint = dynamic_cast<instPoint *>(PatchAPI::convert(point, BPatch_callBefore));
+      if (!iPoint) continue;
+      iPoint->pushBack(ttSnippet.ast_wrapper);
+    }
+  }
 }
 
 void AmdgpuGfx908PointHandler::insertEpilogueIfKernel(BPatch_function *function) {

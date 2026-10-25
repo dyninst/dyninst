@@ -271,7 +271,8 @@ enum SOPP_Opcode {
   S_CBRANCH_VCCNZ = 7,
   S_CBRANCH_EXECZ = 8,
   S_CBRANCH_EXECNZ = 9,
-  S_WAITCNT = 12
+  S_WAITCNT = 12,
+  S_TTRACEDATA = 22   // stream M0 into the SQTT/ATT thread-trace stream (NOP when no trace session active)
 };
 
 void setEncodingSopP(uint32_t &rawInst);
@@ -280,6 +281,17 @@ void setOpcodeSopP(uint32_t value, uint32_t &rawInst);
 void setSImm16SopP(int16_t value, uint32_t &rawInst);
 
 void emitSopP(unsigned opcode, int16_t simm16, codeGen &gen);
+
+// Emit `s_mov_b32 m0, <m0_value>; s_ttracedata` — stream a 32-bit marker into the hardware thread trace
+// (SQTT/ATT). The SQ emits the token only while a trace session is active, so this is a NOP otherwise
+// (zero overhead when tracing is off). ASSUMES M0 IS DEAD at the insertion point (no save/restore here;
+// a caller that cannot guarantee that must save/restore M0 around this, e.g. via a free scratch SGPR).
+void emitTTraceData(uint32_t m0_value, codeGen &gen);
+
+// Like emitTTraceData, but stream a live ARCH REGISTER instead of a constant: `s_mov_b32 m0, <src_reg>;
+// s_ttracedata`. src_reg is the AMDGPU SSRC encoding (s0..s101 = 0..101, exec_lo = 126, exec_hi = 127, ...).
+// Reads the register value into the thread trace. Same M0-dead precondition.
+void emitTTraceDataReg(uint32_t src_reg, codeGen &gen);
 // === SOPP END ===
 
 // === SMEM BEGIN ===

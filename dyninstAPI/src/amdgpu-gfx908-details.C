@@ -297,6 +297,19 @@ void emitSopP(unsigned opcode, int16_t simm16, codeGen &gen) {
   append_memory_as(rawInstBuffer, newRawInst);
   gen.update(rawInstBuffer);
 }
+
+// Emit `s_mov_b32 m0, <m0_value>; s_ttracedata`. See the header for the M0-dead precondition.
+// M0 is special-register id 124 (0x7C) in the SOP1 SDST encoding; src0=255 selects a trailing 32-bit literal.
+void emitTTraceData(uint32_t m0_value, codeGen &gen) {
+  emitSop1(S_MOV_B32, /*dest=M0*/124, /*src0=literal*/255, /*hasLiteral=*/true, m0_value, gen);
+  emitSopP(S_TTRACEDATA, /*simm16=*/0, gen);
+}
+
+// Read a live arch register into M0, then stream it: `s_mov_b32 m0, <src_reg>; s_ttracedata`.
+void emitTTraceDataReg(uint32_t src_reg, codeGen &gen) {
+  emitSop1(S_MOV_B32, /*dest=M0*/124, /*src0=*/src_reg, /*hasLiteral=*/false, /*literal=*/0, gen);
+  emitSopP(S_TTRACEDATA, /*simm16=*/0, gen);
+}
 // === SOPP END ===
 
 // === SMEM BEGIN ===
