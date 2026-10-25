@@ -1,0 +1,74 @@
+/*
+ * See the dyninst/COPYRIGHT file for copyright information.
+ *
+ * We provide the Paradyn Tools (below described as "Paradyn")
+ * on an AS IS basis, and do not warrant its validity or performance.
+ * We reserve the right to update, modify, or discontinue this
+ * software at any time.  We shall have no obligation to supply such
+ * updates or modifications or any other form of support to you.
+ *
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
+#ifndef DYNINST_DYNINSTAPI_AMDGPUTRACEDATA_H
+#define DYNINST_DYNINSTAPI_AMDGPUTRACEDATA_H
+
+#include "dyn_register.h"
+
+#include <boost/make_shared.hpp>
+#include "ASTs/codeGenAST.h"
+#include <cstdint>
+#include <string>
+
+class codeGen;
+
+namespace Dyninst { namespace DyninstAPI {
+
+// Writes a 32-bit value to the AMDGPU thread trace (SQTT) with s_ttracedata: either a constant
+// or the value of a scalar register at the instrumentation point.
+class AmdgpuTraceDataAST : public codeGenAST {
+public:
+  using Ptr = boost::shared_ptr<AmdgpuTraceDataAST>;
+
+  static Ptr createConstant(uint32_t value) {
+    return boost::make_shared<AmdgpuTraceDataAST>(value, Dyninst::Null_Register);
+  }
+
+  // source must be a single scalar register (an SGPR, exec_lo, vcc_hi, ...).
+  static Ptr createRegister(Dyninst::Register source) {
+    return boost::make_shared<AmdgpuTraceDataAST>(0, source);
+  }
+
+  AmdgpuTraceDataAST(uint32_t value, Dyninst::Register source) : value_(value), source_(source) {}
+
+  std::string format(std::string indent) override;
+
+private:
+  bool generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
+                           Dyninst::Register &retReg) override;
+
+  uint32_t value_;
+  Dyninst::Register source_;  // Null_Register: write value_
+};
+
+}}
+
+#endif

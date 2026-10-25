@@ -326,6 +326,19 @@ class DYNINST_EXPORT BPatch_registerExpr : public BPatch_snippet {
                     BPatch_registerExpr(Dyninst::MachRegister reg);
 };
 
+// AMDGPU only: writes a 32-bit value to the GPU's thread trace (SQTT) with s_ttracedata. The
+// value appears in the trace only while a thread trace is being collected; otherwise the snippet
+// has no effect. M0 is preserved.
+class DYNINST_EXPORT BPatch_amdgpuTraceDataExpr : public BPatch_snippet {
+ public:
+    // Writes the constant value.
+    BPatch_amdgpuTraceDataExpr(unsigned int value);
+
+    // Writes the value of reg at the instrumentation point. reg must be a 32-bit scalar
+    // register: an SGPR, exec_lo/hi or vcc_lo/hi.
+    BPatch_amdgpuTraceDataExpr(Dyninst::MachRegister reg);
+};
+
 class DYNINST_EXPORT BPatch_sequence : public BPatch_snippet {
  public:
     //  BPatch_sequence::BPatch_sequence
