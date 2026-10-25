@@ -6,6 +6,7 @@
 #include <csignal>
 #include <cstdlib>
 #include <iostream>
+#include <string>
 #include <sys/ptrace.h>
 #include <sys/wait.h>
 #include <thread>
@@ -40,10 +41,19 @@ namespace {
 }
 
 int main(int argc, char **argv) {
-  if (argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " <mutatee>\n";
+  if (argc != 3) {
+    std::cerr << "Usage: " << argv[0] << " <mutatee> <RT library directory>\n";
     return EXIT_FAILURE;
   }
+
+  // BPatch preloads the RT library by searching LD_LIBRARY_PATH. Prepend the
+  // build's RT directory to the inherited value instead of replacing it.
+  std::string ld_path = argv[2];
+  if (char const *inherited = getenv("LD_LIBRARY_PATH")) {
+    if (*inherited) ld_path += std::string(":") + inherited;
+  }
+  setenv("LD_LIBRARY_PATH", ld_path.c_str(), 1);
+  std::cout << "LD_LIBRARY_PATH=" << ld_path << "\n";
 
   if (!ptrace_allowed()) {
     std::cerr << "ptrace is not permitted here; skipping\n";

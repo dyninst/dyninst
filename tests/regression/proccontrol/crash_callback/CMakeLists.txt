@@ -21,15 +21,17 @@ if(
   target_link_libraries(${_targ} PRIVATE dyninstAPI)
 
   set(_tname proccontrol_${_targ}_test)
-  add_test(NAME ${_tname} COMMAND ${_targ} $<TARGET_FILE:crash_callback_mutatee>)
+  add_test(
+    NAME ${_tname}
+    COMMAND
+      ${_targ} $<TARGET_FILE:crash_callback_mutatee> $<TARGET_FILE_DIR:dyninstAPI_RT>
+  )
   set_tests_properties(
     ${_tname}
     PROPERTIES
       LABELS "regression"
       TIMEOUT 120
       SKIP_RETURN_CODE 77
-      # BPatch preloads the RT library by searching the library path
-      ENVIRONMENT
-        "DYNINSTAPI_RT_LIB=$<TARGET_FILE:dyninstAPI_RT>;LD_LIBRARY_PATH=$<TARGET_FILE_DIR:dyninstAPI_RT>:$ENV{LD_LIBRARY_PATH}"
+      ENVIRONMENT "DYNINSTAPI_RT_LIB=$<TARGET_FILE:dyninstAPI_RT>"
   )
 endif()
