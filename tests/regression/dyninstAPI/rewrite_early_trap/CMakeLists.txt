@@ -1,8 +1,9 @@
 include_guard(GLOBAL)
 
 # The trap comes from relocating a function shorter than a jump, which the
-# mutatee writes in x86_64 assembly.
-if(NOT DYNINST_OS_Linux OR NOT DYNINST_HOST_ARCH_X86_64)
+# mutatee writes in x86_64 assembly. The mutatee is a host program, so Dyninst
+# must also generate code for x86_64.
+if(NOT DYNINST_OS_Linux OR NOT (DYNINST_HOST_ARCH_X86_64 AND DYNINST_CODEGEN_ARCH_X86_64))
   return()
 endif()
 
