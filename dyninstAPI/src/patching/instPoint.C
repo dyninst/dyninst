@@ -476,6 +476,20 @@ bitArray instPoint::liveRegisters(){
 	static LivenessAnalyzer live2(8);
 	LivenessAnalyzer *live;
 	if (func()->function()->region()->getAddressWidth() == 4) live = &live1; else live = &live2;
+
+	// live2 uses getABI(8), whose register map is fixed per build (gfx908 in an
+	// AMDGPU build). Registers are looked up by their architecture, so in an
+	// object of another AMDGPU architecture every register would be missing and
+	// nothing would ever be live. Use the object's own architecture instead.
+	Architecture const arch = func()->function()->region()->getArch();
+	switch (arch) {
+		case Arch_amdgpu_gfx908: { static LivenessAnalyzer gfx908(arch, 8); live = &gfx908; break; }
+		case Arch_amdgpu_gfx90a: { static LivenessAnalyzer gfx90a(arch, 8); live = &gfx90a; break; }
+		case Arch_amdgpu_gfx940: { static LivenessAnalyzer gfx940(arch, 8); live = &gfx940; break; }
+		case Arch_amdgpu_gfx950: { static LivenessAnalyzer gfx950(arch, 8); live = &gfx950; break; }
+		default:
+			break;
+	}
 	if (liveRegs_.size() && liveRegs_.size() == live->getABI()->getAllRegs().size()){
 		return liveRegs_;
 	}	

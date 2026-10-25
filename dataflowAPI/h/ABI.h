@@ -62,12 +62,11 @@ class ABI{
 
     DYNINST_EXPORT static void initialize32();
     DYNINST_EXPORT static void initialize64();
-    DYNINST_EXPORT static void initialize64(Architecture arch);
     // Warning: the architecture is fixed on first use and cannot be reset
     //
     // if not set, set the architecture to the host, return addr_width ABI.
     DYNINST_EXPORT static ABI* getABI(int addr_width);
-    // if not set, set the architecture to arch. return the 64-bit ABI.
+    // The ABI of arch (AMDGPU only), independent of the host ABIs and of other architectures.
     DYNINST_EXPORT static ABI* getABI(Architecture arch);
     DYNINST_EXPORT bitArray getBitArray();
  private:
@@ -98,6 +97,11 @@ class ABI{
     static bitArray * getBitArray(int size){
         return new bitArray(size);
     }
+
+    // The register sets of an ABI made by getABI(Architecture). Null for the host
+    // ABIs, which use the static sets above.
+    struct RegisterSets;
+    RegisterSets const *sets_{nullptr};
 
     ABI(): index(NULL), addr_width(0) {}
 };
