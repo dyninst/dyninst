@@ -115,8 +115,10 @@
 
 //#define TRAMP_SPR_OFFSET_64 (PDYN_RESERVED_64)
 #define TRAMP_SPR_OFFSET_64 (0)
-#define STK_LR       (              0)
-#define STK_NZCV     (STK_SP_EL0  + 8)
+// Save slots of the system registers within the SPR area. They must end at or
+// below 16 bytes: the FPR saves start there, not at TRAMP_FPR_OFFSET_64,
+// because generateMemAccessFP encodes its offset in units of 16 bytes.
+#define STK_NZCV     (0)
 #define STK_FPCR     (STK_NZCV    + 4)
 #define STK_FPSR     (STK_FPCR    + 4)
 
