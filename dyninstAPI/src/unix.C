@@ -797,6 +797,20 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
         return;
     }
 
+    // AMDGPU code objects have no DT_INIT/DT_FINI: kernels are launched
+    // directly, and there is no AMDGPU empty-function stub to put in
+    // .init.dyninst/.fini.dyninst.
+    switch( linkedFile->getArchitecture() )
+    {
+        case Arch_amdgpu_gfx908:
+        case Arch_amdgpu_gfx90a:
+        case Arch_amdgpu_gfx940:
+        case Arch_amdgpu_gfx950:
+            return;
+        default:
+            break;
+    }
+
     bool foundInit = false;
     bool foundFini = false;
     vector <Function *> funcs;
