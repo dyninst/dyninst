@@ -197,7 +197,12 @@ void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function)
     DyninstAPI::codeGenASTPtr ttNodePtr = boost::make_shared<AmdgpuTTraceDataNode>(ttPtr);
     AmdgpuTTraceDataSnippet ttSnippet(ttNodePtr);
     std::vector<BPatch_point *> targets;
-    if (getenv("DYNINST_TTRACE_ALLBB")) {
+    if (const char *addrStr = getenv("DYNINST_TTRACE_ADDR")) {
+      // Target a specific instruction address (for verification of SCC-live insertion points).
+      unsigned long addr = strtoul(addrStr, nullptr, 0);
+      if (BPatch_point *pt = function->findPoint((Dyninst::Address)addr))
+        targets.push_back(pt);
+    } else if (getenv("DYNINST_TTRACE_ALLBB")) {
       // Sample EXEC across the whole kernel: a marker at every basic-block entry, so DIVERGENT blocks
       // (where EXEC != all-ones) are captured too (e.g. an i&1 if-block runs under the odd-lane mask).
       if (BPatch_flowGraph *cfg = function->getCFG()) {
