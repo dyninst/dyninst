@@ -122,7 +122,7 @@ jobs:
           
           version="1.9.2"
           mkdir must; cd must  # can't build in / because must does unusual checks
-          wget https://hpc.rwth-aachen.de/must/files/MUST-v${version}.tar.gz
+          wget --no-check-certificate https://hpc.rwth-aachen.de/must/files/MUST-v${version}.tar.gz
           tar -zxf MUST-v${version}.tar.gz --strip-components=1
           
           if [[ "${{ matrix.os }}" =~ "fedora" ]]; then
