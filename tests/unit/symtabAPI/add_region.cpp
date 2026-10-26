@@ -42,12 +42,12 @@ void operator delete(void *p, std::size_t) noexcept {
 int main(int argc, char **argv) {
   if (argc < 1)  {
     std::fprintf(stderr, "no program name\n");
-    return EXIT_FAILURE;
+    return 1;
   }
   st::Symtab *obj = nullptr;
   if (!st::Symtab::openFile(obj, argv[0]))  {
     std::fprintf(stderr, "cannot open %s\n", argv[0]);
-    return EXIT_FAILURE;
+    return 1;
   }
 
   static char loadable_data[16];
@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
   std::vector<st::Region *> added;
   if (!obj->getAllNewRegions(added) || added.size() != 3)  {
     std::fprintf(stderr, "expected 3 new regions, got %zu\n", added.size());
-    return EXIT_FAILURE;
+    return 1;
   }
 
   // ~Symtab frees the regions through getAllRegions' list only, so every
@@ -70,13 +70,13 @@ int main(int argc, char **argv) {
   std::vector<st::Region *> all;
   if (!obj->getAllRegions(all))  {
     std::fprintf(stderr, "getAllRegions failed\n");
-    return EXIT_FAILURE;
+    return 1;
   }
   for (auto *r : added)  {
     if (std::find(all.begin(), all.end(), r) == all.end())  {
       std::fprintf(stderr, "added region %s is not in getAllRegions\n",
                    r->getRegionName().c_str());
-      return EXIT_FAILURE;
+      return 1;
     }
   }
 
@@ -87,8 +87,8 @@ int main(int argc, char **argv) {
     if (delete_count[i] != 1)  {
       std::fprintf(stderr, "added region %zu deleted %d times\n", i,
                    delete_count[i]);
-      return EXIT_FAILURE;
+      return 1;
     }
   }
-  return EXIT_SUCCESS;
+  return 0;
 }
