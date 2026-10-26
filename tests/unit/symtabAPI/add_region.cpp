@@ -1,13 +1,41 @@
-// Closing a Symtab after Symtab::addRegion deletes each added region once.
+// Closing a Symtab after Symtab::addRegion deletes each added region exactly
+// once.
 #include "Region.h"
 #include "Symtab.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
 namespace st = Dyninst::SymtabAPI;
+
+// This replaces the global operator delete for the whole process, symtabAPI
+// included. While closeSymtab runs it counts the deletes of the added regions
+// and keeps their memory, so a second delete is counted instead of crashing
+// in free(). A region deleted twice is still destroyed twice. That second
+// ~Region frees nothing here: the names below fit std::string's inline
+// buffer, the regions have no relocations, and patchData is never called.
+static std::vector<st::Region *> *watched = nullptr;
+static int delete_count[3];
+
+void operator delete(void *p) noexcept {
+  if (watched)  {
+    for (std::size_t i = 0; i < watched->size(); ++i)  {
+      if ((*watched)[i] == p)  {
+        ++delete_count[i];
+        return;
+      }
+    }
+  }
+  std::free(p);
+}
+
+void operator delete(void *p, std::size_t) noexcept {
+  operator delete(p);
+}
 
 int main(int argc, char **argv) {
   if (argc < 1)  {
@@ -50,6 +78,15 @@ int main(int argc, char **argv) {
     }
   }
 
+  watched = &added;
   st::Symtab::closeSymtab(obj);
+  watched = nullptr;
+  for (std::size_t i = 0; i < added.size(); ++i)  {
+    if (delete_count[i] != 1)  {
+      std::fprintf(stderr, "added region %zu deleted %d times\n", i,
+                   delete_count[i]);
+      return 1;
+    }
+  }
   return 0;
 }
