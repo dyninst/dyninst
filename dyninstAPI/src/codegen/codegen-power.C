@@ -373,19 +373,20 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
         // What we are going to do here is use the LR/CTR as temporary store for an existing register value
         std::vector<Dyninst::Register> potentialRegisters = {registerSpace::r3, registerSpace::r4, registerSpace::r5, registerSpace::r6, registerSpace::r7, registerSpace::r8, registerSpace::r9, registerSpace::r10};
         bitArray liveRegs = point->liveRegisters();
+        registerSpace *rs = registerSpace::getRegisterSpace(point->proc());
 
         for (int iter =  potentialRegisters.size() - 1; iter >= 0; iter = iter - 1) {
-          if (liveRegs[potentialRegisters[iter]] == false) {
+          if (!rs->checkLive(potentialRegisters[iter], liveRegs)) {
             scratch = potentialRegisters[iter]; 
             break;
           }
         }
         if (scratch == Null_Register) {
-          if (liveRegs[registerSpace::lr] == false && isCall) {
+          if (!rs->checkLive(registerSpace::lr, liveRegs) && isCall) {
               usingLR = true;
               // Dyninst::Register 11 is the chosen one for using temporarily.
               generateMoveToSPR(gen, registerSpace::r10, SPR_LR);
-          } else if (liveRegs[registerSpace::ctr] == false) {
+          } else if (!rs->checkLive(registerSpace::ctr, liveRegs)) {
               usingCTR = true;
               generateMoveToSPR(gen, registerSpace::r10, SPR_CTR);
           }

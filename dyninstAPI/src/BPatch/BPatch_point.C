@@ -332,12 +332,13 @@ bool BPatch_point::getLiveRegisters(std::vector<BPatch_register> &liveRegs)
     // Good question: pre- or post-instruction? I'm going to assume pre-instruction.
 
    bitArray live = point->liveRegisters();
+   registerSpace *rs = registerSpace::getRegisterSpace(point->proc());
 
    std::vector<BPatch_register> allRegs;
    addSpace->getRegisters(allRegs);
 
    for (unsigned i = 0; i < allRegs.size(); i++) {
-      if (live[allRegs[i].number_])
+      if (rs->checkLive(allRegs[i].number_, live))
          liveRegs.push_back(allRegs[i]);
    }
    return true;
