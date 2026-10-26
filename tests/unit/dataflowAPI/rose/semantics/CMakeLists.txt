@@ -1,0 +1,7 @@
+project(tests_dataflowAPI_rose_semantics LANGUAGES CXX)
+
+add_executable(rose_semantics_aarch64_ldst aarch64_ldst.cpp)
+target_compile_options(rose_semantics_aarch64_ldst PRIVATE ${UNIT_TESTS_WARNING_FLAGS})
+target_link_libraries(rose_semantics_aarch64_ldst PRIVATE parseAPI)
+add_test(NAME rose_semantics_aarch64_ldst COMMAND rose_semantics_aarch64_ldst)
+set_tests_properties(rose_semantics_aarch64_ldst PROPERTIES LABELS "unit")
