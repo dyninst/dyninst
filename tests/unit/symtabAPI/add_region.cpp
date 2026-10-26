@@ -18,6 +18,8 @@ namespace st = Dyninst::SymtabAPI;
 // in free(). A region deleted twice is still destroyed twice. That second
 // ~Region frees nothing here: the names below fit std::string's inline
 // buffer, the regions have no relocations, and patchData is never called.
+// Tools that replace operator delete themselves, such as valgrind, bypass
+// the counter, and the test then reports 0 deletes.
 static std::vector<st::Region *> *watched = nullptr;
 static int delete_count[3];
 
