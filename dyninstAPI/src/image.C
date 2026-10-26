@@ -240,41 +240,37 @@ namespace {
         }
     };
 
-    // Pointer to reg's file contents of [addr, addr + size), or NULL when reg
-    // does not hold those bytes on disk (no region, or NOBITS such as .bss).
+    // Pointer to reg's file contents of [addr, addr + size), or nullptr when
+    // reg does not hold those bytes on disk (no region, or NOBITS such as .bss).
     void *get_raw_symtab_ptr(Region *reg, Address addr, Address size)
     {
-        if (reg == NULL || reg->getPtrToRawData() == NULL)
-            return NULL;
+        if (reg == nullptr || reg->getPtrToRawData() == nullptr)
+            return nullptr;
         Address off = addr - reg->getMemOffset();
         if (off + size > reg->getDiskSize())
-            return NULL;
-        return (char*)reg->getPtrToRawData() + off;
+            return nullptr;
+        return reinterpret_cast<char*>(reg->getPtrToRawData()) + off;
     }
 
     // Read one word of the binary's own width (not the host's) at addr,
-    // which lies in reg.
-    bool read_target_word(Symtab *linkedFile, Region *reg, Address addr,
-                          Address &word)
+    // which lies in reg. Returns ADDRESS_INVALID if it cannot be read.
+    Address read_target_word(Symtab *linkedFile, Region *reg, Address addr)
     {
         unsigned width = linkedFile->getAddressWidth();
         void *data = get_raw_symtab_ptr(reg, addr, width);
-        if (data == NULL)
-            return false;
-        if (width == 8) {
-            word = static_cast<Address>(read_memory_as<uint64_t>(data));
-        } else if (width == 4) {
-            word = static_cast<Address>(read_memory_as<uint32_t>(data));
-        } else {
-            return false;
-        }
-        return true;
+        if (data == nullptr)
+            return Dyninst::ADDRESS_INVALID;
+        if (width == 8)
+            return static_cast<Address>(read_memory_as<uint64_t>(data));
+        if (width == 4)
+            return static_cast<Address>(read_memory_as<uint32_t>(data));
+        return Dyninst::ADDRESS_INVALID;
     }
 
-    bool read_target_word(Symtab *linkedFile, Address addr, Address &word)
+    Address read_target_word(Symtab *linkedFile, Address addr)
     {
         return read_target_word(linkedFile,
-                                linkedFile->findEnclosingRegion(addr), addr, word);
+                                linkedFile->findEnclosingRegion(addr), addr);
     }
 
     Address deref_opd(Symtab *linkedFile, Address addr)
@@ -282,8 +278,8 @@ namespace {
         Region *reg = linkedFile->findEnclosingRegion(addr);
         if (reg && reg->getRegionName() == ".opd") {
             // opd symbol needing dereference
-            Address target;
-            if (read_target_word(linkedFile, reg, addr, target))
+            Address target = read_target_word(linkedFile, reg, addr);
+            if (target != Dyninst::ADDRESS_INVALID)
                 return target;
         }
         return addr;
@@ -384,8 +380,8 @@ namespace {
                         expr->bind(ru.get(), Result(u64, TOC));
                 const Result &res = expr->eval();
                 if (res.defined) {
-                    Address word;
-                    if (read_target_word(linkedFile, res.convert<Address>(), word))
+                    Address word = read_target_word(linkedFile, res.convert<Address>());
+                    if (word != Dyninst::ADDRESS_INVALID)
                         ss_addr = word;
                 }
             }
@@ -428,11 +424,12 @@ namespace {
 
         // ss_addr points at glibc's struct startup_info, four words of the
         // binary's width: sda_base, main, init, fini. Read main.
-        Address main_addr;
-        if (ss_addr != 0
-            && read_target_word(linkedFile,
-                                ss_addr + linkedFile->getAddressWidth(), main_addr))
-            return main_addr;
+        if (ss_addr != 0) {
+            Address main_addr = read_target_word(linkedFile,
+                                    ss_addr + linkedFile->getAddressWidth());
+            if (main_addr != Dyninst::ADDRESS_INVALID)
+                return main_addr;
+        }
 
         return 0;
     }
