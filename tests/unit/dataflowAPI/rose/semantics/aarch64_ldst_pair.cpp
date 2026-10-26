@@ -26,9 +26,12 @@ int main() {
     // with what the instruction does write.
     {"ldp   x29, x30, [sp], #16",   0xA8C17BFD, reg(a64::sp),  true,  "<16:",       nullptr},
     {"ldp   x29, x30, [sp, #16]!",  0xA9C17BFD, reg(a64::sp),  true,  "<add>",      nullptr},
+    {"ldp   x29, x30, [sp, #16]!",  0xA9C17BFD, reg(a64::sp),  true,  "<16:64>",    nullptr},
     {"ldp   x29, x30, [sp, #16]!",  0xA9C17BFD, reg(a64::x29), true,  "deref:64",   nullptr},
     {"stp   x29, x30, [sp], #16",   0xA8817BFD, reg(a64::sp),  true,  "<16:",       nullptr},
     {"stp   x29, x30, [sp, #-16]!", 0xA9BF7BFD, reg(a64::sp),  true,  "<add>",      nullptr},
+    // -16 as an unsigned 64-bit constant.
+    {"stp   x29, x30, [sp, #-16]!", 0xA9BF7BFD, reg(a64::sp),  true,  "<18446744073709551600:64>", nullptr},
     {"stp   x29, x30, [sp, #-16]!", 0xA9BF7BFD, reg(a64::x29), false, nullptr,      nullptr},
     {"stp   x29, x30, [sp, #-16]!", 0xA9BF7BFD, memory(),      true,  "<V([x",      nullptr},
     {"ldp   x0, x1, [x2, #16]",     0xA9410440, reg(a64::x2),  false, nullptr,      nullptr},
