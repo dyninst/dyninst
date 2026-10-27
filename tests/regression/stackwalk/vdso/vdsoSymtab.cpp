@@ -21,6 +21,7 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -39,26 +40,30 @@ namespace {
 
   constexpr int skipped = 77;
 
-  enum class ptrace_probe { allowed, refused, failed };
-
-  // Attach to the child and detach again. Only a ptrace that yama or a
-  // container refuses is a reason to skip; any other attach failure is the
-  // walker's to report.
-  ptrace_probe probePtrace(pid_t pid) {
+  // Attach to the child and detach again, so that a host which refuses
+  // ptrace fails with the reason rather than with the walker's generic error.
+  bool probePtrace(pid_t pid) {
     if(ptrace(PTRACE_ATTACH, pid, nullptr, nullptr) != 0) {
-      if(errno == EPERM) {
-        return ptrace_probe::refused;
+      int const err = errno;
+      std::cerr << "PTRACE_ATTACH of " << pid << " failed: " << std::strerror(err) << "\n";
+      if(err == EPERM) {
+        std::ifstream scope("/proc/sys/kernel/yama/ptrace_scope");
+        int level{};
+        if(scope >> level) {
+          std::cerr << "yama ptrace_scope is " << level << "\n";
+        }
+        std::cerr << "Configure with -DDYNINST_ENABLE_DYNAMIC_TESTS=OFF where ptrace "
+                     "is not permitted\n";
       }
-      std::cerr << "PTRACE_ATTACH of " << pid << " failed: " << std::strerror(errno) << "\n";
-      return ptrace_probe::failed;
+      return false;
     }
     int status{};
     if(waitpid(pid, &status, 0) != pid || !WIFSTOPPED(status) ||
        ptrace(PTRACE_DETACH, pid, nullptr, nullptr) != 0) {
       std::cerr << "Could not stop and detach from " << pid << "\n";
-      return ptrace_probe::failed;
+      return false;
     }
-    return ptrace_probe::allowed;
+    return true;
   }
 
   bool symtabAt(sw::Walker* walker, pid_t pid, Dyninst::Address addr, st::Symtab*& symtab,
@@ -146,6 +151,11 @@ namespace {
 }
 
 int main() {
+  if(!DYNINST_ENABLE_DYNAMIC_TESTS) {
+    std::cout << "Turned off by DYNINST_ENABLE_DYNAMIC_TESTS=OFF\n";
+    return skipped;
+  }
+
   auto const vdso_base = static_cast<Dyninst::Address>(getauxval(AT_SYSINFO_EHDR));
   if(vdso_base == Dyninst::ADDR_NULL) {
     std::cout << "No vDSO in this process\n";
@@ -170,22 +180,14 @@ int main() {
   }
 
   int result = EXIT_FAILURE;
-  switch(probePtrace(child)) {
-    case ptrace_probe::refused:
-      std::cout << "ptrace is not permitted here (yama or a container)\n";
-      result = skipped;
-      break;
-    case ptrace_probe::failed:
-      break;
-    case ptrace_probe::allowed:
-      if(sw::Walker* walker = sw::Walker::newWalker(child)) {
-        result = check(walker, child, vdso_base);
-        delete walker;
-      } else {
-        std::cerr << "Unable to attach a walker to " << child << ": "
-                  << sw::getLastErrorMsg() << "\n";
-      }
-      break;
+  if(probePtrace(child)) {
+    if(sw::Walker* walker = sw::Walker::newWalker(child)) {
+      result = check(walker, child, vdso_base);
+      delete walker;
+    } else {
+      std::cerr << "Unable to attach a walker to " << child << ": "
+                << sw::getLastErrorMsg() << "\n";
+    }
   }
 
   kill(child, SIGKILL);
