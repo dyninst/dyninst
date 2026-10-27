@@ -33,7 +33,6 @@
 #include <common/src/debug_common.h>
 #include "debug.h"
 
-#include "Annotatable.h"
 #include "Module.h"
 #include "Symtab.h"
 #include "Collections.h"

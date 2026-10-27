@@ -42,7 +42,6 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include "Annotatable.h"
 #include <boost/iterator/transform_iterator.hpp>
 #include <functional>
 #include "Symbol.h"

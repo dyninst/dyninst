@@ -36,7 +36,6 @@
 #include <stddef.h>
 #include <unordered_set>
 #include "Edge.h"
-#include "Annotatable.h"
 
 #include "dyntypes.h"
 #include "boost/shared_ptr.hpp"

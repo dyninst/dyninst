@@ -42,7 +42,6 @@
 #include "mapped_module.h"
 #include "registerSpace/RegisterConversion.h"
 #include "registers/abstract_regs.h"
-//#include "Annotatable.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
