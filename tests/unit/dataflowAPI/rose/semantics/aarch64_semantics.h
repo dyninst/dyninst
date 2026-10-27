@@ -2,7 +2,8 @@
 #define DYNINST_UNIT_TESTS_DATAFLOWAPI_ROSE_SEMANTICS_AARCH64_SEMANTICS_H
 
 // Checks the ARM64 instruction semantics through SymEval: for each instruction, whether it
-// writes a register or memory and, if it does, fragments its value must or must not contain.
+// writes a register or memory and, if it does, fragments its value must or must not contain
+// (check), or its whole value (check_exact).
 //
 // SymEval gives no value both when an instruction does not write a location and when the
 // instruction has no semantics at all, and its success flag does not tell them apart. So a
@@ -39,6 +40,21 @@ namespace rose_semantics_aarch64 {
     char const *not_contains; // a fragment the written value must not have, or nullptr
   };
 
+  // Decodes one little-endian aarch64 instruction word; reports it if it does not decode.
+  inline Dyninst::InstructionAPI::Instruction decode(char const *text, uint32_t encoding) {
+    using namespace Dyninst;
+    std::array<unsigned char, 4> bytes{};
+    for(int i = 0; i < 4; ++i) {
+      bytes[i] = static_cast<unsigned char>(encoding >> (8 * i));
+    }
+    InstructionAPI::InstructionDecoder dec(bytes.data(), bytes.size(), Arch_aarch64);
+    InstructionAPI::Instruction insn = dec.decode();
+    if(!insn.isValid()) {
+      std::cerr << text << ": could not decode\n";
+    }
+    return insn;
+  }
+
   // The expression SymEval gives for what the instruction writes to 'where', or "" if it
   // gives none.
   inline std::string written(Dyninst::InstructionAPI::Instruction const &insn,
@@ -55,14 +71,8 @@ namespace rose_semantics_aarch64 {
     using namespace Dyninst;
     bool ok = true;
     for(auto const &c : cases) {
-      std::array<unsigned char, 4> bytes{};
-      for(int i = 0; i < 4; ++i) {
-        bytes[i] = static_cast<unsigned char>(c.encoding >> (8 * i));
-      }
-      InstructionAPI::InstructionDecoder dec(bytes.data(), bytes.size(), Arch_aarch64);
-      InstructionAPI::Instruction insn = dec.decode();
+      InstructionAPI::Instruction const insn = decode(c.text, c.encoding);
       if(!insn.isValid()) {
-        std::cerr << c.text << ": could not decode\n";
         ok = false;
         continue;
       }
@@ -80,6 +90,38 @@ namespace rose_semantics_aarch64 {
                 value.find(c.not_contains) != std::string::npos) {
         std::cerr << c.text << " (" << insn.format() << "): " << name << " = " << value
                   << ", expected it not to contain " << c.not_contains << '\n';
+        ok = false;
+      }
+    }
+    return ok;
+  }
+
+  // A row that pins the whole value: SymEval's expression for 'where', as AST::format()
+  // prints it, must equal 'expected', or there must be none if 'expected' is nullptr.
+  struct exact_case {
+    char const *text;
+    uint32_t encoding;
+    Dyninst::AbsRegion where;
+    char const *expected;
+  };
+
+  // Runs every exact case; reports each failure and returns false if any failed.
+  template <std::size_t N>
+  bool check_exact(exact_case const (&cases)[N]) {
+    using namespace Dyninst;
+    bool ok = true;
+    for(auto const &c : cases) {
+      InstructionAPI::Instruction const insn = decode(c.text, c.encoding);
+      if(!insn.isValid()) {
+        ok = false;
+        continue;
+      }
+      std::string const value = written(insn, c.where);
+      std::string const expected = c.expected ? c.expected : "";
+      if(value != expected) {
+        std::cerr << c.text << " (" << insn.format() << "): " << c.where.format() << " = "
+                  << (value.empty() ? "(not written)" : value) << ", expected "
+                  << (expected.empty() ? "(not written)" : expected) << '\n';
         ok = false;
       }
     }
