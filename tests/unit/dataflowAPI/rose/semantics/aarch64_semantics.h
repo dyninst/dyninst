@@ -40,6 +40,21 @@ namespace rose_semantics_aarch64 {
     char const *not_contains; // a fragment the written value must not have, or nullptr
   };
 
+  // Decodes one little-endian aarch64 instruction word; reports it if it does not decode.
+  inline Dyninst::InstructionAPI::Instruction decode(char const *text, uint32_t encoding) {
+    using namespace Dyninst;
+    std::array<unsigned char, 4> bytes{};
+    for(int i = 0; i < 4; ++i) {
+      bytes[i] = static_cast<unsigned char>(encoding >> (8 * i));
+    }
+    InstructionAPI::InstructionDecoder dec(bytes.data(), bytes.size(), Arch_aarch64);
+    InstructionAPI::Instruction insn = dec.decode();
+    if(!insn.isValid()) {
+      std::cerr << text << ": could not decode\n";
+    }
+    return insn;
+  }
+
   // The expression SymEval gives for what the instruction writes to 'where', or "" if it
   // gives none.
   inline std::string written(Dyninst::InstructionAPI::Instruction const &insn,
@@ -56,14 +71,8 @@ namespace rose_semantics_aarch64 {
     using namespace Dyninst;
     bool ok = true;
     for(auto const &c : cases) {
-      std::array<unsigned char, 4> bytes{};
-      for(int i = 0; i < 4; ++i) {
-        bytes[i] = static_cast<unsigned char>(c.encoding >> (8 * i));
-      }
-      InstructionAPI::InstructionDecoder dec(bytes.data(), bytes.size(), Arch_aarch64);
-      InstructionAPI::Instruction insn = dec.decode();
+      InstructionAPI::Instruction const insn = decode(c.text, c.encoding);
       if(!insn.isValid()) {
-        std::cerr << c.text << ": could not decode\n";
         ok = false;
         continue;
       }
@@ -102,14 +111,8 @@ namespace rose_semantics_aarch64 {
     using namespace Dyninst;
     bool ok = true;
     for(auto const &c : cases) {
-      std::array<unsigned char, 4> bytes{};
-      for(int i = 0; i < 4; ++i) {
-        bytes[i] = static_cast<unsigned char>(c.encoding >> (8 * i));
-      }
-      InstructionAPI::InstructionDecoder dec(bytes.data(), bytes.size(), Arch_aarch64);
-      InstructionAPI::Instruction insn = dec.decode();
+      InstructionAPI::Instruction const insn = decode(c.text, c.encoding);
       if(!insn.isValid()) {
-        std::cerr << c.text << ": could not decode\n";
         ok = false;
         continue;
       }
