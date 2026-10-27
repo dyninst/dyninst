@@ -330,21 +330,20 @@ namespace Dyninst { namespace DyninstAPI { namespace ppc {
       candidates.push_back(entryBlock);
     }
 
-    const pa::Function::edgelist &calls = f->callEdges();
-    for(pa::Function::edgelist::const_iterator cit = calls.begin(); cit != calls.end(); ++cit) {
-      if((*cit)->src() && (*cit)->src() != entryBlock) {
-        candidates.push_back((*cit)->src());
+    for(pa::Edge *e : f->callEdges()) {
+      if(e->src() && e->src() != entryBlock) {
+        candidates.push_back(e->src());
       }
     }
 
     Dyninst::Address mainAddress = Dyninst::ADDRESS_INVALID;
 
-    for(std::vector<pa::Block *>::const_iterator bit = candidates.begin();
-        bit != candidates.end() && mainAddress == 0; ++bit) {
-      Address cand = evaluate_main_address(linkedFile, f, *bit);
+    for(pa::Block *b : candidates) {
+      Address cand = evaluate_main_address(linkedFile, f, b);
       cand = deref_opd(linkedFile, cand);
       if(cand != 0 && scs.isValidAddress(cand)) {
         mainAddress = cand;
+        break;
       }
     }
 
