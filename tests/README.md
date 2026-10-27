@@ -30,4 +30,4 @@ Tests are enabled with `DYNINST_ENABLE_TESTS=VALUE` where `VALUE` determines whi
 
 When more than one type of test is enabled (e.g., `VALUE=ALL`), each type can be run separately using `ctest -L [unit,integration,regression]`. See the ctest [docs](https://cmake.org/cmake/help/latest/manual/ctest.1.html#cmdoption-ctest-L) for details on labels.
 
-Tests that attach to a live process with `ptrace` are controlled by `DYNINST_ENABLE_DYNAMIC_TESTS` (default `ON`). When it is `OFF`, they are still built and registered but report themselves as skipped. Turn it off where `ptrace` is not permitted, such as in containers without `CAP_SYS_PTRACE` or under yama `ptrace_scope=3`; with it `ON`, a refused `ptrace` is a test failure.
+Tests that attach to a live process with `ptrace` are controlled by `DYNINST_ENABLE_DYNAMIC_TESTS` (default `ON`). When it is `OFF`, they are still built and registered, and ctest reports them as skipped with the reason. Turn it off where `ptrace` is not permitted, such as in containers without `CAP_SYS_PTRACE` or under yama `ptrace_scope=3`; with it `ON`, a refused `ptrace` is a test failure.

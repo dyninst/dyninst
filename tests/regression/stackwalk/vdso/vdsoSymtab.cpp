@@ -38,7 +38,13 @@ namespace st = Dyninst::SymtabAPI;
 
 namespace {
 
-  constexpr int skipped = 77;
+  // The test is registered with both SKIP_RETURN_CODE 77 and
+  // SKIP_REGULAR_EXPRESSION "skipping:"; CMake before 3.16 knows only the
+  // first, and only the second makes ctest -V show the reason.
+  int skip(std::string const& reason) {
+    std::cout << "skipping: " << reason << "\n";
+    return 77;
+  }
 
   // Attach to the child and detach again, so that a host which refuses
   // ptrace fails with the reason rather than with the walker's generic error.
@@ -105,9 +111,9 @@ namespace {
     // are then link-time addresses, while the walker's library offsets are
     // relative to where the vDSO is mapped, so the two cannot be compared.
     if(symtab->getLoadOffset() != 0) {
-      std::cout << "The vDSO is linked at 0x" << std::hex << symtab->getLoadOffset()
-                << ", not 0\n";
-      return skipped;
+      std::ostringstream reason;
+      reason << "the vDSO is linked at 0x" << std::hex << symtab->getLoadOffset() << ", not 0";
+      return skip(reason.str());
     }
 
     // Every Linux vDSO this test runs on exports clock_gettime, under an
@@ -152,14 +158,12 @@ namespace {
 
 int main() {
   if(!DYNINST_ENABLE_DYNAMIC_TESTS) {
-    std::cout << "Turned off by DYNINST_ENABLE_DYNAMIC_TESTS=OFF\n";
-    return skipped;
+    return skip("attaches to a live process, which DYNINST_ENABLE_DYNAMIC_TESTS=OFF turns off");
   }
 
   auto const vdso_base = static_cast<Dyninst::Address>(getauxval(AT_SYSINFO_EHDR));
   if(vdso_base == Dyninst::ADDR_NULL) {
-    std::cout << "No vDSO in this process\n";
-    return skipped;
+    return skip("no vDSO in this process");
   }
 
   pid_t const parent = getpid();

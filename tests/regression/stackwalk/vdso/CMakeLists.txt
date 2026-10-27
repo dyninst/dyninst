@@ -12,5 +12,5 @@ endif()
 add_test(NAME stackwalk_vdso_symtab COMMAND vdsoSymtab)
 set_tests_properties(
   stackwalk_vdso_symtab
-  PROPERTIES LABELS "regression" SKIP_RETURN_CODE 77
+  PROPERTIES LABELS "regression" SKIP_RETURN_CODE 77 SKIP_REGULAR_EXPRESSION "skipping:"
 )
