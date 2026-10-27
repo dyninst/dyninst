@@ -11,12 +11,16 @@ add_executable(undefined_ra_check undefined_ra_check.cpp)
 target_compile_options(undefined_ra_check PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
 target_link_libraries(undefined_ra_check PRIVATE stackwalk)
 
-# Skips (77) unless the host is AArch64 with glibc >= 2.34.
+# Skips unless the host is AArch64 with glibc >= 2.34.
 add_test(
   NAME stackwalk_undefined_ra
   COMMAND undefined_ra_check $<TARGET_FILE:undefined_ra_target>
 )
 set_tests_properties(
   stackwalk_undefined_ra
-  PROPERTIES LABELS regression TIMEOUT 60 SKIP_RETURN_CODE 77
+  PROPERTIES
+    LABELS regression
+    TIMEOUT 60
+    SKIP_RETURN_CODE 77
+    SKIP_REGULAR_EXPRESSION "skipping:"
 )

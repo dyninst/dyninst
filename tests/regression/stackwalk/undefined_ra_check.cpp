@@ -9,7 +9,7 @@
 //         (start_thread, thread_start) must both be in libc.
 // main:   the walk must reach _start (in the target executable).
 //
-// Exit codes: 0 pass, 1 fail, 77 skip (ctest SKIP_RETURN_CODE).
+// Exit codes: 0 pass, 1 fail, 77 skip (prints "skipping: <reason>").
 
 #include "frame.h"
 #include "swk_errors.h"
@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     if (!walk_reaches_thread_start()) {
-        std::printf("SKIP: needs AArch64 with glibc >= 2.34\n");
+        std::printf("skipping: needs AArch64 with glibc >= 2.34\n");
         return skip;
     }
 
