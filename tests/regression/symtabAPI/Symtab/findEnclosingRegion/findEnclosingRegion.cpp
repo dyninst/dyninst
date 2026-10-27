@@ -56,40 +56,58 @@ namespace {
     return symtab;
   }
 
+  // The sections of stat.nopie.stripped that .tbss overlaps.
+  bool check_binary(char const *path) {
+    st::Symtab *symtab;
+    if (!st::Symtab::openFile(symtab, path)) {
+      std::cerr << "Unable to open '" << path << "'\n";
+      return false;
+    }
+    bool ok = true;
+    ok &= check(symtab, 0x100ec8e8, ".tdata");
+    ok &= check(symtab, 0x100ec908, ".ctors");
+    ok &= check(symtab, 0x100ec918, ".dtors");
+    ok &= check(symtab, 0x100ec928, ".data.rel.ro");
+    st::Symtab::closeSymtab(symtab);
+    return ok;
+  }
+
+  // Layouts that linker output does not produce but addRegion can.
+  bool check_add_region() {
+    bool ok = true;
+
+    // A region that starts before .tbss and extends into it.
+    ok &= check(make_symtab({{0x1000, 0x180, "before", false},
+                             {0x1100, 0x100, ".tbss", true},
+                             {0x3000, 0x10, "after", false}}).get(),
+                0x1140, "before");
+
+    // Several regions inside .tbss: the smallest one wins, not the first one
+    // in address order.
+    ok &= check(make_symtab({{0x800, 0x10, "before", false},
+                             {0x1100, 0x100, ".tbss", true},
+                             {0x1100, 0x200, "outer", false},
+                             {0x1180, 0x10, "inner", false}}).get(),
+                0x1184, "inner");
+    return ok;
+  }
+
 }
 
+// With no arguments, check the addRegion layouts. With --binary, check
+// stat.nopie.stripped at the given path, or report a skip when there is none
+// (the test binaries are only available with DYNINST_ENABLE_TESTS=ALL).
 int main(int argc, char **argv) {
-  if (argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " <binary path>\n";
-    return EXIT_FAILURE;
+  if (argc == 1) {
+    return check_add_region() ? EXIT_SUCCESS : EXIT_FAILURE;
   }
-
-  st::Symtab *symtab;
-  if (!st::Symtab::openFile(symtab, argv[1])) {
-    std::cerr << "Unable to open '" << argv[1] << "'\n";
-    return EXIT_FAILURE;
+  if (std::string(argv[1]) == "--binary" && argc <= 3) {
+    if (argc == 2) {
+      std::cout << "skipping: needs the test binaries (DYNINST_ENABLE_TESTS=ALL)\n";
+      return EXIT_SUCCESS;
+    }
+    return check_binary(argv[2]) ? EXIT_SUCCESS : EXIT_FAILURE;
   }
-
-  bool ok = true;
-  ok &= check(symtab, 0x100ec8e8, ".tdata");
-  ok &= check(symtab, 0x100ec908, ".ctors");
-  ok &= check(symtab, 0x100ec918, ".dtors");
-  ok &= check(symtab, 0x100ec928, ".data.rel.ro");
-  st::Symtab::closeSymtab(symtab);
-
-  // A region that starts before .tbss and extends into it.
-  ok &= check(make_symtab({{0x1000, 0x180, "before", false},
-                           {0x1100, 0x100, ".tbss", true},
-                           {0x3000, 0x10, "after", false}}).get(),
-              0x1140, "before");
-
-  // Several regions inside .tbss: the smallest one wins, not the first one
-  // in address order.
-  ok &= check(make_symtab({{0x800, 0x10, "before", false},
-                           {0x1100, 0x100, ".tbss", true},
-                           {0x1100, 0x200, "outer", false},
-                           {0x1180, 0x10, "inner", false}}).get(),
-              0x1184, "inner");
-
-  return ok ? EXIT_SUCCESS : EXIT_FAILURE;
+  std::cerr << "Usage: " << argv[0] << " [--binary [<binary path>]]\n";
+  return EXIT_FAILURE;
 }
