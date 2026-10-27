@@ -80,7 +80,7 @@ class DYNINST_EXPORT Variable : public Aggregate, public AnnotatableSparse {
    void print(std::ostream &) const;
 };
 
-class DYNINST_EXPORT localVar : public AnnotatableSparse
+class DYNINST_EXPORT localVar
 {
 	friend class typeCommon;
 	friend class localVarCollection;
