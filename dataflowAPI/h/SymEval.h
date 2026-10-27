@@ -77,11 +77,6 @@ namespace Dyninst { namespace DataflowAPI {
     // prior results from the Graph
     // are substituted into anything that uses them.
     static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res);
-
-    // As above. With applyVisitors false, the expressions are not simplified
-    // (no stack-height substitution, which needs StackAnalysis, and no
-    // boolean simplification), as with the single-assignment versions.
-    static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res, bool applyVisitors);
   };
 
 }}
