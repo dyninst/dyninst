@@ -783,6 +783,12 @@ static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *fu
   if(arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940 || arch == Arch_amdgpu_gfx950) {
     return ast;
   }
+  // StackAnalysis has no entry state for aarch64: an aarch64 build throws
+  // "Unimplemented architecture" from StackAnalysis::createEntryInput, and
+  // other builds would give aarch64 code their own architecture's entry state.
+  if(arch == Arch_aarch64) {
+    return ast;
+  }
   // Let's experiment with simplification
   StackAnalysis sA(func);
   StackAnalysis::Height sp = sA.findSP(block, addr);
