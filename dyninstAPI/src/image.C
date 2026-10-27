@@ -159,6 +159,7 @@ int codeBytesSeen = 0;
 #include <dataflowAPI/h/Absloc.h>
 #include <dataflowAPI/h/DynAST.h>
 #include <instructionAPI/h/InstructionAST.h>
+#include "unaligned_memory_access.h"
 
 namespace {
     /* On PPC GLIBC (32 & 64 bit) the address of main is in a structure
@@ -239,22 +240,37 @@ namespace {
         }
     };
 
-    struct libc_startup_info {
-        void * sda;
-        void * main_addr;
-        void * init_addr;
-        void * fini_addr;
-    };
-
-    void *get_raw_symtab_ptr(Symtab *linkedFile, Address addr)
+    // Pointer to reg's file contents of [addr, addr + size), or nullptr when
+    // reg does not hold those bytes on disk (no region, or NOBITS such as .bss).
+    void *get_raw_symtab_ptr(Region *reg, Address addr, Address size)
     {
-        Region *reg = linkedFile->findEnclosingRegion(addr);
-        if (reg != NULL) {
-            char *data = (char*)reg->getPtrToRawData();
-            data += addr - reg->getMemOffset();
-            return data;
-        }
-        return NULL;
+        if (reg == nullptr || reg->getPtrToRawData() == nullptr)
+            return nullptr;
+        Address off = addr - reg->getMemOffset();
+        if (off + size > reg->getDiskSize())
+            return nullptr;
+        return reinterpret_cast<char*>(reg->getPtrToRawData()) + off;
+    }
+
+    // Read one word of the binary's own width (not the host's) at addr,
+    // which lies in reg. Returns ADDRESS_INVALID if it cannot be read.
+    Address read_target_word(Symtab *linkedFile, Region *reg, Address addr)
+    {
+        unsigned width = linkedFile->getAddressWidth();
+        void *data = get_raw_symtab_ptr(reg, addr, width);
+        if (data == nullptr)
+            return Dyninst::ADDRESS_INVALID;
+        if (width == 8)
+            return static_cast<Address>(read_memory_as<uint64_t>(data));
+        if (width == 4)
+            return static_cast<Address>(read_memory_as<uint32_t>(data));
+        return Dyninst::ADDRESS_INVALID;
+    }
+
+    Address read_target_word(Symtab *linkedFile, Address addr)
+    {
+        return read_target_word(linkedFile,
+                                linkedFile->findEnclosingRegion(addr), addr);
     }
 
     Address deref_opd(Symtab *linkedFile, Address addr)
@@ -262,9 +278,9 @@ namespace {
         Region *reg = linkedFile->findEnclosingRegion(addr);
         if (reg && reg->getRegionName() == ".opd") {
             // opd symbol needing dereference
-            void *data = get_raw_symtab_ptr(linkedFile, addr);
-            if (data)
-                return *(Address*)data;
+            Address target = read_target_word(linkedFile, reg, addr);
+            if (target != Dyninst::ADDRESS_INVALID)
+                return target;
         }
         return addr;
     }
@@ -364,10 +380,9 @@ namespace {
                         expr->bind(ru.get(), Result(u64, TOC));
                 const Result &res = expr->eval();
                 if (res.defined) {
-                    void *res_addr =
-                        get_raw_symtab_ptr(linkedFile, res.convert<Address>());
-                    if (res_addr)
-                        ss_addr = *(Address*)res_addr;
+                    Address word = read_target_word(linkedFile, res.convert<Address>());
+                    if (word != Dyninst::ADDRESS_INVALID)
+                        ss_addr = word;
                 }
             }
         }
@@ -407,11 +422,14 @@ namespace {
             }
         }
 
-        // need a pointer to the image data
-        auto si = (struct libc_startup_info *)
-            get_raw_symtab_ptr(linkedFile, ss_addr);
-        if (si)
-            return (Address)si->main_addr;
+        // ss_addr points at glibc's struct startup_info, four words of the
+        // binary's width: sda_base, main, init, fini. Read main.
+        if (ss_addr != 0) {
+            Address main_addr = read_target_word(linkedFile,
+                                    ss_addr + linkedFile->getAddressWidth());
+            if (main_addr != Dyninst::ADDRESS_INVALID)
+                return main_addr;
+        }
 
         return 0;
     }
