@@ -514,7 +514,7 @@ class DYNINST_EXPORT typeCommon : public fieldListType {
 typeCommon& Type::asCommonType() { return dynamic_cast<typeCommon&>(*this); }
 bool Type::isCommonType() { return dynamic_cast<typeCommon*>(this) != NULL; }
 
-class DYNINST_EXPORT CBlock : public AnnotatableSparse
+class DYNINST_EXPORT CBlock
 {
    friend class typeCommon;
  private:
