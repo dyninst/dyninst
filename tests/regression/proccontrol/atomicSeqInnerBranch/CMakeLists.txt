@@ -1,11 +1,5 @@
 include_guard(GLOBAL)
 
-# Only Power and AArch64 emulate single steps through load-reserve/store-conditional
-# sequences.
-if(NOT (DYNINST_HOST_ARCH_PPC64LE OR DYNINST_HOST_ARCH_AARCH64))
-  return()
-endif()
-
 add_executable(atomic_seq_inner_branch_mutatee mutatee.c)
 
 add_executable(atomic_seq_inner_branch inner_branch.cpp)
@@ -18,5 +12,9 @@ add_test(
 )
 set_tests_properties(
   proccontrol_atomic_seq_inner_branch
-  PROPERTIES LABELS "regression" TIMEOUT 120
+  PROPERTIES
+    LABELS "regression"
+    TIMEOUT 120
+    SKIP_RETURN_CODE 77
+    SKIP_REGULAR_EXPRESSION "skipping:"
 )
