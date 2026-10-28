@@ -50,7 +50,6 @@ int main(int argc, char **argv) {
 
   auto *sts = new Dyninst::ParseAPI::SymtabCodeSource(argv[1]);
   auto *co = new Dyninst::ParseAPI::CodeObject(sts);
-  co->parse();
 
   // The analyzer for the binary's own architecture: the ABI of getABI(int)
   // depends on the codegen architecture of the build.
