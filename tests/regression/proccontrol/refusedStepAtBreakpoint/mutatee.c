@@ -39,7 +39,12 @@ __asm__(".text\n"
         "    blr\n"
         ".size refused_seq, .-refused_seq\n");
 #else
-#  error "no load-reserve sequence for this architecture"
+/* No load-reserve sequence here: the test reports itself skipped before it runs the mutatee. */
+int refused_seq(volatile int *p, int newval) {
+  int old = *p;
+  *p = newval;
+  return old;
+}
 #endif
 
 volatile int word = 5;
