@@ -9,7 +9,8 @@
  * every architecture's code on every build.
  *
  * Usage: expand_slice [--skip <reason>] <executable>...
- * With --skip, or without executables, the test reports a skip.
+ * With --skip, or without executables, the test reports a skip (exit status
+ * 77).
  */
 #include "AbslocInterface.h"
 #include "CFG.h"
@@ -118,11 +119,11 @@ namespace {
 int main(int argc, char** argv) {
   if(argc >= 3 && std::string{argv[1]} == "--skip") {
     std::cout << "skipping: " << argv[2] << "\n";
-    return EXIT_SUCCESS;
+    return 77;
   }
   if(argc < 2) {
     std::cout << "skipping: needs the test binaries (DYNINST_ENABLE_TESTS=ALL)\n";
-    return EXIT_SUCCESS;
+    return 77;
   }
   bool ok = true;
   for(int i = 1; i < argc; ++i) {

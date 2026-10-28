@@ -29,6 +29,6 @@ foreach(
   add_test(NAME ${_tname} COMMAND ${_targ} ${_args})
   set_tests_properties(
     ${_tname}
-    PROPERTIES LABELS "regression" SKIP_REGULAR_EXPRESSION "skipping:"
+    PROPERTIES LABELS "regression" SKIP_RETURN_CODE 77 SKIP_REGULAR_EXPRESSION "skipping:"
   )
 endforeach()
