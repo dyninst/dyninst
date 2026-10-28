@@ -1,11 +1,5 @@
 include_guard(GLOBAL)
 
-# dyninstAPI doesn't work with symlite
-if(LIGHTWEIGHT_SYMTAB)
-  message(STATUS "LIGHTWEIGHT_SYMTAB enabled; dyninstAPI not built.")
-  return()
-endif()
-
 include(DyninstLibrary)
 
 add_subdirectory(src/ASTs)

@@ -129,7 +129,6 @@ ELF:
       - 'elf/**'
       - 'symtabAPI/**/*elf*'
       - 'symtabAPI/**/*Elf*'
-      - 'symlite/**/*elf*'
 
 # Changes to machine-level representations
 machine:

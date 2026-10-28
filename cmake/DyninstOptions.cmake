@@ -1,11 +1,5 @@
 option(USE_OpenMP "Use OpenMP for parallel parsing" ON)
 
-option(
-  LIGHTWEIGHT_SYMTAB
-  "Use lightweight symtab interface for ParseAPI, ProcControl, and Stackwalker; disables DyninstAPI build"
-  OFF
-)
-
 option(SW_ANALYSIS_STEPPER "Use ParseAPI-based analysis stepper in Stackwalker" ON)
 
 option(BUILD_RTLIB_32 "Build 32-bit runtime library on mixed 32/64 systems" OFF)
