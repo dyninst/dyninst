@@ -38,8 +38,10 @@ set(
   h/mnemonics/NVIDIA/generic_entryIDs.h
   h/Node.h
   h/ProcReader.h
+  h/registers/LivenessSet.h
   h/registers/MachRegister.h
   h/registers/aarch64_regs.h
+  h/registers/abi.h
   h/registers/abstract_regs.h
   h/registers/AMDGPU/amdgpu_gfx908_regs.h
   h/registers/AMDGPU/amdgpu_gfx90a_regs.h
@@ -64,6 +66,7 @@ set(
 
 set(
   _private_headers
+  src/ABI/definitions.h
   src/addrtranslate.h
   src/addrtranslate-sysv.h
   src/arch-amdgpu.h
@@ -132,6 +135,14 @@ set(
   src/VariableLocation.C
   src/Buffer.C
   src/registers/MachRegister.C
+  src/registers/LivenessSet.C
+  src/ABI/ABI.C
+  src/ABI/aarch64.C
+  src/ABI/amdgpu.C
+  src/ABI/ppc64.C
+  src/ABI/riscv64.C
+  src/ABI/x86.C
+  src/ABI/x86_64.C
   src/MachSyscall.C
 )
 

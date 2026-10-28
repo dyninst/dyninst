@@ -55,7 +55,7 @@
 #include "dyninstAPI/src/image.h"
 // get_index...
 #include "dynproc/dynThread.h"
-#include "ABI.h"
+#include "registers/abi.h"
 #include "liveness.h"
 #include "registerSpace/RegisterConversion.h"
 #include "unaligned_memory_access.h"
@@ -900,13 +900,12 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<Dynin
    // the call. 
    std::vector<pair<unsigned,int> > savedRegsToRestore;
    if (inInstrumentation) {
-      bitArray regsClobberedByCall = ABI::getABI(8)->getCallWrittenRegisters();
+      LivenessSet const& regsClobberedByCall = ABI::get(Arch_x86_64).getCallWrittenRegisters();
       for (int i = 0; i < gen.rs()->numGPRs(); i++) {
          registerSlot *reg = gen.rs()->GPRs()[i];
          Register r = reg->encoding();
-         static LivenessAnalyzer live(8);
          bool callerSave = 
-            regsClobberedByCall.test(live.getIndex(regToMachReg64.equal_range(r).first->second));
+            regsClobberedByCall.contains(regToMachReg64.equal_range(r).first->second);
          if (!callerSave) {
             // We don't care!
             regalloc_printf("%s[%d]: pre-call, skipping callee-saved register %u\n", FILE__, __LINE__,
@@ -942,8 +941,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const std::vector<Dynin
             reg->keptValue = false;
          }
          else {
-	    // mapping from Register to MachRegister, then to index in liveness bitArray
-	    if (regsClobberedByCall.test(live.getIndex(regToMachReg64.equal_range(r).first->second))){	  
+	    if (regsClobberedByCall.contains(regToMachReg64.equal_range(r).first->second)){	  
                gen.markRegDefined(r);
             }
          }

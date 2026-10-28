@@ -39,7 +39,7 @@
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"
 #include "dataflowAPI/h/liveness.h"
-#include "dataflowAPI/h/ABI.h"
+#include "registers/abi.h"
 #include <boost/bind/bind.hpp>
 #include <functional>
 #include <map>
@@ -47,9 +47,6 @@
 #include "instructionAPI/h/syscalls.h"
 #include "instructionAPI/h/interrupts.h"
 
-std::string regs1 = " ttttttttddddddddcccccccmxxxxxxxxxxxxxxxxgf                  rrrrrrrrrrrrrrrrr";
-std::string regs2 = " rrrrrrrrrrrrrrrrrrrrrrrm1111110000000000ssoscgfedrnoditszapci11111100dsbsbdca";
-std::string regs3 = " 7654321076543210765432105432109876543210bbrssssssftfffffffffp54321098iippxxxx";
 
 using namespace std;
 using namespace Dyninst;
@@ -58,32 +55,53 @@ using namespace Dyninst::InstructionAPI;
 
 // Code for register liveness detection
 
-LivenessAnalyzer::LivenessAnalyzer(int w): errorno((ErrorType)-1) {
-    width = w;
-    abi = ABI::getABI(width);
+// The architecture analyzed when only an address width is given: the one
+// Dyninst generates code for.
+static Architecture codegenArch(int width) {
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    (void)width;
+    return Arch_amdgpu_gfx908;
+#elif defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
+    return (width == 4) ? Arch_x86 : Arch_x86_64;
+#elif defined(DYNINST_CODEGEN_ARCH_POWER)
+    (void)width;
+    return Arch_ppc64;
+#elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
+    (void)width;
+    return Arch_aarch64;
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
+    (void)width;
+    return Arch_riscv64;
+#else
+    (void)width;
+    return Arch_none;
+#endif
 }
 
-LivenessAnalyzer::LivenessAnalyzer(Architecture arch, int w): errorno((ErrorType)-1) {
-    width = w;
-    abi = ABI::getABI(arch);
+LivenessAnalyzer::LivenessAnalyzer(int width): errorno((ErrorType)-1) {
+    abi = &ABI::get(codegenArch(width));
+}
+
+LivenessAnalyzer::LivenessAnalyzer(Architecture arch, int): errorno((ErrorType)-1) {
+    abi = &ABI::get(arch);
 }
 
 int LivenessAnalyzer::getIndex(MachRegister machReg){
    return abi->getIndex(machReg);
 }
 
-const bitArray& LivenessAnalyzer::getLivenessIn(Block *block) {
+const LivenessSet& LivenessAnalyzer::getLivenessIn(Block *block) {
     // Calculate if it hasn't been done already
     liveness_cerr << endl << "LivenessAnalyzer::getLivenessIn()" << endl;
     liveness_cerr << "Getting liveness for block " << hex << block->start() << dec << endl;
     assert(blockLiveInfo.find(block) != blockLiveInfo.end());
     livenessData& data = blockLiveInfo[block];
-    assert(data.in.size());
+    assert(data.in.getABI());
     return data.in;
 }
 
 void LivenessAnalyzer::processEdgeLiveness(Edge* e, livenessData& data, Block* block,
-					   const bitArray& allRegsDefined)
+					   const LivenessSet& allRegsDefined)
 {
   // covered by Intraproc predicate
   //if ((*eit)->type() == CALL) continue;
@@ -102,12 +120,11 @@ void LivenessAnalyzer::processEdgeLiveness(Edge* e, livenessData& data, Block* b
 }
 
 
-const bitArray& LivenessAnalyzer::getLivenessOut(Block *block, bitArray &allRegsDefined) {
+const LivenessSet& LivenessAnalyzer::getLivenessOut(Block *block, LivenessSet &allRegsDefined) {
        
 	assert(blockLiveInfo.find(block) != blockLiveInfo.end());
 	livenessData &data = blockLiveInfo[block];
-	data.out = bitArray(data.in.size());
-	assert(data.out.size());
+	data.out = abi->makeEmpty();
 	// ignore call, return edges
 	Intraproc epred;
 	
@@ -134,7 +151,7 @@ const bitArray& LivenessAnalyzer::getLivenessOut(Block *block, bitArray &allRegs
     return data.out;
 }
 
-void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block, bitArray &allRegsDefined) 
+void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block, LivenessSet &allRegsDefined) 
 {
    if (blockLiveInfo.find(block) != blockLiveInfo.end()){
    	return;
@@ -142,7 +159,7 @@ void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block, 
    liveness_printf("\tsummarize block info at block %lx\n", block->start());
  
    livenessData &data = blockLiveInfo[block];
-   data.use = data.def = data.in = abi->getBitArray();
+   data.use = data.def = data.in = abi->makeEmpty();
 
    using namespace Dyninst::InstructionAPI;
    Address current = block->start();
@@ -161,15 +178,12 @@ void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block, 
        cachedLivenessInfo.insertInstructionInfo(current, curInsnRW, func);
      }
 
-     data.use |= (curInsnRW.read & ~data.def);
+     data.use |= (curInsnRW.read - data.def);
      // And if written, then was defined
      data.def |= curInsnRW.written;
       
      liveness_printf("%s[%d] After instruction at address 0x%lx:\n",
                      FILE__, __LINE__, current);
-     liveness_cerr << "        " << regs1 << endl;
-     liveness_cerr << "        " << regs2 << endl;
-     liveness_cerr << "        " << regs3 << endl;
      liveness_cerr << "Read    " << curInsnRW.read << endl;
      liveness_cerr << "Written " << curInsnRW.written << endl;
      liveness_cerr << "Used    " << data.use << endl;
@@ -180,9 +194,6 @@ void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block, 
    }
 
    liveness_printf("%s[%d] Liveness summary for block:\n", FILE__, __LINE__);
-   liveness_cerr << "     " << regs1 << endl;
-   liveness_cerr << "     " << regs2 << endl;
-   liveness_cerr << "     " << regs3 << endl;
    liveness_cerr << "Used " << data.in << endl;
    liveness_cerr << "Def  " << data.def << endl;
    liveness_cerr << "Use  " << data.use << endl;
@@ -195,13 +206,13 @@ void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block, 
 
 /* This is used to do fixed point iteration until 
    the in and out don't change anymore */
-bool LivenessAnalyzer::updateBlockLivenessInfo(Block* block, bitArray &allRegsDefined) 
+bool LivenessAnalyzer::updateBlockLivenessInfo(Block* block, LivenessSet &allRegsDefined) 
 {
   bool change = false;
   livenessData &data = blockLiveInfo[block];
 
   // old_IN = IN(X)
-  bitArray oldIn = data.in;
+  LivenessSet oldIn = data.in;
   // tmp is an accumulator
   getLivenessOut(block, allRegsDefined);
   
@@ -211,9 +222,6 @@ bool LivenessAnalyzer::updateBlockLivenessInfo(Block* block, bitArray &allRegsDe
 
   // IN(X) = USE(X) + (OUT(X) - DEF(X))
   liveness_cerr << "Updating block info for block " << hex << block->start() << dec << endl;
-  liveness_cerr << "     " << regs1 << endl;
-  liveness_cerr << "     " << regs2 << endl;
-  liveness_cerr << "     " << regs3 << endl;
   liveness_cerr << "Out: " << data.out << endl;
   liveness_cerr << "Def: " << data.def << endl;
   liveness_cerr << "Use: " << data.use << endl;
@@ -238,7 +246,7 @@ void LivenessAnalyzer::analyze(Function *func) {
     // Let's assume the regs that are normally live at the entry to a function
     // are the regs a call can read.
     funcRegsDefined[func] = abi->getCallReadRegisters();
-    bitArray &regsDefined = funcRegsDefined[func];
+    LivenessSet &regsDefined = funcRegsDefined[func];
 
     // blocks() takes a recursive_mutex per call, so evaluate it once
     Function::blocklist blocks = func->blocks();
@@ -297,7 +305,7 @@ void LivenessAnalyzer::analyze(Function *func) {
 // any instPoints we cover. Since an iP only exists if the user
 // asked for it, we take its existence to indicate that they'll
 // also be instrumenting. 
-bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
+bool LivenessAnalyzer::query(Location loc, Type type, LivenessSet &live) {
 //TODO: consider the trustness of the location 
 
    if (!loc.isValid()){
@@ -319,7 +327,7 @@ bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
       // instruction of a CFG element.
       case Location::function_:
       	 if (type == Before){
-	 	bitarray = getLivenessIn(loc.func->entry());
+	 	live = getLivenessIn(loc.func->entry());
 		return true;
 	 }
 	 assert(0);
@@ -328,7 +336,7 @@ bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
       case Location::blockInstance_:
          
 	 if (type == Before) {
-	 	bitarray = getLivenessIn(loc.block);
+	 	live = getLivenessIn(loc.block);
 		return true;
 	 }
 	 addr = loc.block->lastInsnAddr()-1;
@@ -340,14 +348,14 @@ bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
 
          if (type == Before) {
 	 	if (loc.offset == loc.block->start()) {
-			bitarray = getLivenessIn(loc.block);
+			live = getLivenessIn(loc.block);
 			return true;
 		}
 		addr = loc.offset - 1;
 	 }
 	 if (type == After) {
 	 	if (loc.offset == loc.block->lastInsnAddr()) {
-                   bitarray = blockLiveInfo[loc.block].out;
+                   live = blockLiveInfo[loc.block].out;
                    return true;
 		}
 	 	addr = loc.offset;
@@ -355,18 +363,18 @@ bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
 	 break;
 
       case Location::edge_:
-         bitarray = getLivenessIn(loc.edge->trg());
+         live = getLivenessIn(loc.edge->trg());
 	 return true;
       case Location::entry_:
       	 if (type == Before) {
-	 	bitarray = getLivenessIn(loc.block);
+	 	live = getLivenessIn(loc.block);
 		return true;
 	 }
 	 assert(0);
       case Location::call_:
 	 if (type == Before) addr = loc.block->lastInsnAddr()-1;
 	 if (type == After) {
-            bitarray = blockLiveInfo[loc.block].out;
+            live = blockLiveInfo[loc.block].out;
             return true;
 	 }
 	 break;
@@ -384,8 +392,8 @@ bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
 	
    // We know: 
    //    liveness _out_ at the block level:
-   bitArray working = blockLiveInfo[loc.block].out;
-   assert(!working.empty());
+   LivenessSet working = blockLiveInfo[loc.block].out;
+   assert(working.getABI());
 
    // We now want to do liveness analysis for straight-line code. 
         
@@ -434,7 +442,7 @@ bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
       liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
                       FILE__, __LINE__, addr, *current);
       liveness_cerr << "Pre:    " << working << endl;
-      working &= (~rwAtCurrent.written);
+      working -= rwAtCurrent.written;
       working |= rwAtCurrent.read;
       liveness_cerr << "Post:   " << working << endl;
       liveness_cerr << "Current read:  " << rwAtCurrent.read << endl;
@@ -442,19 +450,22 @@ bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
       
       ++current;
    }
-   assert(!working.empty());
-
-
-   bitarray = working;
+   live = working;
    return true;
 }
 
+bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
+	LivenessSet liveRegs;
+	if (!query(loc, type, liveRegs)) return false;
+	bitarray = liveRegs.bits();
+	return true;
+}
+
 bool LivenessAnalyzer::query(Location loc, Type type, const MachRegister& machReg, bool &live){
-	bitArray liveRegs;
+	LivenessSet liveRegs;
 	if (query(loc, type, liveRegs)){
-        int index = getIndex(machReg);
-        assert(index >= 0);
-		live = liveRegs[index];
+        assert(getIndex(machReg) >= 0);
+		live = liveRegs.contains(machReg);
 		return true;
 	}
 	return false;
@@ -462,13 +473,20 @@ bool LivenessAnalyzer::query(Location loc, Type type, const MachRegister& machRe
 }
 
 
+static bool isMMX(MachRegister reg) {
+  auto const arch = reg.getArchitecture();
+  if (arch == Arch_x86) return reg.regClass() == x86::MMX;
+  if (arch == Arch_x86_64) return reg.regClass() == x86_64::MMX;
+  return false;
+}
+
 ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction curInsn, Block *blk, Address a)
 {
 
   liveness_cerr << "calcRWSets for " << curInsn.format() << " @ " << hex << a << dec << endl;
   ReadWriteInfo ret;
-  ret.read = abi->getBitArray();
-  ret.written = abi->getBitArray();
+  ret.read = abi->makeEmpty();
+  ret.written = abi->makeEmpty();
   ret.insnSize = curInsn.size();
   std::set<RegisterAST::Ptr> cur_read, cur_written;
   curInsn.getReadSet(cur_read);
@@ -479,82 +497,25 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction curInsn, Block *blk, Addr
        i != cur_read.end(); i++) 
   {
     MachRegister cur = (*i)->getID();
-    if (cur.getArchitecture() == Arch_ppc64)
-	cur = MachRegister((cur.val() & ~Arch_ppc64) | Arch_ppc32);
     liveness_printf("\t%s \n", cur.name().c_str());
-    MachRegister base = cur.getBaseRegister();
-    if (base == x86::flags || base == x86_64::flags){
-      if (width == 4){
-        ret.read[getIndex(x86::of)] = true;
-        ret.read[getIndex(x86::cf)] = true;
-        ret.read[getIndex(x86::pf)] = true;
-        ret.read[getIndex(x86::af)] = true;
-        ret.read[getIndex(x86::zf)] = true;
-        ret.read[getIndex(x86::sf)] = true;
-        ret.read[getIndex(x86::df)] = true;
-        ret.read[getIndex(x86::tf)] = true;
-        ret.read[getIndex(x86::nt_)] = true;
-      }
-      else {
-        ret.read[getIndex(x86_64::of)] = true;
-        ret.read[getIndex(x86_64::cf)] = true;
-        ret.read[getIndex(x86_64::pf)] = true;
-        ret.read[getIndex(x86_64::af)] = true;
-        ret.read[getIndex(x86_64::zf)] = true;
-        ret.read[getIndex(x86_64::sf)] = true;
-        ret.read[getIndex(x86_64::df)] = true;
-        ret.read[getIndex(x86_64::tf)] = true;
-        ret.read[getIndex(x86_64::nt_)] = true;
-      }
-    }
-    else{
-      base = changeIfMMX(base);
-      int index = getIndex(base);
-      //assert(index >= 0);
-      if(index>=0) ret.read[index] = true;
-    }
+    ret.read.insert(cur);
   }
   liveness_printf("Write Registers: \n"); 
   for (std::set<RegisterAST::Ptr>::const_iterator i = cur_written.begin(); 
        i != cur_written.end(); i++) {  
     MachRegister cur = (*i)->getID();
-    if (cur.getArchitecture() == Arch_ppc64)
-	cur = MachRegister((cur.val() & ~Arch_ppc64) | Arch_ppc32);
     liveness_printf("\t%s \n", cur.name().c_str());
-    MachRegister base = cur.getBaseRegister();
-    if (base == x86::flags || base == x86_64::flags){
-      if (width == 4){
-        ret.written[getIndex(x86::of)] = true;
-        ret.written[getIndex(x86::cf)] = true;
-        ret.written[getIndex(x86::pf)] = true;
-        ret.written[getIndex(x86::af)] = true;
-        ret.written[getIndex(x86::zf)] = true;
-        ret.written[getIndex(x86::sf)] = true;
-        ret.written[getIndex(x86::df)] = true;
-        ret.written[getIndex(x86::tf)] = true;
-        ret.written[getIndex(x86::nt_)] = true;
-      }
-      else {
-        ret.written[getIndex(x86_64::of)] = true;
-        ret.written[getIndex(x86_64::cf)] = true;
-        ret.written[getIndex(x86_64::pf)] = true;
-        ret.written[getIndex(x86_64::af)] = true;
-        ret.written[getIndex(x86_64::zf)] = true;
-        ret.written[getIndex(x86_64::sf)] = true;
-        ret.written[getIndex(x86_64::df)] = true;
-        ret.written[getIndex(x86_64::tf)] = true;
-        ret.written[getIndex(x86_64::nt_)] = true;
-      }
-    }
-    else{
-      base = changeIfMMX(base);
-      int index = getIndex(base);
-      //assert(index >= 0);
-      if(index>=0){
-          ret.written[index] = true;
-          if ((cur != base && cur.size() < 4) || isMMX(base)) ret.read[index] = true;
-      }
-    }
+    // insert() maps cur to its bit itself. Taking getBaseRegister() first
+    // would be wrong on ppc64, where the decoder's ppc64::fpr<N> has base
+    // vsr<32+N>, which has no bit in the ppc32 layout.
+    ret.written.insert(cur);
+    MachRegister const base = abi->canonicalize(cur);
+    // A partial write keeps the rest of the register, so it is also a read:
+    // a write of under 4 bytes, or of an MMX register, which is 64 of the 80
+    // bits of its x87 register. The flags are tracked as a whole, so writing
+    // one flag is not.
+    bool const isFlags = (base == x86::flags || base == x86_64::flags);
+    if (!isFlags && cur != base && (cur.size() < 4 || isMMX(cur))) ret.read.insert(base);
   }
   if(curInsn.isCall()) {
       // Call instructions not at the end of a block are thunks, which are not ABI-compliant.
@@ -628,18 +589,3 @@ void LivenessAnalyzer::clean(Function *func){
 
 }
 
-bool LivenessAnalyzer::isMMX(MachRegister machReg){
-	auto const arch = machReg.getArchitecture();
-	if (arch == Arch_x86) {
-		return machReg.regClass() == x86::MMX;
-	}
-	if (arch == Arch_x86_64) {
-		return machReg.regClass() == x86_64::MMX;
-	}
-	return false;
-}
-
-MachRegister LivenessAnalyzer::changeIfMMX(MachRegister machReg){
-	if (!isMMX(machReg)) return machReg;
-	if (width == 4) return x86::mm0; else return x86_64::mm0;
-}

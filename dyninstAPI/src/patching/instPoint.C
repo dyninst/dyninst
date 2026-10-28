@@ -471,12 +471,12 @@ void instPoint::markModified() {
    }
 }
          
-bitArray instPoint::liveRegisters(){
+LivenessSet instPoint::liveRegisters(){
 	static LivenessAnalyzer live1(4);
 	static LivenessAnalyzer live2(8);
 	LivenessAnalyzer *live;
 	if (func()->function()->region()->getAddressWidth() == 4) live = &live1; else live = &live2;
-	if (liveRegs_.size() && liveRegs_.size() == live->getABI()->getAllRegs().size()){
+	if (liveRegs_.getABI() == live->getABI()){
 		return liveRegs_;
 	}	
 	switch(type()) {

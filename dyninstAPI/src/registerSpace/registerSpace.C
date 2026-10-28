@@ -1258,9 +1258,7 @@ int registerSpace::getStackHeight()
 #endif
 
 
-void registerSpace::specializeSpace(const bitArray &liveRegs) {
-    // Liveness info is stored as a single bitarray for all registers.
-
+void registerSpace::specializeSpace(const LivenessSet &liveRegs) {
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
     // We use "virtual" registers on the IA-32 platform (or AMD-64 in
     // 32-bit mode), and thus the registerSlot objects have _no_ relation
@@ -1301,35 +1299,31 @@ void registerSpace::specializeSpace(const bitArray &liveRegs) {
    }
 }
 
-bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
-	static LivenessAnalyzer live1(4);
-	static LivenessAnalyzer live2(8);
+bool registerSpace::checkLive(Register reg, const LivenessSet &liveRegs){
 	std::pair<std::multimap<Register, MachRegister>::iterator, std::multimap<Register, MachRegister>::iterator> range;
-	LivenessAnalyzer *live;
 	if (addr_width == 4){
 #if defined(DYNINST_CODEGEN_ARCH_AARCH64)
 	assert(0);
 	//#error "aarch64 should not be 32bit long"
 #else
 		range = regToMachReg32.equal_range(reg);
-		live = &live1;
 #endif
 	}
 	else {
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     assert(addr_width == 8 && "AMDGPU has 64-bit (8-byte) address space, but has 32 bit registers");
 	  range = regToMachReg32.equal_range(reg);
-		live = &live2;
 #else
 		range = regToMachReg64.equal_range(reg);
-		live = &live2;
 #endif
 
 	}
 	if (range.first == range.second) assert(0);
 	for (std::multimap<Register, MachRegister>::iterator iter = range.first; iter != range.second; ++iter){
-        auto index = live->getIndex(iter->second);
-		if (liveRegs[index]){
+		// A register the liveness layout cannot represent would read as dead,
+		// and so be clobbered without being saved.
+		assert(liveRegs.getABI()->getIndex(iter->second) >= 0);
+		if (liveRegs.contains(iter->second)){
           return true;
         }
     }

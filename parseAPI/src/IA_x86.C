@@ -36,8 +36,7 @@
 #include "debug_parse.h"
 #include "dataflowAPI/h/slicing.h"
 #include "dataflowAPI/h/SymEval.h"
-#include "ABI.h"
-#include "bitArray.h"
+#include "registers/abi.h"
 //#include "StackTamperVisitor.h"
 #include "instructionAPI/h/Visitor.h"
 
@@ -401,11 +400,8 @@ bool IA_x86::isTailCall(const Function *context, EdgeTypeEnum type, unsigned int
                         popReg = (*rit)->getID();
                     }
                 }
-                int addrWidth = (_isrc->getArch() == Arch_x86_64) ? 8 : 4;
-                ABI* abi = ABI::getABI(addrWidth);
-                const bitArray& callWritten = abi->getCallWrittenRegisters();
-                int index = abi->getIndex(popReg);
-                if (index != -1 && callWritten[index] == false) {
+                ABI const& abi = ABI::get(_isrc->getArch());
+                if (abi.getIndex(popReg) != -1 && !abi.getCallWrittenRegisters().contains(popReg)) {
                     parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn.format().c_str());
                     tailCalls[type] = true;
                     return true;

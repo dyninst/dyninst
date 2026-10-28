@@ -38,8 +38,7 @@
 
 #include "dataflowAPI/h/stackanalysis.h"
 #include "dataflowAPI/h/slicing.h"
-#include "ABI.h"
-#include "bitArray.h"
+#include "registers/abi.h"
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"
 
@@ -1537,11 +1536,8 @@ bool Slicer::kills(AbsRegion const&reg, Assignment::Ptr &assign) {
 
   if (assign->insn().getOperation().getID() == e_call && reg.absloc().type() == Absloc::Register) {
       MachRegister r = reg.absloc().reg();
-      ABI* abi = ABI::getABI(b_->obj()->cs()->getAddressWidth());
-      int index = abi->getIndex(r);
-      if (index >= 0)
-          // Caller-saved registers are alive
-          if (abi->getCallWrittenRegisters()[abi->getIndex(r)]) return false;
+      // Caller-saved registers are alive
+      if (ABI::get(b_->obj()->cs()->getArch()).getCallWrittenRegisters().contains(r)) return false;
   }
   return reg.contains(assign->out()) || assign->out().contains(reg);
 }

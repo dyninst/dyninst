@@ -48,7 +48,7 @@
 #include "parseAPI/h/CodeObject.h"
 #include "common/h/compiler_diagnostics.h"
 
-#include "ABI.h"
+#include "registers/abi.h"
 #include "Annotatable.h"
 #include "debug_dataflow.h"
 #include "registers/x86_regs.h"
@@ -2522,12 +2522,10 @@ bool StackAnalysis::handleNormalCall(Instruction insn, Block *block,
 
    // Top caller-save registers
    // Bottom return registers
-   ABI* abi = ABI::getABI(word_size);
-   const bitArray callWritten = abi->getCallWrittenRegisters();
-   const bitArray returnRegs = abi->getReturnRegisters();
-   for (auto iter = abi->getIndexMap()->begin();
-        iter != abi->getIndexMap()->end();
-        ++iter) {
+   ABI const& abi = ABI::get(insn.getArch());
+   const LivenessSet& callWritten = abi.getCallWrittenRegisters();
+   const LivenessSet& returnRegs = abi.getReturnRegisters();
+   for (MachRegister const& reg : abi.getRegisters()) {
        // We only care about GPRs right now
       unsigned int gpr;
       Architecture arch = insn.getArch();
@@ -2548,19 +2546,19 @@ bool StackAnalysis::handleNormalCall(Instruction insn, Block *block,
             handleDefault(insn, block, off, xferFuncs);
             return true;
       }
-      if ((*iter).first.regClass() == gpr) {
-         if (callWritten.test((*iter).second)) {
-            Absloc loc((*iter).first);
+      if (reg.regClass() == gpr) {
+         if (callWritten.contains(reg)) {
+            Absloc loc(reg);
             if (toppableFunctions.find(calledAddr) == toppableFunctions.end() &&
-               returnRegs.test((*iter).second)) {
+               returnRegs.contains(reg)) {
                // Bottom return registers if the called function isn't marked as
                // toppable.
                xferFuncs.push_back(TransferFunc::bottomFunc(loc));
-               bottomBaseSubReg(iter->first, xferFuncs);
+               bottomBaseSubReg(reg, xferFuncs);
             } else {
                // Top
                xferFuncs.push_back(TransferFunc::retopFunc(loc));
-               retopBaseSubReg(iter->first, xferFuncs);
+               retopBaseSubReg(reg, xferFuncs);
             }
          }
       }
@@ -2701,12 +2699,10 @@ bool StackAnalysis::handleJump(Instruction insn, Block *block, Offset off,
 
    // Top caller-save registers
    // Bottom return registers
-   ABI* abi = ABI::getABI(word_size);
-   const bitArray callWritten = abi->getCallWrittenRegisters();
-   const bitArray returnRegs = abi->getReturnRegisters();
-   for (auto iter = abi->getIndexMap()->begin();
-        iter != abi->getIndexMap()->end();
-        ++iter) {
+   ABI const& abi = ABI::get(insn.getArch());
+   const LivenessSet& callWritten = abi.getCallWrittenRegisters();
+   const LivenessSet& returnRegs = abi.getReturnRegisters();
+   for (MachRegister const& reg : abi.getRegisters()) {
        // We only care about GPRs right now
       unsigned int gpr;
       Architecture arch = insn.getArch();
@@ -2727,19 +2723,19 @@ bool StackAnalysis::handleJump(Instruction insn, Block *block, Offset off,
             handleDefault(insn, block, off, xferFuncs);
             return true;
       }
-      if ((*iter).first.regClass() == gpr) {
-         if (callWritten.test((*iter).second)) {
-            Absloc loc((*iter).first);
+      if (reg.regClass() == gpr) {
+         if (callWritten.contains(reg)) {
+            Absloc loc(reg);
             if (toppableFunctions.find(calledAddr) == toppableFunctions.end() &&
-               returnRegs.test((*iter).second)) {
+               returnRegs.contains(reg)) {
                // Bottom return registers if the called function isn't marked as
                // toppable.
                xferFuncs.push_back(TransferFunc::bottomFunc(loc));
-               bottomBaseSubReg(iter->first, xferFuncs);
+               bottomBaseSubReg(reg, xferFuncs);
             } else {
                // Top
                xferFuncs.push_back(TransferFunc::retopFunc(loc));
-               retopBaseSubReg(iter->first, xferFuncs);
+               retopBaseSubReg(reg, xferFuncs);
             }
          }
       }
