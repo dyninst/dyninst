@@ -89,8 +89,16 @@ namespace hd {
 struct IdiomTerm {
     unsigned short entry_id{}, arg1{}, arg2{};
     IdiomTerm() {}
-    IdiomTerm(unsigned short a, unsigned short b, unsigned short c):
-        entry_id(a), arg1(b), arg2(c) {}
+    // Takes int and truncates explicitly: the model hardcodes terms from
+    // register constants (e.g. IdiomTerm(e_call, x86::eip, NOARG)), which are
+    // 32-bit encodings deliberately compacted to 16-bit feature IDs. Now that
+    // the register constants are constexpr, an implicit narrowing here is a
+    // compile-time -Woverflow; the explicit cast keeps the (long-standing)
+    // truncation and silences it.
+    IdiomTerm(int a, int b, int c):
+        entry_id(static_cast<unsigned short>(a)),
+        arg1(static_cast<unsigned short>(b)),
+        arg2(static_cast<unsigned short>(c)) {}
     bool operator == (const IdiomTerm & it) const;
     bool operator < (const IdiomTerm & it) const;
     bool matchOpcode(unsigned short entry_id) const;
