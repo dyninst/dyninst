@@ -46,8 +46,10 @@
 #include "Archive.h"
 
 #include <cstdio>
+#include <deque>
 #include <iostream>
 #include <map>
+#include <set>
 #include <tuple>
 
 using namespace Dyninst::SymtabAPI;
@@ -456,6 +458,61 @@ bool BinaryEdit::getAllDependencies(std::map<std::string, BinaryEdit*>& deps)
    return true;
 }
 
+// The names of everything ld.so loads because of the runtime library's own
+// DT_NEEDED entries, directly or through another dependency (libc, ld.so, libdl,
+// libpthread, ...): each library's DT_SONAME and the raw DT_NEEDED strings that
+// led to it. Computed once per write set, on the BinaryEdit the user opened.
+//
+// A name that matches an object already open in the write set uses that object:
+// ld.so loads one object per SONAME, so the program's copy is the one the RT gets.
+// Other names are resolved the way openResolvedLibraryName resolves them
+// (DYNINST_REWRITER_PATHS, LD_LIBRARY_PATH, ld.so.cache), which means the RT's
+// own RPATH/RUNPATH is not followed. Such a name stays in the set as the raw
+// DT_NEEDED string but is not descended into, so an object reached only through
+// it keeps the runtime library entry, which is the behavior before this check.
+// Each resolved name costs a path search (ldconfig -p) and a Symtab open.
+std::set<std::string> const& BinaryEdit::rtDependencyClosure()
+{
+   if (rtClosureComputed_) return rtClosure_;
+   rtClosureComputed_ = true;
+
+   Symtab *rt = (*runtime_lib.begin())->parse_img()->getObject();
+   std::vector<BinaryEdit *> writeSet(siblings);
+   writeSet.push_back(this);
+   auto inWriteSet = [&writeSet](std::string const &name) -> Symtab * {
+      for (BinaryEdit *be : writeSet) {
+         Symtab *obj = be->getMappedObject()->parse_img()->getObject();
+         if (obj->getSOName() && name == obj->getSOName()) return obj;
+      }
+      return nullptr;
+   };
+
+   std::deque<std::string> todo(rt->getDependencies().begin(), rt->getDependencies().end());
+   while (!todo.empty()) {
+      std::string name = todo.front();
+      todo.pop_front();
+      if (!rtClosure_.insert(name).second) continue;
+      Symtab *dep = inWriteSet(name);
+      if (!dep) {
+         std::vector<std::string> paths;
+         if (!getResolvedLibraryPath(name, paths)) continue;
+         for (auto const &path : paths) {
+            Symtab *candidate = nullptr;
+            if (Symtab::openFile(candidate, path) &&
+                candidate->getAddressWidth() == rt->getAddressWidth() &&
+                candidate->getArchitecture() == rt->getArchitecture()) {
+               dep = candidate;
+               break;
+            }
+         }
+         if (!dep) continue;
+      }
+      if (dep->getSOName()) rtClosure_.insert(dep->getSOName());
+      todo.insert(todo.end(), dep->getDependencies().begin(), dep->getDependencies().end());
+   }
+   return rtClosure_;
+}
+
 bool BinaryEdit::writeFile(const std::string &newFileName) 
 {
    // Step 1: changes. 
@@ -464,12 +521,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       inst_printf(" writing %s ... \n", newFileName.c_str());
 
       Symtab *symObj = mobj->parse_img()->getObject();
-
-      // link to the runtime library if tramp guards are currently enabled
-      if ( !symObj->isStaticBinary() && !BPatch::bpatch->isTrampRecursive() ) {
-          assert(!runtime_lib.empty());
-          symObj->addLibraryPrereq((*runtime_lib.begin())->fileName());
-      }
 
       if( symObj->isStaticBinary() && isDirty() ) {
          if( !doStaticBinarySpecialCases() ) {
@@ -732,6 +783,48 @@ void BinaryEdit::addLibraryPrereq(std::string libname) {
    symObj->addLibraryPrereq(libname);
 }
 
+void BinaryEdit::linkRuntimeLib() {
+   Symtab *symObj = mobj->parse_img()->getObject();
+   if (symObj->isStaticBinary()) return;
+
+   // Relocation can still add trap mappings (replaceTrapHandler's call rewrites
+   // are relocated here), so relocate before asking whether there are any. The
+   // relocate() in writeFile then has nothing left to do.
+   relocate();
+
+   // Tramp guards live in the runtime library; so does the handler for traps.
+   bool const guards = !BPatch::bpatch->isTrampRecursive();
+   bool const traps = canUseTraps() && trapMapping.needsUpdating();
+   if (!guards && !traps) return;
+   if (runtime_lib.empty()) {
+      assert(!guards);
+      return;
+   }
+   std::string const rtName = (*runtime_lib.begin())->fileName();
+
+   // A dependency written alongside the object the user opened gets no entry when
+   // the runtime library itself depends on it; the opened object carries the entry
+   // instead. A rewritten libc that needs the RT forms the cycle
+   // libc -> RT -> libdl -> libc, and ld.so then relocates the RT's dependencies
+   // before libc. A dependency linked with BIND_NOW (libdl on RHEL 8) resolves
+   // libc's IFUNCs right away and runs their resolvers in an unrelocated libc,
+   // which crashes. The RT finds the dependency's trap table by walking the link
+   // map, so the entry on the opened object is enough.
+   //
+   // The object the user opened always keeps its entry: a library rewritten on its
+   // own and loaded by an unmodified program has nothing else to load the RT.
+   if (primary_ && primary_ != this) {
+      Symtab *primaryObj = primary_->getMappedObject()->parse_img()->getObject();
+      const char *soname = symObj->getSOName();
+      if (!primaryObj->isStaticBinary() && soname &&
+          primary_->rtDependencyClosure().count(soname)) {
+         primaryObj->addLibraryPrereq(rtName);
+         return;
+      }
+   }
+   symObj->addLibraryPrereq(rtName);
+}
+
 
 // Build a list of symbols describing instrumentation and relocated functions. 
 // To keep this list (somewhat) short, we're doing one symbol per extent of 
@@ -844,6 +937,11 @@ func_instance *BinaryEdit::findOnlyOneFunction(const std::string &name,
 void BinaryEdit::setMultiThreadCapable(bool b)
 {
    multithread_capable_ = b;
+}
+
+void BinaryEdit::setPrimary(BinaryEdit *be)
+{
+   primary_ = be;
 }
 
 void BinaryEdit::addSibling(BinaryEdit *be)
