@@ -30,6 +30,13 @@ dyninst_test_requirement(
   VALUES ${_dyninst_libraries}
   REASON "needs the static <arg> (ENABLE_STATIC_LIBS=OFF)"
 )
+# The IA-32 emitter is built for both 32- and 64-bit x86; this takes precedence over
+# the family below.
+dyninst_test_requirement(
+  codegen:i386
+  WHEN DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64
+  REASON "needs code generation for i386 or x86_64"
+)
 dyninst_test_requirement(
   codegen:<arg>
   WHEN DYNINST_CODEGEN_ARCH_<ARG>

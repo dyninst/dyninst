@@ -199,7 +199,8 @@ with the reason a test prints when it is not met:
 
 - `codegen:<arch>`: As in `DYNINST_CODEGEN_ARCH_<ARCH>`: `x86_64`,
   `i386`, `aarch64`, `ppc64le`, `riscv64`, `amdgpu_gfx908`,
-  `amdgpu_gfx90a`, `amdgpu_gfx940` or `amdgpu_gfx950`.
+  `amdgpu_gfx90a`, `amdgpu_gfx940` or `amdgpu_gfx950`. `codegen:i386` is
+  also met for x86_64, which builds the IA-32 emitter too.
 
 - `dynamic` and `userns`: The test drives a live process with ptrace
   (`dynamic`), or creates unprivileged user namespaces with `unshare()`
