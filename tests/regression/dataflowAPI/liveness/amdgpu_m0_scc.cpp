@@ -39,10 +39,6 @@ namespace {
 }
 
 int main(int argc, char **argv) {
-  if(argc == 1) {
-    std::printf("skipping: needs the test binaries (DYNINST_ENABLE_TESTS=ALL)\n");
-    return 77;
-  }
   if(argc != 2) {
     std::fprintf(stderr, "Usage: %s <gfx908 IndirectControlFlowAnalysis binary>\n", argv[0]);
     return EXIT_FAILURE;
