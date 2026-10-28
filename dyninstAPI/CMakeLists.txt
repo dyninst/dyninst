@@ -76,6 +76,7 @@ set(
   src/find_main.C
   src/find_main_aarch64.C
   src/find_main_ppc.C
+  src/find_main_riscv64.C
   src/find_main_x86.C
   src/hybridCallbacks.C
   src/hybridInstrumentation.C
