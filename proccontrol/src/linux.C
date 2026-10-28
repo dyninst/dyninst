@@ -672,6 +672,9 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
    }
    else if (WIFEXITED(status) && proc->getPid() != thread->getLWP())
    {
+      // Before anything else: plat_handle_ghost_thread checks this to avoid
+      // creating a second Post-LWPDestroy for the thread.
+      lthread->setExitDecoded();
       int exitcode = WEXITSTATUS(status);
 
       pthrd_printf("Decoded exit of thread %d/%d with code %d\n",
@@ -1565,7 +1568,8 @@ linux_thread::linux_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    int_thread(p, t, l),
    thread_db_thread(p, t, l),
    postponed_syscall_event(NULL),
-   generator_started_exit_processing(false)
+   generator_started_exit_processing(false),
+   exit_decoded(false)
 {
 }
 
@@ -2845,6 +2849,15 @@ bool linux_thread::plat_handle_ghost_thread() {
 		//     for this. The ptrace man-page indicates that this can happen when a process received a STOP
 		//     signal, but it hasn't transitioned to the new state yet.
 		return false;
+	}
+
+	// The generator already decoded this thread's exit and created its
+	// Post-LWPDestroy event. The thread is gone from /proc because that waitpid
+	// reaped it, so a second event here would report the thread dead twice.
+	if(exit_decoded) {
+		pthrd_printf("GHOST THREAD: exit of %d/%d already decoded, no new event\n",
+				proc()->getPid(), getLWP());
+		return true;
 	}
 
 	auto *initial_thread = llproc()->threadPool()->initialThread();
