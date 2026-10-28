@@ -83,7 +83,7 @@ int main() {
   bool failed = false;
   while(!adapter.isInvalidInsn()) {
     if(expected[test_num] != adapter.isNop()) {
-      std::cout << "Test " << (test_num+1) << " failed\n";
+      std::cerr << "Test " << (test_num+1) << " failed\n";
       failed = true;
     }
     adapter.advance();

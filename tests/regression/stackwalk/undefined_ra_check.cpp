@@ -76,13 +76,13 @@ bool check_walk(sw::Walker *walker, Dyninst::THR_ID tid, bool is_main) {
             repeats = true;
     }
 
-    std::printf("%s thread %lu: walk %s, %zu frames%s\n", is_main ? "main" : "worker",
-                static_cast<unsigned long>(tid), walked ? "ok" : "FAILED", frames.size(),
-                repeats ? ", repeated frames" : "");
+    std::fprintf(stderr, "%s thread %lu: walk %s, %zu frames%s\n", is_main ? "main" : "worker",
+                 static_cast<unsigned long>(tid), walked ? "ok" : "FAILED", frames.size(),
+                 repeats ? ", repeated frames" : "");
     for (sw::Frame const &f : frames)
-        std::printf("  '%s'%s\n", frame_name(f).c_str(), in_libc(f) ? " (libc)" : "");
+        std::fprintf(stderr, "  '%s'%s\n", frame_name(f).c_str(), in_libc(f) ? " (libc)" : "");
     if (!walked)
-        std::printf("  error: %s\n", sw::getLastErrorMsg());
+        std::fprintf(stderr, "  error: %s\n", sw::getLastErrorMsg());
     if (!walked || repeats || frames.empty())
         return false;
 

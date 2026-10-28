@@ -272,3 +272,16 @@ when it runs: ctest counts a skipped setup test as passed and runs the
 tests that require it. Give every test of a fixture the same
 requirements instead, so that they skip together.
 
+### Output
+
+ctest records stdout and stderr together, so the choice does not
+change a result, but it matters when a test is run by hand, and
+stderr is unbuffered: what is written to it survives a crash and
+keeps its place among the other messages.
+
+- **stdout:** The result only: the skip line from `skip_message()`, which
+  flushes it, and at most one final summary line, such as `failed =
+  false`.
+
+- **stderr:** Everything else: what failed and why (what was expected and
+  what was seen), reports of each case, progress, and usage errors.

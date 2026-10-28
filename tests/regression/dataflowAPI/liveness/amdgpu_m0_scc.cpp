@@ -67,9 +67,9 @@ int main(int argc, char **argv) {
         Dyninst::ParseAPI::Location loc(f, Dyninst::ParseAPI::InsnLoc(b, i->first, i->second));
         bool const queried = la.query(loc, LivenessAnalyzer::Before, live);
         if(index < 0 || !queried || live[index] != e.live) {
-          std::printf("FAILED: 0x%lx %s: expected %s, got %s\n", static_cast<unsigned long>(e.addr),
-                      e.reg.name().c_str(), e.live ? "live" : "dead",
-                      index < 0 ? "untracked" : (!queried ? "no result" : (live[index] ? "live" : "dead")));
+          std::fprintf(stderr, "FAILED: 0x%lx %s: expected %s, got %s\n", static_cast<unsigned long>(e.addr),
+                              e.reg.name().c_str(), e.live ? "live" : "dead",
+                              index < 0 ? "untracked" : (!queried ? "no result" : (live[index] ? "live" : "dead")));
           ok = false;
         }
       }
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
 
   for(auto const &e : expected) {
     if(!checked[e.addr]) {
-      std::printf("FAILED: no instruction at 0x%lx\n", static_cast<unsigned long>(e.addr));
+      std::fprintf(stderr, "FAILED: no instruction at 0x%lx\n", static_cast<unsigned long>(e.addr));
       ok = false;
     }
   }

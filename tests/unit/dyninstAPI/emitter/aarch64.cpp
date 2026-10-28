@@ -72,7 +72,7 @@ namespace {
         // LDR (literal), 64-bit: Xt = [pc + imm19 * 4]; record the address it reads
         x[d] = pc + static_cast<uint64_t>(sign_extend(bits(w, 23, 5), 19) * 4);
       } else {
-        std::printf("    unexpected instruction 0x%08" PRIx32 "\n", w);
+        std::fprintf(stderr, "    unexpected instruction 0x%08" PRIx32 "\n", w);
         return false;
       }
     }
@@ -139,8 +139,8 @@ int main() {
     unsigned const count = gen.used() / 4;
     bool ok = simulate(static_cast<uint32_t const *>(gen.start_ptr()), count, c.at, rd, got);
     ok = ok && got == expected && (c.insns == 0 || count == c.insns);
-    std::printf("%-40s %u insn(s)  x%u = 0x%" PRIx64 "  expected 0x%" PRIx64 "  %s\n", c.name,
-                count, rd, got, expected, ok ? "OK" : "FAILED");
+    std::fprintf(stderr, "%-40s %u insn(s)  x%u = 0x%" PRIx64 "  expected 0x%" PRIx64 "  %s\n",
+                 c.name, count, rd, got, expected, ok ? "OK" : "FAILED");
     failed |= !ok;
   }
   return failed ? 1 : 0;

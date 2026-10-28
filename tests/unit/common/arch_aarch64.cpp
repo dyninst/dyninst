@@ -101,7 +101,7 @@ int failures = 0;
 
 void check(bool ok, const char *what, const char *text) {
   if (!ok) {
-    std::printf("FAIL: %s for '%s'\n", what, text);
+    std::fprintf(stderr, "FAIL: %s for '%s'\n", what, text);
     ++failures;
   }
 }

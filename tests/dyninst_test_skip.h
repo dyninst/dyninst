@@ -34,6 +34,9 @@
  * exit code decides; the text gives the reason. Tests are written in C++.
  *
  *   return skip_message("HOME is not set");
+ *
+ * The skip line is the result, so it goes to stdout; diagnostics go to
+ * stderr (tests/README.md, "Output").
  */
 
 #ifndef DYNINST_TEST_SKIP_H
