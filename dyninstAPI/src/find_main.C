@@ -119,9 +119,12 @@ namespace Dyninst { namespace DyninstAPI {
           return DyninstAPI::x86::find_main(entry_point);
         }
 
+        case Arch_aarch64: {
+          return DyninstAPI::aarch64::find_main();
+        }
+
         case Arch_none:
         case Arch_aarch32:
-        case Arch_aarch64:
         case Arch_riscv64:
         case Arch_cuda:
         case Arch_amdgpu_gfx908:

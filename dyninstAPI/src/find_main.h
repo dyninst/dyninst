@@ -13,6 +13,10 @@ namespace Dyninst { namespace DyninstAPI {
 
   Dyninst::Address find_main(st::Symtab *);
 
+  namespace aarch64 {
+    Dyninst::Address find_main();
+  }
+
   namespace ppc {
     Dyninst::Address find_main(st::Symtab *, pa::Block *, pa::SymtabCodeSource const &,
                                pa::Function *);
