@@ -16,6 +16,10 @@ namespace Dyninst { namespace DyninstAPI {
                                pa::Function *);
   }
 
+  namespace x86 {
+    Dyninst::Address find_main(pa::Function*);
+  }
+
 }}
 
 #endif
