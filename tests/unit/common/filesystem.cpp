@@ -11,14 +11,16 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <pwd.h>
 #include <string>
+#include <unistd.h>
+#include <vector>
 
 #ifdef os_linux
 #include <sched.h>
 #include <signal.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
-#include <unistd.h>
 
 // Printed when unshare() is refused
 static char const userns_hint[] =
@@ -36,6 +38,7 @@ static bool apparmor_restricts_userns() {
 #endif
 
 static int test_canonicalize();
+static int test_canonicalize_user();
 static int test_resolve_in_root_fs();
 static int test_canonicalize_procfs();
 static int test_canonicalize_procfs_namespace();
@@ -55,8 +58,9 @@ int main(int argc, char** argv) {
     char const* name;
     int (*run)();
   };
-  std::array<test_case, 11> const cases = {{
+  std::array<test_case, 12> const cases = {{
       {"canonicalize", test_canonicalize},
+      {"canonicalize_user", test_canonicalize_user},
       {"resolve_in_root_fs", test_resolve_in_root_fs},
       {"canonicalize_procfs", test_canonicalize_procfs},
       {"canonicalize_procfs_namespace", test_canonicalize_procfs_namespace},
@@ -514,57 +518,14 @@ int test_executable_path_chroot() {
 #endif
 }
 
-int test_canonicalize() {
-  auto home = []() -> std::string {
-    auto* h = getenv("HOME");
-    if(!h) {
-      return {};
-    }
-    return h;
-  }();
+// Canonicalizes each input and compares it with the expected path, both without
+// terminal slashes and, where the path exists, made canonical.
+struct canonicalize_test {
+  std::string input;
+  std::string expected;
+};
 
-  if(home.empty()) {
-    return skip_message("HOME is not set");
-  }
-
-  auto user = []() -> std::string {
-    auto* h = getenv("USER");
-    if(!h) {
-      return {};
-    }
-    return h;
-  }();
-
-  if(user.empty()) {
-    return skip_message("USER is not set");
-  }
-
-  struct test {
-    std::string input;
-    std::string expected;
-  };
-
-  std::string const test_file{"/test1"};
-  std::string const test_file_path{home + test_file};
-
-  // Make sure we have a test file
-  {
-    std::ofstream fout(test_file_path);
-    fout << "\n";
-  }
-
-  // clang-format off
-  const std::array<test, 7> tests = {{
-    {"~", home},
-    {"~//", home},
-    {"~/" + test_file, test_file_path},
-    {home, home},
-    {"~" + user, home},
-    {"~" + user + test_file, test_file_path},
-    {"~UNKNOWN###USER/dir", "~UNKNOWN###USER/dir"}
-  }};
-  // clang-format on
-
+static int check_canonicalize(std::vector<canonicalize_test> const& tests) {
   // Remove terminal slashes
   auto simplify = [](std::string &path) {
     namespace bf = boost::filesystem;
@@ -602,10 +563,70 @@ int test_canonicalize() {
     test_id++;
   }
 
-  namespace bf = boost::filesystem;
-  bf::remove(bf::path(test_file_path));
-
   return (failed) ? EXIT_FAILURE : EXIT_SUCCESS;
+}
+
+// canonicalize() expands "~" from HOME when it is set, and otherwise from the
+// password database entry of the effective user.
+int test_canonicalize() {
+  char const* const env_home = getenv("HOME");
+  passwd const* const pw = getpwuid(geteuid());
+  if(!env_home && (!pw || !pw->pw_dir)) {
+    return skip_message("neither HOME nor a password database entry for this user");
+  }
+  std::string const home = env_home ? env_home : pw->pw_dir;
+
+  // A name no file in the home directory has, since the file is removed afterwards
+  std::string const test_file{
+      "/" + boost::filesystem::unique_path("dyninst-canonicalize-%%%%-%%%%").string()};
+  std::string const test_file_path{home + test_file};
+
+  // Make sure we have a test file
+  {
+    std::ofstream fout(test_file_path);
+    fout << "\n";
+  }
+
+  auto const ret = check_canonicalize({
+    {"~", home},
+    {"~//", home},
+    {"~/" + test_file, test_file_path},
+    {home, home},
+    {"~UNKNOWN###USER/dir", "~UNKNOWN###USER/dir"}
+  });
+
+  boost::filesystem::remove(test_file_path);
+  return ret;
+}
+
+// canonicalize() expands "~NAME" from NAME's password database entry, never from
+// HOME, so the expected name and directory come from there.
+int test_canonicalize_user() {
+  passwd const* const pw = getpwuid(geteuid());
+  if(!pw || !pw->pw_name || !pw->pw_dir) {
+    return skip_message("no password database entry for this user");
+  }
+  std::string const user = pw->pw_name;
+  std::string const user_home = pw->pw_dir;
+
+  // A name no file in the home directory has, since the file is removed afterwards
+  std::string const test_file{
+      "/" + boost::filesystem::unique_path("dyninst-canonicalize-%%%%-%%%%").string()};
+  std::string const test_file_path{user_home + test_file};
+
+  // Make sure we have a test file
+  {
+    std::ofstream fout(test_file_path);
+    fout << "\n";
+  }
+
+  auto const ret = check_canonicalize({
+    {"~" + user, user_home},
+    {"~" + user + test_file, test_file_path}
+  });
+
+  boost::filesystem::remove(test_file_path);
+  return ret;
 }
 
 int test_exists() {

@@ -11,6 +11,7 @@ dyninst_add_test_executable(
 foreach(
   _case
   canonicalize
+  canonicalize_user
   resolve_in_root_fs
   canonicalize_procfs
   executable_path
