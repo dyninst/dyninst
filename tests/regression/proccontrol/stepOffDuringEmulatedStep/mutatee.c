@@ -64,7 +64,11 @@ __asm__(".text\n"
         "    blr\n"
         ".size window, .-window\n");
 #else
-#  error "no load-reserve sequence for this architecture"
+/* No load-reserve sequence here: the test reports itself skipped before it runs the mutatee. */
+int window(volatile int *flag, int val) {
+  (void)val;
+  return *flag;
+}
 #endif
 
 volatile int flag = 0;
