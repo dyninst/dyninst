@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <iostream>
+#include <string>
 #include <vector>
 
 namespace st = Dyninst::SymtabAPI;
@@ -81,7 +82,14 @@ bool test_missing_symbols(char const* filename, st::Symtab* reference) {
   return ok;
 }
 
+// Usage: find_main <file with symbols> <the same file stripped>
+//        find_main --skip <reason>
+// With --skip the test reports a skip (exit status 77) with the reason.
 int main(int argc, char** argv) {
+  if(argc == 3 && std::string{argv[1]} == "--skip") {
+    std::cout << "skipping: " << argv[2] << "\n";
+    return 77;
+  }
   if(argc != 3) {
     std::cerr << "Usage: " << argv[0] << " file_with_syms file_without_syms\n";
     return EXIT_FAILURE;
