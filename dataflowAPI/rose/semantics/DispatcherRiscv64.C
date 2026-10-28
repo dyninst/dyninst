@@ -469,11 +469,7 @@ struct IP_STORE : P {
      * already handles the immediate */
 
     // offset = d->SignExtend(imm, 64);
-    data =
-        ops->extract(d->read(rs2, 64, 0), ops->number_(64, 0),
-                     ops->subtract(ops->signedMultiply(ops->number_(64, width),
-                                                       ops->number_(64, 8)),
-                                   ops->number_(64, 1)));
+    data = ops->extract(d->read(rs2, 64, 0), 0, width * 8);
     tmp = d->effectiveAddress(rs1);
     d->writeMemory(tmp, width, data);
     return;
@@ -883,11 +879,7 @@ struct IP_STORECON : P {
 
     BaseSemantics::SValuePtr data;
     BaseSemantics::SValuePtr tmp;
-    data =
-        ops->extract(d->read(rs2, 64, 0), ops->number_(64, 0),
-                     ops->subtract(ops->signedMultiply(ops->number_(64, width),
-                                                       ops->number_(64, 8)),
-                                   ops->number_(64, 1)));
+    data = ops->extract(d->read(rs2, 64, 0), 0, width * 8);
     tmp = d->effectiveAddress(rs1);
     d->writeMemory(tmp, width, data);
     return;
@@ -913,14 +905,7 @@ struct IP_AMO : P {
     BaseSemantics::SValuePtr result;
     vaddr = d->effectiveAddress(rs1);
     addr = vaddr;
-    rs2_val = ops->ite(ops->isSignedLessThanOrEqual(ops->number_(64, width),
-                                                    ops->number_(64, 8)),
-                       ops->extract(d->read(rs2, 64, 0), ops->number_(64, 0),
-                                    ops->signedMultiply(ops->number_(64, width),
-                                                        ops->number_(64, 8))),
-                       ops->extract(d->read(rs2, 64, 0), ops->number_(64, 0),
-                                    ops->signedMultiply(ops->number_(64, width),
-                                                        ops->number_(64, 8))));
+    rs2_val = ops->extract(d->read(rs2, 64, 0), 0, width * 8);
     loaded = d->readMemory(addr, width);
     switch (op) {
     case rose_riscv64_op_amoswap_w:

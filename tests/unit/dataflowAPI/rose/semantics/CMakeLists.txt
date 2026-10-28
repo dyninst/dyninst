@@ -20,3 +20,11 @@ dyninst_add_test(
   SOURCE_FILES aarch64_branch_shift.cpp
   DEPS parseAPI
 )
+
+dyninst_add_test(
+  rose_semantics_riscv64_store
+  TYPE unit
+  SOURCE_FILES riscv64_store.cpp
+  DEPS parseAPI
+  REQUIRES capstone
+)
