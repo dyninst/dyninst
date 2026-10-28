@@ -73,10 +73,13 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
       return;
     }
 
-    instPoint *blockExitPoint = instPoint::blockExit(funcInstance, blockInstance);
-    assert(blockExitPoint);
+    // The jump is placed at the start of the block, so its scratch registers must be dead
+    // there. Registers that are live into the block but dead at its end (e.g. a workgroup ID
+    // the block reads and then overwrites) must not be picked.
+    instPoint *blockEntryPoint = instPoint::blockEntry(funcInstance, blockInstance);
+    assert(blockEntryPoint);
 
-    registerSpace *regSpace = registerSpace::actualRegSpace(blockExitPoint);
+    registerSpace *regSpace = registerSpace::actualRegSpace(blockEntryPoint);
     assert(regSpace);
 
     // We relax the alignment to pair because we will use the 4 registers as 2 pairs.
