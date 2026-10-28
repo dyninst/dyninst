@@ -1,12 +1,10 @@
 include_guard(GLOBAL)
 
-if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  return()
-endif()
-
-add_executable(lsda_encoding_check lsda_encoding.cpp)
-target_compile_options(lsda_encoding_check PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
-target_link_libraries(lsda_encoding_check PRIVATE symtabAPI)
+dyninst_add_test_executable(
+  lsda_encoding_check
+  SOURCE_FILES lsda_encoding.cpp
+  DEPS symtabAPI
+)
 
 foreach(kind IN ITEMS pcrel omit invalid oversized)
   add_library(lsda_${kind} SHARED lsda_fixture.S)
@@ -21,10 +19,12 @@ foreach(kind IN ITEMS pcrel omit invalid oversized)
   if(kind STREQUAL "oversized")
     target_compile_definitions(lsda_${kind} PRIVATE OVERSIZED_TABLE)
   endif()
-  add_test(
-    NAME symtabAPI_lsda_${kind}
-    COMMAND lsda_encoding_check $<TARGET_FILE:lsda_${kind}> ${kind}
-  )
+
   # Bound the original infinite-loop regression.
-  set_tests_properties(symtabAPI_lsda_${kind} PROPERTIES LABELS regression TIMEOUT 5)
+  dyninst_add_test(
+    symtabAPI_lsda_${kind}
+    TYPE regression
+    COMMAND lsda_encoding_check $<TARGET_FILE:lsda_${kind}> ${kind}
+    PROPERTIES TIMEOUT 5
+  )
 endforeach()
