@@ -12,8 +12,6 @@ else()
   set(_step_off_llsc_host 0)
 endif()
 
-add_executable(step_off_emulated_mutatee mutatee.c)
-
 add_executable(step_off_during_emulated_step step_off.cpp)
 target_compile_options(
   step_off_during_emulated_step
@@ -39,9 +37,26 @@ else()
   )
 endif()
 
+# The mutatee is in the test binaries, as proccontrol/stepOffDuringEmulatedStep/<arch>.
+# Without them, or on a host with no mutatee, no path is passed and the test reports a skip.
+set(_mutatee)
+if(DYNINST_ENABLE_EXTERNAL_BINARY_TESTS AND _step_off_llsc_host)
+  if(DYNINST_HOST_ARCH_AARCH64)
+    set(
+      _mutatee
+      "${DYNINST_TEST_BINARIES_DIR}/proccontrol/stepOffDuringEmulatedStep/aarch64"
+    )
+  else()
+    set(
+      _mutatee
+      "${DYNINST_TEST_BINARIES_DIR}/proccontrol/stepOffDuringEmulatedStep/ppc64le"
+    )
+  endif()
+endif()
+
 add_test(
   NAME proccontrol_step_off_during_emulated_step
-  COMMAND step_off_during_emulated_step $<TARGET_FILE:step_off_emulated_mutatee>
+  COMMAND step_off_during_emulated_step ${_mutatee}
 )
 set_tests_properties(
   proccontrol_step_off_during_emulated_step

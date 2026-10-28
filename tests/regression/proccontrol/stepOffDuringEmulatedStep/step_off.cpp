@@ -10,8 +10,9 @@
  *
  * Passes when no SingleStep event arrives after single-step mode was turned off and the
  * mutatee exits normally.  A SIGALRM watchdog turns a blocked event loop into a failure.  On any
- * other host, where the code generator does not target the host, or with
- * DYNINST_ENABLE_DYNAMIC_TESTS=OFF, it reports itself skipped (exit 77).
+ * other host, where the code generator does not target the host, with
+ * DYNINST_ENABLE_DYNAMIC_TESTS=OFF, or without the test binaries that hold the mutatee (or
+ * with a checkout of them that predates it), it reports itself skipped (exit 77).
  */
 #include "Event.h"
 #include "PCProcess.h"
@@ -123,11 +124,10 @@ bool lookup(st::Symtab *symtab, const char *name, Dyninst::Offset &off) {
 }  // namespace
 
 int main(int argc, char **argv) {
-  if (argc != 2) {
-    std::fprintf(stderr, "Usage: %s mutatee\n", argv[0]);
+  if (argc > 2) {
+    std::fprintf(stderr, "Usage: %s [mutatee]\n", argv[0]);
     return EXIT_FAILURE;
   }
-  std::string path = argv[1];
   if (!DYNINST_ENABLE_DYNAMIC_TESTS) {
     std::printf(
         "skipping: drives a live process, which DYNINST_ENABLE_DYNAMIC_TESTS=OFF turns off\n");
@@ -138,6 +138,18 @@ int main(int argc, char **argv) {
               "exist only on ppc64le and aarch64 hosts whose code generator targets the host\n");
   return 77;
 #endif
+  if (argc == 1) {
+    std::printf("skipping: needs the test binaries (DYNINST_ENABLE_TESTS=ALL)\n");
+    return 77;
+  }
+  std::string path = argv[1];
+  if (access(path.c_str(), F_OK) != 0) {
+    // A test_binaries clone is made once per build directory, so it can predate the mutatee
+    std::printf("skipping: %s is missing; the test_binaries checkout predates "
+                "proccontrol/stepOffDuringEmulatedStep\n",
+                path.c_str());
+    return 77;
+  }
   std::signal(SIGALRM, on_alarm);
   alarm(90);
 
