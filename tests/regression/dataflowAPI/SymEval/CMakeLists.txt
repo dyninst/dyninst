@@ -1,9 +1,11 @@
 include_guard(GLOBAL)
 
 set(_targ symeval_expand_slice)
-add_executable(${_targ} expand_slice.cpp)
-target_compile_options(${_targ} PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
-target_link_libraries(${_targ} PRIVATE parseAPI)
+if(NOT LIGHTWEIGHT_SYMTAB)
+  add_executable(${_targ} expand_slice.cpp)
+  target_compile_options(${_targ} PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+  target_link_libraries(${_targ} PRIVATE parseAPI)
+endif()
 
 # One test per architecture over all of its findMain binaries. They are only
 # read, so they run on every host. Without the test binaries no path is passed,
@@ -15,7 +17,17 @@ foreach(
   ITEMS aarch64 i686 ppc64le riscv64 x86_64
 )
   set(_args)
-  if(DYNINST_CODEGEN_ARCH_AARCH64 AND NOT _arch STREQUAL "aarch64")
+  set(_command ${_targ})
+  if(LIGHTWEIGHT_SYMTAB)
+    # The test reads the binaries with SymtabCodeSource, which parseAPI does not
+    # build with LIGHTWEIGHT_SYMTAB, so the test cannot be built.
+    set(
+      _command
+      sh
+      -c
+      "echo 'skipping: parseAPI has no SymtabCodeSource with LIGHTWEIGHT_SYMTAB' && exit 77"
+    )
+  elseif(DYNINST_CODEGEN_ARCH_AARCH64 AND NOT _arch STREQUAL "aarch64")
     # StackAnalysis's entry state is chosen by the build's code-generation
     # architecture and has none for aarch64 builds.
     set(_args --skip "an aarch64 build cannot run StackAnalysis on ${_arch} code")
@@ -26,7 +38,7 @@ foreach(
     list(SORT _args)
   endif()
   set(_tname dataflowAPI_${_targ}_${_arch}_test)
-  add_test(NAME ${_tname} COMMAND ${_targ} ${_args})
+  add_test(NAME ${_tname} COMMAND ${_command} ${_args})
   set_tests_properties(
     ${_tname}
     PROPERTIES LABELS "regression" SKIP_RETURN_CODE 77 SKIP_REGULAR_EXPRESSION "skipping:"
