@@ -11,6 +11,9 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <sys/ptrace.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include <vector>
 
 // In create mode the mutatee stops at main's global entry point (main + 0).
@@ -20,6 +23,19 @@
 // ran with the caller's r2 and crashed on its first TOC-relative access.
 // The PC is only moved after the mutator has walked the stopped thread's
 // stack, as parseThat does, so the test walks it first.
+
+namespace {
+  // Whether this process may trace a child at all; containers often refuse.
+  bool ptrace_allowed() {
+    pid_t pid = fork();
+    if (pid == 0) {
+      _exit(ptrace(PTRACE_TRACEME, 0, nullptr, nullptr) == 0 ? 0 : 1);
+    }
+    int status = 0;
+    return pid > 0 && waitpid(pid, &status, 0) == pid && WIFEXITED(status)
+        && WEXITSTATUS(status) == 0;
+  }
+}
 
 int main(int argc, char **argv) {
   if (argc != 3) {
@@ -35,6 +51,11 @@ int main(int argc, char **argv) {
   }
   setenv("LD_LIBRARY_PATH", ld_path.c_str(), 1);
   std::cout << "LD_LIBRARY_PATH=" << ld_path << "\n";
+
+  if (!ptrace_allowed()) {
+    std::cout << "skipping: ptrace is not permitted here\n";
+    return 77;
+  }
 
   BPatch bpatch;
   char const *mutatee_argv[] = {argv[1], nullptr};
