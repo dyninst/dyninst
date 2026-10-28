@@ -1,9 +1,7 @@
 include_guard(GLOBAL)
 
 # The checker
-add_executable(getSOName getSOName.cpp)
-target_compile_options(getSOName PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
-target_link_libraries(getSOName PRIVATE symtabAPI)
+dyninst_add_test_executable(getSOName SOURCE_FILES getSOName.cpp DEPS symtabAPI)
 
 # 1. The ordinary case: CMake gives a shared library a SONAME equal to its file name.
 add_library(soname_default SHARED test.cpp)
@@ -22,29 +20,26 @@ set_target_properties(
 )
 target_link_options(soname_mismatch PRIVATE "-Wl,-soname,libdyninst_declared_name.so.7")
 
-add_test(
-  NAME symtab_soname_default
+dyninst_add_test(
+  symtab_soname_default
+  TYPE regression
   COMMAND getSOName $<TARGET_FILE:soname_default> $<TARGET_FILE_NAME:soname_default>
 )
-
-add_test(NAME symtab_soname_absent COMMAND getSOName $<TARGET_FILE:soname_absent> "")
-
-add_test(
-  NAME symtab_soname_mismatch
+dyninst_add_test(
+  symtab_soname_absent
+  TYPE regression
+  COMMAND getSOName $<TARGET_FILE:soname_absent> ""
+)
+dyninst_add_test(
+  symtab_soname_mismatch
+  TYPE regression
   COMMAND getSOName $<TARGET_FILE:soname_mismatch> "libdyninst_declared_name.so.7"
 )
 
 # The mismatch case must be a real mismatch, or it proves nothing.
-add_test(
-  NAME symtab_soname_mismatch_is_a_mismatch
-  COMMAND getSOName $<TARGET_FILE:soname_mismatch> $<TARGET_FILE_NAME:soname_mismatch>
-)
-set_tests_properties(symtab_soname_mismatch_is_a_mismatch PROPERTIES WILL_FAIL TRUE)
-
-set_tests_properties(
-  symtab_soname_default
-  symtab_soname_absent
-  symtab_soname_mismatch
+dyninst_add_test(
   symtab_soname_mismatch_is_a_mismatch
-  PROPERTIES LABELS "regression"
+  TYPE regression
+  COMMAND getSOName $<TARGET_FILE:soname_mismatch> $<TARGET_FILE_NAME:soname_mismatch>
+  PROPERTIES WILL_FAIL TRUE
 )
