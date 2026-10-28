@@ -45,6 +45,9 @@ void DYNINSTinit(void);
 int DYNINSTreturnZero(void);
 
 int DYNINSTinitializeTrapHandler(void);
+/* (linux, dynamic RT only): register synthesized .eh_frame
+ * regions found via DT_DYNINST_EH_FRAME dynamic tags (see RTlinux.c). */
+void DYNINSTregisterEHFrames(void);
 void* dyninstTrapTranslate(void *source, 
                            volatile unsigned long *table_used,
                            volatile unsigned long *table_version,

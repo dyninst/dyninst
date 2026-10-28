@@ -754,6 +754,13 @@ bool BPatch_process::finalizeInsertionSet(bool, bool *)
   bool ret = AddressSpace::patch(llproc);
   /* End of PatchAPI stuffs */
 
+  // Relocation just installed new code into the live process. Hand libgcc the
+  // synthesized .eh_frame for it (staged in the target + registered via iRPC)
+  // so C++ exceptions can unwind through and be caught in the relocated frames.
+  // Must run here, while the process is stopped, before it is resumed.
+  if (ret)
+    llproc->registerRelocatedExceptionFrames();
+
   llproc->trapMapping.flush();
 
   if (shouldContinue)
