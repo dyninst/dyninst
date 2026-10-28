@@ -960,8 +960,9 @@ void AssignmentConverter::convert(const Instruction &I,
     break;
   }      
   case riscv64_op_jalr: {
-    auto operands = I.getAllOperands();
-    assert(operands.size() == 4);
+    // rd, rs, imm; the implicit operands (pc, branch target) are not counted
+    auto operands = I.getExplicitOperands();
+    assert(operands.size() == 3);
 
     AbsRegion rd = AbsRegion((boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue()))->getID());
     AbsRegion rs = AbsRegion((boost::dynamic_pointer_cast<RegisterAST>(operands[1].getValue()))->getID());
@@ -991,8 +992,9 @@ void AssignmentConverter::convert(const Instruction &I,
   case riscv64_op_bge:
   case riscv64_op_bltu:
   case riscv64_op_bgeu: {
-      auto operands = I.getAllOperands();
-      assert(operands.size() == 4);
+      // rs1, rs2, imm
+      auto operands = I.getExplicitOperands();
+      assert(operands.size() == 3);
 
       AbsRegion rs1 = AbsRegion((boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue()))->getID());
       AbsRegion rs2 = AbsRegion((boost::dynamic_pointer_cast<RegisterAST>(operands[1].getValue()))->getID());
