@@ -1761,9 +1761,8 @@ Handler::handler_ret_t HandleEmulatedSingleStep::handleEvent(Event::ptr ev)
    ev_ss->setSyncType(ev->getSyncType());
    proc->handlerPool()->addLateEvent(ev_ss);
 
-   em_singlestep->restoreSSMode();
-   thrd->rmEmulatedSingleStep(em_singlestep);
-   
+   thrd->finishEmulatedSingleStep(em_singlestep);
+
    return ret_success;
 }
 
@@ -1871,6 +1870,17 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
 
    if (!removed_bps) 
    {
+      // Nothing of an emulated single step may stay behind: its breakpoints
+      // leave the text with the others below, and the thread's single-step
+      // mode goes back to what the user set.  An asynchronous removal joins
+      // the responses waited for below and is finished after them.
+      int_threadPool *pool = proc->threadPool();
+      for (int_threadPool::iterator t = pool->begin(); t != pool->end(); t++) {
+         if ((*t)->cancelEmulatedSingleStep(&async_responses) == aret_error) {
+            ev->setLastError(err_internal, "Error removing emulation breakpoints before detach\n");
+            goto done;
+         }
+      }
       if (!temporary) {
          while (!mem->breakpoints.empty())
          {
@@ -1909,6 +1919,11 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
          proc->handlerPool()->notifyOfPendingAsyncs(async_responses, ev);
          return ret_async;
       }
+   }
+   {
+      int_threadPool *pool = proc->threadPool();
+      for (int_threadPool::iterator t = pool->begin(); t != pool->end(); t++)
+         (*t)->finishCancelledEmulatedSingleStep();
    }
 
    if (!detach_response) {
