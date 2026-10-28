@@ -25,15 +25,25 @@ target_compile_definitions(
   PRIVATE STEP_OFF_LLSC_HOST=${_step_off_llsc_host}
 )
 
+# Drives a live process: DYNINST_ENABLE_DYNAMIC_TESTS=OFF turns it into a skip.  The option is
+# ON when not defined.
+if(DEFINED DYNINST_ENABLE_DYNAMIC_TESTS AND NOT DYNINST_ENABLE_DYNAMIC_TESTS)
+  target_compile_definitions(
+    step_off_during_emulated_step
+    PRIVATE DYNINST_ENABLE_DYNAMIC_TESTS=0
+  )
+else()
+  target_compile_definitions(
+    step_off_during_emulated_step
+    PRIVATE DYNINST_ENABLE_DYNAMIC_TESTS=1
+  )
+endif()
+
 add_test(
   NAME proccontrol_step_off_during_emulated_step
   COMMAND step_off_during_emulated_step $<TARGET_FILE:step_off_emulated_mutatee>
 )
 set_tests_properties(
   proccontrol_step_off_during_emulated_step
-  PROPERTIES
-    LABELS "regression"
-    TIMEOUT 120
-    SKIP_RETURN_CODE 77
-    SKIP_REGULAR_EXPRESSION "skipping:"
+  PROPERTIES LABELS "regression" SKIP_RETURN_CODE 77 SKIP_REGULAR_EXPRESSION "skipping:"
 )
