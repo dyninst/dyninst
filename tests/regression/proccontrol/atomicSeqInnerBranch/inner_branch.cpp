@@ -9,7 +9,8 @@
  * an ordinary emulated step rather than the step over a breakpoint.
  *
  * Passes when the step from the reserve ends on the instruction after the store-conditional,
- * and the mutatee runs to a normal exit once single-step is off.
+ * and the mutatee runs to a normal exit once single-step is off. Skips (exit 77) on
+ * architectures that do not emulate single steps through such a sequence.
  */
 #include "Event.h"
 #include "PCProcess.h"
@@ -100,6 +101,12 @@ int main(int argc, char **argv) {
     std::fprintf(stderr, "Usage: %s mutatee\n", argv[0]);
     return EXIT_FAILURE;
   }
+#if !defined(__aarch64__) && !defined(__powerpc64__)
+  // Only Power and AArch64 emulate single steps through load-reserve/store-conditional sequences
+  std::printf("skipping: no emulated single step through load-reserve/store-conditional on this "
+              "architecture (only ppc64le and aarch64)\n");
+  return 77;
+#endif
   std::string path = argv[1];
   std::signal(SIGALRM, on_alarm);
   alarm(60);
