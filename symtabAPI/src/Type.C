@@ -1032,7 +1032,7 @@ void typeCommon::endCommonBlock(Symbol *func, void *baseAddr)
 
 	    localVar *locVar;
     	locVar = new localVar(fieldList[j]->getName(), 
-	        			     fieldList[j]->getType(Type::share), "", 0, (Function *) func);
+	        			     fieldList[j]->getType(Type::share), "", 0, func->getFunction());
     	VariableLocation loc;
         loc.stClass = storageAddr;
         loc.refClass = storageNoRef;
