@@ -1,21 +1,31 @@
 // AddressLookup (AddressTranslate underneath) on a child in its own mount
 // namespace names each library /proc/<pid>/root/<path>, the same file the
 // loader mapped, and maps an address in a library to that name.
+//
+// Two tests, chosen by the argument: "plain" looks up an ordinary child, and
+// "namespace" also one in its own user and mount namespace, comparing the two.
+// Both trace the child, so they need ptrace; "namespace" also needs
+// unprivileged user namespaces.  The tests are only run where those are
+// expected (DYNINST_ENABLE_DYNAMIC_TESTS, DYNINST_ENABLE_USERNS_TESTS), so not
+// having them is a failure.
 // AddrLookup.h uses these without including them.
 #include "Symtab.h"
 #include "Symbol.h"
 #include "ProcReader.h"
 #include "AddrLookup.h"
+#include "dyninst_test_skip.h"
 
+#include <cerrno>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <string>
 #include <vector>
 
-#ifdef __linux__
+#ifdef os_linux
 #include <sched.h>
 #include <signal.h>
 #include <sys/prctl.h>
@@ -25,11 +35,19 @@
 #include <unistd.h>
 #endif
 
-#ifdef __linux__
+#ifdef os_linux
 namespace st = Dyninst::SymtabAPI;
 
+// Printed when unshare() is refused
+static char const userns_hint[] =
+    "Unprivileged user namespaces are not available here (for example with\n"
+    "user.max_user_namespaces=0, or under Docker's default seccomp profile).\n"
+    "Where that is expected, configure with -DDYNINST_ENABLE_USERNS_TESTS=OFF.\n";
+
 // A paused child, optionally in its own user and mount namespace, or -1.
-static pid_t spawn(bool own_namespace) {
+// `err` is unshare()'s errno, or -1 if the child gave no answer.
+static pid_t spawn(bool own_namespace, int& err) {
+  err = -1;
   int ready[2];
   if (pipe(ready) != 0)  {
     perror("pipe");
@@ -49,8 +67,8 @@ static pid_t spawn(bool own_namespace) {
       _exit(1);
     }
     close(ready[0]);
-    char ok = !own_namespace || unshare(CLONE_NEWUSER | CLONE_NEWNS) == 0 ? 1 : 0;
-    if (write(ready[1], &ok, 1) != 1)  {
+    int const result = !own_namespace || unshare(CLONE_NEWUSER | CLONE_NEWNS) == 0 ? 0 : errno;
+    if (write(ready[1], &result, sizeof result) != static_cast<ssize_t>(sizeof result))  {
       perror("write");
       _exit(1);
     }
@@ -59,8 +77,10 @@ static pid_t spawn(bool own_namespace) {
     }
   }
   close(ready[1]);
-  char ok = 0;
-  bool const started = read(ready[0], &ok, 1) == 1 && ok;
+  if (read(ready[0], &err, sizeof err) != static_cast<ssize_t>(sizeof err))  {
+    err = -1;
+  }
+  bool const started = err == 0;
   close(ready[0]);
   if (!started)  {
     kill(child, SIGKILL);
@@ -130,36 +150,43 @@ static bool lookup(pid_t pid, lookup_result& result) {
 }
 #endif
 
-int main() {
-#ifdef __linux__
+int main(int argc, char** argv) {
+  std::string const which = argc == 2 ? argv[1] : "";
+  if (which != "plain" && which != "namespace")  {
+    std::cerr << "usage: " << argv[0] << " plain|namespace\n";
+    return EXIT_FAILURE;
+  }
+#ifdef os_linux
+  bool const with_namespace = which == "namespace";
+
   // Fork both children before any lookup: a lookup can load libraries into
   // this process (libdw loads libdebuginfod), and the children must map the
   // same files at the same addresses.
-  pid_t const plain = spawn(false);
+  int err = -1;
+  pid_t const plain = spawn(false, err);
   if (plain < 0)  {
     std::cerr << "fork failed\n";
     return EXIT_FAILURE;
   }
-  pid_t const contained = spawn(true);
+  pid_t const contained = with_namespace ? spawn(true, err) : -1;
   if (!can_trace(plain))  {
     reap(plain);
     if (contained > 0)  {
       reap(contained);
     }
-    std::cout << "skipping: cannot trace a child process here\n";
-    return EXIT_SUCCESS;
+    std::cerr << "cannot trace a child process here\n";
+    return EXIT_FAILURE;
   }
-  if (contained < 0)  {
+  if (with_namespace && contained < 0)  {
     reap(plain);
-    std::cout << "skipping: unshare() is not permitted here\n";
-    return EXIT_SUCCESS;
+    std::cerr << "unshare(CLONE_NEWUSER | CLONE_NEWNS): "
+              << (err > 0 ? std::strerror(err) : "no answer from the child") << "\n"
+              << userns_hint;
+    return EXIT_FAILURE;
   }
   lookup_result host;
   bool const traced = lookup(plain, host);
   reap(plain);
-  lookup_result target;
-  bool const looked_up = lookup(contained, target);
-  auto const root = "/proc/" + std::to_string(contained) + "/root/";
 
   bool failed = false;
   auto fail = [&](std::string const& what) {
@@ -180,7 +207,14 @@ int main() {
   if (host.libc_name.empty())  {
     fail("ordinary process: no library at an address in libc");
   }
+  if (!with_namespace)  {
+    std::cout << "failed = " << std::boolalpha << failed << "\n";
+    return failed ? EXIT_FAILURE : EXIT_SUCCESS;
+  }
 
+  lookup_result target;
+  bool const looked_up = lookup(contained, target);
+  auto const root = "/proc/" + std::to_string(contained) + "/root/";
   if (!looked_up)  {
     fail("process in a mount namespace: AddressLookup failed");
   }
@@ -205,6 +239,8 @@ int main() {
   std::cout << "failed = " << std::boolalpha << failed << "\n";
   return failed ? EXIT_FAILURE : EXIT_SUCCESS;
 #else
-  return EXIT_SUCCESS;
+  // The test itself uses Linux's ptrace requests, prctl() and /proc/<pid>/maps.
+  return skip_without_linux(std::string("ptrace, prctl(), /proc/<pid>/maps") +
+                            (which == "namespace" ? ", /proc/<pid>/root, unshare() with mount namespaces" : ""));
 #endif
 }
