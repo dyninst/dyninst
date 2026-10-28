@@ -45,6 +45,7 @@ void DYNINSTinit(void);
 int DYNINSTreturnZero(void);
 
 int DYNINSTinitializeTrapHandler(void);
+int DYNINSTinstallTrapHandler(int signo);
 void* dyninstTrapTranslate(void *source, 
                            volatile unsigned long *table_used,
                            volatile unsigned long *table_version,
