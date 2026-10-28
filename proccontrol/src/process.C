@@ -7529,6 +7529,19 @@ bool Thread::getAllRegisters(RegisterPool &pool) const
    return true;
 }
 
+// Cancel the emulated single step in flight before a register or step-mode change.  On failure
+// the change is not made, so the caller returns false with this error instead of reporting a
+// write that left the emulation (and some of its breakpoints) in place.
+static bool cancelEmulatedStepFor(const Thread *t, int_thread *thr, const char *what)
+{
+   if (thr->cancelEmulatedSingleStep() == aret_success)
+      return true;
+   perr_printf("%s: could not cancel the emulated single step on %d/%d\n", what,
+               thr->llproc()->getPid(), thr->getLWP());
+   t->setLastError(err_internal, "Could not cancel the emulated single step in flight");
+   return false;
+}
+
 bool Thread::setAllRegisters(RegisterPool &pool) const
 {
    MTLock lock_this_func;
@@ -7539,7 +7552,8 @@ bool Thread::setAllRegisters(RegisterPool &pool) const
    // the emulation's breakpoints and restores the step flag; if the thread is
    // still at the sequence when it is next continued, the step is set up again
    // from the new register values.
-   llthread_->cancelEmulatedSingleStep();
+   if (!cancelEmulatedStepFor(this, llthread_, "setAllRegisters"))
+      return false;
 
    result_response::ptr response = result_response::createResultResponse();
    bool result = llthread_->setAllRegisters(*pool.llregpool, response);
@@ -7594,7 +7608,8 @@ bool Thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val
    // Any register may decide where the sequence exits (the PC itself, the link
    // or count register of a return, the register of an indirect branch), so
    // every write cancels the emulated step in flight; see setAllRegisters.
-   llthread_->cancelEmulatedSingleStep();
+   if (!cancelEmulatedStepFor(this, llthread_, "setRegister"))
+      return false;
 
    result_response::ptr response = result_response::createResultResponse();
    bool result = llthread_->setRegister(reg, val, response);
@@ -7641,7 +7656,8 @@ bool Thread::setAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
 {
    MTLock lock_this_func;
    THREAD_EXIT_DETACH_STOP_TEST("getAllRegistersAsync", false);
-   llthread_->cancelEmulatedSingleStep();
+   if (!cancelEmulatedStepFor(this, llthread_, "setAllRegistersAsync"))
+      return false;
    pthrd_printf("User wants to async set registers on %d/%d\n",
                 llthread_->proc()->getPid(), llthread_->getLWP());
 
@@ -7821,7 +7837,7 @@ bool Thread::setSingleStepMode(bool s) const
       // emulated step only exists for a thread whose saved mode is on.
       if (s)
          return true;
-      if (llthread_->cancelEmulatedSingleStep() != aret_success)
+      if (!cancelEmulatedStepFor(this, llthread_, "setSingleStepMode"))
          return false;
    }
    llthread_->setSingleStepUserMode(s);
