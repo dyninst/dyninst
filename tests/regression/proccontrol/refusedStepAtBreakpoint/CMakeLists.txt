@@ -13,8 +13,6 @@ else()
   set(_refused_step_llsc_host 0)
 endif()
 
-add_executable(refused_step_mutatee mutatee.c)
-
 add_executable(refused_step_at_breakpoint refused_step.cpp)
 target_compile_options(refused_step_at_breakpoint PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
 target_link_libraries(refused_step_at_breakpoint PRIVATE pcontrol symtabAPI)
@@ -37,9 +35,26 @@ else()
   )
 endif()
 
+# The mutatee is in the test binaries, as proccontrol/refusedStepAtBreakpoint/<arch>.
+# Without them, or on a host with no mutatee, no path is passed and the test reports a skip.
+set(_mutatee)
+if(DYNINST_ENABLE_EXTERNAL_BINARY_TESTS AND _refused_step_llsc_host)
+  if(DYNINST_HOST_ARCH_AARCH64)
+    set(
+      _mutatee
+      "${DYNINST_TEST_BINARIES_DIR}/proccontrol/refusedStepAtBreakpoint/aarch64"
+    )
+  else()
+    set(
+      _mutatee
+      "${DYNINST_TEST_BINARIES_DIR}/proccontrol/refusedStepAtBreakpoint/ppc64le"
+    )
+  endif()
+endif()
+
 add_test(
   NAME proccontrol_refused_step_at_breakpoint
-  COMMAND refused_step_at_breakpoint $<TARGET_FILE:refused_step_mutatee>
+  COMMAND refused_step_at_breakpoint ${_mutatee}
 )
 set_tests_properties(
   proccontrol_refused_step_at_breakpoint
