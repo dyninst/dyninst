@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
   std::cout << "LD_LIBRARY_PATH=" << ld_path << "\n";
 
   if (!ptrace_allowed()) {
-    std::cerr << "ptrace is not permitted here; skipping\n";
+    std::cout << "skipping: ptrace is not permitted here\n";
     return 77;
   }
 
