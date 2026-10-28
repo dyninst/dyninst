@@ -95,19 +95,14 @@ namespace {
 }
 
 // With no arguments, check the addRegion layouts. With --binary, check
-// stat.nopie.stripped at the given path, or report a skip when there is none
-// (the test binaries are only available with DYNINST_ENABLE_TESTS=ALL).
+// stat.nopie.stripped at the given path.
 int main(int argc, char **argv) {
   if (argc == 1) {
     return check_add_region() ? EXIT_SUCCESS : EXIT_FAILURE;
   }
-  if (std::string(argv[1]) == "--binary" && argc <= 3) {
-    if (argc == 2) {
-      std::cout << "skipping: needs the test binaries (DYNINST_ENABLE_TESTS=ALL)\n";
-      return EXIT_SUCCESS;
-    }
+  if (argc == 3 && std::string(argv[1]) == "--binary") {
     return check_binary(argv[2]) ? EXIT_SUCCESS : EXIT_FAILURE;
   }
-  std::cerr << "Usage: " << argv[0] << " [--binary [<binary path>]]\n";
+  std::cerr << "Usage: " << argv[0] << " [--binary <binary path>]\n";
   return EXIT_FAILURE;
 }
