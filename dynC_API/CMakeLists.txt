@@ -2,12 +2,6 @@ include_guard(GLOBAL)
 
 include(DyninstLibrary)
 
-# dynC requires symtabAPI
-if(LIGHTWEIGHT_SYMTAB)
-  message(STATUS "LIGHTWEIGHT_SYMTAB enabled; dynC_API not built.")
-  return()
-endif()
-
 set(_public_headers h/dynC.h h/snippetGen.h)
 
 set(_private_headers src/dynC.tab.h)

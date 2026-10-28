@@ -70,7 +70,7 @@ if(DYNINST_OS_UNIX)
   endif()
 endif()
 
-set(_dyninst_deps common instructionAPI pcontrol ${SYMREADER})
+set(_dyninst_deps common instructionAPI pcontrol symtabAPI)
 if(SW_ANALYSIS_STEPPER)
   list(APPEND _dyninst_deps parseAPI)
 endif()

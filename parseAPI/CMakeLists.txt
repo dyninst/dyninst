@@ -38,6 +38,7 @@ set(
   src/ProbabilisticParser.C
   src/StackTamperVisitor.C
   src/SymbolicExpression.C
+  src/SymtabCodeSource.C
   src/ThunkData.C
 )
 
@@ -83,19 +84,12 @@ set(
   src/util.h
 )
 
-if(LIGHTWEIGHT_SYMTAB)
-  list(APPEND _parseapi_sources src/SymLiteCodeSource.C)
-  list(APPEND _parseapi_public_headers h/SymLiteCodeSource.h)
-else()
-  list(APPEND _parseapi_sources src/SymtabCodeSource.C)
-endif()
-
 dyninst_library(
   parseAPI
   PRIVATE_HEADER_FILES ${_parseapi_private_headers} ${_dataflow_private_headers}
   PUBLIC_HEADER_FILES ${_parseapi_public_headers} ${_dataflow_public_headers}
   SOURCE_FILES ${_parseapi_sources} ${_dataflow_sources}
-  DYNINST_DEPS common instructionAPI ${SYMREADER}
+  DYNINST_DEPS common instructionAPI symtabAPI
   HEADER_DEPS Dyninst::Boost_headers
   PRIVATE_DEPS OpenMP::OpenMP_CXX
 )
@@ -106,14 +100,6 @@ target_include_directories(
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dataflowAPI/h>"
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/dataflowAPI/>"
 )
-
-# When using symlite, we still need the symtabAPI headers
-if(LIGHTWEIGHT_SYMTAB)
-  target_include_directories(
-    parseAPI_headers
-    INTERFACE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/symtabAPI/h>"
-  )
-endif()
 
 foreach(t ${parseAPI_TARGETS})
   if(DYNINST_OS_Windows)

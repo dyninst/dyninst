@@ -35,20 +35,13 @@
 #include "stackwalk/src/sw.h"
 
 #include "parseAPI/h/CodeSource.h"
-#include "parseAPI/h/SymLiteCodeSource.h"
 #include "parseAPI/h/CodeObject.h"
 
 #include "instructionAPI/h/InstructionDecoder.h"
 
-#if defined(WITH_SYMLITE)
-#include "symlite/h/SymLite-elf.h"
-#elif defined(WITH_SYMTAB_API)
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/SymtabReader.h"
 using namespace Dyninst::SymtabAPI;
-#else
-#error "No defined symbol reader"
-#endif
 
 using namespace Dyninst;
 using namespace Stackwalker;
@@ -75,25 +68,6 @@ AnalysisStepperImpl::~AnalysisStepperImpl()
 }
 
 
-#if defined(WITH_SYMLITE)
-CodeSource *AnalysisStepperImpl::getCodeSource(std::string name)
-{
-  map<string, CodeSource*>::iterator found = srcs.find(name);
-  if(found != srcs.end()) return found->second;
-  
-  static SymElfFactory factory;
-  
-  SymReader* r = factory.openSymbolReader(name);
-  if(!r) return NULL;
-  
-  
-  SymReaderCodeSource *cs = new SymReaderCodeSource(r);
-  srcs[name] = cs;
-  readers[name] = r;
-  
-  return static_cast<CodeSource *>(cs);
-}
-#elif defined(WITH_SYMTAB_API)
 CodeSource* AnalysisStepperImpl::getCodeSource(std::string name)
 {
   map<string, CodeSource*>::iterator found = srcs.find(name);
@@ -107,10 +81,6 @@ CodeSource* AnalysisStepperImpl::getCodeSource(std::string name)
   
   return static_cast<CodeSource *>(cs);  
 }
-#else
-#error "Do symbol reader implementation"
-
-#endif
 
 CodeObject *AnalysisStepperImpl::getCodeObject(string name)
 {
