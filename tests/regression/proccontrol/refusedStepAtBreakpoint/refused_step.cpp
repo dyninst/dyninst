@@ -6,7 +6,8 @@
  *
  * Passes when the event loop keeps returning, the thread is reported stopped and is still
  * on the breakpoint, and the mutatee runs to a normal exit once the breakpoint and
- * single-step are off.
+ * single-step are off.  On any other host, where the code generator does not target the
+ * host, or with DYNINST_ENABLE_DYNAMIC_TESTS=OFF, it reports itself skipped (exit 77).
  */
 #include "Event.h"
 #include "PCProcess.h"
@@ -76,6 +77,16 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
   std::string path = argv[1];
+  if (!DYNINST_ENABLE_DYNAMIC_TESTS) {
+    std::printf(
+        "skipping: drives a live process, which DYNINST_ENABLE_DYNAMIC_TESTS=OFF turns off\n");
+    return 77;
+  }
+#if !REFUSED_STEP_LLSC_HOST
+  std::printf("skipping: emulated single steps through load-reserve/store-conditional sequences "
+              "exist only on ppc64le and aarch64 hosts whose code generator targets the host\n");
+  return 77;
+#endif
   std::signal(SIGALRM, on_alarm);
   alarm(60);
 
