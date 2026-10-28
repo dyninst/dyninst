@@ -298,7 +298,7 @@ void InstructionDecoder_riscv64::add_branch_insn_successors(
         static_cast<riscv_reg>(operands[1].reg), this->mode);
     auto const rs = makeRegisterExpression(target_reg);
     auto const imm =
-        Immediate::makeImmediate(Result(imm_type, operands[1].imm));
+        Immediate::makeImmediate(Result(imm_type, operands[2].imm));
     auto const target = makeAddExpression(std::move(rs), std::move(imm),
                                           std::max(reg_type, imm_type));
     const bool is_call_insn = link_reg != riscv64::zero;

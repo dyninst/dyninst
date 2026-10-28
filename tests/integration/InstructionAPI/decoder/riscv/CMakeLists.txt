@@ -92,3 +92,9 @@ target_link_libraries(
 )
 add_test(NAME instructionAPI_pseudo_riscv64 COMMAND pseudo)
 set_tests_properties(instructionAPI_pseudo_riscv64 PROPERTIES LABELS "integration")
+
+add_executable(jalr_target jalr_target.cpp)
+target_compile_options(jalr_target PRIVATE ${RISCV_INST_TESTS_CXX_WARNING_FLAGS})
+target_link_libraries(jalr_target PRIVATE instructionAPI)
+add_test(NAME instructionAPI_jalr_target_riscv64 COMMAND jalr_target)
+set_tests_properties(instructionAPI_jalr_target_riscv64 PROPERTIES LABELS "integration")
