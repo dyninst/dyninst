@@ -1,56 +1,91 @@
 #include "common/src/dyninst_filesystem.h"
+#include "dyninst_test_skip.h"
 
 #include <array>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
+#include <cerrno>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <limits>
 #include <string>
 
-#ifdef __linux__  // os_linux is defined for the libraries, not the unit tests
+#ifdef os_linux
 #include <sched.h>
 #include <signal.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
+// Printed when unshare() is refused
+static char const userns_hint[] =
+    "Unprivileged user namespaces are not available here (for example with\n"
+    "user.max_user_namespaces=0, or under Docker's default seccomp profile).\n"
+    "Where that is expected, configure with -DDYNINST_ENABLE_USERNS_TESTS=OFF.\n";
+
+// Whether AppArmor restricts unprivileged user namespaces, as Ubuntu 23.10 and later
+// do by default: they can be created, but the process has no capabilities in them.
+static bool apparmor_restricts_userns() {
+  std::ifstream setting("/proc/sys/kernel/apparmor_restrict_unprivileged_userns");
+  int value = 0;
+  return (setting >> value) && value == 1;
+}
 #endif
 
 static int test_canonicalize();
 static int test_resolve_in_root_fs();
 static int test_canonicalize_procfs();
+static int test_canonicalize_procfs_namespace();
 static int test_executable_path();
+static int test_executable_path_namespace();
+static int test_executable_path_chroot();
 static int test_exists();
 static int test_replace_extension();
 static int test_append_filename_suffix();
 static int test_strip_all_extensions();
 
-int main() {
-  std::array<int(*)(), 8> tests = {{
-      test_canonicalize,
-      test_resolve_in_root_fs,
-      test_canonicalize_procfs,
-      test_executable_path,
-      test_exists,
-      test_replace_extension,
-      test_append_filename_suffix,
-      test_strip_all_extensions
+// Each case is its own test: the program runs the one named by its argument. The cases
+// that test the library's Linux implementation (os_linux) skip elsewhere, naming what
+// they use.
+int main(int argc, char** argv) {
+  struct test_case {
+    char const* name;
+    int (*run)();
+  };
+  std::array<test_case, 11> const cases = {{
+      {"canonicalize", test_canonicalize},
+      {"resolve_in_root_fs", test_resolve_in_root_fs},
+      {"canonicalize_procfs", test_canonicalize_procfs},
+      {"canonicalize_procfs_namespace", test_canonicalize_procfs_namespace},
+      {"executable_path", test_executable_path},
+      {"executable_path_namespace", test_executable_path_namespace},
+      {"executable_path_chroot", test_executable_path_chroot},
+      {"exists", test_exists},
+      {"replace_extension", test_replace_extension},
+      {"append_filename_suffix", test_append_filename_suffix},
+      {"strip_all_extensions", test_strip_all_extensions}
   }};
 
-  bool failed = false;
-  for(auto t : tests) {
-    if(t() == EXIT_FAILURE) {
-      failed = true;
+  if(argc == 2) {
+    for(auto const& c : cases) {
+      if(std::string(argv[1]) == c.name) {
+        return c.run();
+      }
     }
   }
-  std::cout << "failed = " << std::boolalpha << failed << "\n";
-  return failed ? EXIT_FAILURE : EXIT_SUCCESS;
+  std::cerr << "usage: " << argv[0] << " <case>, one of:";
+  for(auto const& c : cases) {
+    std::cerr << " " << c.name;
+  }
+  std::cerr << "\n";
+  return EXIT_FAILURE;
 }
 
 int test_canonicalize_procfs() {
-#ifdef __linux__
+#ifdef os_linux
   namespace bf = boost::filesystem;
   namespace df = Dyninst::filesystem;
 
@@ -103,6 +138,29 @@ int test_canonicalize_procfs() {
     std::cerr << "canonicalize: '" << exe << "' did not resolve to the executable\n";
     return cleanup(EXIT_FAILURE);
   }
+  return cleanup(EXIT_SUCCESS);
+#else
+  return skip_without_linux("/proc/<pid>/root, /proc/<pid>/ns/mnt");
+#endif
+}
+
+// Needs unprivileged user namespaces; with DYNINST_ENABLE_USERNS_TESTS on, not
+// having them is a failure.
+int test_canonicalize_procfs_namespace() {
+#ifdef os_linux
+  namespace bf = boost::filesystem;
+  namespace df = Dyninst::filesystem;
+
+  // Not the file of canonicalize_procfs, which may run at the same time.
+  auto const test_path = bf::absolute("procfs-canonicalize-namespace-test.out").string();
+  {
+    std::ofstream fs{test_path};
+    if(!fs) {
+      std::cerr << "Failed to create '" << test_path << "'\n";
+      return EXIT_FAILURE;
+    }
+  }
+  auto const cleanup = [&](int ret) { bf::remove(test_path); return ret; };
 
   // A process with its own mount namespace: names are opened through /proc/<pid>/root.
   int ready[2];
@@ -117,8 +175,8 @@ int test_canonicalize_procfs() {
   }
   if(child == 0) {
     close(ready[0]);
-    char ok = unshare(CLONE_NEWUSER | CLONE_NEWNS) == 0 ? 1 : 0;
-    if(write(ready[1], &ok, 1) != 1) {
+    int err = unshare(CLONE_NEWUSER | CLONE_NEWNS) == 0 ? 0 : errno;
+    if(write(ready[1], &err, sizeof err) != static_cast<ssize_t>(sizeof err)) {
       perror("write");
       _exit(1);
     }
@@ -126,14 +184,19 @@ int test_canonicalize_procfs() {
     _exit(0);
   }
   close(ready[1]);  // so read() sees EOF if the child dies first
-  char ok = 0;
-  bool const unshared = read(ready[0], &ok, 1) == 1 && ok;
+  int err = -1;
+  bool const unshared =
+      read(ready[0], &err, sizeof err) == static_cast<ssize_t>(sizeof err) && err == 0;
   int ret = EXIT_SUCCESS;
   auto const proc = "/proc/" + std::to_string(child);
   if(!unshared) {
-    std::cerr << "skipping the mount-namespace case: unshare() is not permitted here\n";
+    std::cerr << "unshare(CLONE_NEWUSER | CLONE_NEWNS): "
+              << (err > 0 ? std::strerror(err) : "no answer from the child") << "\n"
+              << userns_hint;
+    ret = EXIT_FAILURE;
   } else if(access((proc + "/root/").c_str(), R_OK) != 0) {
-    std::cerr << "skipping the mount-namespace case: cannot read " << proc << "/root\n";
+    std::cerr << "cannot read " << proc << "/root\n";
+    ret = EXIT_FAILURE;
   } else if(!df::has_distinct_filesystem_view(child)) {
     std::cerr << "has_distinct_filesystem_view: false for a process in another mount namespace\n";
     ret = EXIT_FAILURE;
@@ -157,12 +220,11 @@ int test_canonicalize_procfs() {
   close(ready[0]);
   return cleanup(ret);
 #else
-  return EXIT_SUCCESS;
+  return skip_without_linux("/proc/<pid>/root, unshare() with mount namespaces");
 #endif
 }
 
 int test_resolve_in_root_fs() {
-#ifdef __linux__
   namespace bf = boost::filesystem;
   auto const root = bf::temp_directory_path() / bf::unique_path("dyninst-root-%%%%-%%%%-%%%%");
   auto const library = root / "opt/pkg/lib.so";
@@ -242,13 +304,10 @@ int test_resolve_in_root_fs() {
   }
   bf::remove_all(outer);
   return failed ? EXIT_FAILURE : EXIT_SUCCESS;
-#else
-  return EXIT_SUCCESS;
-#endif
 }
 
 int test_executable_path() {
-#ifdef __linux__
+#ifdef os_linux
   namespace bf = boost::filesystem;
   namespace df = Dyninst::filesystem;
 
@@ -259,6 +318,17 @@ int test_executable_path() {
     std::cerr << "executable_path: '" << df::executable_path(self) << "' is not this program's path\n";
     return EXIT_FAILURE;
   }
+  return EXIT_SUCCESS;
+#else
+  return skip_without_linux("/proc/<pid>/exe");
+#endif
+}
+
+// Needs unprivileged user namespaces; with DYNINST_ENABLE_USERNS_TESTS on, not
+// having them is a failure.
+int test_executable_path_namespace() {
+#ifdef os_linux
+  namespace df = Dyninst::filesystem;
 
   // A process with its own mount namespace: a name inside /proc/<pid>/root
   // that reaches the running program, and changes when the process execs.
@@ -279,8 +349,8 @@ int test_executable_path() {
   if (child == 0)  {
     close(ready[0]);
     close(go[1]);
-    char ok = unshare(CLONE_NEWUSER | CLONE_NEWNS) == 0 ? 1 : 0;
-    if (write(ready[1], &ok, 1) != 1)  {
+    int err = unshare(CLONE_NEWUSER | CLONE_NEWNS) == 0 ? 0 : errno;
+    if (write(ready[1], &err, sizeof err) != static_cast<ssize_t>(sizeof err))  {
       perror("write");
       _exit(1);
     }
@@ -292,8 +362,9 @@ int test_executable_path() {
   }
   close(ready[1]);
   close(go[0]);
-  char ok = 0;
-  bool const unshared = read(ready[0], &ok, 1) == 1 && ok;
+  int err = -1;
+  bool const unshared =
+      read(ready[0], &err, sizeof err) == static_cast<ssize_t>(sizeof err) && err == 0;
   auto const proc = "/proc/" + std::to_string(child);
   auto const exe = proc + "/exe";
   auto const same_file = [&exe](std::string const& name) {
@@ -311,9 +382,13 @@ int test_executable_path() {
   };
   int ret = EXIT_SUCCESS;
   if (!unshared)  {
-    std::cerr << "skipping the mount-namespace case: unshare() is not permitted here\n";
+    std::cerr << "unshare(CLONE_NEWUSER | CLONE_NEWNS): "
+              << (err > 0 ? std::strerror(err) : "no answer from the child") << "\n"
+              << userns_hint;
+    ret = EXIT_FAILURE;
   } else if (access((proc + "/root/").c_str(), R_OK) != 0)  {
-    std::cerr << "skipping the mount-namespace case: cannot read " << proc << "/root\n";
+    std::cerr << "cannot read " << proc << "/root\n";
+    ret = EXIT_FAILURE;
   } else {
     struct stat before{};
     stat(exe.c_str(), &before);
@@ -350,11 +425,25 @@ int test_executable_path() {
   waitpid(child, nullptr, 0);
   close(ready[0]);
   close(go[1]);
+  return ret;
+#else
+  return skip_without_linux("/proc/<pid>/exe, /proc/<pid>/root, unshare() with mount namespaces");
+#endif
+}
+
+// Needs unprivileged user namespaces; with DYNINST_ENABLE_USERNS_TESTS on, not
+// having them is a failure.
+int test_executable_path_chroot() {
+#ifdef os_linux
+  namespace bf = boost::filesystem;
+  namespace df = Dyninst::filesystem;
 
   // A process chrooted into this program's directory: our view reaches its
   // root, so the link's text is our own path to the program, but the name is
   // still the target's path under /proc/<pid>/root.
+  auto const self_exe = "/proc/" + std::to_string(getpid()) + "/exe";
   auto const program = bf::canonical(self_exe);
+  int ready[2];
   if (pipe(ready) != 0)  {
     perror("pipe");
     return EXIT_FAILURE;
@@ -366,9 +455,17 @@ int test_executable_path() {
   }
   if (jailed == 0)  {
     close(ready[0]);
-    char jailed_ok = unshare(CLONE_NEWUSER | CLONE_NEWNS) == 0 &&
-                     chroot(program.parent_path().c_str()) == 0 && chdir("/") == 0 ? 1 : 0;
-    if (write(ready[1], &jailed_ok, 1) != 1)  {
+    // Which step failed (0 if none), and its errno
+    int result[2] = {0, 0};
+    if (unshare(CLONE_NEWUSER | CLONE_NEWNS) != 0)  {
+      result[0] = 1;
+    } else if (chroot(program.parent_path().c_str()) != 0)  {
+      result[0] = 2;
+    } else if (chdir("/") != 0)  {
+      result[0] = 3;
+    }
+    result[1] = result[0] ? errno : 0;
+    if (write(ready[1], result, sizeof result) != static_cast<ssize_t>(sizeof result))  {
       perror("write");
       _exit(1);
     }
@@ -376,13 +473,26 @@ int test_executable_path() {
     _exit(0);
   }
   close(ready[1]);
-  ok = 0;
-  bool const chrooted = read(ready[0], &ok, 1) == 1 && ok;
+  int result[2] = {-1, 0};
+  int ret = EXIT_SUCCESS;
+  bool skip = false;
+  bool const answered = read(ready[0], result, sizeof result) == static_cast<ssize_t>(sizeof result);
   auto const jail = "/proc/" + std::to_string(jailed);
-  if (!chrooted)  {
-    std::cerr << "skipping the chroot case: unshare() or chroot() is not permitted here\n";
+  if (!answered)  {
+    std::cerr << "no answer from the child about unshare() and chroot()\n";
+    ret = EXIT_FAILURE;
+  } else if (result[0] == 2 && result[1] == EPERM && apparmor_restricts_userns())  {
+    skip = true;
+  } else if (result[0] != 0)  {
+    char const* const steps[] = {"", "unshare(CLONE_NEWUSER | CLONE_NEWNS)", "chroot()", "chdir(\"/\")"};
+    std::cerr << steps[result[0]] << ": " << std::strerror(result[1]) << "\n";
+    if (result[0] == 1)  {
+      std::cerr << userns_hint;
+    }
+    ret = EXIT_FAILURE;
   } else if (access((jail + "/root/").c_str(), R_OK) != 0)  {
-    std::cerr << "skipping the chroot case: cannot read " << jail << "/root\n";
+    std::cerr << "cannot read " << jail << "/root\n";
+    ret = EXIT_FAILURE;
   } else {
     auto const expected = jail + "/root/" + program.filename().string();
     auto const name = df::executable_path(jailed);
@@ -394,9 +504,13 @@ int test_executable_path() {
   kill(jailed, SIGKILL);
   waitpid(jailed, nullptr, 0);
   close(ready[0]);
+  if (skip)  {
+    return skip_message("AppArmor gives no capabilities in unprivileged user namespaces "
+                        "(kernel.apparmor_restrict_unprivileged_userns=1), so chroot() is refused");
+  }
   return ret;
 #else
-  return EXIT_SUCCESS;
+  return skip_without_linux("/proc/<pid>/root, unshare(), chroot()");
 #endif
 }
 
@@ -410,8 +524,7 @@ int test_canonicalize() {
   }();
 
   if(home.empty()) {
-    std::cerr << "'HOME' not defined in environment\n";
-    return EXIT_FAILURE;
+    return skip_message("HOME is not set");
   }
 
   auto user = []() -> std::string {
@@ -423,8 +536,7 @@ int test_canonicalize() {
   }();
 
   if(user.empty()) {
-    std::cerr << "'USER' not defined in environment\n";
-    return EXIT_FAILURE;
+    return skip_message("USER is not set");
   }
 
   struct test {
