@@ -246,6 +246,8 @@ void emitSopP(unsigned opcode, int16_t simm16, codeGen &gen) {
   append_memory_as(rawInstBuffer, newRawInst);
   gen.update(rawInstBuffer);
 }
+
+void emitTTraceData(codeGen &gen) { emitSopP(S_TTRACEDATA, /* simm16 */ 0, gen); }
 // === SOPP END ===
 
 // === SMEM BEGIN ===
