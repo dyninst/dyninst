@@ -270,7 +270,8 @@ endfunction()
 #
 # USES names the library targets whose headers the examples include, default
 # <module>.  Borrow their usage requirements; do not link them, or "make docs"
-# builds all of Dyninst to typeset a manual.
+# builds all of Dyninst to typeset a manual.  Each must be a target; any
+# other name stops configure.
 #
 # Borrow include directories as $<TARGET_PROPERTY:...>, never with
 # get_target_property: the value holds $<BUILD_INTERFACE:a;b;c>, and any list
@@ -319,6 +320,18 @@ function(dyninst_validate_listings _module)
   if(NOT V_USES)
     set(V_USES ${_module})
   endif()
+
+  # A name that is not a target has no include path to lend, so the examples
+  # would fail at their first #include, far from the cause.  Stop here
+  # instead.  The usual reason is a misspelled name.
+  foreach(_t ${V_USES})
+    if(NOT TARGET ${_t})
+      message(
+        FATAL_ERROR
+        "dyninst_validate_listings(${_module}): USES '${_t}' is not a target"
+      )
+    endif()
+  endforeach()
 
   _dyninst_listing_targets("${V_USES}" _local _imported)
 
