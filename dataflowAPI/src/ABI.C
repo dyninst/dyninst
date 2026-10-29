@@ -83,33 +83,33 @@ std::map<MachRegister,int>* ABI::getIndexMap(){
 	return index;
 }
 
+struct ABI::RegisterSets {
+    bitArray callRead, callWritten, returnRead, returnRegs, callParam;
+    bitArray syscallRead, syscallWritten, allRegs;
+};
+
 ABI* ABI::getABI(Architecture arch){
-    if (globalABI_ == NULL){
-	    globalABI64_ = new ABI();
-	    globalABI64_->addr_width = 8;
-        switch(arch) {
-            case Arch_amdgpu_gfx908:
-                globalABI64_->index = &machRegIndex_amdgpu_gfx908();
-                break;
-            case Arch_amdgpu_gfx90a:
-                globalABI64_->index = &machRegIndex_amdgpu_gfx90a();
-                break;
-            case Arch_amdgpu_gfx940:
-                globalABI64_->index = &machRegIndex_amdgpu_gfx940();
-                break;
-            case Arch_amdgpu_gfx950:
-                globalABI64_->index = &machRegIndex_amdgpu_gfx950();
-                break;
-            default:
-                assert(0 && "getABI(arch) currently only support AMDGPU!");
-                break;
-        }
-        initialize64(arch);
+    // One ABI per architecture, built on first use and only read afterwards. No AMDGPU
+    // calling convention is modelled: calls read and write nothing, nothing is live at a
+    // return, and a trap reads and writes everything.
+    auto make = [](RegisterMap &index) {
+        auto const n = index.size();
+        ABI *abi = new ABI();
+        abi->addr_width = 8;
+        abi->index = &index;
+        abi->sets_ = new RegisterSets{bitArray(n), bitArray(n), bitArray(n), bitArray(n), bitArray(n),
+                                      bitArray(n).set(), bitArray(n).set(), bitArray(n).set()};
+        return abi;
+    };
+    switch(arch) {
+        case Arch_amdgpu_gfx908: { static ABI *const abi = make(machRegIndex_amdgpu_gfx908()); return abi; }
+        case Arch_amdgpu_gfx90a: { static ABI *const abi = make(machRegIndex_amdgpu_gfx90a()); return abi; }
+        case Arch_amdgpu_gfx940: { static ABI *const abi = make(machRegIndex_amdgpu_gfx940()); return abi; }
+        case Arch_amdgpu_gfx950: { static ABI *const abi = make(machRegIndex_amdgpu_gfx950()); return abi; }
+        default:
+            assert(0 && "getABI(arch) currently only support AMDGPU!");
+            return nullptr;
     }
-    if (arch != Arch_amdgpu_gfx908 && arch!= Arch_amdgpu_gfx90a && arch != Arch_amdgpu_gfx940 && arch != Arch_amdgpu_gfx950){
-        assert(0 && "getABI(arch) currently only support AMDGPU!");
-    }
-    return globalABI64_;
 }
 
 ABI* ABI::getABI(int addr_width){
@@ -161,6 +161,8 @@ ABI* ABI::getABI(int addr_width){
 
 
 const bitArray &ABI::getCallReadRegisters() const {
+    if (sets_)
+        return sets_->callRead;
     if (addr_width == 4)
         return *callRead_;
     else if (addr_width == 8)
@@ -171,6 +173,8 @@ const bitArray &ABI::getCallReadRegisters() const {
     }
 }
 const bitArray &ABI::getCallWrittenRegisters() const {
+    if (sets_)
+        return sets_->callWritten;
     if (addr_width == 4)
         return *callWritten_;
     else if (addr_width == 8)
@@ -182,6 +186,8 @@ const bitArray &ABI::getCallWrittenRegisters() const {
 }
 
 const bitArray &ABI::getReturnReadRegisters() const {
+    if (sets_)
+        return sets_->returnRead;
     if (addr_width == 4)
         return *returnRead_;
     else if (addr_width == 8)
@@ -193,6 +199,8 @@ const bitArray &ABI::getReturnReadRegisters() const {
 }
 
 const bitArray &ABI::getReturnRegisters() const {
+    if (sets_)
+        return sets_->returnRegs;
     if (addr_width == 4)
         return *returnRegs_;
     else if (addr_width == 8)
@@ -204,6 +212,8 @@ const bitArray &ABI::getReturnRegisters() const {
 }
 
 const bitArray &ABI::getParameterRegisters() const {
+    if (sets_)
+        return sets_->callParam;
     if (addr_width == 4)
         return *callParam_;
     else if (addr_width == 8)
@@ -215,6 +225,8 @@ const bitArray &ABI::getParameterRegisters() const {
 }
 
 const bitArray &ABI::getSyscallReadRegisters() const {
+    if (sets_)
+        return sets_->syscallRead;
     if (addr_width == 4)
         return *syscallRead_;
     else if (addr_width == 8)
@@ -225,6 +237,8 @@ const bitArray &ABI::getSyscallReadRegisters() const {
     }
 }
 const bitArray &ABI::getSyscallWrittenRegisters() const {
+    if (sets_)
+        return sets_->syscallWritten;
     if (addr_width == 4)
         return *syscallWritten_;
     else if (addr_width == 8)
@@ -237,6 +251,8 @@ const bitArray &ABI::getSyscallWrittenRegisters() const {
 
 const bitArray &ABI::getAllRegs() const
 {
+   if (sets_)
+      return sets_->allRegs;
    if (addr_width == 4)
       return *allRegs_;
    else if (addr_width == 8)
@@ -777,39 +793,3 @@ void ABI::initialize64(){
 	allRegs64_ = &getBitArray(sz)->set();
 }
 #endif
-
-void ABI::initialize64(Architecture arch){
-    int sz;
-    switch(arch){
-        case Arch_amdgpu_gfx908:{
-            RegisterMap amdgpu_gfx908_map = machRegIndex_amdgpu_gfx908();
-            sz = amdgpu_gfx908_map.size();
-            break;
-        }
-        case Arch_amdgpu_gfx90a:{
-            RegisterMap amdgpu_gfx90a_map = machRegIndex_amdgpu_gfx90a();
-            sz = amdgpu_gfx90a_map.size();
-            break;
-        }
-        case Arch_amdgpu_gfx940:{
-            RegisterMap amdgpu_gfx940_map = machRegIndex_amdgpu_gfx940();
-            sz = amdgpu_gfx940_map.size();
-            break;
-        }
-        case Arch_amdgpu_gfx950:{
-            RegisterMap amdgpu_gfx950_map = machRegIndex_amdgpu_gfx950();
-            sz = amdgpu_gfx950_map.size();
-            break;
-        }
-        default:
-        assert(0 && "This call is currently implemented for AMDGPU gfx908, gfx90a, gfx940 and gfx950 only");
-    }
-    returnRegs64_ = getBitArray(sz);
-    returnRead64_ = getBitArray(sz);
-    callParam64_ = getBitArray(sz);
-    callRead64_ = getBitArray(sz);
-    callWritten64_ = callRead64_;
-    syscallRead64_ = &getBitArray(sz)->set();
-    syscallWritten64_ = &getBitArray(sz)->set();
-    allRegs64_ = &getBitArray(sz)->set();
-}
