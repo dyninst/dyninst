@@ -81,8 +81,7 @@ BPatch_edge::BPatch_edge(edge_instance *e,
    edge = e;
    fg = FG;
    
-   // point is set when this edge is instrumented. instAddr is set
-   // when either this edge or its conditional buddy is instrumented
+   // getPoint creates the point the first time it is called
    point = NULL;    
 }
 
