@@ -1,9 +1,5 @@
 include_guard(GLOBAL)
 
-if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  return()
-endif()
-
 # The check attaches to the target with ptrace.
 dyninst_add_test_executable(
   undefined_ra_target

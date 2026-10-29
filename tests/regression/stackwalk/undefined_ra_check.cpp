@@ -9,8 +9,9 @@
 //         (start_thread, thread_start) must both be in libc.
 // main:   the walk must reach _start (in the target executable).
 //
-// Exit codes: 0 pass, 1 fail, 77 skip (prints "skipping: <reason>").
+// Exit codes: 0 pass, 1 fail, 77 skip (prints "skipped: <reason>").
 
+#include "dyninst_test_skip.h"
 #include "frame.h"
 #include "swk_errors.h"
 #include "walker.h"
@@ -19,23 +20,24 @@
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
-#include <gnu/libc-version.h>
 #include <string>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <vector>
 
+#if defined(__aarch64__) && defined(__GLIBC__)
+#include <gnu/libc-version.h>
+#endif
+
 namespace sw = Dyninst::Stackwalker;
 
 namespace {
-
-constexpr int skip = 77;
 
 // Only on AArch64 with glibc >= 2.34 does the worker's walk reach thread_start.
 // Older glibc keeps start_thread in libpthread, where the bottom-of-stack
 // stepper stops the walk first.
 bool walk_reaches_thread_start() {
-#if defined(__aarch64__)
+#if defined(__aarch64__) && defined(__GLIBC__)
     int major = 0, minor = 0;
     if (std::sscanf(gnu_get_libc_version(), "%d.%d", &major, &minor) != 2)
         return false;
@@ -103,8 +105,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     if (!walk_reaches_thread_start()) {
-        std::printf("skipping: needs AArch64 with glibc >= 2.34\n");
-        return skip;
+        return skip_message("needs AArch64 with glibc >= 2.34");
     }
 
     // The target writes one byte once its worker thread is running.
