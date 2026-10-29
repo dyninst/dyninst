@@ -71,6 +71,12 @@ mark_as_advanced(_dyninst_test_types)
 set(DYNINST_ENABLE_TESTS "OFF" CACHE STRING "Build tests (${_dyninst_test_types})")
 set_property(CACHE DYNINST_ENABLE_TESTS PROPERTY STRINGS ${_dyninst_test_types})
 
+option(
+  DYNINST_ENABLE_DYNAMIC_TESTS
+  "Run the tests that attach to a live process; when OFF they report themselves as skipped"
+  ON
+)
+
 option(DYNINST_ENABLE_FILEFORMAT_PE "Enable PE (Windows .exe/.dll) parsing" OFF)
 
 option(DYNINST_ENABLE_CAPSTONE "Enable Capstone" OFF)

@@ -103,6 +103,9 @@ class DYNINST_EXPORT SymtabReader : public SymReader {
    virtual Dyninst::Offset dataOffset();  
 
    virtual void *getElfHandle();
+
+   // The Symtab this reader reads from; it remains owned by the reader.
+   Symtab *getSymtab() const { return symtab; }
   private:
    void buildSegments();
 };
