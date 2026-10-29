@@ -38,6 +38,6 @@ int main(int argc, char **argv) {
     }
   }
 
-  printf("parsed %zu functions\n", co.funcs().size());
+  fprintf(stderr, "parsed %zu functions\n", co.funcs().size());
   return 0;
 }

@@ -71,9 +71,17 @@ mark_as_advanced(_dyninst_test_types)
 set(DYNINST_ENABLE_TESTS "OFF" CACHE STRING "Build tests (${_dyninst_test_types})")
 set_property(CACHE DYNINST_ENABLE_TESTS PROPERTY STRINGS ${_dyninst_test_types})
 
+# Tests that need a feature the test host may lack. Turn one off only where the
+# feature is known to be missing: while it is on, a test that cannot use the
+# feature fails rather than skips, so a host that loses it is noticed.
 option(
   DYNINST_ENABLE_DYNAMIC_TESTS
   "Run the tests that attach to a live process; when OFF they report themselves as skipped"
+  ON
+)
+option(
+  DYNINST_ENABLE_USERNS_TESTS
+  "Enable tests that create unprivileged user namespaces (unshare)"
   ON
 )
 

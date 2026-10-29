@@ -1,28 +1,22 @@
 project(tests_dataflowAPI_rose_semantics LANGUAGES CXX)
 
-add_executable(rose_semantics_aarch64_ldst aarch64_ldst.cpp)
-target_compile_options(rose_semantics_aarch64_ldst PRIVATE ${UNIT_TESTS_WARNING_FLAGS})
-target_link_libraries(rose_semantics_aarch64_ldst PRIVATE parseAPI)
-add_test(NAME rose_semantics_aarch64_ldst COMMAND rose_semantics_aarch64_ldst)
-set_tests_properties(rose_semantics_aarch64_ldst PROPERTIES LABELS "unit")
+dyninst_add_test(
+  rose_semantics_aarch64_ldst
+  TYPE unit
+  SOURCE_FILES aarch64_ldst.cpp
+  DEPS parseAPI
+)
 
-add_executable(rose_semantics_aarch64_ldst_pair aarch64_ldst_pair.cpp)
-target_compile_options(
+dyninst_add_test(
   rose_semantics_aarch64_ldst_pair
-  PRIVATE ${UNIT_TESTS_WARNING_FLAGS}
+  TYPE unit
+  SOURCE_FILES aarch64_ldst_pair.cpp
+  DEPS parseAPI
 )
-target_link_libraries(rose_semantics_aarch64_ldst_pair PRIVATE parseAPI)
-add_test(NAME rose_semantics_aarch64_ldst_pair COMMAND rose_semantics_aarch64_ldst_pair)
-set_tests_properties(rose_semantics_aarch64_ldst_pair PROPERTIES LABELS "unit")
 
-add_executable(rose_semantics_aarch64_branch_shift aarch64_branch_shift.cpp)
-target_compile_options(
+dyninst_add_test(
   rose_semantics_aarch64_branch_shift
-  PRIVATE ${UNIT_TESTS_WARNING_FLAGS}
+  TYPE unit
+  SOURCE_FILES aarch64_branch_shift.cpp
+  DEPS parseAPI
 )
-target_link_libraries(rose_semantics_aarch64_branch_shift PRIVATE parseAPI)
-add_test(
-  NAME rose_semantics_aarch64_branch_shift
-  COMMAND rose_semantics_aarch64_branch_shift
-)
-set_tests_properties(rose_semantics_aarch64_branch_shift PROPERTIES LABELS "unit")

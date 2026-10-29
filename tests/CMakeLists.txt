@@ -2,6 +2,8 @@ include_guard(GLOBAL)
 
 list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/tests/cmake")
 
+include(DyninstTestRequirements)
+
 string(TOUPPER ${DYNINST_ENABLE_TESTS} _test_flag)
 
 # If a TRUE "truthy" value was given, enable unit tests only

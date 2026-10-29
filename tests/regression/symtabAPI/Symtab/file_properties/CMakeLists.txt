@@ -28,9 +28,7 @@ foreach(
   "isPositionIndependent"
   "isStaticBinary"
 )
-  add_executable(${t} "${t}.cpp")
-  target_compile_options(${t} PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
-  target_link_libraries(${t} PRIVATE symtabAPI)
+  dyninst_add_test_executable(${t} SOURCE_FILES "${t}.cpp" DEPS symtabAPI)
 endforeach()
 
 # Test shared libraries
@@ -38,13 +36,10 @@ foreach(main_t "hasmain" "none")
   foreach(strip_t "stripped" "none")
     # The '_pic' makes creating the test targets easier
     set(_targ "sharedlib_${main_t}_${strip_t}_pic")
-
     make_lib_test(SHARED ${_targ})
-
     if(strip_t STREQUAL "stripped")
       target_link_libraries(${_targ} "-s")
     endif()
-
     if(main_t STREQUAL "hasmain")
       target_compile_definitions(${_targ} PRIVATE "HAS_MAIN")
       target_compile_definitions(${_targ} PRIVATE "ADD_INTERP")
@@ -56,18 +51,19 @@ endforeach()
 # Test static libraries
 make_lib_test(STATIC "staticlib")
 
-if(DYNINST_CXX_STATIC_EXE_SUPPORTED)
-  set(_static_link "staticlink")
-endif()
-
-# Test executables
+# Test executables. The staticlink ones are built only if the toolchain can link a
+# static executable; their tests are registered either way, and skipped without them.
+dyninst_test_skip_reason(_no_static_exe REQUIRES static_exe)
 foreach(strip_t "stripped" "none")
   foreach(pic_t "pic" "none")
-    foreach(link_t ${_static_link} "dynlink")
+    foreach(link_t "staticlink" "dynlink")
       set(_targ "exectest_${strip_t}_${pic_t}_${link_t}")
+      if(link_t STREQUAL "staticlink" AND _no_static_exe)
+        list(APPEND _all_tests ${_targ})
+        continue()
+      endif()
       make_exec_test(${_targ})
-
-      if(link_t STREQUAL "${_static_link}")
+      if(link_t STREQUAL "staticlink")
         if(pic_t STREQUAL "pic" AND DYNINST_CXX_STATIC_PIE_SUPPORTED)
           # use static-pie
           target_link_options(${_targ} PRIVATE ${DYNINST_CXX_STATIC_PIE_FLAG})
@@ -81,7 +77,6 @@ foreach(strip_t "stripped" "none")
         endif()
         set_property(TARGET ${_targ} PROPERTY POSITION_INDEPENDENT_CODE ${_use_pic})
       endif()
-
       if(strip_t STREQUAL "stripped")
         # '-s' works for gcc and clang
         target_link_libraries(${_targ} "-s")
@@ -90,64 +85,85 @@ foreach(strip_t "stripped" "none")
   endforeach()
 endforeach()
 
-foreach(test_name ${_all_tests})
-  set(test_file $<TARGET_FILE:${test_name}>)
-
-  set(_targ "symtab_file_properties_isExec_${test_name}")
-  # TODO: get __attribute__((section(".interp"))) working
-  if(NOT "${test_name}" MATCHES "sharedlib" AND NOT "${test_name}" MATCHES "hasmain")
-    add_test(NAME ${_targ} COMMAND $<TARGET_FILE:isExec> "${test_file}")
-    if(NOT "${test_name}" MATCHES "exectest")
-      set_tests_properties(${_targ} PROPERTIES WILL_FAIL TRUE)
-    endif()
-    if("${test_name}" MATCHES "staticlib")
-      set_tests_properties(${_targ} PROPERTIES WILL_FAIL TRUE)
-    endif()
-    set_tests_properties(${_targ} PROPERTIES LABELS "regression")
+# Registers the test of <checker> on <test_name>, expected to fail if <will_fail>
+function(_file_properties_test checker test_name will_fail)
+  set(_requires)
+  if("${test_name}" MATCHES "staticlink")
+    set(_requires static_exe)
   endif()
-
-  set(_targ "symtab_file_properties_isExecutable_${test_name}")
-  # TODO: get __attribute__((section(".interp"))) working
-  if(NOT "${test_name}" MATCHES "sharedlib" AND NOT "${test_name}" MATCHES "hasmain")
-    add_test(NAME ${_targ} COMMAND $<TARGET_FILE:isExecutable> "${test_file}")
-    if("${test_name}" MATCHES "staticlib")
-      set_tests_properties(${_targ} PROPERTIES WILL_FAIL TRUE)
-    endif()
-    set_tests_properties(${_targ} PROPERTIES LABELS "regression")
+  set(_props)
+  if(will_fail)
+    set(_props WILL_FAIL TRUE)
   endif()
-
-  set(_targ "symtab_file_properties_isSharedLibrary_${test_name}")
-  add_test(NAME ${_targ} COMMAND $<TARGET_FILE:isSharedLibrary> "${test_file}")
-  if(NOT "${test_name}" MATCHES "sharedlib")
-    set_tests_properties(${_targ} PROPERTIES WILL_FAIL TRUE)
-  endif()
-  set_tests_properties(${_targ} PROPERTIES LABELS "regression")
-
-  set(_targ "symtab_file_properties_isStripped_${test_name}")
-  add_test(NAME ${_targ} COMMAND $<TARGET_FILE:isStripped> "${test_file}")
-  if(NOT "${test_name}" MATCHES "stripped")
-    set_tests_properties(${_targ} PROPERTIES WILL_FAIL TRUE)
-  endif()
-  set_tests_properties(${_targ} PROPERTIES LABELS "regression")
-
-  set(_targ "symtab_file_properties_isPositionIndependent_${test_name}")
-  add_test(
-    NAME ${_targ}
-    COMMAND ${CMAKE_COMMAND} -E env $<TARGET_FILE:isPositionIndependent> "${test_file}"
+  dyninst_add_test(
+    symtab_file_properties_${checker}_${test_name}
+    TYPE regression
+    COMMAND ${ARGN} "$<TARGET_FILE:${test_name}>"
+    REQUIRES ${_requires}
+    PROPERTIES ${_props}
   )
-  if(NOT "${test_name}" MATCHES "pic")
-    set_tests_properties(${_targ} PROPERTIES WILL_FAIL TRUE)
-  elseif(_static_link AND "${test_name}" MATCHES "${_static_link}")
-    if(NOT DYNINST_CXX_STATIC_PIE_SUPPORTED)
-      set_tests_properties(${_targ} PROPERTIES WILL_FAIL TRUE)
-    endif()
-  endif()
-  set_tests_properties(${_targ} PROPERTIES LABELS "regression")
+endfunction()
 
-  set(_targ "symtab_file_properties_isStaticBinary_${test_name}")
-  add_test(NAME ${_targ} COMMAND $<TARGET_FILE:isStaticBinary> "${test_file}")
-  if(NOT "${test_name}" MATCHES "staticlink")
-    set_tests_properties(${_targ} PROPERTIES WILL_FAIL TRUE)
+foreach(test_name ${_all_tests})
+  # TODO: get __attribute__((section(".interp"))) working
+  if(NOT "${test_name}" MATCHES "sharedlib" AND NOT "${test_name}" MATCHES "hasmain")
+    set(_fail FALSE)
+    if(NOT "${test_name}" MATCHES "exectest" OR "${test_name}" MATCHES "staticlib")
+      set(_fail TRUE)
+    endif()
+    _file_properties_test(isExec ${test_name} ${_fail} $<TARGET_FILE:isExec>)
   endif()
-  set_tests_properties(${_targ} PROPERTIES LABELS "regression")
+
+  # TODO: get __attribute__((section(".interp"))) working
+  if(NOT "${test_name}" MATCHES "sharedlib" AND NOT "${test_name}" MATCHES "hasmain")
+    set(_fail FALSE)
+    if("${test_name}" MATCHES "staticlib")
+      set(_fail TRUE)
+    endif()
+    _file_properties_test(isExecutable ${test_name} ${_fail} $<TARGET_FILE:isExecutable>)
+  endif()
+
+  set(_fail FALSE)
+  if(NOT "${test_name}" MATCHES "sharedlib")
+    set(_fail TRUE)
+  endif()
+  _file_properties_test(
+    isSharedLibrary
+    ${test_name}
+    ${_fail}
+    $<TARGET_FILE:isSharedLibrary>
+  )
+
+  set(_fail FALSE)
+  if(NOT "${test_name}" MATCHES "stripped")
+    set(_fail TRUE)
+  endif()
+  _file_properties_test(isStripped ${test_name} ${_fail} $<TARGET_FILE:isStripped>)
+
+  set(_fail FALSE)
+  if(NOT "${test_name}" MATCHES "pic")
+    set(_fail TRUE)
+  elseif("${test_name}" MATCHES "staticlink" AND NOT DYNINST_CXX_STATIC_PIE_SUPPORTED)
+    set(_fail TRUE)
+  endif()
+  _file_properties_test(
+    isPositionIndependent
+    ${test_name}
+    ${_fail}
+    ${CMAKE_COMMAND}
+    -E
+    env
+    $<TARGET_FILE:isPositionIndependent>
+  )
+
+  set(_fail FALSE)
+  if(NOT "${test_name}" MATCHES "staticlink")
+    set(_fail TRUE)
+  endif()
+  _file_properties_test(
+    isStaticBinary
+    ${test_name}
+    ${_fail}
+    $<TARGET_FILE:isStaticBinary>
+  )
 endforeach()

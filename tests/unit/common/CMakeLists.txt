@@ -1,24 +1,52 @@
 include_guard(GLOBAL)
 
-add_executable(filesystem filesystem.cpp)
-target_compile_options(filesystem PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
-target_link_libraries(filesystem PRIVATE common)
-add_test(NAME common_filesystem COMMAND filesystem)
-set_tests_properties(
+# One test per case; the program runs the case named by its argument.
+# The library's platform macros, so os_linux selects the cases its Linux code needs
+dyninst_add_test_executable(
   common_filesystem
-  PROPERTIES LABELS "unit" SKIP_REGULAR_EXPRESSION "not defined in environment"
+  SOURCE_FILES filesystem.cpp
+  DEPS common
+  DEFINES ${DYNINST_PLATFORM_CAPABILITIES}
 )
+foreach(
+  _case
+  canonicalize
+  canonicalize_user
+  resolve_in_root_fs
+  canonicalize_procfs
+  executable_path
+  exists
+  replace_extension
+  append_filename_suffix
+  strip_all_extensions
+)
+  dyninst_add_test(
+    common_filesystem_${_case}
+    TYPE unit
+    COMMAND common_filesystem ${_case}
+  )
+endforeach()
+foreach(
+  _case
+  canonicalize_procfs_namespace
+  executable_path_namespace
+  executable_path_chroot
+)
+  dyninst_add_test(
+    common_filesystem_${_case}
+    TYPE unit
+    COMMAND common_filesystem ${_case}
+    REQUIRES userns
+  )
+endforeach()
 
-add_executable(bitmath_test bitmath.cpp)
-target_compile_options(bitmath_test PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
-target_link_libraries(bitmath_test PRIVATE common)
-add_test(NAME common_bitmath_test COMMAND bitmath_test)
-set_tests_properties(common_bitmath_test PROPERTIES LABELS "unit")
+dyninst_add_test(common_bitmath_test TYPE unit SOURCE_FILES bitmath.cpp DEPS common)
 
-add_executable(arch_aarch64_test arch_aarch64.cpp)
-target_compile_options(arch_aarch64_test PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
-target_link_libraries(arch_aarch64_test PRIVATE common)
-add_test(NAME common_arch_aarch64_test COMMAND arch_aarch64_test)
-set_tests_properties(common_arch_aarch64_test PROPERTIES LABELS "unit")
+dyninst_add_test(
+  common_arch_aarch64_test
+  TYPE unit
+  SOURCE_FILES arch_aarch64.cpp
+  DEPS common
+)
 
 add_subdirectory(registers)

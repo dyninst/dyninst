@@ -41,6 +41,10 @@ if ! test -z "${test_type}"; then
   cmake_args="-DDYNINST_ENABLE_TESTS=${test_type} ${cmake_args}"
 fi
 
+# Containers run with Docker's default seccomp profile, which does not permit
+# unprivileged user namespaces. Before the caller's arguments, so they can override it.
+cmake_args="-DDYNINST_ENABLE_USERNS_TESTS=OFF ${cmake_args}"
+
 cmake_args+="-DDYNINST_WARNINGS_AS_ERRORS=ON "
 cmake_args+="-DDYNINST_ENABLE_FILEFORMAT_PE=ON "
 cmake_args+="-DDYNINST_ENABLE_CAPSTONE=ON "

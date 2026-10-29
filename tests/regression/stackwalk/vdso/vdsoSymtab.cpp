@@ -12,6 +12,7 @@
  */
 #include "Symtab.h"
 
+#include "dyninst_test_skip.h"
 #include "Function.h"
 #include "Symbol.h"
 #include "frame.h"
@@ -25,26 +26,20 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
+
+#ifdef os_linux
 #include <csignal>
 #include <sys/auxv.h>
 #include <sys/prctl.h>
 #include <sys/ptrace.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <vector>
 
 namespace sw = Dyninst::Stackwalker;
 namespace st = Dyninst::SymtabAPI;
 
 namespace {
-
-  // The test is registered with both SKIP_RETURN_CODE 77 and
-  // SKIP_REGULAR_EXPRESSION "skipping:"; CMake before 3.16 knows only the
-  // first, and only the second makes ctest -V show the reason.
-  int skip(std::string const& reason) {
-    std::cout << "skipping: " << reason << "\n";
-    return 77;
-  }
 
   // Attach to the child and detach again, so that a host which refuses
   // ptrace fails with the reason rather than with the walker's generic error.
@@ -113,7 +108,7 @@ namespace {
     if(symtab->getLoadOffset() != 0) {
       std::ostringstream reason;
       reason << "the vDSO is linked at 0x" << std::hex << symtab->getLoadOffset() << ", not 0";
-      return skip(reason.str());
+      return skip_message(reason.str());
     }
 
     // Every Linux vDSO this test runs on exports clock_gettime, under an
@@ -155,15 +150,13 @@ namespace {
   }
 
 }
+#endif
 
 int main() {
-  if(!DYNINST_ENABLE_DYNAMIC_TESTS) {
-    return skip("attaches to a live process, which DYNINST_ENABLE_DYNAMIC_TESTS=OFF turns off");
-  }
-
+#ifdef os_linux
   auto const vdso_base = static_cast<Dyninst::Address>(getauxval(AT_SYSINFO_EHDR));
   if(vdso_base == Dyninst::ADDR_NULL) {
-    return skip("no vDSO in this process");
+    return skip_message("no vDSO in this process");
   }
 
   pid_t const parent = getpid();
@@ -197,4 +190,8 @@ int main() {
   kill(child, SIGKILL);
   waitpid(child, nullptr, 0);
   return result;
+#else
+  // The test itself uses getauxval(), Linux's ptrace requests and prctl().
+  return skip_without_linux("getauxval(), ptrace, prctl()");
+#endif
 }

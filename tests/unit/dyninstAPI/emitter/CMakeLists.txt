@@ -3,31 +3,18 @@ include_guard(GLOBAL)
 add_library(emitter_test INTERFACE)
 target_sources(emitter_test INTERFACE emitter_test.h)
 
-# The IA-32 emitter is built for both 32- and 64-bit x86
-if(DYNINST_CODEGEN_ARCH_I386 OR DYNINST_CODEGEN_ARCH_X86_64)
-  add_executable(i386 i386.cpp)
-  target_compile_options(i386 PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
-  target_compile_definitions(i386 PRIVATE ${DYNINST_PLATFORM_CAPABILITIES})
-  target_link_libraries(i386 PRIVATE emitter_test dyninstAPI)
-  add_test(NAME dyninstAPI_emitter_i386 COMMAND i386)
-endif()
-
-if(DYNINST_CODEGEN_ARCH_X86_64)
-  add_executable(x86_64 x86_64.cpp)
-  target_compile_options(x86_64 PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
-  target_compile_definitions(x86_64 PRIVATE ${DYNINST_PLATFORM_CAPABILITIES})
-  target_link_libraries(x86_64 PRIVATE emitter_test dyninstAPI)
-  add_test(NAME dyninstAPI_emitter_x86_64 COMMAND x86_64)
-elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  add_executable(amdgpu_gfx908 amdgpu_gfx908.cpp)
-  target_compile_options(amdgpu_gfx908 PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
-  target_compile_definitions(amdgpu_gfx908 PRIVATE ${DYNINST_PLATFORM_CAPABILITIES})
-  target_link_libraries(amdgpu_gfx908 PRIVATE emitter_test dyninstAPI)
-  add_test(NAME dyninstAPI_emitter_amdgpu_gfx908 COMMAND amdgpu_gfx908)
-elseif(DYNINST_CODEGEN_ARCH_AARCH64)
-  add_executable(aarch64 aarch64.cpp)
-  target_compile_options(aarch64 PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
-  target_compile_definitions(aarch64 PRIVATE ${DYNINST_PLATFORM_CAPABILITIES})
-  target_link_libraries(aarch64 PRIVATE dyninstAPI)
-  add_test(NAME dyninstAPI_emitter_aarch64 COMMAND aarch64)
-endif()
+# Each emitter is built only for its codegen architecture.
+foreach(_arch i386 x86_64 amdgpu_gfx908 aarch64)
+  set(_deps emitter_test dyninstAPI)
+  if(_arch STREQUAL "aarch64")
+    set(_deps dyninstAPI)
+  endif()
+  dyninst_add_test(
+    dyninstAPI_emitter_${_arch}
+    TYPE unit
+    SOURCE_FILES ${_arch}.cpp
+    DEPS ${_deps}
+    DEFINES ${DYNINST_PLATFORM_CAPABILITIES}
+    REQUIRES codegen:${_arch}
+  )
+endforeach()

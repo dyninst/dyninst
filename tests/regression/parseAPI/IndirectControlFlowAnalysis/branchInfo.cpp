@@ -19,7 +19,7 @@ using namespace InstructionAPI;
 
 int main(int argc, char **argv){
     if(argc != 3){
-        printf("Usage: %s <binary path> <output path>\n", argv[0]);
+        std::cerr << "Usage: " << argv[0] << " <binary path> <output path>\n";
         return -1;
     }
     char *binaryPath = argv[1];

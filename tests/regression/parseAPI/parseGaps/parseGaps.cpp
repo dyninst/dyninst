@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
-  std::cout << "Parsing " << argv[1] << '\n';
+  std::cerr << "Parsing " << argv[1] << '\n';
 
   pa::SymtabCodeSource scs{argv[1]};
   pa::CodeObject co{&scs};
