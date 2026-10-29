@@ -28,7 +28,7 @@ dyninst_test_requirement(
   static_lib:<arg>
   WHEN TARGET <arg>_static
   VALUES ${_dyninst_libraries}
-  REASON "needs the static <arg> (ENABLE_STATIC_LIBS=OFF)"
+  REASON "needs the static library <arg>_static (ENABLE_STATIC_LIBS=OFF)"
 )
 # The IA-32 emitter is built for both 32- and 64-bit x86; this takes precedence over
 # the family below.
