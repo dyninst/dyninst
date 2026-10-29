@@ -16,15 +16,14 @@ if(DYNINST_ENABLE_ZYDIS)
   set(_unknown_insn_defines DYNINST_ENABLE_ZYDIS)
 endif()
 
-# cmake-format: off
 dyninst_library(
   instructionAPI_decoder
   INTERNAL_LIBRARY
   SOURCE_FILES ${_sources}
   PRIVATE_HEADER_FILES ${_headers}
   DEFINES ${_unknown_insn_defines}
+  DYNINST_DEPS common
   DYNINST_INTERNAL_DEPS
-    common
     instructionAPI_aarch64
     instructionAPI_amdgpu
     instructionAPI_powerpc
@@ -33,11 +32,12 @@ dyninst_library(
   PRIVATE_DEPS ${_unknown_insn_deps}
 )
 
-set(_inc_dirs
+set(
+  _inc_dirs
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/..
-  ${PROJECT_SOURCE_DIR}/instructionAPI/h)
-# cmake-format: on
+  ${PROJECT_SOURCE_DIR}/instructionAPI/h
+)
 
 target_include_directories(instructionAPI_decoder PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
 

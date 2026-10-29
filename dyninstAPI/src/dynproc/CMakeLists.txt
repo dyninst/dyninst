@@ -1,25 +1,29 @@
 include_guard(GLOBAL)
 
-set(_headers
-    dynProcess.h
-    dynThread.h
-    frameChecker.h
-    frame.h
-    infHeap.h
-    nt_signal_emul.h
-    pcEventHandler.h
-    pcEventMuxer.h
-    syscallNotification.h
-    trapMappings.h)
+set(
+  _headers
+  dynProcess.h
+  dynThread.h
+  frameChecker.h
+  frame.h
+  infHeap.h
+  nt_signal_emul.h
+  pcEventHandler.h
+  pcEventMuxer.h
+  syscallNotification.h
+  trapMappings.h
+)
 
-set(_sources
-    dynProcess.C
-    dynThread.C
-    frame.C
-    frameChecker.C
-    infHeap.C
-    pcEventHandler.C
-    pcEventMuxer.C)
+set(
+  _sources
+  dynProcess.C
+  dynThread.C
+  frame.C
+  frameChecker.C
+  infHeap.C
+  pcEventHandler.C
+  pcEventMuxer.C
+)
 
 if(DYNINST_OS_UNIX)
   list(APPEND _sources syscallNotification.C)
@@ -41,21 +45,20 @@ elseif(DYNINST_HOST_ARCH_AARCH64)
   list(APPEND _sources dynProcess-aarch64.C stackwalk-aarch64.C)
 endif()
 
-# cmake-format: off
 dyninst_library(
   dyninstAPI_dynproc
   INTERNAL_LIBRARY
   SOURCE_FILES ${_sources}
   PRIVATE_HEADER_FILES ${_headers}
-  DYNINST_INTERNAL_DEPS common parseAPI patchAPI pcontrol
+  DYNINST_DEPS common parseAPI patchAPI pcontrol
 )
 
-set(_inc_dirs
+set(
+  _inc_dirs
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/..
   ${CMAKE_CURRENT_SOURCE_DIR}/../../h
 )
-# cmake-format: on
 
 target_include_directories(dyninstAPI_dynproc PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
 

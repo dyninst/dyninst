@@ -11,6 +11,11 @@ concurrency:
 
 permissions: {}
 
+env:
+  # Use the maximum number of cores
+  # docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+  NUM_BUILD_JOBS: 4
+
 jobs:
 
   get-oses:
@@ -77,66 +82,66 @@ jobs:
         shell: bash
         run: |
           set -ex
-          spack/bin/spack install -j2 hpctoolkit@develop~viewer~papi ^intel-tbb ^dyninst@master
+          spack/bin/spack install -j${{ env.NUM_BUILD_JOBS }} hpctoolkit@develop~viewer~papi ^intel-tbb ^dyninst@master
 
-  must:
-    runs-on: ubuntu-latest
-    needs: get-oses
-    strategy:
-      fail-fast: false
-      matrix:
-         os: ${{ fromJson(needs.get-oses.outputs.latest) }}
-    permissions:
-      packages: read
-    container:
-      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.github_token }}
-    name: must (${{ matrix.os }})
-    steps:
-      - name: Install dependencies (Ubuntu)
-        if: ${{ startsWith(matrix.os, 'ubuntu') }}
-        shell: bash
-        run: |
-          set -ex
-          apt update -qq
-          apt install -y -qq openmpi-bin libopenmpi-dev gfortran libxml2-dev wget python3
-          
-      - name: Install dependencies (Fedora)
-        if: ${{ startsWith(matrix.os, 'fedora') }}
-        shell: bash
-        run: |
-          set -ex
-          yum install -y openmpi openmpi-devel gcc-gfortran libxml2-devel wget python3
-
-      - name: Build
-        shell: bash
-        run: |
-          set -ex
-          
-          version="1.9.2"
-          mkdir must; cd must  # can't build in / because must does unusual checks
-          wget https://hpc.rwth-aachen.de/must/files/MUST-v${version}.tar.gz
-          tar -zxf MUST-v${version}.tar.gz --strip-components=1
-          
-          if [[ "${{ matrix.os }}" =~ "fedora" ]]; then
-            source /etc/profile.d/modules.sh
-            module load mpi
-          fi
-          
-          if [[ ! -d /dyninst/install/lib ]]; then
-            ln -s /dyninst/install/lib* /dyninst/install/lib
-          fi
-          
-          opts+="-DENABLE_TSAN=OFF "
-          opts+="-DUSE_BACKWARD=OFF "
-          opts+="-DUSE_CALLPATH=ON "
-          opts+="-DSTACKWALKER_INSTALL_PREFIX=/dyninst/install "
-          opts+="-DCMAKE_BUILD_TYPE=RelWithDebInfo "
-          
-          cmake . -B build ${opts}
-          cmake --build build --parallel 2
+#  must:
+#    runs-on: ubuntu-latest
+#    needs: get-oses
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#         os: ${{ fromJson(needs.get-oses.outputs.latest) }}
+#    permissions:
+#      packages: read
+#    container:
+#      image: ghcr.io/dyninst/amd64/${{ matrix.os }}:latest
+#      credentials:
+#        username: ${{ github.actor }}
+#        password: ${{ secrets.github_token }}
+#    name: must (${{ matrix.os }})
+#    steps:
+#      - name: Install dependencies (Ubuntu)
+#        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+#        shell: bash
+#        run: |
+#          set -ex
+#          apt update -qq
+#          apt install -y -qq openmpi-bin libopenmpi-dev gfortran libxml2-dev wget python3
+#          
+#      - name: Install dependencies (Fedora)
+#        if: ${{ startsWith(matrix.os, 'fedora') }}
+#        shell: bash
+#        run: |
+#          set -ex
+#          yum install -y openmpi openmpi-devel gcc-gfortran libxml2-devel wget python3
+#
+#      - name: Build
+#        shell: bash
+#        run: |
+#          set -ex
+#          
+#          version="1.9.2"
+#          mkdir must; cd must  # can't build in / because must does unusual checks
+#          wget https://hpc.rwth-aachen.de/must/files/MUST-v${version}.tar.gz
+#          tar -zxf MUST-v${version}.tar.gz --strip-components=1
+#          
+#          if [[ "${{ matrix.os }}" =~ "fedora" ]]; then
+#            source /etc/profile.d/modules.sh
+#            module load mpi
+#          fi
+#          
+#          if [[ ! -d /dyninst/install/lib ]]; then
+#            ln -s /dyninst/install/lib* /dyninst/install/lib
+#          fi
+#          
+#          opts+="-DENABLE_TSAN=OFF "
+#          opts+="-DUSE_BACKWARD=OFF "
+#          opts+="-DUSE_CALLPATH=ON "
+#          opts+="-DSTACKWALKER_INSTALL_PREFIX=/dyninst/install "
+#          opts+="-DCMAKE_BUILD_TYPE=RelWithDebInfo "
+#          
+#          cmake . -B build ${opts}
+#          cmake --build build --parallel ${{ env.NUM_BUILD_JOBS }}
 
 
   systemtap:
@@ -186,7 +191,7 @@ jobs:
           mkdir build
           cd build
           ../configure --with-dyninst --without-python3-probes
-          make -j2
+          make -j${{ env.NUM_BUILD_JOBS }}
 
 
   llnl-stat:
@@ -233,7 +238,7 @@ jobs:
           mkdir build
           cd build
           cmake ..
-          cmake --build . --parallel 2
+          cmake --build . --parallel ${{ env.NUM_BUILD_JOBS }}
           cmake --install .  # /usr
 
       - name: Install GraphViz
@@ -246,7 +251,7 @@ jobs:
           mkdir build
           cd build
           cmake .. -DWITH_EXPAT=OFF -DWITH_GHOSTSCRIPT=OFF -DWITH_GTK=OFF -DWITH_QUARTZ=OFF -DWITH_X=OFF
-          cmake --build . --parallel 2
+          cmake --build . --parallel ${{ env.NUM_BUILD_JOBS }}
           cmake --install .
 
       - name: Install launchmon
@@ -260,7 +265,7 @@ jobs:
           mkdir build
           cd build
           ../configure CXXFLAGS='--std=c++11'
-          make -j2
+          make -j${{ env.NUM_BUILD_JOBS }}
           make install
 
       - name: Install MRNet
@@ -293,7 +298,7 @@ jobs:
           mkdir build
           cd build
           ../configure --disable-gui --disable-examples --with-stackwalker=/dyninst/install --with-mrnet=/usr/local
-          make -j2
+          make -j${{ env.NUM_BUILD_JOBS }}
 
 
   tau:
@@ -330,7 +335,7 @@ jobs:
 
           cd tau2
           ./configure -dyninst=/dyninst/install -tbb=/usr/lib
-          make -j2
+          make -j${{ env.NUM_BUILD_JOBS }}
 
   # Part of the Barcelona Supercomputing Performance Tools (https://github.com/bsc-performance-tools).
   extrae:
@@ -394,4 +399,4 @@ jobs:
             --with-xml2-libs=${lib_dir}             \
             --with-xml2-headers=/usr/include        
           
-          make -j2
+          make -j${{ env.NUM_BUILD_JOBS }}

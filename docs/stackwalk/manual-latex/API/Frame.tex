@@ -45,6 +45,13 @@ Dyninst::MachRegisterVal getRA() const;
 \end{apient}
 \apidesc{
 	This method returns this \code{Frame} object's return address.
+
+    On AArch64, in a third party walk, the return address is returned with its
+    pointer authentication code (PAC) bits cleared (see
+    \code{ProcessState::getInstructionPacMask}). The value stored at
+    \code{getRALocation()} in the target process still carries those bits.
+    A first party walk (\code{ProcSelf}) does not clear them, so on AArch64 its
+    return addresses may still be signed.
 }
 
 \begin{apient}
@@ -52,6 +59,8 @@ void setRA(Dyninst::MachRegisterVal val);
 \end{apient}
 \apidesc{
     This method sets this \code{Frame} object's return address to \code{val}.
+    On AArch64, in a third party walk, the pointer authentication code bits of
+    \code{val} are cleared first (see \code{getRA}).
 }
 
 \begin{apient}

@@ -1237,7 +1237,7 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                             (sec_data + (stub_addr - glink->getMemOffset()));
 
                     // Keep moving pointer back if more -fPIC stubs are found.
-                    while (sec_data < (unsigned char *) insn) {
+                    while (sec_data < reinterpret_cast<decltype(sec_data)>(insn)) {
                         unsigned int *back = insn - 4;
 
                         if (((back[0] & 0xffff0000) == LWZ_11_30
@@ -3071,17 +3071,32 @@ int read_except_table_gcc3(
         // in the exception handling
         lpstart_format = datap[except_off++];
         if (lpstart_format != DW_EH_PE_omit) {
-            except_off += read_val_of_type(DW_EH_PE_uleb128, &landingpad_base, datap + except_off, mi);
+            // LPStart has its own encoding; it is not necessarily a ULEB128.
+            mi.pc = except_scn->sh_addr() + except_off;
+            result = read_val_of_type(lpstart_format, &landingpad_base,
+                                      datap + except_off, mi);
+            if (result <= 0 || (unsigned long) result > except_size - except_off)
+                continue;
+            except_off += result;
         } else {
             landingpad_base = low_pc;
         }
+        if (except_off >= except_size)
+            continue;
         ttype_format = datap[except_off++];
-        if (ttype_format != DW_EH_PE_omit)
+        if (ttype_format != DW_EH_PE_omit) {
+            if (except_off >= except_size)
+                continue;
             except_off += read_val_of_type(DW_EH_PE_uleb128, &value, datap + except_off, mi);
+        }
 
         // This 'type' byte describes the data format of the entries in the
         // table and the format of the table_size field.
+        if (except_off >= except_size)
+            continue;
         table_format = datap[except_off++];
+        if (except_off >= except_size)
+            continue;
         mi.pc = except_scn->sh_addr() + except_off;
 
 //  This assertion would fail:
@@ -3093,7 +3108,21 @@ int read_except_table_gcc3(
             continue;
         }
         except_off += result;
+        if (except_off > except_size || table_end > except_size - except_off)
+            continue;
         table_end += except_off;
+
+        // A failed decode returns -1: never add it to the unsigned cursor.
+        auto read_entry = [&](int encoding, unsigned long &decoded) {
+            if (except_off >= table_end)
+                return false;
+            mi.pc = except_scn->sh_addr() + except_off;
+            int size = read_val_of_type(encoding, &decoded, datap + except_off, mi);
+            if (size <= 0 || (unsigned long) size > table_end - except_off)
+                return false;
+            except_off += size;
+            return true;
+        };
 
         while (except_off < table_end && except_off < except_size) {
             Offset tryStart;
@@ -3106,25 +3135,21 @@ int read_except_table_gcc3(
             //   <type>   landing pad
             //  uleb128   action
             //The 'region' is the try block, the 'landing pad' is the catch.
-            mi.pc = except_scn->sh_addr() + except_off;
             tryStart = except_off;
-
-            except_off += read_val_of_type(table_format, &region_start,
-                                           datap + except_off, mi);
-            mi.pc = except_scn->sh_addr() + except_off;
+            if (!read_entry(table_format, region_start))
+                break;
             tryEnd = except_off;
-            except_off += read_val_of_type(table_format, &region_size,
-                                           datap + except_off, mi);
-            mi.pc = except_scn->sh_addr() + except_off;
+            if (!read_entry(table_format, region_size))
+                break;
             catchStart = except_off;
-            except_off += read_val_of_type(table_format, &catch_block,
-                                           datap + except_off, mi);
-            except_off += read_val_of_type(DW_EH_PE_uleb128, &action,
-                                           datap + except_off, mi);
+            if (!read_entry(table_format, catch_block) ||
+                !read_entry(DW_EH_PE_uleb128, action))
+                break;
 
             if (catch_block == 0)
                 continue;
-            ExceptionBlock eb(region_start + landingpad_base, (unsigned) region_size,
+            // Call-site ranges are function-relative; only landing pads use LPStart.
+            ExceptionBlock eb(region_start + low_pc, (unsigned) region_size,
                               catch_block + landingpad_base);
             eb.setTryStart(tryStart);
             eb.setTryEnd(tryEnd);

@@ -41,14 +41,28 @@ endif()
 find_package(Elfutils ${_min_version} REQUIRED COMPONENTS ${_components})
 unset(_components)
 
-if(NOT TARGET Dyninst::ElfUtils)
-  add_library(Dyninst::ElfUtils INTERFACE IMPORTED)
-  target_include_directories(Dyninst::ElfUtils SYSTEM INTERFACE ${Elfutils_INCLUDE_DIRS})
-  target_link_libraries(Dyninst::ElfUtils INTERFACE Elfutils::Elfutils)
+# Dyninst::ElfUtils_headers is what is needed to compile against elfutils,
+# with no libraries to link; Dyninst::ElfUtils adds the libraries.
+if(NOT TARGET Dyninst::ElfUtils_headers)
+  add_library(Dyninst::ElfUtils_headers INTERFACE IMPORTED)
+  target_include_directories(
+    Dyninst::ElfUtils_headers
+    SYSTEM
+    INTERFACE ${Elfutils_INCLUDE_DIRS}
+  )
   if(ENABLE_DEBUGINFOD)
     set_property(
-      TARGET Dyninst::ElfUtils
+      TARGET Dyninst::ElfUtils_headers
       APPEND
-      PROPERTY INTERFACE_COMPILE_DEFINITIONS DEBUGINFOD_LIB)
+      PROPERTY INTERFACE_COMPILE_DEFINITIONS DEBUGINFOD_LIB
+    )
   endif()
+endif()
+
+if(NOT TARGET Dyninst::ElfUtils)
+  add_library(Dyninst::ElfUtils INTERFACE IMPORTED)
+  target_link_libraries(
+    Dyninst::ElfUtils
+    INTERFACE Dyninst::ElfUtils_headers Elfutils::Elfutils
+  )
 endif()

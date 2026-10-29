@@ -172,6 +172,9 @@ location_t Frame::getFPLocation() const {
 }
 
 void Frame::setRA(Dyninst::MachRegisterVal newval) {
+  // Normalize signed return addresses before steppers validate their mappings.
+  if (walker)
+    newval = walker->getProcessState()->normalizeReturnAddress(newval, originating_thread);
   sw_printf("[%s:%d] - Setting ra of frame %p to %lx\n",
 	    FILE__, __LINE__, (void*)this, newval);
   ra = newval;
@@ -343,11 +346,7 @@ bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*& symta
   lib = la.first;
   offset = getRA() - la.second;
 
-#if defined(WITH_SYMTAB_API)
   symtab = static_cast<void *>(SymtabWrapper::getSymtab(lib));
-#else
-  symtab = NULL;
-#endif
 
   return true;
 }

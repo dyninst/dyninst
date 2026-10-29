@@ -12,14 +12,13 @@ endif()
 set(_public_headers h/Elf_X.h)
 set(_sources src/Elf_X.C)
 
-# cmake-format: off
 dyninst_library(
   dynElf
   PUBLIC_HEADER_FILES ${_public_headers}
   SOURCE_FILES ${_sources}
   DEFINES DYNELF_LIB
   DYNINST_DEPS common
-  PRIVATE_DEPS Dyninst::Boost_headers Dyninst::ElfUtils
+  HEADER_DEPS Dyninst::ElfUtils
+  PRIVATE_DEPS Dyninst::Boost_headers
   INTERNAL_LIBRARY
 )
-# cmake-format: on

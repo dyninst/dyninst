@@ -2,19 +2,12 @@ include_guard(GLOBAL)
 
 include(DyninstLibrary)
 
-# dynC requires symtabAPI
-if(LIGHTWEIGHT_SYMTAB)
-  message(STATUS "LIGHTWEIGHT_SYMTAB enabled; dynC_API not built.")
-  return()
-endif()
-
 set(_public_headers h/dynC.h h/snippetGen.h)
 
 set(_private_headers src/dynC.tab.h)
 
 set(_sources src/dynC.C src/dynC.tab.C src/lex.dynC.C src/snippetGen.C)
 
-# cmake-format: off
 dyninst_library(
   dynC_API
   PUBLIC_HEADER_FILES ${_public_headers}
@@ -22,7 +15,6 @@ dyninst_library(
   SOURCE_FILES ${_sources}
   DYNINST_DEPS common dyninstAPI symtabAPI
 )
-# cmake-format: on
 
 if(DYNINST_OS_Windows)
   foreach(t ${dynC_API_TARGETS})

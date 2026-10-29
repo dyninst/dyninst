@@ -11,6 +11,11 @@ concurrency:
 
 permissions: {}
 
+env:
+  # Use the maximum number of cores
+  # docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+  NUM_BUILD_JOBS: 4
+
 jobs:
 
   get-oses:
@@ -85,4 +90,4 @@ jobs:
         shell: bash
         run: |
           set -ex
-          spack/bin/spack install -j2 dyninst@master %${{ matrix.compiler }}
+          spack/bin/spack install -j${{ env.NUM_BUILD_JOBS }} dyninst@master %${{ matrix.compiler }}

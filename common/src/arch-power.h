@@ -754,9 +754,7 @@ const int maxGPR=32;           /* More space than is needed */
 #define ABS(x)		((x) > 0 ? x : -x)
 //#define MAX_BRANCH	0x1<<23
 #define MAX_BRANCH      0x01fffffc
-#define MAX_CBRANCH	0x1<<13
-
-#define MAX_IMM		0x1<<15		/* 15 plus sign == 16 bits */
+#define MAX_CBRANCH     (0x7ffc)  // bc: signed 14-bit word offset, -0x8000..0x7ffc bytes
 
 // Define bounds for immediate offsets.
 // Use strange definitions to avoid compiler warnings.
@@ -767,8 +765,8 @@ const int maxGPR=32;           /* More space than is needed */
                                             // constants. Hopefully, compiler
                                             // will optimize this away.
 
-#define MAX_IMM48      ((long)(-1 >> 17))   // To avoid warnings on 32-bit
-#define MIN_IMM48      ((long)(~MAX_IMM48)) // compilers.
+#define MAX_IMM48      ((long)(~0UL >> 17))   // 2^47 - 1
+#define MIN_IMM48      ((long)(~MAX_IMM48))   // -2^47
 
 class DYNINST_EXPORT instruction {
  private:
@@ -829,7 +827,7 @@ class DYNINST_EXPORT instruction {
     unsigned type() const;
     
     // return a pointer to the instruction
-    const unsigned char *ptr() const { return (const unsigned char *)&insn_; }
+    const unsigned char *ptr() const { return reinterpret_cast<const unsigned char *>(&insn_); }
 
     // For external modification
     // Don't allow external modification anymore.  Host byte order may differ

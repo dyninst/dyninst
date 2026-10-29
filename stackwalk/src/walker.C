@@ -259,7 +259,7 @@ bool Walker::newWalker(const std::vector<Dyninst::PID> &pids,
         continue;
      }
 
-     Walker *newwalker = new Walker((ProcessState *) pd, NULL, NULL, true, executable);
+     Walker *newwalker = new Walker(pd, NULL, NULL, true, executable);
      if (!newwalker || newwalker->creation_error) {
         sw_printf("[%s:%d] - Error creating new Walker object %p\n",
                   FILE__, __LINE__, (void*)newwalker);
@@ -352,6 +352,7 @@ void Walker::setSymbolReader(SymbolReaderFactory *srf)
     result = false; \
     goto done_gifi; \
   } \
+  frame.setThread(thread); \
   frame.setRA(pc); \
   frame.setFP(fp); \
   frame.setSP(sp); \
@@ -362,7 +363,6 @@ void Walker::setSymbolReader(SymbolReaderFactory *srf)
   frame.setSPLocation(loc); \
   loc.val.reg = Dyninst::FrameBase; \
   frame.setFPLocation(loc); \
-  frame.setThread(thread); \
   frame.markTopFrame(); \
   done_gifi: ; \
 }
@@ -506,6 +506,8 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
    }
 
    out.prev_frame = &in;
+   // Return-address normalization needs the sampled thread before a stepper sets the address.
+   out.setThread(in.getThread());
 
    FrameStepper *last_stepper = NULL;
    for (;;)
@@ -755,15 +757,15 @@ WalkerSet::iterator WalkerSet::find(Walker *w) {
 }
 
 WalkerSet::const_iterator WalkerSet::begin() const {
-   return ((const int_walkerSet *) iwalkerset)->walkers.begin();
+   return (iwalkerset)->walkers.cbegin();
 }
 
 WalkerSet::const_iterator WalkerSet::end() const {
-   return ((const int_walkerSet *) iwalkerset)->walkers.end();
+   return (iwalkerset)->walkers.cend();
 }
 
 WalkerSet::const_iterator WalkerSet::find(Walker *w) const {
-   return ((const int_walkerSet *) iwalkerset)->walkers.find(w);
+   return (iwalkerset)->walkers.find(w);
 }
 
 pair<WalkerSet::iterator, bool> WalkerSet::insert(Walker *walker) {

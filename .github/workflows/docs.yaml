@@ -17,6 +17,11 @@ concurrency:
 
 permissions: {}
 
+env:
+  # Use the maximum number of cores
+  # docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+  NUM_BUILD_JOBS: 4
+
 jobs:
 
   # Don't run the check if the PR is a draft
@@ -50,7 +55,7 @@ jobs:
   #    DYNINST_DOCS_FORCE_VALIDATE  Ghostscript is required, and each finished
   #                              PDF is measured for ink reaching the edge
   #
-  #  DYNINST_DOCS_VALIDATE_LISTINGS is ON by default, so <module>.pdf also
+  #  DYNINST_DOCS_VALIDATE_LISTINGS is ON by default, so <module>-manual also
   #  compiles the example sources that manual typesets.
   #
   docs:
@@ -107,7 +112,7 @@ jobs:
         shell: bash
         run: |
           set -ex
-          cmake --build "${GITHUB_WORKSPACE}/build" --target docs-install -j 2
+          cmake --build "${GITHUB_WORKSPACE}/build" --target docs-install -j ${{ env.NUM_BUILD_JOBS }}
 
       - name: Check every manual was installed
         shell: bash

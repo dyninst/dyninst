@@ -7,5 +7,9 @@ dyninst_add_manual(dataflowAPI)
 dyninst_validate_listings(
   dataflowAPI
   USES parseAPI
-  SOURCES examples/Slicing.C examples/SymbolicEvaluation.C examples/LivenessAnalysis.C
-          examples/StackAnalysis.C)
+  SOURCES
+    examples/Slicing.C
+    examples/SymbolicEvaluation.C
+    examples/LivenessAnalysis.C
+    examples/StackAnalysis.C
+)

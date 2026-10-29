@@ -82,7 +82,15 @@ if("${CMAKE_CXX_COMPILER_ID}" IN_LIST _linux_compilers)
 elseif(MSVC)
   set(DYNINST_FORCE_FRAME_POINTER /Oy-)
 
-  set(DYNINST_FLAGS_DEBUG /MP /Od /Zi /MDd /D_DEBUG ${DYNINST_FORCE_FRAME_POINTER})
+  set(
+    DYNINST_FLAGS_DEBUG
+    /MP
+    /Od
+    /Zi
+    /MDd
+    /D_DEBUG
+    ${DYNINST_FORCE_FRAME_POINTER}
+  )
   set(DYNINST_FLAGS_RELEASE /MP /O3 /MD /D_DEBUG)
   set(DYNINST_FLAGS_RELWITHDEBINFO ${DYNINST_FLAGS_RELEASE} /Zi)
   set(DYNINST_FLAGS_MINSIZEREL /MP /O1 /MD /D_DEBUG)
@@ -106,8 +114,12 @@ string(REPLACE " " ";" _c_flags "${CMAKE_C_FLAGS}")
 string(REPLACE " " ";" _cxx_flags "${CMAKE_CXX_FLAGS}")
 
 set(DYNINST_C_FLAGS_${_build_type} ${DYNINST_FLAGS_${_build_type}} ${_c_flags})
-set(DYNINST_CXX_FLAGS_${_build_type} ${DYNINST_FLAGS_${_build_type}} ${DYNINST_CXX_FLAGS}
-                                     ${_cxx_flags})
+set(
+  DYNINST_CXX_FLAGS_${_build_type}
+  ${DYNINST_FLAGS_${_build_type}}
+  ${DYNINST_CXX_FLAGS}
+  ${_cxx_flags}
+)
 
 # Merge the link flags for C++
 list(APPEND DYNINST_CXX_LINK_FLAGS ${DYNINST_LINK_FLAGS})

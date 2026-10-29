@@ -27,10 +27,16 @@ project(
   VERSION ${DYNINST_VERSION}
   DESCRIPTION "Tools for binary instrumentation, analysis, and modification"
   HOMEPAGE_URL "https://github.com/dyninst/dyninst"
-  LANGUAGES C CXX ASM)
+  LANGUAGES C CXX ASM
+)
 
-list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/cmake"
-     "${PROJECT_SOURCE_DIR}/cmake/tpls" "${PROJECT_SOURCE_DIR}/cmake/Modules")
+list(
+  INSERT CMAKE_MODULE_PATH
+  0
+  "${PROJECT_SOURCE_DIR}/cmake"
+  "${PROJECT_SOURCE_DIR}/cmake/tpls"
+  "${PROJECT_SOURCE_DIR}/cmake/Modules"
+)
 
 # These need to be done before anything else
 include(DyninstLibrarySettings)
@@ -67,7 +73,6 @@ endif()
 add_subdirectory(common)
 add_subdirectory(elf)
 add_subdirectory(dwarf)
-add_subdirectory(symlite)
 add_subdirectory(instructionAPI)
 add_subdirectory(symtabAPI)
 add_subdirectory(parseAPI)
@@ -88,3 +93,12 @@ if(DYNINST_ENABLE_TESTS)
 endif()
 
 include(DyninstInstall)
+
+# The cmake-check, cmake-check-raw, cmake-reformat and cmake-reformat-diff
+# targets.  Nothing in the build depends on them, and they are for working on
+# Dyninst itself, so a project that brings Dyninst in with add_subdirectory or
+# FetchContent gets neither them nor a clash with its own targets of the same
+# names.
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  include(DyninstCMakeFormat)
+endif()

@@ -1225,13 +1225,9 @@ Symtab::~Symtab()
 
    std::vector<Region *> *user_regions = NULL;
    getAnnotation(user_regions, UserRegionsAnno);
-
-   if (user_regions)
-   {
-      for (unsigned i = 0; i < user_regions->size(); ++i) 
-         delete (*user_regions)[i];
-      user_regions->clear();
-   }
+   // Its regions are also in regions_, which owns them and freed them above,
+   // so free only the vector.
+   delete user_regions;
 
    // Symbols are copied from linkedFile, and NOT deleted
    impl->everyDefinedSymbol.clear();

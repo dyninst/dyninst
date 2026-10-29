@@ -81,8 +81,10 @@
 #include<sys/user.h>
 #include<sys/procfs.h>
 #include<sys/uio.h>
-#if !defined(WITH_SYMLITE)
 #include<linux/elf.h>
+// Older glibc <elf.h> lacks this; the value is fixed by the kernel UAPI.
+#if !defined(NT_ARM_PAC_MASK)
+#define NT_ARM_PAC_MASK 0x406
 #endif
 #endif
 
@@ -95,13 +97,7 @@
 using namespace Dyninst;
 using namespace ProcControlAPI;
 
-#if defined(WITH_SYMLITE)
-#include "symlite/h/SymLite-elf.h"
-#elif defined(WITH_SYMTAB_API)
 #include "symtabAPI/h/SymtabReader.h"
-#else
-#error "No defined symbol reader"
-#endif
 
 #if !defined(PTRACE_GETREGS) && defined(PPC_PTRACE_GETREGS)
 #define PTRACE_GETREGS PPC_PTRACE_GETREGS
@@ -1100,9 +1096,7 @@ bool linux_process::plat_execed()
    if (!result)
       return false;
 
-   char proc_exec_name[128];
-   snprintf(proc_exec_name, 128, "/proc/%d/exe", getPid());
-   executable = Dyninst::filesystem::canonicalize(proc_exec_name);
+   executable = Dyninst::filesystem::executable_path(getPid());
    return true;
 }
 
@@ -1485,18 +1479,7 @@ bool linux_thread::plat_cont()
 
 SymbolReaderFactory *getElfReader()
 {
-#if defined(WITH_SYMLITE)
-  static SymbolReaderFactory *symreader_factory = NULL;
-  if (symreader_factory)
-    return symreader_factory;
-
-  symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
-  return symreader_factory;
-#elif defined(WITH_SYMTAB_API)
   return SymtabAPI::getSymtabReaderFactory();
-#else
-#error "No defined symbol reader"
-#endif
 }
 
 SymbolReaderFactory *linux_process::plat_defaultSymReader()
@@ -2376,6 +2359,31 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
         regpool.regs[reg] = val;
     }
     return true;
+}
+
+bool linux_thread::plat_getInstructionPacMask(Dyninst::MachRegisterVal &mask)
+{
+   mask = 0;
+#if defined(DYNINST_HOST_ARCH_AARCH64)
+   if (llproc()->getTargetArch() == Arch_aarch64) {
+      // Use the existing ptrace-owning thread; a second attach is neither needed nor safe here.
+      struct { uint64_t data_mask, instruction_mask; } masks = {};
+      struct iovec io = { &masks, sizeof(masks) };
+      long result = do_ptrace((pt_req) PTRACE_GETREGSET, lwp, (void *) NT_ARM_PAC_MASK, &io);
+      if (result == -1) {
+         // Kernels without user PAC support do not expose this optional regset.
+         if (errno == EINVAL || errno == EIO || errno == ENODEV) return true;
+         setLastError(err_internal, "Could not read instruction PAC mask");
+         return false;
+      }
+      if (io.iov_len != sizeof(masks)) {
+         setLastError(err_internal, "Unexpected instruction PAC mask regset size");
+         return false;
+      }
+      mask = masks.instruction_mask;
+   }
+#endif
+   return true;
 }
 
 bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)

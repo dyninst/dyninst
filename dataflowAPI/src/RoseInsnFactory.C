@@ -86,12 +86,11 @@ SgAsmInstruction *RoseInsnFactory::convert(const Instruction &insn, uint64_t add
    //std::cerr << "no special handling by opcode, checking if we should mangle operands..." << std::endl;
   auto operands = insn.getExplicitOperands();
   massageOperands(insn, operands);
-  int i = 0;
   //std::cerr << "converting insn " << insn.format(addr) << std::endl;
   //std::cerr << "\t " << operands.size() << " operands" << std::endl;
   for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin();
        opi != operands.end();
-       ++opi, ++i) {
+       ++opi) {
       InstructionAPI::Operand &currOperand = *opi;
     //std::cerr << "Converting operand " << currOperand.format(arch(), addr) << std::endl;
       SgAsmExpression *converted = convertOperand(currOperand.getValue(), addr, insn.size());

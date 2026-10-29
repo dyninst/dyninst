@@ -19,26 +19,27 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(APPEND _sources RegisterConversion-amdgpu.C registerSpace-amdgpu.C)
 endif()
 
-# cmake-format: off
 dyninst_library(
   dyninstAPI_registerSpace
   INTERNAL_LIBRARY
   SOURCE_FILES ${_sources}
   PRIVATE_HEADER_FILES ${_headers}
-  DYNINST_INTERNAL_DEPS common parseAPI patchAPI pcontrol
+  DYNINST_DEPS common parseAPI patchAPI pcontrol
 )
 
-set(_inc_dirs
+set(
+  _inc_dirs
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/..
   ${CMAKE_CURRENT_SOURCE_DIR}/../ASTs
   ${CMAKE_CURRENT_SOURCE_DIR}/../BPatch
   ${CMAKE_CURRENT_SOURCE_DIR}/../../h
 )
-# cmake-format: on
 
-target_include_directories(dyninstAPI_registerSpace
-                           PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
+target_include_directories(
+  dyninstAPI_registerSpace
+  PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>
+)
 
 unset(_headers)
 unset(_sources)

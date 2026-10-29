@@ -19,8 +19,15 @@ macro(make_exec_test test_name)
   list(APPEND _all_tests ${test_name})
 endmacro()
 
-foreach(t "isExec" "isExecutable" "isSharedLibrary" "isStripped" "isPositionIndependent"
-          "isStaticBinary")
+foreach(
+  t
+  "isExec"
+  "isExecutable"
+  "isSharedLibrary"
+  "isStripped"
+  "isPositionIndependent"
+  "isStaticBinary"
+)
   add_executable(${t} "${t}.cpp")
   target_compile_options(${t} PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
   target_link_libraries(${t} PRIVATE symtabAPI)
@@ -29,7 +36,6 @@ endforeach()
 # Test shared libraries
 foreach(main_t "hasmain" "none")
   foreach(strip_t "stripped" "none")
-
     # The '_pic' makes creating the test targets easier
     set(_targ "sharedlib_${main_t}_${strip_t}_pic")
 
@@ -44,7 +50,6 @@ foreach(main_t "hasmain" "none")
       target_compile_definitions(${_targ} PRIVATE "ADD_INTERP")
       target_link_options(${_targ} PRIVATE "-Wl,-e,main")
     endif()
-
   endforeach()
 endforeach()
 
@@ -59,7 +64,6 @@ endif()
 foreach(strip_t "stripped" "none")
   foreach(pic_t "pic" "none")
     foreach(link_t ${_static_link} "dynlink")
-
       set(_targ "exectest_${strip_t}_${pic_t}_${link_t}")
       make_exec_test(${_targ})
 
@@ -82,13 +86,11 @@ foreach(strip_t "stripped" "none")
         # '-s' works for gcc and clang
         target_link_libraries(${_targ} "-s")
       endif()
-
     endforeach()
   endforeach()
 endforeach()
 
 foreach(test_name ${_all_tests})
-
   set(test_file $<TARGET_FILE:${test_name}>)
 
   set(_targ "symtab_file_properties_isExec_${test_name}")
@@ -129,8 +131,10 @@ foreach(test_name ${_all_tests})
   set_tests_properties(${_targ} PROPERTIES LABELS "regression")
 
   set(_targ "symtab_file_properties_isPositionIndependent_${test_name}")
-  add_test(NAME ${_targ} COMMAND ${CMAKE_COMMAND} -E env
-                                 $<TARGET_FILE:isPositionIndependent> "${test_file}")
+  add_test(
+    NAME ${_targ}
+    COMMAND ${CMAKE_COMMAND} -E env $<TARGET_FILE:isPositionIndependent> "${test_file}"
+  )
   if(NOT "${test_name}" MATCHES "pic")
     set_tests_properties(${_targ} PROPERTIES WILL_FAIL TRUE)
   elseif(_static_link AND "${test_name}" MATCHES "${_static_link}")
@@ -146,5 +150,4 @@ foreach(test_name ${_all_tests})
     set_tests_properties(${_targ} PROPERTIES WILL_FAIL TRUE)
   endif()
   set_tests_properties(${_targ} PROPERTIES LABELS "regression")
-
 endforeach()

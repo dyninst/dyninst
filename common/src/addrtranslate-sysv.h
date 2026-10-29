@@ -60,6 +60,7 @@ protected:
    SymbolReaderFactory *factory;
 
    void parsefile();
+   static string nodeName(string f);
 
 public:
    FCNode(string f, dev_t d, ino_t i, SymbolReaderFactory *factory_);
@@ -154,6 +155,10 @@ private:
 
    bool plat_getTrapAddr();
    Address real_trap_addr;
+
+   // The target resolves paths differently from us (a container or a chroot),
+   // so its link-map names must be opened through /proc/<pid>/root.
+   bool distinct_view;
 
    Address adjustForAddrSpaceWrap(Address addr, std::string name);
 

@@ -505,24 +505,46 @@ bool Symtab::findRegionByEntry(Region *&ret, const Offset offset)
  * regions_ elements that start at address 0 may overlap, ELF binaries
  * have 0 address iff they are not loadable, but xcoff places loadable
  * sections at address 0, including .text and .data
+ *
+ * A TLS NOBITS region (.tbss) occupies no address space in the image: its
+ * address range only describes the TLS initialization template, and the
+ * sections placed at or after its start (e.g. .init_array, .data.rel.ro)
+ * hold the actual bytes there. When the search lands on such a region,
+ * return the smallest other region that contains the address instead.
+ * Linkers only overlap .tbss with sections that start at or inside it,
+ * but regions added with addRegion may start anywhere, so every region
+ * is checked; this path is taken only for addresses inside .tbss.
  */
 Region *Symtab::findEnclosingRegion(const Offset where)
 {
-    int first = 0; 
+    auto contains = [where](Region const *r) {
+        return where >= r->getMemOffset()
+            && where < (r->getMemOffset() + r->getMemSize());
+    };
+    auto isTLSBss = [](Region const *r) { return r->isTLS() && r->isBSS(); };
+
+    int first = 0;
     int last = regions_.size() - 1;
     while (last >= first) {
-        Region *curreg = regions_[(first + last) / 2];
-        if (where >= curreg->getMemOffset()
-            && where < (curreg->getMemOffset()
-                        + curreg->getMemSize())) {
-            return curreg;
+        int mid = (first + last) / 2;
+        Region *curreg = regions_[mid];
+        if (contains(curreg)) {
+            if (!isTLSBss(curreg))
+                return curreg;
+            Region *inner = nullptr;
+            for (Region *r : regions_) {
+                if (contains(r) && !isTLSBss(r)
+                    && (!inner || r->getMemSize() < inner->getMemSize()))
+                    inner = r;
+            }
+            return inner ? inner : curreg;
         }
         else if (where < curreg->getMemOffset()) {
-            last = ((first + last) / 2) - 1;
+            last = mid - 1;
         }
         else {/* where >= (cursec->getSecAddr()
                            + cursec->getSecSize()) */
-            first = ((first + last) / 2) + 1;
+            first = mid + 1;
         }
     }
     return nullptr;

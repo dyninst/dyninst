@@ -5,23 +5,30 @@ if(POLICY CMP0076)
   cmake_policy(SET CMP0076 NEW)
 endif()
 
-set(_sources BinaryFunction.C Expression.C Immediate.C MultiRegister.C Register.C
-             Ternary.C)
+set(
+  _sources
+  BinaryFunction.C
+  Expression.C
+  Immediate.C
+  MultiRegister.C
+  Register.C
+  Ternary.C
+)
 
-# cmake-format: off
 dyninst_library(
   instructionAPI_ASTs
   INTERNAL_LIBRARY
   SOURCE_FILES ${_sources}
   PRIVATE_HEADER_FILES ${_headers}
-  DYNINST_INTERNAL_DEPS common
+  DYNINST_DEPS common
 )
 
-set(_inc_dirs
+set(
+  _inc_dirs
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/..
-  ${PROJECT_SOURCE_DIR}/instructionAPI/h)
-# cmake-format: on
+  ${PROJECT_SOURCE_DIR}/instructionAPI/h
+)
 
 target_include_directories(instructionAPI_ASTs PRIVATE $<BUILD_INTERFACE:${_inc_dirs}>)
 

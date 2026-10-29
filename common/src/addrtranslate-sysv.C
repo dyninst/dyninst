@@ -396,7 +396,8 @@ AddressTranslateSysV::AddressTranslateSysV() :
    current_r_state(0),
    r_debug_addr(0),
    trap_addr(0),
-   real_trap_addr(0)
+   real_trap_addr(0),
+   distinct_view(false)
 {
 }
 
@@ -413,7 +414,8 @@ AddressTranslateSysV::AddressTranslateSysV(int pid_, ProcessReader *reader_,
    current_r_state(0),
    r_debug_addr(0),
    trap_addr(0),
-   real_trap_addr(0)
+   real_trap_addr(0),
+   distinct_view(Dyninst::filesystem::has_distinct_filesystem_view(pid_))
 {
    bool result;
    if (interp_base != (Address) -1) {
@@ -616,6 +618,12 @@ bool AddressTranslateSysV::init() {
 
 LoadedLib *AddressTranslateSysV::getLoadedLibByNameAddr(Address addr, std::string name)
 {
+   // A link-map name is the target's. With its own filesystem view, the same
+   // name here may be a different file or none, so open it through the
+   // target's root. Names already under /proc/<pid>/ come back unchanged.
+   if (distinct_view)  {
+      name = Dyninst::filesystem::canonicalize(std::move(name), pid);
+   }
    Address wrappedAddr = adjustForAddrSpaceWrap(addr, name);
 
    std::pair<Address, std::string> p(wrappedAddr, name);
@@ -865,7 +873,19 @@ FCNode::FCNode(string f, dev_t d, ino_t i, SymbolReaderFactory *factory_) :
    symreader(NULL),
    factory(factory_)
 {
-   filename = Dyninst::filesystem::canonicalize(std::move(f));
+   filename = nodeName(std::move(f));
+}
+
+std::string FCNode::nodeName(std::string f)
+{
+   // Names reach here already resolved for the target process. A target with
+   // its own filesystem view has names under /proc/<pid>/, which canonicalize()
+   // would follow back into this process's own filesystem view. Any other name,
+   // /proc/ ones included, is canonicalized as usual.
+   if (Dyninst::filesystem::is_rooted_target_path(f))  {
+      return f;
+   }
+   return Dyninst::filesystem::canonicalize(std::move(f));
 }
 
 string FCNode::getFilename() {
@@ -992,7 +1012,18 @@ FCNode *FileCache::getNode(const string &filename, SymbolReaderFactory *factory)
       if (nodes[i]->inode == buf.st_ino &&
           nodes[i]->device == buf.st_dev)
       {
-         return nodes[i];
+         // Nodes are shared by file, and a node keeps the first name it was
+         // given. A name under /proc/<pid>/ stops reaching the file once that
+         // process exits, or names another file once the pid is reused: then
+         // take the caller's name, which reaches the file now.
+         FCNode *node = nodes[i];
+         struct stat named;
+         if (node->filename != filename &&
+             (stat(node->filename.c_str(), &named) == -1 ||
+              named.st_ino != buf.st_ino || named.st_dev != buf.st_dev))  {
+            node->filename = FCNode::nodeName(filename);
+         }
+         return node;
       }
    }
 

@@ -4,7 +4,7 @@
 #
 # Targets
 #   docs                    every manual
-#   <module>.pdf            one manual
+#   <module>-manual         one manual
 #   docs-install            install the manuals under CMAKE_INSTALL_DOCDIR
 #   <module>-doc-listings   the example sources that manual typesets
 #
@@ -14,7 +14,7 @@
 #                           a missing pdflatex is reported by the target
 #   DYNINST_DOCS_VALIDATE_LISTINGS
 #                           put <module>-doc-listings in 'all', whether or not
-#                           DYNINST_BUILD_DOCS is set, and make <module>.pdf
+#                           DYNINST_BUILD_DOCS is set, and make <module>-manual
 #                           wait for it.  The targets exist either way
 #   DYNINST_DOCS_FORCE_VALIDATE
 #                           require Ghostscript rather than skip the page
@@ -30,9 +30,10 @@ find_package(LATEX COMPONENTS PDFLATEX)
 if(DYNINST_BUILD_DOCS AND NOT LATEX_PDFLATEX_FOUND)
   message(
     FATAL_ERROR
-      "DYNINST_BUILD_DOCS is ON but pdflatex was not found.\n"
-      "  Install a LaTeX distribution, or configure with "
-      "-DDYNINST_BUILD_DOCS=OFF to build the manuals on demand only.")
+    "DYNINST_BUILD_DOCS is ON but pdflatex was not found.\n"
+    "  Install a LaTeX distribution, or configure with "
+    "-DDYNINST_BUILD_DOCS=OFF to build the manuals on demand only."
+  )
 endif()
 
 find_package(Ghostscript)
@@ -40,10 +41,11 @@ find_package(Ghostscript)
 if(DYNINST_DOCS_FORCE_VALIDATE AND NOT Ghostscript_FOUND)
   message(
     FATAL_ERROR
-      "DYNINST_DOCS_FORCE_VALIDATE is ON but Ghostscript was not found.\n"
-      "  Install Ghostscript, or configure with "
-      "-DDYNINST_DOCS_FORCE_VALIDATE=OFF to skip the measurement when it "
-      "is unavailable.")
+    "DYNINST_DOCS_FORCE_VALIDATE is ON but Ghostscript was not found.\n"
+    "  Install Ghostscript, or configure with "
+    "-DDYNINST_DOCS_FORCE_VALIDATE=OFF to skip the measurement when it "
+    "is unavailable."
+  )
 endif()
 
 if(DYNINST_BUILD_DOCS)
@@ -52,18 +54,23 @@ else()
   add_custom_target(docs COMMENT "Building the Dyninst manuals")
 endif()
 
-set(DYNINST_DOCS_INSTALL_DIR
-    "${CMAKE_INSTALL_DOCDIR}"
-    CACHE STRING "Where 'install' and 'docs-install' put the manuals")
+set(
+  DYNINST_DOCS_INSTALL_DIR
+  "${CMAKE_INSTALL_DOCDIR}"
+  CACHE STRING
+  "Where 'install' and 'docs-install' put the manuals"
+)
 
 # Installing on demand.  install() is bound to the 'install' target, so route
 # through the generated cmake_install.cmake with the component filter; that
 # keeps DESTDIR and the install prefix working, which a plain copy would not.
 add_custom_target(
   docs-install
-  COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_COMPONENT=docs -P
-          ${CMAKE_BINARY_DIR}/cmake_install.cmake
-  COMMENT "Installing the Dyninst manuals into ${DYNINST_DOCS_INSTALL_DIR}")
+  COMMAND
+    ${CMAKE_COMMAND} -DCMAKE_INSTALL_COMPONENT=docs -P
+    ${CMAKE_BINARY_DIR}/cmake_install.cmake
+  COMMENT "Installing the Dyninst manuals into ${DYNINST_DOCS_INSTALL_DIR}"
+)
 add_dependencies(docs-install docs)
 
 # ---------------------------------------------------------------------------
@@ -83,7 +90,15 @@ add_dependencies(docs-install docs)
 # ---------------------------------------------------------------------------
 function(dyninst_add_latex_document)
   set(_opts "")
-  set(_one TARGET SOURCE_DIR MAIN INSTALL_DESTINATION ALLOW_WARNINGS MAX_OVERFULL_PT)
+  set(
+    _one
+    TARGET
+    SOURCE_DIR
+    MAIN
+    INSTALL_DESTINATION
+    ALLOW_WARNINGS
+    MAX_OVERFULL_PT
+  )
   set(_many DEPENDS)
   # PARSE_ARGV, not ${ARGN}: expanding ARGN re-splits every argument on its
   # semicolons, so a regex containing one reaches here already truncated.
@@ -106,7 +121,9 @@ function(dyninst_add_latex_document)
   endforeach()
   if(LTX_UNPARSED_ARGUMENTS)
     message(
-      FATAL_ERROR "dyninst_add_latex_document: unrecognised: ${LTX_UNPARSED_ARGUMENTS}")
+      FATAL_ERROR
+      "dyninst_add_latex_document: unrecognised: ${LTX_UNPARSED_ARGUMENTS}"
+    )
   endif()
 
   # Beside the CMakeLists.txt that asked for it.  The pass cap is not settable
@@ -125,15 +142,19 @@ function(dyninst_add_latex_document)
         ${CMAKE_COMMAND} -E echo
         "error: cannot build ${_stem}.pdf - pdflatex was not found at configure time"
       COMMAND ${CMAKE_COMMAND} -E false
-      COMMENT "Building ${_stem}.pdf")
+      COMMENT "Building ${_stem}.pdf"
+    )
     add_dependencies(docs ${LTX_TARGET})
     return()
   endif()
 
   add_custom_command(
     OUTPUT "${_pdf}"
-    BYPRODUCTS "${_out_dir}/${_stem}.aux" "${_out_dir}/${_stem}.log"
-               "${_out_dir}/${_stem}.toc" "${_out_dir}/${_stem}.out"
+    BYPRODUCTS
+      "${_out_dir}/${_stem}.aux"
+      "${_out_dir}/${_stem}.log"
+      "${_out_dir}/${_stem}.toc"
+      "${_out_dir}/${_stem}.out"
     # Quote each -D.  Unquoted, a semicolon in the value is a list separator:
     # the argument is cut at it and the remainder handed to cmake as a stray
     # argument it ignores.  ALLOW_WARNINGS is a regular expression, so that
@@ -149,7 +170,8 @@ function(dyninst_add_latex_document)
       "${PROJECT_SOURCE_DIR}/cmake/DyninstRunLaTeX.cmake"
     DEPENDS ${LTX_DEPENDS} ${PROJECT_SOURCE_DIR}/cmake/DyninstRunLaTeX.cmake
     COMMENT "Building ${_stem}.pdf"
-    VERBATIM)
+    VERBATIM
+  )
 
   add_custom_target(${LTX_TARGET} DEPENDS "${_pdf}")
   add_dependencies(docs ${LTX_TARGET})
@@ -159,7 +181,8 @@ function(dyninst_add_latex_document)
       FILES "${_pdf}"
       DESTINATION "${LTX_INSTALL_DESTINATION}"
       COMPONENT docs
-      OPTIONAL)
+      OPTIONAL
+    )
 
     # install(FILES ... OPTIONAL) is silent about a PDF that was never built,
     # so record what a complete install holds; docs/CMakeLists.txt writes the
@@ -188,17 +211,19 @@ function(dyninst_add_manual _module)
   # Over-approximate rather than parse \input, \includegraphics and
   # \lstinputlisting: touching an unrelated file in one manual's directory
   # costs a rebuild of that manual alone, and nothing goes stale silently.
-  set(_patterns
-      "*.tex"
-      "*.c"
-      "*.cc"
-      "*.cpp"
-      "*.C"
-      "*.h"
-      "*.pdf"
-      "*.eps"
-      "*.png"
-      "*.dot")
+  set(
+    _patterns
+    "*.tex"
+    "*.c"
+    "*.cc"
+    "*.cpp"
+    "*.C"
+    "*.h"
+    "*.pdf"
+    "*.eps"
+    "*.png"
+    "*.dot"
+  )
   set(_deps "")
   foreach(_dir "${_src}" "${PROJECT_SOURCE_DIR}/docs/common/manual-latex")
     foreach(_p ${_patterns})
@@ -208,14 +233,19 @@ function(dyninst_add_manual _module)
   endforeach()
   list(REMOVE_DUPLICATES _deps)
 
+  # Not <module>.pdf: Ninja gives every target a per-directory alias,
+  # docs/<module>/manual-latex/<target>, and for a target named after the PDF
+  # that alias is the PDF's own path, so Ninja refuses the build ("multiple
+  # rules generate").
   dyninst_add_latex_document(
-    TARGET ${_module}.pdf
+    TARGET ${_module}-manual
     SOURCE_DIR "${_src}"
     MAIN "${_module}.tex"
     DEPENDS ${_deps}
     ALLOW_WARNINGS "${M_ALLOW_WARNINGS}"
     MAX_OVERFULL_PT "${M_MAX_OVERFULL_PT}"
-    INSTALL_DESTINATION "${DYNINST_DOCS_INSTALL_DIR}")
+    INSTALL_DESTINATION "${DYNINST_DOCS_INSTALL_DIR}"
+  )
 
   # dyninst_validate_listings adds this edge when it runs after this function,
   # and cannot when it runs before -- the target it would hang the dependency
@@ -223,7 +253,7 @@ function(dyninst_add_manual _module)
   # CMakeLists.txt may call the two in either order and get the same build.
   # Whichever runs second finds the other's target and adds the edge once.
   if(DYNINST_DOCS_VALIDATE_LISTINGS AND TARGET ${_module}-doc-listings)
-    add_dependencies(${_module}.pdf ${_module}-doc-listings)
+    add_dependencies(${_module}-manual ${_module}-doc-listings)
   endif()
 endfunction()
 
@@ -233,9 +263,10 @@ endfunction()
 # Compiles the sources a manual typesets, so an example that stops matching
 # the API it documents fails a build rather than the reader's first attempt.
 # In 'all' whether or not DYNINST_BUILD_DOCS is set, because the change that
-# breaks an example is a change to the library; <module>.pdf depends on it too.
+# breaks an example is a change to the library; <module>-manual depends on it
+# too.
 # Turning DYNINST_DOCS_VALIDATE_LISTINGS off takes it out of 'all' and off
-# <module>.pdf, leaving the target to be asked for by name.
+# <module>-manual, leaving the target to be asked for by name.
 #
 # USES names the library targets whose headers the examples include, default
 # <module>.  Borrow their usage requirements; do not link them, or "make docs"
@@ -276,12 +307,8 @@ function(_dyninst_listing_targets _roots _out_local _out_imported)
     endif()
   endwhile()
 
-  set(${_out_local}
-      "${_local}"
-      PARENT_SCOPE)
-  set(${_out_imported}
-      "${_imp}"
-      PARENT_SCOPE)
+  set(${_out_local} "${_local}" PARENT_SCOPE)
+  set(${_out_imported} "${_imp}" PARENT_SCOPE)
 endfunction()
 
 function(dyninst_validate_listings _module)
@@ -298,7 +325,7 @@ function(dyninst_validate_listings _module)
   set(_check ${_module}-doc-listings)
 
   # The target exists either way, so it can always be asked for by name --
-  # the same bargain <module>.pdf makes with DYNINST_BUILD_DOCS.  What
+  # the same bargain <module>-manual makes with DYNINST_BUILD_DOCS.  What
   # DYNINST_DOCS_VALIDATE_LISTINGS decides is whether an ordinary build runs
   # it.  On, it joins 'all': the change that breaks an example is made by
   # someone with no reason to build a manual, so the check has to reach them,
@@ -313,22 +340,31 @@ function(dyninst_validate_listings _module)
 
   foreach(_t ${_local})
     target_include_directories(
-      ${_check} PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_INCLUDE_DIRECTORIES>)
+      ${_check}
+      PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_INCLUDE_DIRECTORIES>
+    )
     target_compile_definitions(
-      ${_check} PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_COMPILE_DEFINITIONS>)
+      ${_check}
+      PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_COMPILE_DEFINITIONS>
+    )
   endforeach()
 
   foreach(_t ${_imported})
     target_include_directories(
-      ${_check} SYSTEM PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_INCLUDE_DIRECTORIES>)
+      ${_check}
+      SYSTEM
+      PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_INCLUDE_DIRECTORIES>
+    )
     target_compile_definitions(
-      ${_check} PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_COMPILE_DEFINITIONS>)
+      ${_check}
+      PRIVATE $<TARGET_PROPERTY:${_t},INTERFACE_COMPILE_DEFINITIONS>
+    )
   endforeach()
 
   # Asking for a manual compiles its examples first, but only when the check
-  # is on; off, <module>.pdf does not wait for a target the build was told
+  # is on; off, <module>-manual does not wait for a target the build was told
   # not to run.
-  if(DYNINST_DOCS_VALIDATE_LISTINGS AND TARGET ${_module}.pdf)
-    add_dependencies(${_module}.pdf ${_check})
+  if(DYNINST_DOCS_VALIDATE_LISTINGS AND TARGET ${_module}-manual)
+    add_dependencies(${_module}-manual ${_check})
   endif()
 endfunction()

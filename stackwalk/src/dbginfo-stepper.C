@@ -50,9 +50,7 @@
 # include "registers/aarch64_regs.h"
 #endif
 
-#if defined(WITH_SYMTAB_API)
 #include "symtabAPI/h/Symtab.h"
-#endif
 
 using namespace Dyninst;
 using namespace Stackwalker;
@@ -190,7 +188,6 @@ bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
    {
       result = getProcessState()->getRegValue(reg, cur_frame->getThread(), val);
    }
-#if defined(WITH_SYMTAB_API)
    else
    {
       Offset offset;
@@ -232,7 +229,6 @@ bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
        }
 #endif      
    }
-#endif
 
    depth_frame = prevDepthFrame;
    return result;
@@ -309,6 +305,9 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    cur_frame = &in;
    gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dauxinfo, isVsyscallPage);
    cur_frame = NULL;
+
+   if (gcresult == gcf_stackbottom)
+      return gcresult;
 
    result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(out.getRA(), lib);
    if (!result) return gcf_not_me;
@@ -545,6 +544,11 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                                          ret_value, this, frame_error);
    }
    if (!result) {
+      if (frame_error == FE_Undefined_Return_Address) {
+         sw_printf("[%s:%d] - DWARF return address is undefined; stack bottom reached\n",
+                   FILE__, __LINE__);
+         return gcf_stackbottom;
+      }
       sw_printf("[%s:%d] - Couldn't get return debug info at %lx, error: %d\n",
                 FILE__, __LINE__, in.getRA(), frame_error);
       return gcf_not_me;
