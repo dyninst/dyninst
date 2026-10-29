@@ -1615,40 +1615,7 @@ void func_instance::createTMap_internal(StackMod* mod, TMap* tMap)
     }
 }
 
-namespace
-{
-AnnotationClass<StackAnalysis::Intervals>
-        Stack_Anno_Intervals(std::string("Stack_Anno_Intervals"), NULL);
-AnnotationClass<StackAnalysis::BlockEffects>
-        Stack_Anno_Block_Effects(std::string("Stack_Anno_Block_Effects"), NULL);
-AnnotationClass<StackAnalysis::InstructionEffects>
-        Stack_Anno_Insn_Effects(std::string("Stack_Anno_Insn_Effects"), NULL);
-AnnotationClass<StackAnalysis::CallEffects>
-        Stack_Anno_Call_Effects(std::string("Stack_Anno_Call_Effects"), NULL);
-}
 void func_instance::freeStackMod() {
-    // Free stack analysis intervals
-    StackAnalysis::Intervals *i = NULL;
-    ifunc()->getAnnotation(i, Stack_Anno_Intervals);
-    ifunc()->removeAnnotation(Stack_Anno_Intervals);
-    if (i != NULL) delete i;
-
-    // Free stack analysis block effects
-    StackAnalysis::BlockEffects *be = NULL;
-    ifunc()->getAnnotation(be, Stack_Anno_Block_Effects);
-    ifunc()->removeAnnotation(Stack_Anno_Block_Effects);
-    if (be != NULL) delete be;
-
-    // Free stack analysis instruction effects
-    StackAnalysis::InstructionEffects *ie = NULL;
-    ifunc()->getAnnotation(ie, Stack_Anno_Insn_Effects);
-    ifunc()->removeAnnotation(Stack_Anno_Insn_Effects);
-    if (ie != NULL) delete ie;
-
-    // Free stack analysis call effects
-    StackAnalysis::CallEffects *ce = NULL;
-    ifunc()->getAnnotation(ce, Stack_Anno_Call_Effects);
-    ifunc()->removeAnnotation(Stack_Anno_Call_Effects);
-    if (ce != NULL) delete ce;
+    StackAnalysis::clearCache(ifunc());
 }
 #endif

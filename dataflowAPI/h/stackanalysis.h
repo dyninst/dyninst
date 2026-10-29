@@ -71,6 +71,8 @@ namespace Dyninst {
       class Expression;
    }
 
+struct StackAnalysisCache;
+
 class StackAnalysis {
 public:
    typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
@@ -499,6 +501,9 @@ public:
       const std::map<Address, TransferSet> &fs,
       const std::set<Address> &toppable = std::set<Address>());
 
+    // Free the results cached on f, so the next analysis of f starts over.
+    DYNINST_EXPORT static void clearCache(ParseAPI::Function *f);
+
     DYNINST_EXPORT virtual ~StackAnalysis() = default;
     DYNINST_EXPORT StackAnalysis& operator=(const Dyninst::StackAnalysis&) = default;
 
@@ -618,9 +623,9 @@ private:
    std::set<Address> toppableFunctions;
 
    // SP effect tracking
-   BlockEffects *blockEffects;  // Pointer so we can make it an annotation
-   InstructionEffects *insnEffects;  // Pointer so we can make it an annotation
-   CallEffects *callEffects;  // Pointer so we can make it an annotation
+   BlockEffects *blockEffects;  // Pointer so it can be cached on the Function
+   InstructionEffects *insnEffects;  // Pointer so it can be cached on the Function
+   CallEffects *callEffects;  // Pointer so it can be cached on the Function
 
    BlockState blockInputs;
    BlockState blockOutputs;
@@ -630,7 +635,11 @@ private:
    BlockSummaryState blockSummaryInputs;
    BlockSummaryState blockSummaryOutputs;
 
-   Intervals *intervals_; // Pointer so we can make it an annotation
+   Intervals *intervals_; // Pointer so it can be cached on the Function
+
+   // The Function's cache, created on first use. Caller holds f's lock.
+   static StackAnalysisCache &cacheOf(ParseAPI::Function *f);
+   static Intervals *cachedIntervals(ParseAPI::Function *f);
 
    FuncCleanAmounts funcCleanAmounts;
    int word_size;
