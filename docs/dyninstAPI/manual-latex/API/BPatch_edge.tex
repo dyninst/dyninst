@@ -10,10 +10,8 @@ The \code{BPatch\_edge} class represents a control flow edge in a
 \apidesc{
   Return an instrumentation point for this edge. This point can be
   passed to \code{BPatch\_process::insertSnippet} to
-  instrument the edge. Return \code{NULL} if the edge cannot be
-  instrumented: an edge into a block that the flow graph's function
-  shares with another function, from a block that only the other
-  function has.
+  instrument the edge. Return \code{NULL} if no instrumentation point
+  can be made for the edge.
 }
 
 \begin{apient}

@@ -31,7 +31,9 @@ graph of the containing function.
 \end{apient}
 
 \apidesc{
-  Fill out with all of the control flow edges that leave this basic block.
+  Fill out with all of the control flow edges that leave this basic block
+  for blocks of the flow graph's function, and those to unresolved
+  targets.
 }
 
 \begin{apient}
@@ -39,7 +41,10 @@ graph of the containing function.
 \end{apient}
 
 \apidesc{
-  Fills inc with all of the control flow edges that point to this basic block.
+  Fills inc with all of the control flow edges that point to this basic block
+  from blocks of the flow graph's function. A block that the function shares
+  with another function can also be reached from blocks that only the other
+  function has; those edges are in the other function's flow graph.
 }
 
 \begin{apient}

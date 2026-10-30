@@ -10,6 +10,7 @@
 #include "CFG.h"
 
 #include <cstdlib>
+#include <initializer_list>
 #include <iostream>
 #include <set>
 #include <string>
@@ -17,11 +18,11 @@
 
 // The input, dyninstAPI/parsing/sharedLoopBlock in test_binaries, has two
 // x86_64 functions sharing a loop head: loop_entrant jumps into the loop of
-// loop_owner, so the head has an incoming edge from a block outside
-// loop_owner. BPatch_edge::getPoint must return no point for that edge instead
-// of crashing, and points for loop_owner's other edges. Loop entry points,
-// which come from the loop head's incoming edges, must then cover only the
-// edge from inside loop_owner.
+// loop_owner, so the head is in both functions and has an incoming edge from a
+// block that only loop_entrant has. That edge belongs to loop_entrant's flow
+// graph, not loop_owner's. In each function's flow graph, every edge must have
+// both ends in the function and an instrumentation point, and the loop must
+// have exactly one entry point.
 
 namespace {
 
@@ -40,7 +41,6 @@ namespace {
   }
 
   bool check_edge_points(BPatch_function *func) {
-    Dyninst::ParseAPI::Function *pfunc = Dyninst::ParseAPI::convert(func);
     std::set<BPatch_basicBlock *> blocks;
     func->getCFG()->getAllBasicBlocks(blocks);
 
@@ -53,22 +53,15 @@ namespace {
     }
 
     bool ok = true;
-    int foreign = 0;
     for (auto *edge : edges) {
       Dyninst::ParseAPI::Edge *pedge = Dyninst::ParseAPI::convert(edge);
-      bool const in_func = pfunc->contains(pedge->src()) && pfunc->contains(pedge->trg());
-      foreign += in_func ? 0 : 1;
-      BPatch_point *point = edge->getPoint();
-      if (in_func != (point != nullptr)) {
-        std::cerr << "Edge 0x" << std::hex << pedge->src()->last() << " -> 0x"
-                  << pedge->trg()->start() << std::dec << ": expected "
-                  << (in_func ? "a point" : "no point") << '\n';
+      bool const in_func = blocks.count(edge->getSource()) && blocks.count(edge->getTarget());
+      if (!in_func || !edge->getPoint()) {
+        std::cerr << func->getName() << ": edge 0x" << std::hex << pedge->src()->last()
+                  << " -> 0x" << pedge->trg()->start() << std::dec
+                  << (in_func ? " has no point" : " leaves the function") << '\n';
         ok = false;
       }
-    }
-    if (foreign != 1) {
-      std::cerr << "Expected one edge from outside the function, found " << foreign << '\n';
-      ok = false;
     }
     return ok;
   }
@@ -77,13 +70,13 @@ namespace {
     std::vector<BPatch_basicBlockLoop *> loops;
     func->getCFG()->getOuterLoops(loops);
     if (loops.size() != 1) {
-      std::cerr << "Expected one loop, found " << loops.size() << '\n';
+      std::cerr << func->getName() << ": expected one loop, found " << loops.size() << '\n';
       return false;
     }
     auto *points = func->getCFG()->findLoopInstPoints(BPatch_locLoopEntry, loops[0]);
     if (!points || points->size() != 1 || !(*points)[0]) {
-      std::cerr << "Expected one loop entry point, found " << (points ? points->size() : 0)
-                << '\n';
+      std::cerr << func->getName() << ": expected one loop entry point, found "
+                << (points ? points->size() : 0) << '\n';
       return false;
     }
     return true;
@@ -105,12 +98,14 @@ int main(int argc, char **argv) {
   }
   BPatch_image *image = binary->getImage();
 
-  BPatch_function *owner = find_function(image, "loop_owner");
-  if (!owner || !find_function(image, "loop_entrant")) {
-    return EXIT_FAILURE;
+  bool ok = true;
+  for (char const *name : {"loop_owner", "loop_entrant"}) {
+    BPatch_function *func = find_function(image, name);
+    if (!func) {
+      return EXIT_FAILURE;
+    }
+    ok &= check_edge_points(func);
+    ok &= check_loop_entry_points(func);
   }
-
-  bool ok = check_edge_points(owner);
-  ok &= check_loop_entry_points(owner);
   return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
