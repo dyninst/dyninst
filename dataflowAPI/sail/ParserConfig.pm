@@ -153,7 +153,7 @@ our %ARGS_PER_SUBSET = %{
         JALR => ordered_hash(
             imm => {
                 init_code => sub {
-                    print_indent( "SgAsmExpression *rd = args[0];\n", 2 );
+                    print_indent( "SgAsmExpression *imm = args[2];\n", 2 );
                 },
                 need_read => 1,
             },
@@ -278,7 +278,7 @@ our %ARGS_PER_SUBSET = %{
             },
             width => {
                 init_code => sub {
-                    print_indent( "size_t width = lrsc_width_str(insn)\n", 2 );
+                    print_indent( "size_t width = lrsc_width_str(insn);\n", 2 );
                 },
                 need_number => 1,
             },
@@ -304,7 +304,7 @@ our %ARGS_PER_SUBSET = %{
             },
             width => {
                 init_code => sub {
-                    print_indent( "size_t width = lrsc_width_str(insn)\n", 2 );
+                    print_indent( "size_t width = lrsc_width_str(insn);\n", 2 );
                 },
                 need_number => 1,
             },
@@ -410,7 +410,7 @@ our %ARGS_PER_SUBSET = %{
             },
             width => {
                 init_code => sub {
-                    print_indent( "size_t width = lrsc_width_str(insn)\n", 2 );
+                    print_indent( "size_t width = lrsc_width_str(insn);\n", 2 );
                 },
                 need_number => 1,
             },
