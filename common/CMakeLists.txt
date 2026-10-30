@@ -158,24 +158,6 @@ elseif(DYNINST_OS_Windows)
   list(APPEND _sources src/ntKludges.C src/addrtranslate-win.C)
 endif()
 
-# adjust warning threshold if set in cmake/warnings.cmake
-if(debugMaxFrameSizeOverrideSyscallInformation)
-  set_source_files_properties(
-    src/MachSyscall.C
-    PROPERTIES
-      COMPILE_FLAGS
-        $<$<CONFIG:DEBUG>:-Wframe-larger-than=${debugMaxFrameSizeOverrideSyscallInformation}>
-  )
-endif()
-if(nonDebugMaxFrameSizeOverrideSyscallInformation)
-  set_source_files_properties(
-    src/MachSyscall.C
-    PROPERTIES
-      COMPILE_FLAGS
-        $<$<NOT:$<CONFIG:DEBUG>>:-Wframe-larger-than=${nonDebugMaxFrameSizeOverrideSyscallInformation}>
-  )
-endif()
-
 dyninst_library(
   common
   PUBLIC_HEADER_FILES ${_public_headers}

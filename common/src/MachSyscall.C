@@ -20,7 +20,6 @@ class SyscallInformation
 
     private:
         SyscallInformation();
-        static SyscallInformation * theInstance;
 
         typedef dyn_hash_map<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform> syscallNumbersMap;
         typedef dyn_hash_map<MachSyscall::SyscallIDPlatform, MachSyscall::SyscallName> syscallNamesMap;
@@ -41,37 +40,35 @@ class SyscallInformation
         syscallNamesMap Linux_Arch_aarch64_syscallNames;
 };
 
-SyscallInformation * SyscallInformation::theInstance = NULL;
-
 SyscallInformation * SyscallInformation::getInstance()
 {
-    if(SyscallInformation::theInstance == NULL) {
-        SyscallInformation::theInstance = new SyscallInformation;
-    }
-    return SyscallInformation::theInstance;
+    // Built on first use.  A function-local static is initialized exactly
+    // once even when several threads get here at the same time.
+    static SyscallInformation * theInstance = new SyscallInformation;
+    return theInstance;
 }
 
 MachSyscall::SyscallName SyscallInformation::findName(Platform plat, MachSyscall::SyscallIDPlatform id)
 {
-    syscallNamesMap curMap;
+    const syscallNamesMap *curMap;
     if (plat == Platform(Arch_x86, Linux)) {
-        curMap = Linux_Arch_x86_syscallNames;
+        curMap = &Linux_Arch_x86_syscallNames;
     } else if (plat == Platform(Arch_x86_64, Linux)) {
-        curMap = Linux_Arch_x86_64_syscallNames;
+        curMap = &Linux_Arch_x86_64_syscallNames;
     } else if (plat == Platform(Arch_ppc32, Linux)) {
-        curMap = Linux_Arch_ppc32_syscallNames;
+        curMap = &Linux_Arch_ppc32_syscallNames;
     } else if (plat == Platform(Arch_ppc64, Linux)) {
-        curMap = Linux_Arch_ppc64_syscallNames;
+        curMap = &Linux_Arch_ppc64_syscallNames;
     } else if (plat == Platform(Arch_aarch64, Linux)) {
-        curMap = Linux_Arch_aarch64_syscallNames;
+        curMap = &Linux_Arch_aarch64_syscallNames;
     } else {
         // We don't know anything about this platform
         assert(0);
         return "unknownSyscall";
     }
 
-    auto found = curMap.find(id);
-    if (found == curMap.end()) {
+    auto found = curMap->find(id);
+    if (found == curMap->end()) {
         // Well, crap
         assert(0);
         return "unknownSyscall";
@@ -81,24 +78,24 @@ MachSyscall::SyscallName SyscallInformation::findName(Platform plat, MachSyscall
 
 MachSyscall::SyscallIDPlatform SyscallInformation::findIDPlatform(Platform plat, MachSyscall::SyscallIDIndependent id)
 {
-    syscallNumbersMap curMap;
+    const syscallNumbersMap *curMap;
     if (plat == Platform(Arch_x86, Linux)) {
-        curMap = Linux_Arch_x86_syscallNumbers;
+        curMap = &Linux_Arch_x86_syscallNumbers;
     } else if (plat == Platform(Arch_x86_64, Linux)) {
-        curMap = Linux_Arch_x86_64_syscallNumbers;
+        curMap = &Linux_Arch_x86_64_syscallNumbers;
     } else if (plat == Platform(Arch_ppc32, Linux)) {
-        curMap = Linux_Arch_ppc32_syscallNumbers;
+        curMap = &Linux_Arch_ppc32_syscallNumbers;
     } else if (plat == Platform(Arch_ppc64, Linux)) {
-        curMap = Linux_Arch_ppc64_syscallNumbers;
+        curMap = &Linux_Arch_ppc64_syscallNumbers;
     } else if (plat == Platform(Arch_aarch64, Linux)) {
-        curMap = Linux_Arch_aarch64_syscallNumbers;
+        curMap = &Linux_Arch_aarch64_syscallNumbers;
     } else {
         // We don't know anything about this platform
         return -1;
     }
 
-    auto found = curMap.find(id);
-    if (found == curMap.end()) {
+    auto found = curMap->find(id);
+    if (found == curMap->end()) {
         // Well, crap
         return -1;
     }

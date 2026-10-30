@@ -135,19 +135,16 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
 endif()
 
 # If -Wframe-larger-than is available adjust the value to allow for larger frames based on
-# compiler version and build type for the following 2 files:
+# compiler version and build type for the following file:
 #
 # instructionAPI/src/InstructionDecoder-power.C (includes instructionAPI/src/power-opcode-table.C)
-# common/src/MachSyscall.C (includes common/src/SyscallInformation.C)
 #
 if(HAS_CPP_FLAG_Wframe_larger_than AND NOT DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
-  # Use worst-case values discovered so far.  For most gcc versions SyscallInformation.C
-  # stack frame size is less than than the default and InstructionDecoder-power.C is
-  # less than 76800, but for some environments and compiler configurations the following
-  # are needed:
+  # Use worst-case values discovered so far.  For most gcc versions
+  # InstructionDecoder-power.C is less than 76800, but for some environments and
+  # compiler configurations the following are needed:
   #
   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    set(debugMaxFrameSizeOverrideSyscallInformation 81920)
     set(debugMaxFrameSizeOverridePowerOpcodeTable 358400)
     if("${CMAKE_CXX_COMPILER_VERSION}" MATCHES "^[7](\.|$)")
       set(nonDebugMaxFrameSizeOverridePowerOpcodeTable 38912)
