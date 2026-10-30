@@ -119,7 +119,8 @@ struct IP_UTYPE : P {
     enum Riscv64InstructionKind op = insn->get_kind();
 
     BaseSemantics::SValuePtr off;
-    off = d->SignExtend(ops->shiftLeft(imm, ops->number_(64, 12)), 64);
+    off = d->SignExtend(
+        ops->extract(ops->shiftLeft(imm, ops->number_(64, 12)), 0, 32), 64);
     switch (op) {
     case rose_riscv64_op_lui: {
       d->write(rd, off);
@@ -169,7 +170,7 @@ struct IP_JALR : P {
     BaseSemantics::SValuePtr target;
     link_address = ops->add(PC, ops->number_(64, insn->get_size()));
     target = ops->add(d->read(rs1, 64, 0), d->SignExtend(imm, 64));
-    d->BranchTo(ops->concat(ops->extract(target, 1, 63), ops->number_(64, 0)));
+    d->BranchTo(ops->and_(target, ops->number_(64, ~uint64_t{1})));
     d->write(rd, link_address);
     return;
   }
@@ -285,7 +286,7 @@ struct IP_SHIFTIOP : P {
     SgAsmExpression *rd = args[0];
     enum Riscv64InstructionKind op = insn->get_kind();
 
-    shamt = ops->extract(shamt, 0, 5);
+    shamt = ops->extract(shamt, 0, 6);
     switch (op) {
     case rose_riscv64_op_slli: {
       d->write(rd, ops->shiftLeft(d->read(rs1, 64, 0), shamt));
@@ -350,12 +351,12 @@ struct IP_RTYPE : P {
     }
     case rose_riscv64_op_sll: {
       d->write(rd, ops->shiftLeft(d->read(rs1, 64, 0),
-                                  ops->extract(d->read(rs2, 64, 0), 0, 5)));
+                                  ops->extract(d->read(rs2, 64, 0), 0, 6)));
       break;
     }
     case rose_riscv64_op_srl: {
       d->write(rd, ops->shiftRight(d->read(rs1, 64, 0),
-                                   ops->extract(d->read(rs2, 64, 0), 0, 5)));
+                                   ops->extract(d->read(rs2, 64, 0), 0, 6)));
       break;
     }
     case rose_riscv64_op_sub: {
@@ -365,7 +366,7 @@ struct IP_RTYPE : P {
     case rose_riscv64_op_sra: {
       d->write(rd, ops->shiftRightArithmetic(
                        d->read(rs1, 64, 0),
-                       ops->extract(d->read(rs2, 64, 0), 0, 5)));
+                       ops->extract(d->read(rs2, 64, 0), 0, 6)));
       break;
     }
     default: {
@@ -469,11 +470,7 @@ struct IP_STORE : P {
      * already handles the immediate */
 
     // offset = d->SignExtend(imm, 64);
-    data =
-        ops->extract(d->read(rs2, 64, 0), ops->number_(64, 0),
-                     ops->subtract(ops->signedMultiply(ops->number_(64, width),
-                                                       ops->number_(64, 8)),
-                                   ops->number_(64, 1)));
+    data = ops->extract(d->read(rs2, 64, 0), 0, width * 8);
     tmp = d->effectiveAddress(rs1);
     d->writeMemory(tmp, width, data);
     return;
@@ -492,7 +489,7 @@ struct IP_ADDIW : P {
 
     BaseSemantics::SValuePtr result;
     result = ops->add(d->read(rs1, 64, 0), d->SignExtend(imm, 64));
-    d->write(rd, d->SignExtend(ops->extract(result, 0, 31), 64));
+    d->write(rd, d->SignExtend(ops->extract(result, 0, 32), 64));
     return;
   }
 };
@@ -511,8 +508,8 @@ struct IP_RTYPEW : P {
     BaseSemantics::SValuePtr rs1_val;
     BaseSemantics::SValuePtr rs2_val;
     BaseSemantics::SValuePtr result;
-    rs1_val = ops->extract(d->read(rs1, 64, 0), 0, 31);
-    rs2_val = ops->extract(d->read(rs2, 64, 0), 0, 31);
+    rs1_val = ops->extract(d->read(rs1, 64, 0), 0, 32);
+    rs2_val = ops->extract(d->read(rs2, 64, 0), 0, 32);
     switch (op) {
     case rose_riscv64_op_addw: {
       result = ops->add(rs1_val, rs2_val);
@@ -523,15 +520,15 @@ struct IP_RTYPEW : P {
       break;
     }
     case rose_riscv64_op_sllw: {
-      result = ops->shiftLeft(rs1_val, ops->extract(rs2_val, 0, 4));
+      result = ops->shiftLeft(rs1_val, ops->extract(rs2_val, 0, 5));
       break;
     }
     case rose_riscv64_op_srlw: {
-      result = ops->shiftRight(rs1_val, ops->extract(rs2_val, 0, 4));
+      result = ops->shiftRight(rs1_val, ops->extract(rs2_val, 0, 5));
       break;
     }
     case rose_riscv64_op_sraw: {
-      result = ops->shiftRightArithmetic(rs1_val, ops->extract(rs2_val, 0, 4));
+      result = ops->shiftRightArithmetic(rs1_val, ops->extract(rs2_val, 0, 5));
       break;
     }
     default: {
@@ -557,7 +554,7 @@ struct IP_SHIFTIWOP : P {
 
     BaseSemantics::SValuePtr rs1_val;
     BaseSemantics::SValuePtr result;
-    rs1_val = ops->extract(d->read(rs1, 64, 0), 0, 31);
+    rs1_val = ops->extract(d->read(rs1, 64, 0), 0, 32);
     switch (op) {
     case rose_riscv64_op_slliw: {
       result = ops->shiftLeft(rs1_val, shamt);
@@ -628,26 +625,16 @@ struct IP_MUL : P {
     rs2_bits = d->read(rs2, 64, 0);
     rs1_int = ops->ite(ops->number_(64, mul_op_signed_rs1), rs1_bits, rs1_bits);
     rs2_int = ops->ite(ops->number_(64, mul_op_signed_rs2), rs2_bits, rs2_bits);
-    result_wide = ops->extract(
-        ops->ite(
-            ops->and_(ops->boolean_(ops->number_(64, mul_op_signed_rs1)),
-                      ops->boolean_(ops->number_(64, mul_op_signed_rs2))),
-            ops->signedMultiply(rs1_int, rs2_int),
-            ops->ite(
-                ops->and_(ops->boolean_(ops->number_(64, mul_op_signed_rs1)),
-                          ops->boolean_(ops->invert(
-                              ops->number_(64, mul_op_signed_rs2)))),
-                d->signedUnsignedMultiply(rs1_int, rs2_int),
-                ops->ite(ops->and_(
-                             ops->boolean_(ops->number_(64, mul_op_signed_rs1)),
-                             ops->boolean_(ops->invert(
-                                 ops->number_(64, mul_op_signed_rs2)))),
-                         d->signedUnsignedMultiply(rs2_int, rs1_int),
-                         ops->unsignedMultiply(rs1_int, rs2_int)))),
-        0, 128);
+    if (mul_op_signed_rs1 && mul_op_signed_rs2)
+      result_wide = ops->signedMultiply(rs1_int, rs2_int);
+    else if (mul_op_signed_rs1)
+      result_wide = d->signedUnsignedMultiply(rs1_int, rs2_int);
+    else
+      result_wide = ops->unsignedMultiply(rs1_int, rs2_int);
+    result_wide = ops->extract(result_wide, 0, 128);
     d->write(rd, ops->ite(ops->number_(64, mul_op_high),
-                          ops->extract(result_wide, 64, 127),
-                          ops->extract(result_wide, 0, 63)));
+                          ops->extract(result_wide, 64, 128),
+                          ops->extract(result_wide, 0, 64)));
     return;
   }
 };
@@ -661,13 +648,13 @@ struct IP_DIV : P {
     SgAsmExpression *rs2 = args[2];
     SgAsmExpression *rs1 = args[1];
     SgAsmExpression *rd = args[0];
-    bool is_unsigned;
+    bool is_signed;
     switch (insn->get_kind()) {
     case rose_riscv64_op_div:
-      is_unsigned = 1;
+      is_signed = 1;
       break;
     case rose_riscv64_op_divu:
-      is_unsigned = 0;
+      is_signed = 0;
       break;
     default:
       assert(0);
@@ -680,21 +667,12 @@ struct IP_DIV : P {
     BaseSemantics::SValuePtr quotient;
     rs1_bits = d->read(rs1, 64, 0);
     rs2_bits = d->read(rs2, 64, 0);
-    rs1_int = ops->ite(ops->number_(64, is_unsigned), rs1_bits, rs1_bits);
-    rs2_int = ops->ite(ops->number_(64, is_unsigned), rs2_bits, rs2_bits);
+    rs1_int = ops->ite(ops->number_(64, is_signed), rs1_bits, rs1_bits);
+    rs2_int = ops->ite(ops->number_(64, is_signed), rs2_bits, rs2_bits);
     quotient = ops->ite(ops->isEqual(rs2_int, ops->number_(64, 0)),
                         ops->number_(64, -1),
-                        ops->ite(ops->boolean_(ops->number_(64, is_unsigned)),
-                                 ops->signedDivide(rs1_int, rs2_int),
-                                 ops->unsignedDivide(rs2_int, rs1_int)));
-    quotient = ops->ite(
-        ops->and_(ops->boolean_(ops->invert(
-                      ops->boolean_(ops->number_(64, is_unsigned)))),
-                  ops->boolean_(ops->isSignedGreaterThanOrEqual(
-                      quotient, ops->shiftLeft(ops->number_(64, 1),
-                                               ops->number_(64, 63))))),
-        ops->negate(ops->shiftLeft(ops->number_(64, 1), ops->number_(64, 63))),
-        quotient);
+                        is_signed ? ops->signedDivide(rs1_int, rs2_int)
+                                  : ops->unsignedDivide(rs1_int, rs2_int));
     d->write(rd, ops->extract(quotient, 0, 64));
     return;
   }
@@ -709,13 +687,13 @@ struct IP_REM : P {
     SgAsmExpression *rs2 = args[2];
     SgAsmExpression *rs1 = args[1];
     SgAsmExpression *rd = args[0];
-    bool is_unsigned;
+    bool is_signed;
     switch (insn->get_kind()) {
     case rose_riscv64_op_rem:
-      is_unsigned = 1;
+      is_signed = 1;
       break;
     case rose_riscv64_op_remu:
-      is_unsigned = 0;
+      is_signed = 0;
       break;
     default:
       assert(0);
@@ -728,12 +706,11 @@ struct IP_REM : P {
     BaseSemantics::SValuePtr remainder;
     rs1_bits = d->read(rs1, 64, 0);
     rs2_bits = d->read(rs2, 64, 0);
-    rs1_int = ops->ite(ops->number_(64, is_unsigned), rs1_bits, rs1_bits);
-    rs2_int = ops->ite(ops->number_(64, is_unsigned), rs2_bits, rs2_bits);
+    rs1_int = ops->ite(ops->number_(64, is_signed), rs1_bits, rs1_bits);
+    rs2_int = ops->ite(ops->number_(64, is_signed), rs2_bits, rs2_bits);
     remainder = ops->ite(ops->isEqual(rs2_int, ops->number_(64, 0)), rs1_int,
-                         ops->ite(ops->boolean_(ops->number_(64, is_unsigned)),
-                                  ops->signedModulo(rs1_int, rs2_int),
-                                  ops->unsignedModulo(rs2_int, rs1_int)));
+                         is_signed ? ops->signedModulo(rs1_int, rs2_int)
+                                   : ops->unsignedModulo(rs1_int, rs2_int));
     d->write(rd, ops->extract(remainder, 0, 64));
     return;
   }
@@ -754,8 +731,8 @@ struct IP_MULW : P {
     BaseSemantics::SValuePtr rs1_int;
     BaseSemantics::SValuePtr rs2_int;
     BaseSemantics::SValuePtr result32;
-    rs1_bits = ops->extract(d->read(rs1, 64, 0), 0, 31);
-    rs2_bits = ops->extract(d->read(rs2, 64, 0), 0, 31);
+    rs1_bits = ops->extract(d->read(rs1, 64, 0), 0, 32);
+    rs2_bits = ops->extract(d->read(rs2, 64, 0), 0, 32);
     rs1_int = rs1_bits;
     rs2_int = rs2_bits;
     result32 = ops->extract(ops->signedMultiply(rs1_int, rs2_int), 0, 32);
@@ -773,13 +750,13 @@ struct IP_DIVW : P {
     SgAsmExpression *rs2 = args[2];
     SgAsmExpression *rs1 = args[1];
     SgAsmExpression *rd = args[0];
-    bool is_unsigned;
+    bool is_signed;
     switch (insn->get_kind()) {
-    case rose_riscv64_op_div:
-      is_unsigned = 1;
+    case rose_riscv64_op_divw:
+      is_signed = 1;
       break;
-    case rose_riscv64_op_divu:
-      is_unsigned = 0;
+    case rose_riscv64_op_divuw:
+      is_signed = 0;
       break;
     default:
       assert(0);
@@ -790,23 +767,14 @@ struct IP_DIVW : P {
     BaseSemantics::SValuePtr rs1_int;
     BaseSemantics::SValuePtr rs2_int;
     BaseSemantics::SValuePtr quotient;
-    rs1_bits = ops->extract(d->read(rs1, 64, 0), 0, 31);
-    rs2_bits = ops->extract(d->read(rs2, 64, 0), 0, 31);
-    rs1_int = ops->ite(ops->number_(64, is_unsigned), rs1_bits, rs1_bits);
-    rs2_int = ops->ite(ops->number_(64, is_unsigned), rs2_bits, rs2_bits);
+    rs1_bits = ops->extract(d->read(rs1, 64, 0), 0, 32);
+    rs2_bits = ops->extract(d->read(rs2, 64, 0), 0, 32);
+    rs1_int = ops->ite(ops->number_(64, is_signed), rs1_bits, rs1_bits);
+    rs2_int = ops->ite(ops->number_(64, is_signed), rs2_bits, rs2_bits);
     quotient = ops->ite(ops->isEqual(rs2_int, ops->number_(64, 0)),
                         ops->number_(64, -1),
-                        ops->ite(ops->boolean_(ops->number_(64, is_unsigned)),
-                                 ops->signedDivide(rs1_int, rs2_int),
-                                 ops->unsignedDivide(rs2_int, rs1_int)));
-    quotient = ops->ite(
-        ops->and_(ops->boolean_(ops->invert(
-                      ops->boolean_(ops->number_(64, is_unsigned)))),
-                  ops->boolean_(ops->isSignedGreaterThanOrEqual(
-                      quotient, ops->shiftLeft(ops->number_(64, 1),
-                                               ops->number_(64, 31))))),
-        ops->negate(ops->shiftLeft(ops->number_(64, 1), ops->number_(64, 31))),
-        quotient);
+                        is_signed ? ops->signedDivide(rs1_int, rs2_int)
+                                  : ops->unsignedDivide(rs1_int, rs2_int));
     d->write(rd, d->SignExtend(ops->extract(quotient, 0, 32), 64));
     return;
   }
@@ -821,13 +789,13 @@ struct IP_REMW : P {
     SgAsmExpression *rs2 = args[2];
     SgAsmExpression *rs1 = args[1];
     SgAsmExpression *rd = args[0];
-    bool is_unsigned;
+    bool is_signed;
     switch (insn->get_kind()) {
-    case rose_riscv64_op_rem:
-      is_unsigned = 1;
+    case rose_riscv64_op_remw:
+      is_signed = 1;
       break;
-    case rose_riscv64_op_remu:
-      is_unsigned = 0;
+    case rose_riscv64_op_remuw:
+      is_signed = 0;
       break;
     default:
       assert(0);
@@ -838,14 +806,13 @@ struct IP_REMW : P {
     BaseSemantics::SValuePtr rs1_int;
     BaseSemantics::SValuePtr rs2_int;
     BaseSemantics::SValuePtr remainder;
-    rs1_bits = ops->extract(d->read(rs1, 64, 0), 0, 31);
-    rs2_bits = ops->extract(d->read(rs2, 64, 0), 0, 31);
-    rs1_int = ops->ite(ops->number_(64, is_unsigned), rs1_bits, rs1_bits);
-    rs2_int = ops->ite(ops->number_(64, is_unsigned), rs2_bits, rs2_bits);
+    rs1_bits = ops->extract(d->read(rs1, 64, 0), 0, 32);
+    rs2_bits = ops->extract(d->read(rs2, 64, 0), 0, 32);
+    rs1_int = ops->ite(ops->number_(64, is_signed), rs1_bits, rs1_bits);
+    rs2_int = ops->ite(ops->number_(64, is_signed), rs2_bits, rs2_bits);
     remainder = ops->ite(ops->isEqual(rs2_int, ops->number_(64, 0)), rs1_int,
-                         ops->ite(ops->boolean_(ops->number_(64, is_unsigned)),
-                                  ops->signedModulo(rs1_int, rs2_int),
-                                  ops->unsignedModulo(rs2_int, rs1_int)));
+                         is_signed ? ops->signedModulo(rs1_int, rs2_int)
+                                   : ops->unsignedModulo(rs1_int, rs2_int));
     d->write(rd, d->SignExtend(ops->extract(remainder, 0, 32), 64));
     return;
   }
@@ -876,18 +843,14 @@ struct IP_LOADRES : P {
 // Command: perl json_to_rose.pl --insn-set=STORECON
 struct IP_STORECON : P {
   void p(D d, Ops ops, I insn, A args, B raw) {
-    SgAsmExpression *rs2 = args[2];
-    SgAsmExpression *rs1 = args[1];
+    SgAsmExpression *rs2 = args[1];
+    SgAsmExpression *rs1 = args[2];
     size_t width = lrsc_width_str(insn);
     SgAsmExpression *rd = args[0];
 
     BaseSemantics::SValuePtr data;
     BaseSemantics::SValuePtr tmp;
-    data =
-        ops->extract(d->read(rs2, 64, 0), ops->number_(64, 0),
-                     ops->subtract(ops->signedMultiply(ops->number_(64, width),
-                                                       ops->number_(64, 8)),
-                                   ops->number_(64, 1)));
+    data = ops->extract(d->read(rs2, 64, 0), 0, width * 8);
     tmp = d->effectiveAddress(rs1);
     d->writeMemory(tmp, width, data);
     return;
@@ -913,14 +876,7 @@ struct IP_AMO : P {
     BaseSemantics::SValuePtr result;
     vaddr = d->effectiveAddress(rs1);
     addr = vaddr;
-    rs2_val = ops->ite(ops->isSignedLessThanOrEqual(ops->number_(64, width),
-                                                    ops->number_(64, 8)),
-                       ops->extract(d->read(rs2, 64, 0), ops->number_(64, 0),
-                                    ops->signedMultiply(ops->number_(64, width),
-                                                        ops->number_(64, 8))),
-                       ops->extract(d->read(rs2, 64, 0), ops->number_(64, 0),
-                                    ops->signedMultiply(ops->number_(64, width),
-                                                        ops->number_(64, 8))));
+    rs2_val = ops->extract(d->read(rs2, 64, 0), 0, width * 8);
     loaded = d->readMemory(addr, width);
     switch (op) {
     case rose_riscv64_op_amoswap_w:
@@ -1060,9 +1016,9 @@ struct IP_AMO : P {
       // d->write(rd, ops->ite(ops->isSignedLessThanOrEqual(ops->number_(64,
       // width), ops->number_(64, 8)), d->SignExtend(loaded, 64),
       // d->SignExtend(loaded, 128)));
-      d->writeMemory(addr, width, result);
-      d->write(rd, d->SignExtend(loaded, 64));
     };
+    d->writeMemory(addr, width, result);
+    d->write(rd, d->SignExtend(loaded, 64));
     return;
   }
 };
@@ -1325,6 +1281,9 @@ DispatcherRiscv64::Replicate(const BaseSemantics::SValuePtr &expr) {
 
 BaseSemantics::SValuePtr DispatcherRiscv64::effectiveAddress(SgAsmExpression *e,
                                                              size_t nbits) {
+  if (0 == nbits)
+    nbits = addressWidth();
+
   SgAsmExpression *addressExpression;
   if (SgAsmMemoryReferenceExpression *memoryReferenceExpression =
           isSgAsmMemoryReferenceExpression(e))
@@ -1624,10 +1583,13 @@ DispatcherRiscv64::signedUnsignedMultiply(const BaseSemantics::SValuePtr &a,
       a, operators->number_(numBits, numBits - 1));
   // two's complement if a is negative
   auto absA = operators->subtract(operators->xor_(a, sign), sign);
-  // lower numBits of unsigned multipy
-  auto m = operators->extract(operators->unsignedMultiply(absA, b), 0, numBits);
+  // the whole product, as signedMultiply and unsignedMultiply give it
+  auto m = operators->extract(operators->unsignedMultiply(absA, b), 0,
+                              2 * numBits);
+  auto wideSign = operators->signExtend(sign, 2 * numBits);
   // two's complement if a is negative
-  auto result = operators->subtract(operators->xor_(m, sign), sign);
+  auto result =
+      operators->subtract(operators->xor_(m, wideSign), wideSign);
 
   return result;
 }
