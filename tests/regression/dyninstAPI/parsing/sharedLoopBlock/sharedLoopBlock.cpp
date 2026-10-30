@@ -15,11 +15,13 @@
 #include <string>
 #include <vector>
 
-// See input.cpp. loop_owner's loop head has an incoming edge from loop_entrant,
-// a block outside loop_owner. BPatch_edge::getPoint must return no point for
-// that edge instead of crashing, and points for loop_owner's other edges. Loop
-// entry points, which come from the loop head's incoming edges, must then
-// cover only the edge from inside loop_owner.
+// The input, dyninstAPI/parsing/sharedLoopBlock in test_binaries, has two
+// x86_64 functions sharing a loop head: loop_entrant jumps into the loop of
+// loop_owner, so the head has an incoming edge from a block outside
+// loop_owner. BPatch_edge::getPoint must return no point for that edge instead
+// of crashing, and points for loop_owner's other edges. Loop entry points,
+// which come from the loop head's incoming edges, must then cover only the
+// edge from inside loop_owner.
 
 namespace {
 

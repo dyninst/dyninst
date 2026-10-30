@@ -1,3 +1,3 @@
 include_guard(GLOBAL)
 
-add_subdirectory(sharedLoopBlock)
+add_subdirectory(parsing/sharedLoopBlock)
