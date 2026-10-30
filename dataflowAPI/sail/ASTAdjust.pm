@@ -209,14 +209,102 @@ sub adjust_match {
     }
 }
 
+# An attribute of a SAIL argument in ParserConfig, without creating entries
+sub arg_attribute {
+    my ( $curr_set, $name, $attribute ) = @_;
+    my $args = $ParserConfig::ARGS_PER_SUBSET{$curr_set};
+    return undef unless $args && exists $args->{$name};
+    return $args->{$name}{$attribute};
+}
+
+# The value of a condition that is known when the code is generated, or
+# undef: a comparison of op with an op Capstone does not decode, a bound of
+# an argument whose largest value is known, and boolean operators over them.
+sub known_bool {
+    my ( $node, $curr_set ) = @_;
+    return $node->get_value() ? 1 : 0 if $node->is_bool_node();
+    return undef unless $node->is_func_node();
+    my @kids = @{ $node->get_children() };
+    my @known = map { known_bool( $_, $curr_set ) } @kids;
+
+    if ( $node->is_op(ASTType::ROSE_OP_BOOL) ) {
+        return $known[0];
+    }
+    if ( $node->has_attribute("boolean") ) {
+        if ( $node->is_op(ASTType::ROSE_OP_BNOT) ) {
+            return defined $known[0] ? !$known[0] + 0 : undef;
+        }
+        my $absorbing = $node->is_op(ASTType::ROSE_OP_BAND) ? 0 : 1;
+        return $absorbing if grep { defined $_ && $_ == $absorbing } @known;
+        return 1 - $absorbing unless grep { !defined $_ } @known;
+        return undef;
+    }
+    if ( $node->is_op(ASTType::ROSE_OP_EQ) || $node->is_op(ASTType::ROSE_OP_NEQ) ) {
+        my ( $var, $other ) =
+          $kids[0]->is_var_node() && $kids[0]->get_value() eq "op"
+          ? @kids
+          : reverse @kids;
+        return undef
+          unless $var->is_var_node()
+          && $var->get_value() eq "op"
+          && grep { $_ eq $other->get_value() }
+          @{ arg_attribute( $curr_set, "op", "unsupported" ) // [] };
+        return $node->is_op(ASTType::ROSE_OP_EQ) ? 0 : 1;
+    }
+    if (   $node->is_op(ASTType::ROSE_OP_SIGNED_LEQ)
+        || $node->is_op(ASTType::ROSE_OP_SIGNED_LT) )
+    {
+        my ( $var, $bound ) = @kids;
+        my $max = $var->is_var_node()
+          && arg_attribute( $curr_set, $var->get_value(), "max_value" );
+        return undef unless $max && $bound->is_num_node();
+        my $holds =
+          $node->is_op(ASTType::ROSE_OP_SIGNED_LEQ)
+          ? $max <= $bound->get_value()
+          : $max < $bound->get_value();
+        return $holds ? 1 : undef;
+    }
+    return undef;
+}
+
+# Leave out what cannot happen: the match arms of unsupported ops, and the
+# arm of an if or ite whose condition is known.
+sub adjust_known_conditions {
+    my ( $node, $curr_set ) = @_;
+    for my $child ( @{ $node->get_children() } ) {
+        adjust_known_conditions( $child, $curr_set );
+    }
+    if ( $node->is_match_node() && $node->get_value()->get_value() eq "op" ) {
+        my %unsupported = map { $_ => 1 }
+          @{ arg_attribute( $curr_set, "op", "unsupported" ) // [] };
+        $node->set_children(
+            [
+                grep { !$unsupported{ $_->get_value()->get_value() } }
+                  @{ $node->get_children() }
+            ]
+        );
+    }
+    if ( $node->is_ite_node() ) {
+        my $known = known_bool( $node->get_nth_child(0), $curr_set );
+        if ( defined $known ) {
+            my $arm      = $node->get_nth_child( $known ? 1 : 2 );
+            my $siblings = $node->get_siblings();
+            %$node = %$arm;
+            $node->{siblings} = [ @{ $arm->get_siblings() }, @$siblings ];
+        }
+    }
+    for my $sibling ( @{ $node->get_siblings() } ) {
+        adjust_known_conditions( $sibling, $curr_set );
+    }
+}
+
 # A node is a C++ expression if it is built from numbers, the need_number
 # arguments (plain C++ variables) and C++ operators over them.
 sub is_cpp_expr {
     my ( $node, $curr_set ) = @_;
     return 1 if $node->is_num_node() || $node->is_id_node();
     if ( $node->is_var_node() ) {
-        my $arg = $ParserConfig::ARGS_PER_SUBSET{$curr_set}{ $node->get_value() };
-        return $arg && $arg->{need_number};
+        return arg_attribute( $curr_set, $node->get_value(), "need_number" );
     }
     return 0
       unless $node->is_func_node()

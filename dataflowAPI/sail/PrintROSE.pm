@@ -26,6 +26,7 @@ sub print_rose_code {
 
     my %lookup    = ();
     my $body_node = ASTBuild->parse_ast( $body, $curr_set );
+    ASTAdjust::adjust_known_conditions( $body_node, $curr_set );
     ASTAdjust::change_field_to_id( $body_node, $curr_set, {} );
     ASTAdjust::change_op_var( $body_node, $curr_set, {} );
     ASTAdjust::adjust_bitvec_assign( $body_node, $curr_set );

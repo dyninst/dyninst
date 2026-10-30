@@ -178,9 +178,8 @@ sub do_letbind {
 sub uses_in_address_arg {
     my ( $node, $curr_set ) = @_;
     if ( $node->is_var_node ) {
-        my $arg =
-          $ParserConfig::ARGS_PER_SUBSET{$curr_set}{ $node->get_value() };
-        return $arg && $arg->{in_address};
+        return ASTAdjust::arg_attribute( $curr_set, $node->get_value(),
+            "in_address" );
     }
     return grep { uses_in_address_arg( $_, $curr_set ) }
       @{ $node->get_children() };

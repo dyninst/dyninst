@@ -304,6 +304,7 @@ our %ARGS_PER_SUBSET = %{
                     print_indent( "size_t width = lrsc_width_str(insn);\n", 2 );
                 },
                 need_number => 1,
+                max_value   => 8,
             },
             rd => {
                 init_code =>
@@ -330,6 +331,7 @@ our %ARGS_PER_SUBSET = %{
                     print_indent( "size_t width = lrsc_width_str(insn);\n", 2 );
                 },
                 need_number => 1,
+                max_value   => 8,
             },
             rd => {
                 init_code =>
@@ -424,6 +426,9 @@ our %ARGS_PER_SUBSET = %{
                         2
                     );
                 },
+
+                # Capstone does not decode Zacas
+                unsupported => [qw(AMOCAS)],
             },
             aq  => { init_code => sub { } },
             rl  => { init_code => sub { } },
@@ -442,6 +447,7 @@ our %ARGS_PER_SUBSET = %{
                     print_indent( "size_t width = lrsc_width_str(insn);\n", 2 );
                 },
                 need_number => 1,
+                max_value   => 8,
             },
             rd => {
                 init_code =>
@@ -620,6 +626,9 @@ our %GLOBAL_VARS = (
     },
     log2_xlen => {
         value => 6
+    },
+    xlen_bytes => {
+        value => 8
     },
 );
 
