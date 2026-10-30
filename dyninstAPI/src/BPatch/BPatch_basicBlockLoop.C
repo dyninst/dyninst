@@ -41,6 +41,7 @@
 #include "PatchCFG.h"
 #include "Relocation/DynCommon.h"
 #include "patching/block.h"
+#include "patching/function.h"
 using namespace std;
 using namespace Dyninst::PatchAPI;
 //constructors
@@ -50,11 +51,20 @@ BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_flowGraph *fg, PatchLoop* lo
     : flowGraph(fg), parent(NULL) 
 {
     //parent pointer and containedLoops vectors are set in BPatch_flowgraph::createLoops
-    
+
+    // The loop analysis follows intraprocedural edges from the function's
+    // entry without checking that the blocks it reaches are in the function,
+    // and ParseAPI can leave a reachable block out of a function. Keep only
+    // the function's blocks, and the back edges between them, as the flow
+    // graph does.
+    const PatchFunction::Blockset &fblocks = fg->getFunction()->lowlevel_func()->blocks();
+    auto inFunc = [&fblocks](PatchBlock *b) { return fblocks.find(b) != fblocks.end(); };
+
     //set backEdges
     vector<PatchEdge*> be;
     loop->getBackEdges(be);
     for (auto eit = be.begin(); eit != be.end(); ++eit) {
+        if (!inFunc((*eit)->src()) || !inFunc((*eit)->trg())) continue;
         backEdges.insert(fg->findEdge(SCAST_EI(*eit)));
     }
       
@@ -62,13 +72,13 @@ BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_flowGraph *fg, PatchLoop* lo
     vector<PatchBlock*> b;
     loop->getLoopBasicBlocks(b);
     for (auto bit = b.begin(); bit != b.end(); ++bit)
-        basicBlocks.insert(fg->findBlock(SCAST_BI(*bit)));
+        if (inFunc(*bit)) basicBlocks.insert(fg->findBlock(SCAST_BI(*bit)));
 
     //set entries
     vector<PatchBlock*> eb;
     loop->getLoopEntries(eb);
     for (auto bit = eb.begin(); bit != eb.end(); ++bit)
-        entries.insert(fg->findBlock(SCAST_BI(*bit)));
+        if (inFunc(*bit)) entries.insert(fg->findBlock(SCAST_BI(*bit)));
 }
 
 bool BPatch_basicBlockLoop::containsAddress(unsigned long addr)
