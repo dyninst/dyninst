@@ -629,6 +629,11 @@ namespace rose {
                                              const BaseSemantics::SValuePtr &cond);
 
                 private:
+                    // ROSE uses (size_t)-1 bits for an expression without a type.
+                    static bool known_width(size_t nbits) {
+                        return nbits != 0 && nbits <= 128;
+                    }
+
                     Dyninst::AST::Ptr getUnaryAST(Dyninst::DataflowAPI::ROSEOperation::Op op,
                                          Dyninst::AST::Ptr a,
                                          size_t s = 0) {
@@ -650,17 +655,39 @@ namespace rose {
                         return Dyninst::DataflowAPI::RoseAST::create(Dyninst::DataflowAPI::ROSEOperation(op, s), a, b, c);
                     }
 
+                    // Every value carries the width of what it computes: the operations
+                    // the base class builds on them (comparisons, carries, extensions) read
+                    // it to place their bits.
                     SValuePtr createUnaryAST(Dyninst::DataflowAPI::ROSEOperation::Op op, const BaseSemantics::SValuePtr &a_) {
                         Dyninst::AST::Ptr a = SValue::promote(a_)->get_expression();
                         Dyninst::AST::Ptr ast = getUnaryAST(op, a);
-                        return SValue::instance(ast);
+                        size_t nbits = op == Dyninst::DataflowAPI::ROSEOperation::equalToZeroOp ? 1 : a_->get_width();
+                        return SValue::instance(ast, nbits);
                     }
 
-                    SValuePtr createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::Op op, const BaseSemantics::SValuePtr &a_, const BaseSemantics::SValuePtr &b_) {
+                    SValuePtr createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::Op op, const BaseSemantics::SValuePtr &a_,
+                                              const BaseSemantics::SValuePtr &b_, size_t nbits = 0) {
+                        using Op = Dyninst::DataflowAPI::ROSEOperation;
                         Dyninst::AST::Ptr a = SValue::promote(a_)->get_expression();
                         Dyninst::AST::Ptr b = SValue::promote(b_)->get_expression();
                         Dyninst::AST::Ptr ast = getBinaryAST(op, a, b);
-                        return SValue::instance(ast);
+                        if (nbits == 0) {
+                            switch (op) {
+                            case Op::concatOp:
+                            case Op::sMultOp:
+                            case Op::uMultOp:
+                                nbits = a_->get_width() + b_->get_width();
+                                break;
+                            case Op::sModOp:
+                            case Op::uModOp:
+                                nbits = b_->get_width();
+                                break;
+                            default:
+                                nbits = a_->get_width();
+                                break;
+                            }
+                        }
+                        return SValue::instance(ast, nbits);
                     }
 
                     SValuePtr createTernaryAST(Dyninst::DataflowAPI::ROSEOperation::Op op, const BaseSemantics::SValuePtr &a_,
@@ -669,7 +696,10 @@ namespace rose {
                         Dyninst::AST::Ptr b = SValue::promote(b_)->get_expression();
                         Dyninst::AST::Ptr c = SValue::promote(c_)->get_expression();
                         Dyninst::AST::Ptr ast = getTernaryAST(op, a, b, c, s);
-                        return SValue::instance(ast);
+                        size_t nbits = s;
+                        if (op == Dyninst::DataflowAPI::ROSEOperation::ifOp)
+                            nbits = b_->get_width();
+                        return nbits ? SValue::instance(ast, nbits) : SValue::instance(ast);
                     }
 
                 };
