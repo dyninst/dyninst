@@ -1310,6 +1310,9 @@ DispatcherRiscv64::Replicate(const BaseSemantics::SValuePtr &expr) {
 
 BaseSemantics::SValuePtr DispatcherRiscv64::effectiveAddress(SgAsmExpression *e,
                                                              size_t nbits) {
+  if (0 == nbits)
+    nbits = addressWidth();
+
   SgAsmExpression *addressExpression;
   if (SgAsmMemoryReferenceExpression *memoryReferenceExpression =
           isSgAsmMemoryReferenceExpression(e))
