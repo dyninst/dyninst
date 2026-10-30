@@ -120,6 +120,10 @@ extensions {
       requires sys, A_types
       files model/extensions/A/zaamo_insts.sail
     }
+    Zalrsc {
+      requires sys, A_types
+      files model/extensions/A/zalrsc_insts.sail
+    }
   }
 
   M {
