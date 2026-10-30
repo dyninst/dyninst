@@ -33,21 +33,6 @@ option(
   ON
 )
 
-option(
-  DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS
-  "Disable all warning suppressions and frame size overrides."
-  OFF
-)
-
-set(
-  DYNINST_EXTRA_WARNINGS
-  ""
-  CACHE STRING
-  "Additional warning options to enable if available.  ;-separated without leading '-' (Wopt1[;Wopt2]...)."
-)
-
-option(DYNINST_WARNINGS_AS_ERRORS "Treat compilation warnings as errors" OFF)
-
 set(DYNINST_LINKER "" CACHE STRING "The linker to use")
 mark_as_advanced(DYNINST_LINKER)
 

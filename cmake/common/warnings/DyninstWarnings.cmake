@@ -1,6 +1,24 @@
-#
-# cmake warning options
-#
+# The compiler warning flags: the ones in REQUESTED_WARNING_FLAGS below that the C and C++
+# compilers accept become SUPPORTED_C_WARNING_FLAGS and SUPPORTED_CXX_WARNING_FLAGS.  A
+# project can set REQUESTED_WARNING_FLAGS before including this module to add flags of
+# its own; they follow these, so that one such as Wno-unknown-pragmas wins.
+
+option(
+  DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS
+  "Disable all warning suppressions and frame size overrides."
+  OFF
+)
+
+set(
+  DYNINST_EXTRA_WARNINGS
+  ""
+  CACHE STRING
+  "Additional warning options to enable if available.  ;-separated without leading '-' (Wopt1[;Wopt2]...)."
+)
+
+option(DYNINST_WARNINGS_AS_ERRORS "Treat compilation warnings as errors" OFF)
+
+set(_project_warning_flags ${REQUESTED_WARNING_FLAGS})
 
 if(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
   message(
@@ -9,16 +27,15 @@ if(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
   )
 endif()
 
-# The frame size limit for every build type; files with functions containing larger
-# frames are adjusted below.
-#
+# The frame size limit for every build type.  A project can raise it for particular files
+# with larger frames.
 set(defaultMaxFrameSize 20480)
 
 # REQUESTED_WARNING_FLAGS is a list of warning flags for C and C++ programs to enable if
 # supported by the compiler.  The values do not include the the initial '-'
 
-list(
-  APPEND REQUESTED_WARNING_FLAGS
+set(
+  REQUESTED_WARNING_FLAGS
   Wall
   Wextra
   Wpedantic
@@ -72,6 +89,8 @@ list(
 #list(APPEND REQUESTED_WARNING_FLAGS Wold-style-cast)
 #list(APPEND REQUESTED_WARNING_FLAGS Walloc-zero)
 
+list(APPEND REQUESTED_WARNING_FLAGS ${_project_warning_flags})
+
 if(DYNINST_EXTRA_WARNINGS)
   list(APPEND REQUESTED_WARNING_FLAGS ${DYNINST_EXTRA_WARNINGS})
   message(
@@ -83,12 +102,6 @@ endif()
 if(DYNINST_WARNINGS_AS_ERRORS)
   list(APPEND REQUESTED_WARNING_FLAGS "Werror")
   message(STATUS "DYNINST_WARNINGS_AS_ERRORS set: treating warnings as errors")
-endif()
-
-# If not building with OpenMP or if static libs are enabled, ignore OpenMP pragma
-# warnings
-if(NOT USE_OpenMP OR ENABLE_STATIC_LIBS)
-  list(APPEND REQUESTED_WARNING_FLAGS "Wno-unknown-pragmas")
 endif()
 
 if(CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang)$")
@@ -132,21 +145,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
       endif()
     endif()
   endforeach()
-endif()
-
-# If -Wframe-larger-than is available, allow larger frames in the riscv decoder tests
-if(HAS_CPP_FLAG_Wframe_larger_than AND NOT DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
-  set(maxFrameSizeOverrideRiscvInstructionApiTests 49152)
-endif()
-
-# clang >17.0 doesn't detect /usr/include/boost as a system directory
-# and warns about use of deprecated STL functions in Boost
-if(NOT DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
-  set(_id CMAKE_CXX_COMPILER_ID)
-  set(_ver CMAKE_CXX_COMPILER_VERSION)
-  if("${_id}" STREQUAL "Clang" AND "${_ver}" VERSION_GREATER 17)
-    set(clangBoostDeprecatedWarning -Wno-deprecated-declarations)
-  endif()
 endif()
 
 unset(CMAKE_REQUIRED_FLAGS)

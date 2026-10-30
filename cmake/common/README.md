@@ -258,9 +258,9 @@ keeps its place among the other messages.
 `DyninstWarnings.cmake` checks which of a list of warning flags the C and C++
 compilers accept. It sets `SUPPORTED_C_WARNING_FLAGS` and
 `SUPPORTED_CXX_WARNING_FLAGS` to them, and the configure output shows both
-lists.
+lists. `dyninst_add_test` compiles every test with the C++ list.
 
-The repository declares three options it reads:
+It declares three options:
 
 | Option | Default | Meaning |
 | :--- | :--- | :--- |
@@ -271,17 +271,11 @@ The repository declares three options it reads:
 `DYNINST_EXTRA_WARNINGS` is a `;`-separated list without the leading `-`, as
 in `Wnull-dereference;Wuseless-cast`.
 
-In Debug builds it raises the `-Wframe-larger-than` limit for every file,
-because frames are larger without optimization.
-
-The module still holds some settings for Dyninst itself:
-
-- Larger frame-size limits for three Dyninst source files, which Dyninst's
-  own CMake files apply. Elsewhere they are unused.
-- `clangBoostDeprecatedWarning`, for Clang's warnings about Boost. Elsewhere
-  it is unused.
-- `-Wno-unknown-pragmas`, unless Dyninst is built with OpenMP and without
-  static libraries. Elsewhere it is always added.
+A repository adds flags of its own by setting `REQUESTED_WARNING_FLAGS`
+before the include, in the same form. They come after the module's own
+flags, so a `-Wno-` flag among them wins. Settings for particular files
+of its own also stay outside: Dyninst's are in
+`cmake/DyninstWarningOverrides.cmake`, which includes this module.
 
 ## `gersemi/`
 
