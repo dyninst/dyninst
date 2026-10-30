@@ -158,21 +158,6 @@ elseif(DYNINST_OS_Windows)
   list(APPEND _sources src/ntKludges.C src/addrtranslate-win.C)
 endif()
 
-if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
-  if("${CMAKE_CXX_COMPILER_VERSION}" MATCHES "^[789](\.|$)")
-    # Disable var-tracking-assignments for arch-x86.C for gcc 7, 8, & 9. The default
-    # max size for these compilers is too small so it fails, adjusting it using
-    #
-    # PROPERTIES COMPILE_FLAGS "--param=max-vartrack-size=600000000"
-    #
-    # succeeds, but just disable it.
-    set_source_files_properties(
-      src/arch-x86.C
-      PROPERTIES COMPILE_FLAGS "-fno-var-tracking-assignments"
-    )
-  endif()
-endif()
-
 # adjust warning threshold if set in cmake/warnings.cmake
 if(debugMaxFrameSizeOverrideSyscallInformation)
   set_source_files_properties(
