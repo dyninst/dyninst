@@ -1,6 +1,10 @@
 include_guard(GLOBAL)
 
-dyninst_add_test_executable(symeval_expand_slice SOURCE_FILES expand_slice.cpp DEPS parseAPI)
+dyninst_add_test_executable(
+  symeval_expand_slice
+  SOURCE_FILES expand_slice.cpp
+  DEPS parseAPI
+)
 
 # One test per architecture over all of its findMain binaries. They are only
 # read, so they run on every host.
