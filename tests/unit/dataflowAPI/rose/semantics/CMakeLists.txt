@@ -28,3 +28,11 @@ dyninst_add_test(
   DEPS parseAPI
   REQUIRES capstone
 )
+
+dyninst_add_test(
+  rose_semantics_riscv64
+  TYPE unit
+  SOURCE_FILES riscv64_semantics.cpp
+  DEPS parseAPI
+  REQUIRES capstone
+)
