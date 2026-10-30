@@ -899,8 +899,8 @@ sub do_exp {
 
             my $ite = ASTNode->new_ite_node(
                 $cond_node,
-                $if_node->get_nth_child(0),
-                $else_node->get_nth_child(0)
+                $if_node->get_nth_child(1),
+                $else_node->get_nth_child(1)
             );
 
             return ASTNode->new_func_node( ASTType::ROSE_OP_WRITE_REG,
