@@ -32,8 +32,9 @@ graph of the containing function.
 
 \apidesc{
   Fill out with all of the control flow edges that leave this basic block
-  for blocks of the flow graph's function, and those to unresolved
-  targets.
+  for blocks of the flow graph's function. A control transfer with an
+  unresolved target has no edge; see
+  \code{BPatch\_function::getUnresolvedControlTransfers}.
 }
 
 \begin{apient}

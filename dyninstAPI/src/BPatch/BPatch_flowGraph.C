@@ -431,8 +431,10 @@ bool BPatch_flowGraph::createBasicBlocks()
         edge_instance* iedge = SCAST_EI(*iter);
         // Skip interprocedural edges
         if (iedge->interproc()) continue;
-        // A shared block also has edges from blocks of the other functions
-        // that share it; those edges belong to those functions' graphs.
+        // Keep only edges between this function's blocks, the edges that can
+        // get an instrumentation point here. A shared block also has edges
+        // from blocks of the other functions that share it, and a block
+        // with unresolved control flow has an edge to the sink block.
         if (iblocks.find(iedge->src()) == iblocks.end()) continue;
         BPatch_edge *e = findEdge(iedge);
         newblock->incomingEdges.insert(e);
@@ -443,7 +445,7 @@ bool BPatch_flowGraph::createBasicBlocks()
         edge_instance* iedge = SCAST_EI(*iter);
         // Skip interprocedural edges
         if (iedge->interproc()) continue;
-        if (!iedge->sinkEdge() && iblocks.find(iedge->trg()) == iblocks.end()) continue;
+        if (iblocks.find(iedge->trg()) == iblocks.end()) continue;
         BPatch_edge *e = findEdge(iedge);
         newblock->outgoingEdges.insert(e);
       }
