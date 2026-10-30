@@ -343,7 +343,7 @@ sub print_ast {
             ASTType::ROSE_OP_SMUL              => 'ops->signedMultiply',
             ASTType::ROSE_OP_SREM              => 'ops->signedModulo',
             ASTType::ROSE_OP_SUB               => 'ops->subtract',
-            ASTType::ROSE_OP_SUMUL             => 'ops->signedUnsignedMultiply',
+            ASTType::ROSE_OP_SUMUL             => 'd->signedUnsignedMultiply',
             ASTType::ROSE_OP_UDIV              => 'ops->unsignedDivide',
             ASTType::ROSE_OP_UMUL              => 'ops->unsignedMultiply',
             ASTType::ROSE_OP_UREM              => 'ops->unsignedModulo',

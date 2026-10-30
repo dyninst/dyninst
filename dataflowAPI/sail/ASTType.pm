@@ -147,7 +147,7 @@ use constant {
     ROSE_OP_SUB               => 'Subtract',
     ROSE_OP_SMUL              => 'Multiply',
     ROSE_OP_UMUL              => 'Unsigned Multiply',
-    ROSE_OP_SUMUL             => 'Unsigned Multiply',
+    ROSE_OP_SUMUL             => 'Signed Unsigned Multiply',
     ROSE_OP_SDIV              => 'Signed Divide',
     ROSE_OP_UDIV              => 'Unsigned Divide',
     ROSE_OP_SREM              => 'Signed Modulo',
