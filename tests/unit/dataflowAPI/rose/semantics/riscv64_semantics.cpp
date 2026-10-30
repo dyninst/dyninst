@@ -289,6 +289,9 @@ namespace {
     {"amoadd.w  a0, a1, (a2)", 0x00b6252f, 5,                  mem_addr,            0,      0xfffffffe,  rv::a0, 0,  0xfffffffffffffffe},
     {"amoswap.d a0, a1, (a2)", 0x08b6352f, 0x5678,             mem_addr,            0,      0x1234,      mem,    8,  0x5678},
     {"amoswap.d a0, a1, (a2)", 0x08b6352f, 0x5678,             mem_addr,            0,      0x1234,      rv::a0, 0,  0x1234},
+
+    // The 32-bit divisions and remainders.
+    {"remw  a0, a1, a2",      0x02c5e53b, 0xfffffffffffffff9,  2,                   0,      0,           rv::a0, 0,  minus1},
   };
   // clang-format on
 

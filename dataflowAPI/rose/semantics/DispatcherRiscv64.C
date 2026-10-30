@@ -771,10 +771,10 @@ struct IP_DIVW : P {
     SgAsmExpression *rd = args[0];
     bool is_unsigned;
     switch (insn->get_kind()) {
-    case rose_riscv64_op_div:
+    case rose_riscv64_op_divw:
       is_unsigned = 1;
       break;
-    case rose_riscv64_op_divu:
+    case rose_riscv64_op_divuw:
       is_unsigned = 0;
       break;
     default:
@@ -819,10 +819,10 @@ struct IP_REMW : P {
     SgAsmExpression *rd = args[0];
     bool is_unsigned;
     switch (insn->get_kind()) {
-    case rose_riscv64_op_rem:
+    case rose_riscv64_op_remw:
       is_unsigned = 1;
       break;
-    case rose_riscv64_op_remu:
+    case rose_riscv64_op_remuw:
       is_unsigned = 0;
       break;
     default:
