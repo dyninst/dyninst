@@ -40,18 +40,22 @@ dyninst_test_requirement(
 dyninst_test_requirement(
   codegen:<arg>
   WHEN DYNINST_CODEGEN_ARCH_<ARG>
-  # The DYNINST_CODEGEN_ARCH_* that DyninstPlatform.cmake sets
-  VALUES
-    x86_64
-    i386
-    aarch64
-    ppc64le
-    riscv64
-    amdgpu_gfx908
-    amdgpu_gfx90a
-    amdgpu_gfx940
-    amdgpu_gfx950
+  VALUES ${DYNINST_CODEGEN_ARCHES}
   REASON "needs code generation for <arg>"
+)
+dyninst_test_requirement(
+  host:<arg>
+  WHEN DYNINST_HOST_ARCH_<ARG>
+  VALUES ${DYNINST_HOST_ARCHES}
+  REASON "needs the host to be <arg>"
+)
+# A program Dyninst instruments or rewrites runs on the host only when Dyninst
+# generates code for the host's architecture.
+dyninst_test_requirement(
+  native
+  WHEN DYNINST_CODEGEN_NATIVE
+  REASON
+    "needs code generation for the host (DYNINST_CODEGEN_ARCH=${DYNINST_CODEGEN_ARCH})"
 )
 dyninst_test_requirement(
   dynamic
