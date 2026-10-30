@@ -33,9 +33,9 @@
 // one memory word set to known values, and the result is compared with what the RISC-V
 // specification gives for those inputs.
 //
-// SymEval's expressions record a width only on extract, signExtend and deref, so the
-// evaluation infers the others from the operands, keeps sums and negations at 128 bits,
-// and applies a width only where an operation depends on it.
+// SymEval's expressions record a width only on extract, signExtend, the zero extension
+// and deref, so the evaluation infers the others from the operands, keeps sums and
+// negations at 128 bits, and applies a width only where an operation depends on it.
 
 #include "Absloc.h"
 #include "ConstantAST.h"
@@ -115,6 +115,10 @@ namespace {
         value const a = kid(0);
         size_t const width = constant_of(r->child(1));
         return {static_cast<u128>(signed_bits(a)) & mask(width), width};
+      }
+      case Op::extendOp: {
+        value const a = kid(0);
+        return {bits(a), static_cast<size_t>(constant_of(r->child(1)))};
       }
       case Op::invertOp: {
         value const a = kid(0);

@@ -703,6 +703,23 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::signExtend(const Ba
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::signExtendOp, a_, width_, nbits);
 }
 
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::unsignedExtend(const BaseSemantics::SValuePtr &a_,
+                                                                         size_t new_width) {
+    size_t width = a_->get_width();
+    if (new_width == width || !known_width(new_width) || !known_width(width))
+        return a_->copy();
+    if (new_width < width)
+        return extract(a_, 0, new_width);
+
+    // A node of its own, so that a value one bit wider than its operands (the borrow of an
+    // unsigned comparison, the carry of an addition) has that bit in the expression.
+    Dyninst::AST::Ptr a = SValue::promote(a_)->get_expression();
+    Dyninst::AST::Ptr width_ = Dyninst::DataflowAPI::ConstantAST::create(Dyninst::DataflowAPI::Constant(new_width, 64));
+    Dyninst::AST::Ptr ast = Dyninst::DataflowAPI::RoseAST::create(
+        Dyninst::DataflowAPI::ROSEOperation(Dyninst::DataflowAPI::ROSEOperation::extendOp, new_width), a, width_);
+    return SymEvalSemantics::SValue::instance(ast, new_width);
+}
+
 BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::add(const BaseSemantics::SValuePtr &a_,
                                                               const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::addOp, a_, b_);

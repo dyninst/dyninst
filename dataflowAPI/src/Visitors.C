@@ -83,6 +83,7 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
   }
 
   switch (r->val().op) {
+  case ROSEOperation::extendOp:
   case ROSEOperation::signExtendOp: {
     if (newKids[0]->getID() == AST::V_ConstantAST) {
       assert(newKids[1]->getID() == AST::V_ConstantAST);

@@ -72,6 +72,14 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
             case ROSEOperation::extendMSBOp: {
                                                  return roseAST->child(0);
                                              }
+            case ROSEOperation::extendOp: {
+                                              if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
+                                                  ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+                                                  ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+                                                  return ConstantAST::create(Constant(child0->val().val, child1->val().val));
+                                              }
+                                              return roseAST->child(0);
+                                          }
             case ROSEOperation::extractOp: {
                                                if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
                                                     assert(roseAST->child(1)->getID() == AST::V_ConstantAST);
