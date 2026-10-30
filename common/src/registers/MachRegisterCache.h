@@ -43,6 +43,22 @@ namespace Dyninst { namespace registers {
   using name_cache = std::unordered_map<signed int, std::string>;
   using register_cache = std::map<Dyninst::Architecture, std::vector<Dyninst::MachRegister>>;
 
+  // A register's value and name, as listed in registers/<arch>_regs.def.
+  struct reg_row {
+    int32_t value;
+    const char *name;
+  };
+
+  // Every register's name, and the registers of each architecture in the
+  // order they are defined.  Built from the table in dyn_regs.C the first
+  // time it is asked for, and read-only after that.
+  struct registry {
+    name_cache names;
+    register_cache all_regs;
+  };
+
+  registry const &get_registry();
+
 }}
 
 
