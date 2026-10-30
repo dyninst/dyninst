@@ -30,30 +30,36 @@ our @EXPORT_OK = qw(
 
 sub build_boolean_not {
     my ($exp_node) = @_;
-    return ASTNode->new_func_node( ROSE_OP_BNOT,
+    my $node = ASTNode->new_func_node( ROSE_OP_BNOT,
         [ ASTNode->new_func_node( ROSE_OP_BOOL, [$exp_node] ), ] );
+    $node->set_attribute( "boolean", 1 );
+    return $node;
 }
 
 sub build_boolean_and {
     my ( $exp1_node, $exp2_node ) = @_;
-    return ASTNode->new_func_node(
+    my $node = ASTNode->new_func_node(
         ROSE_OP_BAND,
         [
             ASTNode->new_func_node( ROSE_OP_BOOL, [$exp1_node] ),
             ASTNode->new_func_node( ROSE_OP_BOOL, [$exp2_node] ),
         ]
     );
+    $node->set_attribute( "boolean", 1 );
+    return $node;
 }
 
 sub build_boolean_or {
     my ( $exp1_node, $exp2_node ) = @_;
-    return ASTNode->new_func_node(
+    my $node = ASTNode->new_func_node(
         ROSE_OP_BOR,
         [
             ASTNode->new_func_node( ROSE_OP_BOOL, [$exp1_node] ),
             ASTNode->new_func_node( ROSE_OP_BOOL, [$exp2_node] ),
         ]
     );
+    $node->set_attribute( "boolean", 1 );
+    return $node;
 }
 
 # SAIL bit ranges name the top bit (inclusive); ROSE's extract takes an

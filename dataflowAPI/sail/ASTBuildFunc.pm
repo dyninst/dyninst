@@ -369,13 +369,14 @@ our @FN_DISPATCH = (
             my ( $self, $exps_ast, $curr_set ) = @_;
             my $id  = $self->do_exp( $exps_ast->[0], $curr_set );
             my $exp = $self->do_exp( $exps_ast->[1], $curr_set );
+            # extend_value(is_unsigned, value)
             return ASTNode->new_ite_node(
                 $id,
                 ASTNode->new_func_node(
-                    ROSE_OP_SIGN_EXTEND, [ $exp, ASTNode->new_num_node(XLEN) ]
+                    ROSE_OP_ZERO_EXTEND, [ $exp, ASTNode->new_num_node(XLEN) ]
                 ),
                 ASTNode->new_func_node(
-                    ROSE_OP_ZERO_EXTEND, [ $exp, ASTNode->new_num_node(XLEN) ]
+                    ROSE_OP_SIGN_EXTEND, [ $exp, ASTNode->new_num_node(XLEN) ]
                 ),
             );
         }

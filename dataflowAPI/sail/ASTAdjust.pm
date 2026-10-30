@@ -210,7 +210,7 @@ sub adjust_match {
 }
 
 # A node is a C++ expression if it is built from numbers, the need_number
-# arguments (plain C++ variables) and C++ arithmetic over them.
+# arguments (plain C++ variables) and C++ operators over them.
 sub is_cpp_expr {
     my ( $node, $curr_set ) = @_;
     return 1 if $node->is_num_node() || $node->is_id_node();
@@ -220,8 +220,7 @@ sub is_cpp_expr {
     }
     return 0
       unless $node->is_func_node()
-      && ( $node->has_attribute("unary_op")
-        || $node->has_attribute("binary_op") );
+      && ( $node->is_op(ASTType::ROSE_OP_BOOL) || PrintROSE::cpp_op($node) );
     for my $child ( @{ $node->get_children() } ) {
         return 0 unless is_cpp_expr( $child, $curr_set );
     }
@@ -473,6 +472,17 @@ sub change_op_var {
     }
 }
 
+# For a variable set by
+#   let x = if cond then signed(...) else unsigned(...)
+# (or the arms the other way round), the condition under which x is signed.
+sub signed_cond {
+    my ($ite_node) = @_;
+    my $cond_node = $ite_node->get_nth_child(0);
+    return $ite_node->get_nth_child(1)->get_attribute("signedness")
+      ? $cond_node
+      : ASTBuildHelper::build_boolean_not($cond_node);
+}
+
 sub adjust_mul_div_rem_signedness {
     my ( $node, $curr_set, $lookup ) = @_;
     for my $child ( @{ $node->get_children() } ) {
@@ -524,7 +534,7 @@ sub adjust_mul_div_rem_signedness {
             my $lhs_cond = ASTNode->new_num_node($lhs_signedness);
             if ( $lhs_signedness == ParserCommon::ITE_SIGNEDNESS ) {
                 if ( $lhs_lookup_ref_node->is_func_node() ) {
-                    $lhs_cond = $lhs_lookup_ref_node->get_nth_child(0);
+                    $lhs_cond = signed_cond($lhs_lookup_ref_node);
                 }
                 else {
                     $lhs_cond = ASTNode->new_num_node($lhs_signedness);
@@ -533,7 +543,7 @@ sub adjust_mul_div_rem_signedness {
             my $rhs_cond = ASTNode->new_num_node($rhs_signedness);
             if ( $rhs_signedness == ParserCommon::ITE_SIGNEDNESS ) {
                 if ( $rhs_lookup_ref_node->is_func_node() ) {
-                    $rhs_cond = $rhs_lookup_ref_node->get_nth_child(0);
+                    $rhs_cond = signed_cond($rhs_lookup_ref_node);
                 }
                 else {
                     $rhs_cond = ASTNode->new_num_node($rhs_signedness);
@@ -550,49 +560,12 @@ sub adjust_mul_div_rem_signedness {
                 [ $lhs_node, $rhs_node ] );
 
             if ( !$lhs_cond->is_num_node() && !$rhs_cond->is_num_node() ) {
-                my $cond_ss = ASTNode->new_func_node(
-                    ASTType::ROSE_OP_BAND,
-                    [
-                        ASTNode->new_func_node(
-                            ASTType::ROSE_OP_BOOL, [$lhs_cond]
-                        ),
-                        ASTNode->new_func_node(
-                            ASTType::ROSE_OP_BOOL, [$rhs_cond]
-                        ),
-                    ]
-                );
-                my $cond_su = ASTNode->new_func_node(
-                    ASTType::ROSE_OP_BAND,
-                    [
-                        ASTNode->new_func_node(
-                            ASTType::ROSE_OP_BOOL, [$lhs_cond]
-                        ),
-                        ASTNode->new_func_node(
-                            ASTType::ROSE_OP_BOOL,
-                            [
-                                ASTNode->new_func_node(
-                                    ASTType::ROSE_OP_BAND, [$rhs_cond]
-                                )
-                            ]
-                        ),
-                    ]
-                );
-                my $cond_us = ASTNode->new_func_node(
-                    ASTType::ROSE_OP_BAND,
-                    [
-                        ASTNode->new_func_node(
-                            ASTType::ROSE_OP_BOOL, [$lhs_cond]
-                        ),
-                        ASTNode->new_func_node(
-                            ASTType::ROSE_OP_BOOL,
-                            [
-                                ASTNode->new_func_node(
-                                    ASTType::ROSE_OP_BAND, [$rhs_cond]
-                                )
-                            ]
-                        ),
-                    ]
-                );
+                my $cond_ss =
+                  ASTBuildHelper::build_boolean_and( $lhs_cond, $rhs_cond );
+                my $cond_su = ASTBuildHelper::build_boolean_and( $lhs_cond,
+                    ASTBuildHelper::build_boolean_not($rhs_cond) );
+                my $cond_us = ASTBuildHelper::build_boolean_and(
+                    ASTBuildHelper::build_boolean_not($lhs_cond), $rhs_cond );
                 my $ite_node1 =
                   ASTNode->new_ite_node( $cond_us, $us_mul_node, $uu_mul_node );
                 my $ite_node2 =
@@ -713,7 +686,7 @@ sub adjust_mul_div_rem_signedness {
                 [ $lhs_node, $rhs_node ] );
             if ( $signedness == ParserCommon::ITE_SIGNEDNESS ) {
                 if ( $lhs_lookup_ref_node->is_func_node() ) {
-                    $cond = $lhs_lookup_ref_node->get_nth_child(0);
+                    $cond = signed_cond($lhs_lookup_ref_node);
                 }
                 else {
                     $cond = ASTNode->new_num_node($signedness);
@@ -773,7 +746,7 @@ sub adjust_mul_div_rem_signedness {
                 [ $lhs_node, $rhs_node ] );
             if ( $signedness == ParserCommon::ITE_SIGNEDNESS ) {
                 if ( $lhs_lookup_ref_node->is_func_node() ) {
-                    $cond = $lhs_lookup_ref_node->get_nth_child(0);
+                    $cond = signed_cond($lhs_lookup_ref_node);
                 }
                 else {
                     $cond = ASTNode->new_num_node($signedness);
