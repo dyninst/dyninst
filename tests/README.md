@@ -134,10 +134,10 @@ that several tests run with different arguments is made once with
 
 Every test also gets these properties; do not set them yourself:
 
-| Property           | Value  |
-| :----------------- | :----- |
-| `LABELS`           | `TYPE` |
-| `SKIP_RETURN_CODE` | `77`   |
+| Property           | Value                                         |
+| :----------------- | :-------------------------------------------- |
+| `LABELS`           | `TYPE`, and `host` with a `host:` requirement |
+| `SKIP_RETURN_CODE` | `77`                                          |
 
 Arguments in `COMMAND` and `ARGS` are passed as written: an empty
 argument (`""`) is kept, and so is a `;` inside an argument.
@@ -212,7 +212,12 @@ with the reason a test prints when it is not met:
 
 - `host:<arch>`: The test runs code written for one architecture, such
   as assembly. `<arch>` is one of `DYNINST_HOST_ARCHES`: `x86_64`,
-  `i386`, `aarch64`, `ppc64le` or `riscv64`.
+  `i386`, `aarch64`, `ppc64le` or `riscv64`. Use it only when the
+  program the test runs, or the Dyninst code it tests, works on that
+  host alone. A test that reads binaries does not need it: Symtab and
+  ParseAPI read every architecture on any host, so give it binaries for
+  each architecture instead. Tests with a `host:` requirement are also
+  labeled `host`, so `ctest -N -L host` lists them.
 
 - `native`: The test runs a program that Dyninst instruments or
   rewrites, which works only when Dyninst generates code for the host.

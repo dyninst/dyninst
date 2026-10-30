@@ -55,7 +55,8 @@ them in full, with examples.
   dyninst_add_test always adds SUPPORTED_CXX_WARNING_FLAGS.
 
   TYPE
-    unit, integration or regression; becomes the test's LABELS.
+    unit, integration or regression; becomes the test's LABELS. A test
+    that REQUIRES host:<arch> is also labeled host.
 
   SOURCE_FILES
     The sources of an executable named <TestName>, which the test runs.
@@ -348,8 +349,17 @@ function(dyninst_add_test _name)
   else()
     add_test(NAME ${_name} COMMAND ${_command})
   endif()
+  # A test tied to the host's architecture is also labeled host, so that
+  # `ctest -N -L host` lists them
+  set(_labels ${_test_TYPE})
+  foreach(_r IN LISTS _test_REQUIRES)
+    if(_r MATCHES "^host:")
+      list(APPEND _labels host)
+      break()
+    endif()
+  endforeach()
   set_tests_properties(
     ${_name}
-    PROPERTIES LABELS ${_test_TYPE} SKIP_RETURN_CODE 77 ${_test_PROPERTIES}
+    PROPERTIES LABELS "${_labels}" SKIP_RETURN_CODE 77 ${_test_PROPERTIES}
   )
 endfunction()
