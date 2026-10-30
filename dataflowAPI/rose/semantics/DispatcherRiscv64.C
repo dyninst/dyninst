@@ -657,13 +657,13 @@ struct IP_DIV : P {
     SgAsmExpression *rs2 = args[2];
     SgAsmExpression *rs1 = args[1];
     SgAsmExpression *rd = args[0];
-    bool is_unsigned;
+    bool is_signed;
     switch (insn->get_kind()) {
     case rose_riscv64_op_div:
-      is_unsigned = 1;
+      is_signed = 1;
       break;
     case rose_riscv64_op_divu:
-      is_unsigned = 0;
+      is_signed = 0;
       break;
     default:
       assert(0);
@@ -676,21 +676,12 @@ struct IP_DIV : P {
     BaseSemantics::SValuePtr quotient;
     rs1_bits = d->read(rs1, 64, 0);
     rs2_bits = d->read(rs2, 64, 0);
-    rs1_int = ops->ite(ops->number_(64, is_unsigned), rs1_bits, rs1_bits);
-    rs2_int = ops->ite(ops->number_(64, is_unsigned), rs2_bits, rs2_bits);
+    rs1_int = ops->ite(ops->number_(64, is_signed), rs1_bits, rs1_bits);
+    rs2_int = ops->ite(ops->number_(64, is_signed), rs2_bits, rs2_bits);
     quotient = ops->ite(ops->isEqual(rs2_int, ops->number_(64, 0)),
                         ops->number_(64, -1),
-                        ops->ite(ops->boolean_(ops->number_(64, is_unsigned)),
-                                 ops->signedDivide(rs1_int, rs2_int),
-                                 ops->unsignedDivide(rs2_int, rs1_int)));
-    quotient = ops->ite(
-        ops->and_(ops->boolean_(ops->invert(
-                      ops->boolean_(ops->number_(64, is_unsigned)))),
-                  ops->boolean_(ops->isSignedGreaterThanOrEqual(
-                      quotient, ops->shiftLeft(ops->number_(64, 1),
-                                               ops->number_(64, 63))))),
-        ops->negate(ops->shiftLeft(ops->number_(64, 1), ops->number_(64, 63))),
-        quotient);
+                        is_signed ? ops->signedDivide(rs1_int, rs2_int)
+                                  : ops->unsignedDivide(rs1_int, rs2_int));
     d->write(rd, ops->extract(quotient, 0, 64));
     return;
   }
@@ -705,13 +696,13 @@ struct IP_REM : P {
     SgAsmExpression *rs2 = args[2];
     SgAsmExpression *rs1 = args[1];
     SgAsmExpression *rd = args[0];
-    bool is_unsigned;
+    bool is_signed;
     switch (insn->get_kind()) {
     case rose_riscv64_op_rem:
-      is_unsigned = 1;
+      is_signed = 1;
       break;
     case rose_riscv64_op_remu:
-      is_unsigned = 0;
+      is_signed = 0;
       break;
     default:
       assert(0);
@@ -724,12 +715,11 @@ struct IP_REM : P {
     BaseSemantics::SValuePtr remainder;
     rs1_bits = d->read(rs1, 64, 0);
     rs2_bits = d->read(rs2, 64, 0);
-    rs1_int = ops->ite(ops->number_(64, is_unsigned), rs1_bits, rs1_bits);
-    rs2_int = ops->ite(ops->number_(64, is_unsigned), rs2_bits, rs2_bits);
+    rs1_int = ops->ite(ops->number_(64, is_signed), rs1_bits, rs1_bits);
+    rs2_int = ops->ite(ops->number_(64, is_signed), rs2_bits, rs2_bits);
     remainder = ops->ite(ops->isEqual(rs2_int, ops->number_(64, 0)), rs1_int,
-                         ops->ite(ops->boolean_(ops->number_(64, is_unsigned)),
-                                  ops->signedModulo(rs1_int, rs2_int),
-                                  ops->unsignedModulo(rs2_int, rs1_int)));
+                         is_signed ? ops->signedModulo(rs1_int, rs2_int)
+                                   : ops->unsignedModulo(rs1_int, rs2_int));
     d->write(rd, ops->extract(remainder, 0, 64));
     return;
   }
@@ -769,13 +759,13 @@ struct IP_DIVW : P {
     SgAsmExpression *rs2 = args[2];
     SgAsmExpression *rs1 = args[1];
     SgAsmExpression *rd = args[0];
-    bool is_unsigned;
+    bool is_signed;
     switch (insn->get_kind()) {
     case rose_riscv64_op_divw:
-      is_unsigned = 1;
+      is_signed = 1;
       break;
     case rose_riscv64_op_divuw:
-      is_unsigned = 0;
+      is_signed = 0;
       break;
     default:
       assert(0);
@@ -788,21 +778,12 @@ struct IP_DIVW : P {
     BaseSemantics::SValuePtr quotient;
     rs1_bits = ops->extract(d->read(rs1, 64, 0), 0, 32);
     rs2_bits = ops->extract(d->read(rs2, 64, 0), 0, 32);
-    rs1_int = ops->ite(ops->number_(64, is_unsigned), rs1_bits, rs1_bits);
-    rs2_int = ops->ite(ops->number_(64, is_unsigned), rs2_bits, rs2_bits);
+    rs1_int = ops->ite(ops->number_(64, is_signed), rs1_bits, rs1_bits);
+    rs2_int = ops->ite(ops->number_(64, is_signed), rs2_bits, rs2_bits);
     quotient = ops->ite(ops->isEqual(rs2_int, ops->number_(64, 0)),
                         ops->number_(64, -1),
-                        ops->ite(ops->boolean_(ops->number_(64, is_unsigned)),
-                                 ops->signedDivide(rs1_int, rs2_int),
-                                 ops->unsignedDivide(rs2_int, rs1_int)));
-    quotient = ops->ite(
-        ops->and_(ops->boolean_(ops->invert(
-                      ops->boolean_(ops->number_(64, is_unsigned)))),
-                  ops->boolean_(ops->isSignedGreaterThanOrEqual(
-                      quotient, ops->shiftLeft(ops->number_(64, 1),
-                                               ops->number_(64, 31))))),
-        ops->negate(ops->shiftLeft(ops->number_(64, 1), ops->number_(64, 31))),
-        quotient);
+                        is_signed ? ops->signedDivide(rs1_int, rs2_int)
+                                  : ops->unsignedDivide(rs1_int, rs2_int));
     d->write(rd, d->SignExtend(ops->extract(quotient, 0, 32), 64));
     return;
   }
@@ -817,13 +798,13 @@ struct IP_REMW : P {
     SgAsmExpression *rs2 = args[2];
     SgAsmExpression *rs1 = args[1];
     SgAsmExpression *rd = args[0];
-    bool is_unsigned;
+    bool is_signed;
     switch (insn->get_kind()) {
     case rose_riscv64_op_remw:
-      is_unsigned = 1;
+      is_signed = 1;
       break;
     case rose_riscv64_op_remuw:
-      is_unsigned = 0;
+      is_signed = 0;
       break;
     default:
       assert(0);
@@ -836,12 +817,11 @@ struct IP_REMW : P {
     BaseSemantics::SValuePtr remainder;
     rs1_bits = ops->extract(d->read(rs1, 64, 0), 0, 32);
     rs2_bits = ops->extract(d->read(rs2, 64, 0), 0, 32);
-    rs1_int = ops->ite(ops->number_(64, is_unsigned), rs1_bits, rs1_bits);
-    rs2_int = ops->ite(ops->number_(64, is_unsigned), rs2_bits, rs2_bits);
+    rs1_int = ops->ite(ops->number_(64, is_signed), rs1_bits, rs1_bits);
+    rs2_int = ops->ite(ops->number_(64, is_signed), rs2_bits, rs2_bits);
     remainder = ops->ite(ops->isEqual(rs2_int, ops->number_(64, 0)), rs1_int,
-                         ops->ite(ops->boolean_(ops->number_(64, is_unsigned)),
-                                  ops->signedModulo(rs1_int, rs2_int),
-                                  ops->unsignedModulo(rs2_int, rs1_int)));
+                         is_signed ? ops->signedModulo(rs1_int, rs2_int)
+                                   : ops->unsignedModulo(rs1_int, rs2_int));
     d->write(rd, d->SignExtend(ops->extract(remainder, 0, 32), 64));
     return;
   }

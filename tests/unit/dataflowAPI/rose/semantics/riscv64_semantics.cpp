@@ -292,6 +292,19 @@ namespace {
 
     // The 32-bit divisions and remainders.
     {"remw  a0, a1, a2",      0x02c5e53b, 0xfffffffffffffff9,  2,                   0,      0,           rv::a0, 0,  minus1},
+    {"divw  a0, a1, a2",      0x02c5c53b, 0xfffffffffffffff9,  2,                   0,      0,           rv::a0, 0,  0xfffffffffffffffd},
+    {"divuw a0, a1, a2",      0x02c5d53b, 0xfffffffe,          2,                   0,      0,           rv::a0, 0,  0x7fffffff},
+    {"remuw a0, a1, a2",      0x02c5f53b, 0xfffffff9,          10,                  0,      0,           rv::a0, 0,  9},
+
+    // Division and remainder take rs1 (a1) by rs2 (a2), signed or unsigned as the
+    // instruction says, also by zero.
+    {"div   a0, a1, a2",      0x02c5c533, 0xffffffffffffff9c,  7,                   0,      0,           rv::a0, 0,  0xfffffffffffffff2},
+    {"divu  a0, a1, a2",      0x02c5d533, 100,                 7,                   0,      0,           rv::a0, 0,  14},
+    {"remu  a0, a1, a2",      0x02c5f533, 100,                 7,                   0,      0,           rv::a0, 0,  2},
+    {"divu  a0, a1, a2",      0x02c5d533, 0xffffffffffffff9c,  7,                   0,      0,           rv::a0, 0,  0x2492492492492484},
+    {"remu  a0, a1, a2",      0x02c5f533, 0xffffffffffffff9c,  10,                  0,      0,           rv::a0, 0,  6},
+    {"divu  a0, a1, a2",      0x02c5d533, 5,                   0,                   0,      0,           rv::a0, 0,  minus1},
+    {"remu  a0, a1, a2",      0x02c5f533, 5,                   0,                   0,      0,           rv::a0, 0,  5},
   };
   // clang-format on
 
