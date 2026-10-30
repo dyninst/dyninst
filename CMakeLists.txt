@@ -102,5 +102,6 @@ include(DyninstInstall)
 # FetchContent gets neither them nor a clash with its own targets of the same
 # names.
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  set(DYNINST_GERSEMI_VERSIONS_FILE "${PROJECT_SOURCE_DIR}/docker/dependencies.versions")
   include(DyninstCMakeFormat)
 endif()

@@ -290,13 +290,24 @@ of its own also stay outside: Dyninst's are in
 
 Each runs `DyninstRunGersemi.cmake` with `cmake -P`. That script formats every
 `.cmake` and `CMakeLists.txt` file that git tracks, with the settings in the
-repository's `.gersemirc`. It checks that the gersemi it runs is the version
-pinned in the repository's `docker/dependencies.versions`, because releases
-format differently.
+repository's `.gersemirc`.
+
+Releases of gersemi format differently, so a repository pins one. It sets
+`DYNINST_GERSEMI_VERSIONS_FILE` before the include to a file holding a line
+`gersemi:<version>`; Dyninst's is `docker/dependencies.versions`. The script
+then refuses any other version, and its install instructions name the pinned
+one. Without the setting, any gersemi is accepted.
 
 A missing gersemi is not a configure error, only an error for whoever builds
-one of these targets. The script then explains how to install the pinned
-version.
+one of these targets. The script then explains how to install it.
 
-The repository provides `.gersemirc`, the pinned version, and the CI workflow
-that runs the check; Dyninst's is `.github/workflows/cmake-formatting.yaml`.
+The repository provides `.gersemirc`, the pin, and the CI workflow that runs
+the check. A workflow can run the script directly, without configuring:
+
+    cmake -DGERSEMI=$(command -v gersemi) -DMODE=check -DSOURCE_DIR=$PWD \
+          -DVERSIONS_FILE=docker/dependencies.versions \
+          -P cmake/common/gersemi/DyninstRunGersemi.cmake
+
+`MODE` is `check`, `check-raw`, `diff` or `in-place`, and a relative
+`VERSIONS_FILE` is taken from `SOURCE_DIR`. Dyninst's workflow is
+`.github/workflows/cmake-formatting.yaml`.

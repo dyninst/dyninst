@@ -11,6 +11,10 @@
 # targets, which is where DyninstRunGersemi.cmake reports it.
 #
 # DyninstRunGersemi.cmake searches PATH again when this find_program fails.
+#
+# DYNINST_GERSEMI_VERSIONS_FILE, set before including this, names the file
+# that pins the gersemi version, in a line 'gersemi:<version>'.  Without it,
+# any gersemi is accepted.
 
 find_program(
   DYNINST_GERSEMI_EXECUTABLE
@@ -32,7 +36,8 @@ function(dyninst_add_gersemi_target _name _mode _comment)
     ${_name}
     COMMAND
       ${CMAKE_COMMAND} "-DGERSEMI=${DYNINST_GERSEMI_EXECUTABLE}" "-DMODE=${_mode}"
-      "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}" -P
+      "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+      "-DVERSIONS_FILE=${DYNINST_GERSEMI_VERSIONS_FILE}" -P
       "${_dyninst_gersemi_dir}/DyninstRunGersemi.cmake"
     COMMENT "${_comment}"
     VERBATIM
