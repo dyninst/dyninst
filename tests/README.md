@@ -199,6 +199,12 @@ with the reason a test prints when it is not met:
 - `static_lib:<lib>`: `<lib>` is any Dyninst library.
   `ENABLE_STATIC_LIBS` builds the static ones.
 
+- A family such as `codegen:<arch>` or `host:<arch>` also takes a
+  comma-separated list, met when any one of its values is:
+  `host:aarch64,ppc64le` is met on either host, and a test that is not
+  run reports `skipped: needs the host to be aarch64 or ppc64le`. A
+  test that needs all of several values names each separately.
+
 - `codegen:<arch>`: `<arch>` is one of `DYNINST_CODEGEN_ARCHES`:
   `x86_64`, `i386`, `aarch64`, `ppc64le`, `riscv64`, `amdgpu_gfx908`,
   `amdgpu_gfx90a`, `amdgpu_gfx940` or `amdgpu_gfx950`. `codegen:i386` is
@@ -248,7 +254,8 @@ family: `REQUIRES codegen:x86_64` puts `x86_64` in place of `<arg>`, and
 must list the arguments it accepts in `VALUES`, and any other is a
 configuration error, so a misspelled one cannot make a test that is
 always skipped. A plain name is looked up before a family, so one member
-of a family can have a definition of its own.
+of a family can have a definition of its own; inside a list, such as
+`codegen:i386,aarch64`, that member still uses its own condition.
 
 To build something a test uses but does not run only when it can be,
 ask for the reasons directly:

@@ -116,6 +116,13 @@ them in full, with examples.
   <ARG>, in <condition> and <text>. VALUES lists the arguments a family
   accepts; any other is an error.
 
+  The argument may be a comma-separated list, met when any one of its
+  values is: REQUIRES host:aarch64,ppc64le is met on either host, and is
+  reported as "needs the host to be aarch64 or ppc64le". A requirement
+  on all of several values is written as separate requirements. A name
+  that is defined on its own, such as codegen:i386, keeps its own
+  condition inside a list.
+
   dyninst_test_skip_reason
 
     dyninst_test_skip_reason(<out-var> REQUIRES <requirement>...)
@@ -168,19 +175,29 @@ function(dyninst_test_skip_reason _out)
   get_property(_known GLOBAL PROPERTY _DYNINST_TEST_REQUIREMENTS)
   set(_reasons)
   foreach(_r IN LISTS _req_REQUIRES)
-    set(_key ${_r})
-    unset(_arg)
-    if(NOT _r IN_LIST _known AND _r MATCHES "^([^:]+):(.+)$")
-      set(_key "${CMAKE_MATCH_1}:<arg>")
-      set(_arg ${CMAKE_MATCH_2})
+    # A plain name, including one such as codegen:i386 that a family also covers
+    if(_r IN_LIST _known)
+      get_property(_cond GLOBAL PROPERTY _DYNINST_TEST_REQUIREMENT_${_r}_CONDITION)
+      get_property(_reason GLOBAL PROPERTY _DYNINST_TEST_REQUIREMENT_${_r}_REASON)
+      if(NOT (${_cond}))
+        list(APPEND _reasons "${_reason}")
+      endif()
+      continue()
     endif()
+    if(NOT _r MATCHES "^([^:]+):(.+)$")
+      message(FATAL_ERROR "Unknown test requirement '${_r}'")
+    endif()
+    # <prefix>:<a>,<b>,... is met when any one of <a>, <b>, ... is
+    set(_prefix ${CMAKE_MATCH_1})
+    set(_key "${_prefix}:<arg>")
+    string(REPLACE "," ";" _args "${CMAKE_MATCH_2}")
     if(NOT _key IN_LIST _known)
       message(FATAL_ERROR "Unknown test requirement '${_r}'")
     endif()
-    get_property(_cond GLOBAL PROPERTY _DYNINST_TEST_REQUIREMENT_${_key}_CONDITION)
-    get_property(_reason GLOBAL PROPERTY _DYNINST_TEST_REQUIREMENT_${_key}_REASON)
-    if(DEFINED _arg)
-      get_property(_values GLOBAL PROPERTY _DYNINST_TEST_REQUIREMENT_${_key}_VALUES)
+    get_property(_values GLOBAL PROPERTY _DYNINST_TEST_REQUIREMENT_${_key}_VALUES)
+    set(_met FALSE)
+    set(_ARGS)
+    foreach(_arg IN LISTS _args)
       if(NOT _arg IN_LIST _values)
         string(REPLACE ";" ", " _values "${_values}")
         message(
@@ -189,12 +206,25 @@ function(dyninst_test_skip_reason _out)
         )
       endif()
       string(TOUPPER ${_arg} _ARG)
+      list(APPEND _ARGS ${_ARG})
+      if("${_prefix}:${_arg}" IN_LIST _known)
+        set(_name "${_prefix}:${_arg}")
+      else()
+        set(_name ${_key})
+      endif()
+      get_property(_cond GLOBAL PROPERTY _DYNINST_TEST_REQUIREMENT_${_name}_CONDITION)
       string(REPLACE "<arg>" ${_arg} _cond "${_cond}")
       string(REPLACE "<ARG>" ${_ARG} _cond "${_cond}")
-      string(REPLACE "<arg>" ${_arg} _reason "${_reason}")
-      string(REPLACE "<ARG>" ${_ARG} _reason "${_reason}")
-    endif()
-    if(NOT (${_cond}))
+      if(${_cond})
+        set(_met TRUE)
+      endif()
+    endforeach()
+    if(NOT _met)
+      get_property(_reason GLOBAL PROPERTY _DYNINST_TEST_REQUIREMENT_${_key}_REASON)
+      list(JOIN _args " or " _any)
+      list(JOIN _ARGS " or " _ANY)
+      string(REPLACE "<arg>" "${_any}" _reason "${_reason}")
+      string(REPLACE "<ARG>" "${_ANY}" _reason "${_reason}")
       list(APPEND _reasons "${_reason}")
     endif()
   endforeach()
