@@ -1045,9 +1045,9 @@ struct IP_AMO : P {
       // d->write(rd, ops->ite(ops->isSignedLessThanOrEqual(ops->number_(64,
       // width), ops->number_(64, 8)), d->SignExtend(loaded, 64),
       // d->SignExtend(loaded, 128)));
-      d->writeMemory(addr, width, result);
-      d->write(rd, d->SignExtend(loaded, 64));
     };
+    d->writeMemory(addr, width, result);
+    d->write(rd, d->SignExtend(loaded, 64));
     return;
   }
 };

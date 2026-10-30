@@ -283,6 +283,12 @@ namespace {
     // sc stores rs2 (a1) at the address in rs1 (a2).
     {"sc.w  a0, a1, (a2)",    0x18b6252f, 0x1122334455667788,  mem_addr,            0,      0xdeadbeef,  mem,    4,  0x55667788},
     {"sc.d  a0, a1, (a2)",    0x18b6352f, 0x1122334455667788,  mem_addr,            0,      0xdeadbeef,  mem,    8,  0x1122334455667788},
+
+    // An AMO writes the combined value to memory and the old one to rd.
+    {"amoadd.w  a0, a1, (a2)", 0x00b6252f, 5,                  mem_addr,            0,      0xfffffffe,  mem,    4,  3},
+    {"amoadd.w  a0, a1, (a2)", 0x00b6252f, 5,                  mem_addr,            0,      0xfffffffe,  rv::a0, 0,  0xfffffffffffffffe},
+    {"amoswap.d a0, a1, (a2)", 0x08b6352f, 0x5678,             mem_addr,            0,      0x1234,      mem,    8,  0x5678},
+    {"amoswap.d a0, a1, (a2)", 0x08b6352f, 0x5678,             mem_addr,            0,      0x1234,      rv::a0, 0,  0x1234},
   };
   // clang-format on
 
