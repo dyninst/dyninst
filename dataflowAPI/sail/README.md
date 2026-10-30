@@ -74,10 +74,13 @@ eval $(opam config env)
 
 ### Building the SAIL Parser
 
-Once dependencies and the OCaml version are set up, install SAIL with the JSON backend:
+Once dependencies and the OCaml version are set up, install SAIL with the JSON backend from a clone of the `json-backend` branch. `opam install sail` alone installs upstream SAIL, which has no JSON backend. SAIL 0.20's grammar is rejected by menhir 20260209 and later, so install an older menhir first:
 
 ```bash
-opam install sail
+git clone --branch json-backend https://github.com/wxrdnx/sail
+cd sail
+opam pin add -n -k path .
+opam install menhir.20240715 sail sail_json_backend
 ```
 
 After a successful build, the `sail` binary will be available in your Opam switch (or current directory). Verify the installation with:
@@ -115,7 +118,7 @@ All relevant SAIL source files live under the `model/` directory.
 Assuming your working directory is `dataflowAPI/sail`, create a symbolic link to the RISC-V model directory:
 
 ```bash
-ln -s /path/to/sail-riscv/model ./models
+ln -s /path/to/sail-riscv/model ./model
 ```
 
 This allows the SAIL toolchain to locate the RISC-V semantics during parsing easily.
@@ -222,24 +225,25 @@ This extracts the `execute` function for `UTYPE` from the JSON file, builds an i
 ```cpp
 struct IP_UTYPE : P {
     void p(D d, Ops ops, I insn, A args, B raw) {
-        SgAsmExpression *imm = args[1];
+        BaseSemantics::SValuePtr imm = d->read(args[1], 64, 0);
         SgAsmExpression *rd = args[0];
         enum Riscv64InstructionKind op = insn->get_kind();
 
         BaseSemantics::SValuePtr off;
-        off = d->SignExtend(ops->shiftLeft(d->read(imm, 64, 0), ops->number_(64, 12)), 64);
+        off = d->SignExtend(ops->extract(ops->shiftLeft(imm, ops->number_(64, 12)), 0, 32), 64);
         switch (op) {
-            case rose_riscv64_op_lui: 
+            case rose_riscv64_op_lui: {
                 d->write(rd, off);
                 break;
             }
-            case rose_riscv64_op_auipc: 
+            case rose_riscv64_op_auipc: {
                 d->write(rd, ops->add(PC, off));
                 break;
             }
-            default:
-            assert(0);
+            default: {
+                assert(0);
                 break;
+            }
         };
         return;
     }
@@ -301,7 +305,10 @@ The mapping in `ParserConfig.pm` is therefore:
 ITYPE => ordered_hash(
     imm => {
         init_code => sub {
-            print_indent("SgAsmExpression *imm = args[2];\n", 2);
+            print_indent(
+                "BaseSemantics::SValuePtr imm = d->read(args[2], 64, 0);\n",
+                2
+            );
         },
         need_read => 1,
     },
@@ -325,6 +332,15 @@ ITYPE => ordered_hash(
     },
 ),
 ```
+
+Besides `init_code`, which prints the C++ that declares the argument, an argument can have:
+
+* `need_read`: the argument is a register-sized value. `init_code` reads it once into an `SValuePtr` named after the SAIL argument.
+* `need_number`: the argument is a plain C++ variable, such as a flag or a width set by a switch on the opcode. It becomes `ops->number_(64, x)` where a semantic value is needed, and stays C++ in integer operands (`extract` bounds, memory widths, extension widths) and in conditions, which are then decided in C++.
+* `in_address`: the argument is part of Capstone's memory operand and has no variable of its own. `d->effectiveAddress` applies it, and bindings computed from it are left out.
+* `bits`: the width of the SAIL argument, where it is narrower than the register-sized read and the width matters (UTYPE's 20-bit `imm`, whose `imm @ 0x000` is sign-extended from bit 31).
+* `max_value`: the largest value the argument can take, used to decide bounds checks such as `width <= xlen_bytes` at generation time.
+* `unsupported` (on `op`): SAIL opcodes that Capstone does not decode. Their match arms are left out, and `op == <unsupported>` is false.
 
 ---
 
@@ -390,7 +406,10 @@ The corresponding mapping in `ParserConfig.pm` is:
 RORI => ordered_hash(
     shamt => {
         init_code => sub {
-            print_indent("SgAsmExpression *imm = args[2];\n", 2);
+            print_indent(
+                "BaseSemantics::SValuePtr shamt = d->read(args[2], 64, 0);\n",
+                2
+            );
         },
         need_read => 1,
     },
@@ -418,12 +437,11 @@ This produces the ROSE C++ semantics for the `RORI` instruction set.
 ```cpp
 struct IP_RORI : P {
     void p(D d, Ops ops, I insn, A args, B raw) {
-        SgAsmExpression *shamt = args[2];
+        BaseSemantics::SValuePtr shamt = d->read(args[2], 64, 0);
         SgAsmExpression *rs1 = args[1];
         SgAsmExpression *rd = args[0];
 
-        BaseSemantics::SValuePtr shamt;
-        shamt = ops->extract(shamt, 0, 5);
+        shamt = ops->extract(shamt, 0, 6);
         d->write(rd, ops->rotateRight(d->read(rs1, 64, 0), shamt));
         return;
     }

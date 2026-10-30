@@ -78,7 +78,6 @@ our @EXPORT_OK = qw(
   ROSE_OP_NUMBER
   ROSE_OP_POPC
   ROSE_OP_READ
-  ROSE_OP_READ_IMM
   ROSE_OP_READ_REG
   ROSE_OP_REV8
   ROSE_OP_ROTATE_LEFT
@@ -141,7 +140,6 @@ use constant {
     ROSE_OP_SIGN_EXTEND       => 'Sign Extend',
     ROSE_OP_ZERO_EXTEND       => 'Zero Extend',
     ROSE_OP_READ_REG          => 'Read Register',
-    ROSE_OP_READ_IMM          => 'Read Immediate',
     ROSE_OP_WRITE_REG         => 'Write Register',
     ROSE_OP_NUMBER            => 'To Number',
     ROSE_OP_BOOL              => 'To Boolean',
@@ -149,7 +147,7 @@ use constant {
     ROSE_OP_SUB               => 'Subtract',
     ROSE_OP_SMUL              => 'Multiply',
     ROSE_OP_UMUL              => 'Unsigned Multiply',
-    ROSE_OP_SUMUL             => 'Unsigned Multiply',
+    ROSE_OP_SUMUL             => 'Signed Unsigned Multiply',
     ROSE_OP_SDIV              => 'Signed Divide',
     ROSE_OP_UDIV              => 'Unsigned Divide',
     ROSE_OP_SREM              => 'Signed Modulo',

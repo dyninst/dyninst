@@ -16,7 +16,6 @@ our @EXPORT_OK = qw(
   print_store_init_code
   print_mul_init_code
   print_div_init_code
-  print_rem_init_code
 );
 
 sub print_rose_code {
@@ -27,6 +26,7 @@ sub print_rose_code {
 
     my %lookup    = ();
     my $body_node = ASTBuild->parse_ast( $body, $curr_set );
+    ASTAdjust::adjust_known_conditions( $body_node, $curr_set );
     ASTAdjust::change_field_to_id( $body_node, $curr_set, {} );
     ASTAdjust::change_op_var( $body_node, $curr_set, {} );
     ASTAdjust::adjust_bitvec_assign( $body_node, $curr_set );
@@ -49,7 +49,11 @@ sub print_rose_code {
     }
     print("\n");
 
-    print_all_declare( $body_node, $curr_set, {} );
+    # Arguments read in the prologue are already declared
+    my %read_args = map { $_ => {} }
+      grep { $ParserConfig::ARGS_PER_SUBSET{$curr_set}{$_}{need_read} }
+      keys %{ $ParserConfig::ARGS_PER_SUBSET{$curr_set} };
+    print_all_declare( $body_node, $curr_set, \%read_args );
     print_indent( "", 2 );
     print_ast( $body_node, $curr_set, \%lookup, 2 );
     print(";\n");
@@ -139,10 +143,10 @@ sub print_switch {
                     print_indent( "case ${key}_d: \n",       $indent_lvl + 1 );
                     print_indent( "case ${key}_d_aq: \n",    $indent_lvl + 1 );
                     print_indent( "case ${key}_d_aq_rl: \n", $indent_lvl + 1 );
-                    print_indent( "case ${key}_d_rl: \n",    $indent_lvl + 1 );
+                    print_indent( "case ${key}_d_rl: {\n",   $indent_lvl + 1 );
                 }
                 else {
-                    print_indent( "case $key: \n", $indent_lvl + 1 );
+                    print_indent( "case $key: {\n", $indent_lvl + 1 );
                 }
             }
             else {
@@ -165,40 +169,50 @@ sub print_switch {
             }
         }
     }
-    print_indent( "default:\n",   $indent_lvl + 1 );
+    print_indent( "default: {\n", $indent_lvl + 1 );
     print_indent( "assert(0);\n", $indent_lvl + 2 );
     print_indent( "break;\n",     $indent_lvl + 2 );
+    print_indent( "}\n",          $indent_lvl + 1 );
     print_indent( "}",            $indent_lvl );
+}
+
+# C++ operators for nodes that print as plain C++ expressions, with their
+# precedence.  Boolean and/or/not (nodes marked "boolean") use the logical
+# operators.
+my %CPP_OP = (
+    ASTType::ROSE_OP_BOR          => [ "|",  3 ],
+    ASTType::ROSE_OP_BXOR         => [ "^",  4 ],
+    ASTType::ROSE_OP_BAND         => [ "&",  5 ],
+    ASTType::ROSE_OP_EQ           => [ "==", 6 ],
+    ASTType::ROSE_OP_NEQ          => [ "!=", 6 ],
+    ASTType::ROSE_OP_SIGNED_LT    => [ "<",  7 ],
+    ASTType::ROSE_OP_SIGNED_GT    => [ ">",  7 ],
+    ASTType::ROSE_OP_SIGNED_LEQ   => [ "<=", 7 ],
+    ASTType::ROSE_OP_SIGNED_GEQ   => [ ">=", 7 ],
+    ASTType::ROSE_OP_SHIFT_LEFT   => [ "<<", 8 ],
+    ASTType::ROSE_OP_SHIFT_RIGHT  => [ ">>", 8 ],
+    ASTType::ROSE_OP_ADD          => [ "+",  9 ],
+    ASTType::ROSE_OP_SUB          => [ "-",  9 ],
+    ASTType::ROSE_OP_SMUL         => [ "*",  10 ],
+    ASTType::ROSE_OP_SDIV         => [ "/",  10 ],
+    ASTType::ROSE_OP_SREM         => [ "%",  10 ],
+    ASTType::ROSE_OP_BNOT         => [ "~",  11 ],
+);
+my %CPP_BOOL_OP = (
+    ASTType::ROSE_OP_BOR  => [ "||", 1 ],
+    ASTType::ROSE_OP_BAND => [ "&&", 2 ],
+    ASTType::ROSE_OP_BNOT => [ "!",  11 ],
+);
+
+sub cpp_op {
+    my ($node) = @_;
+    return $node->has_attribute("boolean")
+      ? $CPP_BOOL_OP{ $node->get_value() }
+      : $CPP_OP{ $node->get_value() };
 }
 
 sub build_expr {
     my ( $curr_node, $parent_prec, $is_right ) = @_;
-    my %CPP_OP_PREC = (
-        ASTType::ROSE_OP_BOR         => 3,
-        ASTType::ROSE_OP_BXOR        => 4,
-        ASTType::ROSE_OP_BAND        => 5,
-        ASTType::ROSE_OP_SHIFT_LEFT  => 8,
-        ASTType::ROSE_OP_SHIFT_RIGHT => 8,
-        ASTType::ROSE_OP_ADD         => 9,
-        ASTType::ROSE_OP_SUB         => 9,
-        ASTType::ROSE_OP_SMUL        => 10,
-        ASTType::ROSE_OP_SDIV        => 10,
-        ASTType::ROSE_OP_SREM        => 10,
-        ASTType::ROSE_OP_BNOT        => 11,
-    );
-    my %CPP_OP_STR = (
-        ASTType::ROSE_OP_BOR         => "|",
-        ASTType::ROSE_OP_BXOR        => "^",
-        ASTType::ROSE_OP_BAND        => "&",
-        ASTType::ROSE_OP_SHIFT_LEFT  => "<<",
-        ASTType::ROSE_OP_SHIFT_RIGHT => ">>",
-        ASTType::ROSE_OP_ADD         => "+",
-        ASTType::ROSE_OP_SUB         => "-",
-        ASTType::ROSE_OP_SMUL        => "*",
-        ASTType::ROSE_OP_SDIV        => "/",
-        ASTType::ROSE_OP_SREM        => "%",
-        ASTType::ROSE_OP_BNOT        => "~",
-    );
     my %NON_ASSOC = map { $_ => 1 } qw(- / % << >>);
     if ( !$curr_node->is_func_node() ) {
         return $curr_node->get_value();
@@ -208,16 +222,20 @@ sub build_expr {
         if ( $const_fold_result->{ok} ) {
             return $const_fold_result->{value};
         }
-        my $func_op   = $curr_node->get_value();
         my $func_args = $curr_node->get_children();
-        my $prec      = $CPP_OP_PREC{$func_op};
+
+        # A C++ value is already a C++ boolean
+        if ( $curr_node->is_op(ASTType::ROSE_OP_BOOL) ) {
+            return build_expr( $func_args->[0], $parent_prec, $is_right );
+        }
+        my ( $op_str, $prec ) = @{ cpp_op($curr_node)
+              or die "Error: no C++ operator for " . $curr_node->get_value() };
 
         # Unary operator
         if ( scalar @$func_args == 1 ) {
             my $child_str  = build_expr( $func_args->[0], $prec, 0 );
             my $need_paren = $prec < $parent_prec;
-            return $CPP_OP_STR{$func_op}
-              . ( $need_paren ? "($child_str)" : $child_str );
+            return $op_str . ( $need_paren ? "($child_str)" : $child_str );
         }
 
         # Binary operator
@@ -225,9 +243,9 @@ sub build_expr {
             my $lhs_str    = build_expr( $func_args->[0], $prec, 0 );
             my $rhs_str    = build_expr( $func_args->[1], $prec, 1 );
             my $need_paren = ( $prec < $parent_prec )
-              || ( $is_right && $NON_ASSOC{$func_op} && $prec == $parent_prec );
+              || ( $is_right && $NON_ASSOC{$op_str} && $prec == $parent_prec );
 
-            my $child_str = "$lhs_str $CPP_OP_STR{$func_op} $rhs_str";
+            my $child_str = "$lhs_str $op_str $rhs_str";
             return $need_paren ? "($child_str)" : $child_str;
         }
     }
@@ -301,7 +319,6 @@ sub print_ast {
             ASTType::ROSE_OP_BNOT         => 'ops->invert',
             ASTType::ROSE_OP_BOR          => 'ops->or_',
             ASTType::ROSE_OP_BXOR         => 'ops->xor_',
-            ASTType::ROSE_OP_BOOL         => 'ops->boolean_',
             ASTType::ROSE_OP_BREV8        => 'd->Brev8',
             ASTType::ROSE_OP_CLZ          => 'd->CountLeadingZeroBits',
             ASTType::ROSE_OP_CMUL         => 'd->CarrylessMultiply',
@@ -327,7 +344,6 @@ sub print_ast {
             ASTType::ROSE_OP_NEG          => 'ops->negate',
             ASTType::ROSE_OP_NUMBER       => 'ops->number_',
             ASTType::ROSE_OP_POPC         => 'd->PopCount',
-            ASTType::ROSE_OP_READ_IMM     => 'd->read',
             ASTType::ROSE_OP_READ_REG     => 'd->read',
             ASTType::ROSE_OP_REV8         => 'd->Rev8',
             ASTType::ROSE_OP_ROTATE_LEFT  => 'ops->rotateLeft',
@@ -340,7 +356,7 @@ sub print_ast {
             ASTType::ROSE_OP_SMUL              => 'ops->signedMultiply',
             ASTType::ROSE_OP_SREM              => 'ops->signedModulo',
             ASTType::ROSE_OP_SUB               => 'ops->subtract',
-            ASTType::ROSE_OP_SUMUL             => 'ops->signedUnsignedMultiply',
+            ASTType::ROSE_OP_SUMUL             => 'd->signedUnsignedMultiply',
             ASTType::ROSE_OP_UDIV              => 'ops->unsignedDivide',
             ASTType::ROSE_OP_UMUL              => 'ops->unsignedMultiply',
             ASTType::ROSE_OP_UREM              => 'ops->unsignedModulo',
@@ -348,7 +364,27 @@ sub print_ast {
             ASTType::ROSE_OP_ZERO_EXTEND       => 'd->ZeroExtend',
         );
 
-        if ( my $func_name = $func_dispatch{$func_op} ) {
+        # A condition known in C++ chooses between the two values in C++
+        if (   $node->is_op(ASTType::ROSE_OP_ITE)
+            && ASTAdjust::is_cpp_expr( $func_args->[0], $curr_set ) )
+        {
+            print( build_expr( $func_args->[0], 0, 0 ), " ? " );
+            print_ast( $func_args->[1], $curr_set, $lookup, $indent_lvl );
+            print(" : ");
+            print_ast( $func_args->[2], $curr_set, $lookup, $indent_lvl );
+        }
+
+        # ops->boolean_() takes a C++ bool; a semantic value is already one
+        elsif ( $node->is_op(ASTType::ROSE_OP_BOOL) ) {
+            if ( ASTAdjust::is_cpp_expr( $func_args->[0], $curr_set ) ) {
+                print( "ops->boolean_(", build_expr( $func_args->[0], 0, 0 ),
+                    ")" );
+            }
+            else {
+                print_ast( $func_args->[0], $curr_set, $lookup, $indent_lvl );
+            }
+        }
+        elsif ( my $func_name = $func_dispatch{$func_op} ) {
             print_func( $func_name, $func_args, $curr_set, $lookup,
                 $indent_lvl );
         }
@@ -523,31 +559,31 @@ sub print_load_init_code {
     print_indent( "switch (insn->get_kind()) {\n", $indent_lvl );
     print_indent( "case rose_riscv64_op_lb:\n",    $indent_lvl + 1 );
     print_indent( "width = 1;\n",                  $indent_lvl + 2 );
-    print_indent( "is_unsigned = 1;\n",            $indent_lvl + 2 );
+    print_indent( "is_unsigned = 0;\n",            $indent_lvl + 2 );
     print_indent( "break;\n",                      $indent_lvl + 2 );
     print_indent( "case rose_riscv64_op_lbu:\n",   $indent_lvl + 1 );
     print_indent( "width = 1;\n",                  $indent_lvl + 2 );
-    print_indent( "is_unsigned = 0;\n",            $indent_lvl + 2 );
+    print_indent( "is_unsigned = 1;\n",            $indent_lvl + 2 );
     print_indent( "break;\n",                      $indent_lvl + 2 );
     print_indent( "case rose_riscv64_op_lh:\n",    $indent_lvl + 1 );
     print_indent( "width = 2;\n",                  $indent_lvl + 2 );
-    print_indent( "is_unsigned = 1;\n",            $indent_lvl + 2 );
+    print_indent( "is_unsigned = 0;\n",            $indent_lvl + 2 );
     print_indent( "break;\n",                      $indent_lvl + 2 );
     print_indent( "case rose_riscv64_op_lhu:\n",   $indent_lvl + 1 );
     print_indent( "width = 2;\n",                  $indent_lvl + 2 );
-    print_indent( "is_unsigned = 0;\n",            $indent_lvl + 2 );
+    print_indent( "is_unsigned = 1;\n",            $indent_lvl + 2 );
     print_indent( "break;\n",                      $indent_lvl + 2 );
     print_indent( "case rose_riscv64_op_lw:\n",    $indent_lvl + 1 );
     print_indent( "width = 4;\n",                  $indent_lvl + 2 );
-    print_indent( "is_unsigned = 1;\n",            $indent_lvl + 2 );
+    print_indent( "is_unsigned = 0;\n",            $indent_lvl + 2 );
     print_indent( "break;\n",                      $indent_lvl + 2 );
     print_indent( "case rose_riscv64_op_lwu:\n",   $indent_lvl + 1 );
     print_indent( "width = 4;\n",                  $indent_lvl + 2 );
-    print_indent( "is_unsigned = 0;\n",            $indent_lvl + 2 );
+    print_indent( "is_unsigned = 1;\n",            $indent_lvl + 2 );
     print_indent( "break;\n",                      $indent_lvl + 2 );
     print_indent( "case rose_riscv64_op_ld:\n",    $indent_lvl + 1 );
     print_indent( "width = 8;\n",                  $indent_lvl + 2 );
-    print_indent( "is_unsigned = 1;\n",            $indent_lvl + 2 );
+    print_indent( "is_unsigned = 0;\n",            $indent_lvl + 2 );
     print_indent( "break;\n",                      $indent_lvl + 2 );
     print_indent( "default:\n",                    $indent_lvl + 1 );
     print_indent( "assert(0);\n",                  $indent_lvl + 2 );
@@ -603,33 +639,19 @@ sub print_mul_init_code {
     print_indent( "}\n",                            $indent_lvl );
 }
 
+# Set is_unsigned from the opcode: $signed_op or $unsigned_op
 sub print_div_init_code {
-    my ($indent_lvl) = @_;
-    print_indent( "switch (insn->get_kind()) {\n", $indent_lvl );
-    print_indent( "case rose_riscv64_op_div:\n",   $indent_lvl + 1 );
-    print_indent( "is_unsigned = 1;\n",            $indent_lvl + 2 );
-    print_indent( "break;\n",                      $indent_lvl + 2 );
-    print_indent( "case rose_riscv64_op_divu:\n",  $indent_lvl + 1 );
-    print_indent( "is_unsigned = 0;\n",            $indent_lvl + 2 );
-    print_indent( "break;\n",                      $indent_lvl + 2 );
-    print_indent( "default:\n",                    $indent_lvl + 1 );
-    print_indent( "assert(0);\n",                  $indent_lvl + 2 );
-    print_indent( "}\n",                           $indent_lvl );
-}
-
-sub print_rem_init_code {
-    my ($indent_lvl) = @_;
-    print_indent( "int is_unsigned;\n",            $indent_lvl );
-    print_indent( "switch (insn->get_kind()) {\n", $indent_lvl );
-    print_indent( "case rose_riscv64_op_rem:\n",   $indent_lvl + 1 );
-    print_indent( "is_unsigned = 1;\n",            $indent_lvl + 2 );
-    print_indent( "break;\n",                      $indent_lvl + 2 );
-    print_indent( "case rose_riscv64_op_remu:\n",  $indent_lvl + 1 );
-    print_indent( "is_unsigned = 0;\n",            $indent_lvl + 2 );
-    print_indent( "break;\n",                      $indent_lvl + 2 );
-    print_indent( "default:\n",                    $indent_lvl + 1 );
-    print_indent( "assert(0);\n",                  $indent_lvl + 2 );
-    print_indent( "}\n",                           $indent_lvl );
+    my ( $indent_lvl, $signed_op, $unsigned_op ) = @_;
+    print_indent( "switch (insn->get_kind()) {\n",        $indent_lvl );
+    print_indent( "case rose_riscv64_op_$signed_op:\n",   $indent_lvl + 1 );
+    print_indent( "is_unsigned = 0;\n",                   $indent_lvl + 2 );
+    print_indent( "break;\n",                             $indent_lvl + 2 );
+    print_indent( "case rose_riscv64_op_$unsigned_op:\n", $indent_lvl + 1 );
+    print_indent( "is_unsigned = 1;\n",                   $indent_lvl + 2 );
+    print_indent( "break;\n",                             $indent_lvl + 2 );
+    print_indent( "default:\n",                           $indent_lvl + 1 );
+    print_indent( "assert(0);\n",                         $indent_lvl + 2 );
+    print_indent( "}\n",                                  $indent_lvl );
 }
 
 1;

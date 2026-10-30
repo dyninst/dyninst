@@ -14,7 +14,6 @@ use PrintROSE qw(
   print_store_init_code
   print_mul_init_code
   print_div_init_code
-  print_rem_init_code
 );
 
 our @EXPORT_OK = qw(
@@ -63,9 +62,13 @@ our %ARGS_PER_SUBSET = %{
         UTYPE => ordered_hash(
             imm => {
                 init_code => sub {
-                    print_indent( "SgAsmExpression *imm = args[1];\n", 2 );
+                    print_indent(
+                        "BaseSemantics::SValuePtr imm = d->read(args[1], 64, 0);\n",
+                        2
+                    );
                 },
                 need_read => 1,
+                bits      => 20,
             },
             rd => {
                 init_code =>
@@ -85,7 +88,10 @@ our %ARGS_PER_SUBSET = %{
         BTYPE => ordered_hash(
             imm => {
                 init_code => sub {
-                    print_indent( "SgAsmExpression *imm = args[2];\n", 2 );
+                    print_indent(
+                        "BaseSemantics::SValuePtr imm = d->read(args[2], 64, 0);\n",
+                        2
+                    );
                 },
                 need_read => 1,
             },
@@ -112,7 +118,10 @@ our %ARGS_PER_SUBSET = %{
         ITYPE => ordered_hash(
             imm => {
                 init_code => sub {
-                    print_indent( "SgAsmExpression *imm = args[2];\n", 2 );
+                    print_indent(
+                        "BaseSemantics::SValuePtr imm = d->read(args[2], 64, 0);\n",
+                        2
+                    );
                 },
                 need_read => 1,
             },
@@ -139,7 +148,10 @@ our %ARGS_PER_SUBSET = %{
         JAL => ordered_hash(
             imm => {
                 init_code => sub {
-                    print_indent( "SgAsmExpression *imm = args[1];\n", 2 );
+                    print_indent(
+                        "BaseSemantics::SValuePtr imm = d->read(args[1], 64, 0);\n",
+                        2
+                    );
                 },
                 need_read => 1,
             },
@@ -153,7 +165,10 @@ our %ARGS_PER_SUBSET = %{
         JALR => ordered_hash(
             imm => {
                 init_code => sub {
-                    print_indent( "SgAsmExpression *rd = args[0];\n", 2 );
+                    print_indent(
+                        "BaseSemantics::SValuePtr imm = d->read(args[2], 64, 0);\n",
+                        2
+                    );
                 },
                 need_read => 1,
             },
@@ -172,7 +187,10 @@ our %ARGS_PER_SUBSET = %{
         SHIFTIOP => ordered_hash(
             shamt => {
                 init_code => sub {
-                    print_indent( "SgAsmExpression *imm = args[2];\n", 2 );
+                    print_indent(
+                        "BaseSemantics::SValuePtr shamt = d->read(args[2], 64, 0);\n",
+                        2
+                    );
                 },
                 need_read => 1,
             },
@@ -223,7 +241,10 @@ our %ARGS_PER_SUBSET = %{
         ),
 
         LOAD => ordered_hash(
-            imm => { init_code => sub { } },
+            imm => {
+                init_code  => sub { },
+                in_address => 1,
+            },
             rs1 => {
                 init_code => sub {
                     print_indent( "SgAsmExpression *rs1 = args[1];\n", 2 );
@@ -248,7 +269,10 @@ our %ARGS_PER_SUBSET = %{
         ),
 
         STORE => ordered_hash(
-            imm => { init_code => sub { } },
+            imm => {
+                init_code  => sub { },
+                in_address => 1,
+            },
             rs1 => {
                 init_code => sub {
                     print_indent( "SgAsmExpression *rs1 = args[1];\n", 2 );
@@ -278,9 +302,10 @@ our %ARGS_PER_SUBSET = %{
             },
             width => {
                 init_code => sub {
-                    print_indent( "size_t width = lrsc_width_str(insn)\n", 2 );
+                    print_indent( "size_t width = lrsc_width_str(insn);\n", 2 );
                 },
                 need_number => 1,
+                max_value   => 8,
             },
             rd => {
                 init_code =>
@@ -294,19 +319,20 @@ our %ARGS_PER_SUBSET = %{
             rl  => { init_code => sub { } },
             rs2 => {
                 init_code => sub {
-                    print_indent( "SgAsmExpression *rs2 = args[2];\n", 2 );
+                    print_indent( "SgAsmExpression *rs2 = args[1];\n", 2 );
                 },
             },
             rs1 => {
                 init_code => sub {
-                    print_indent( "SgAsmExpression *rs1 = args[1];\n", 2 );
+                    print_indent( "SgAsmExpression *rs1 = args[2];\n", 2 );
                 },
             },
             width => {
                 init_code => sub {
-                    print_indent( "size_t width = lrsc_width_str(insn)\n", 2 );
+                    print_indent( "size_t width = lrsc_width_str(insn);\n", 2 );
                 },
                 need_number => 1,
+                max_value   => 8,
             },
             rd => {
                 init_code =>
@@ -318,7 +344,10 @@ our %ARGS_PER_SUBSET = %{
         ADDIW => ordered_hash(
             imm => {
                 init_code => sub {
-                    print_indent( "SgAsmExpression *imm = args[2];\n", 2 );
+                    print_indent(
+                        "BaseSemantics::SValuePtr imm = d->read(args[2], 64, 0);\n",
+                        2
+                    );
                 },
                 need_read => 1,
             },
@@ -363,7 +392,10 @@ our %ARGS_PER_SUBSET = %{
         SHIFTIWOP => ordered_hash(
             shamt => {
                 init_code => sub {
-                    print_indent( "SgAsmExpression *imm = args[2];\n", 2 );
+                    print_indent(
+                        "BaseSemantics::SValuePtr shamt = d->read(args[2], 64, 0);\n",
+                        2
+                    );
                 },
                 need_read => 1,
             },
@@ -395,6 +427,9 @@ our %ARGS_PER_SUBSET = %{
                         2
                     );
                 },
+
+                # Capstone does not decode Zacas
+                unsupported => [qw(AMOCAS)],
             },
             aq  => { init_code => sub { } },
             rl  => { init_code => sub { } },
@@ -410,9 +445,10 @@ our %ARGS_PER_SUBSET = %{
             },
             width => {
                 init_code => sub {
-                    print_indent( "size_t width = lrsc_width_str(insn)\n", 2 );
+                    print_indent( "size_t width = lrsc_width_str(insn);\n", 2 );
                 },
                 need_number => 1,
+                max_value   => 8,
             },
             rd => {
                 init_code =>
@@ -483,7 +519,7 @@ our %ARGS_PER_SUBSET = %{
             is_unsigned => {
                 init_code => sub {
                     print_indent( "bool is_unsigned;\n", 2 );
-                    print_div_init_code(2);
+                    print_div_init_code( 2, "div", "divu" );
                 },
                 need_number => 1,
             },
@@ -508,7 +544,7 @@ our %ARGS_PER_SUBSET = %{
             is_unsigned => {
                 init_code => sub {
                     print_indent( "bool is_unsigned;\n", 2 );
-                    print_rem_init_code(2);
+                    print_div_init_code( 2, "rem", "remu" );
                 },
                 need_number => 1,
             },
@@ -551,7 +587,7 @@ our %ARGS_PER_SUBSET = %{
             is_unsigned => {
                 init_code => sub {
                     print_indent( "bool is_unsigned;\n", 2 );
-                    print_div_init_code(2);
+                    print_div_init_code( 2, "divw", "divuw" );
                 },
                 need_number => 1,
             },
@@ -576,7 +612,7 @@ our %ARGS_PER_SUBSET = %{
             is_unsigned => {
                 init_code => sub {
                     print_indent( "bool is_unsigned;\n", 2 );
-                    print_rem_init_code(2);
+                    print_div_init_code( 2, "remw", "remuw" );
                 },
                 need_number => 1,
             },
@@ -591,6 +627,9 @@ our %GLOBAL_VARS = (
     },
     log2_xlen => {
         value => 6
+    },
+    xlen_bytes => {
+        value => 8
     },
 );
 

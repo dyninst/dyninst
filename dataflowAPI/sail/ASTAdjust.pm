@@ -209,6 +209,124 @@ sub adjust_match {
     }
 }
 
+# An attribute of a SAIL argument in ParserConfig, without creating entries
+sub arg_attribute {
+    my ( $curr_set, $name, $attribute ) = @_;
+    my $args = $ParserConfig::ARGS_PER_SUBSET{$curr_set};
+    return undef unless $args && exists $args->{$name};
+    return $args->{$name}{$attribute};
+}
+
+# The value of a condition that is known when the code is generated, or
+# undef: a comparison of op with an op Capstone does not decode, a bound of
+# an argument whose largest value is known, and boolean operators over them.
+sub known_bool {
+    my ( $node, $curr_set ) = @_;
+    return $node->get_value() ? 1 : 0 if $node->is_bool_node();
+    return undef unless $node->is_func_node();
+    my @kids = @{ $node->get_children() };
+    my @known = map { known_bool( $_, $curr_set ) } @kids;
+
+    if ( $node->is_op(ASTType::ROSE_OP_BOOL) ) {
+        return $known[0];
+    }
+    if ( $node->has_attribute("boolean") ) {
+        if ( $node->is_op(ASTType::ROSE_OP_BNOT) ) {
+            return defined $known[0] ? !$known[0] + 0 : undef;
+        }
+        my $absorbing = $node->is_op(ASTType::ROSE_OP_BAND) ? 0 : 1;
+        return $absorbing if grep { defined $_ && $_ == $absorbing } @known;
+        return 1 - $absorbing unless grep { !defined $_ } @known;
+        return undef;
+    }
+    if ( $node->is_op(ASTType::ROSE_OP_EQ) || $node->is_op(ASTType::ROSE_OP_NEQ) ) {
+        my ( $var, $other ) =
+          $kids[0]->is_var_node() && $kids[0]->get_value() eq "op"
+          ? @kids
+          : reverse @kids;
+        return undef
+          unless $var->is_var_node()
+          && $var->get_value() eq "op"
+          && grep { $_ eq $other->get_value() }
+          @{ arg_attribute( $curr_set, "op", "unsupported" ) // [] };
+        return $node->is_op(ASTType::ROSE_OP_EQ) ? 0 : 1;
+    }
+    if (   $node->is_op(ASTType::ROSE_OP_SIGNED_LEQ)
+        || $node->is_op(ASTType::ROSE_OP_SIGNED_LT) )
+    {
+        my ( $var, $bound ) = @kids;
+        my $max = $var->is_var_node()
+          && arg_attribute( $curr_set, $var->get_value(), "max_value" );
+        return undef unless $max && $bound->is_num_node();
+        my $holds =
+          $node->is_op(ASTType::ROSE_OP_SIGNED_LEQ)
+          ? $max <= $bound->get_value()
+          : $max < $bound->get_value();
+        return $holds ? 1 : undef;
+    }
+    return undef;
+}
+
+# Leave out what cannot happen: the match arms of unsupported ops, and the
+# arm of an if or ite whose condition is known.
+sub adjust_known_conditions {
+    my ( $node, $curr_set ) = @_;
+    for my $child ( @{ $node->get_children() } ) {
+        adjust_known_conditions( $child, $curr_set );
+    }
+    if ( $node->is_match_node() && $node->get_value()->get_value() eq "op" ) {
+        my %unsupported = map { $_ => 1 }
+          @{ arg_attribute( $curr_set, "op", "unsupported" ) // [] };
+        $node->set_children(
+            [
+                grep { !$unsupported{ $_->get_value()->get_value() } }
+                  @{ $node->get_children() }
+            ]
+        );
+    }
+    if ( $node->is_ite_node() ) {
+        my $known = known_bool( $node->get_nth_child(0), $curr_set );
+        if ( defined $known ) {
+            my $arm      = $node->get_nth_child( $known ? 1 : 2 );
+            my $siblings = $node->get_siblings();
+            %$node = %$arm;
+            $node->{siblings} = [ @{ $arm->get_siblings() }, @$siblings ];
+        }
+    }
+    for my $sibling ( @{ $node->get_siblings() } ) {
+        adjust_known_conditions( $sibling, $curr_set );
+    }
+}
+
+# A node is a C++ expression if it is built from numbers, the need_number
+# arguments (plain C++ variables) and C++ operators over them.
+sub is_cpp_expr {
+    my ( $node, $curr_set ) = @_;
+    return 1 if $node->is_num_node() || $node->is_id_node();
+    if ( $node->is_var_node() ) {
+        return arg_attribute( $curr_set, $node->get_value(), "need_number" );
+    }
+    return 0
+      unless $node->is_func_node()
+      && ( $node->is_op(ASTType::ROSE_OP_BOOL) || PrintROSE::cpp_op($node) );
+    for my $child ( @{ $node->get_children() } ) {
+        return 0 unless is_cpp_expr( $child, $curr_set );
+    }
+    return 1;
+}
+
+# Turn an operand that ROSE takes as a plain integer into a C++ expression,
+# e.g. ops->extract(x, 0, width * 8) instead of ops->number_(64, width) ...
+sub make_cpp_operand {
+    my ( $node, $curr_set ) = @_;
+    is_cpp_expr( $node, $curr_set )
+      or die "Error: $curr_set: operand is not a C++ integer expression";
+    my $expr = PrintROSE::build_expr( $node, 0, 0 );
+    $node->set_type(ASTType::LIT_ID);
+    $node->set_value($expr);
+    $node->set_children( [] );
+}
+
 # Normalize function operands by inserting implicit arguments
 
 # Also rewrite constant operands as LIT_ID type (literals) where required.
@@ -225,13 +343,11 @@ sub adjust_func_operands {
 
         if ( $node->is_op(ASTType::ROSE_OP_READ_MEM) ) {
 
-            # Add Implicit width
-            my $width_bytes_node = ASTNode->new_var_node(WIDTH_BYTES_VAR);
+            # Add Implicit width, a plain integer
+            my $width_bytes_node = ASTNode->new_id_node(WIDTH_BYTES_VAR);
             push @$func_args, $width_bytes_node;
         }
-        elsif ($node->is_op(ASTType::ROSE_OP_READ_REG)
-            || $node->is_op(ASTType::ROSE_OP_READ_IMM) )
-        {
+        elsif ( $node->is_op(ASTType::ROSE_OP_READ_REG) ) {
             # Add Implicit width
             my $xlen_node = ASTNode->new_id_node(XLEN);
             my $zero_node = ASTNode->new_id_node(0);
@@ -240,34 +356,24 @@ sub adjust_func_operands {
         }
         elsif ( $func_op eq ASTType::ROSE_OP_SIGN_EXTEND ) {
 
-            # The second operand should be a plain integer
-            # It should not be wrapped in ops->number_())
-            my $child1 = $node->get_nth_child(1);
-            if ( $child1->is_num_node() ) {
-                $child1->set_type(ASTType::LIT_ID);
-            }
+            # The width is a plain integer
+            make_cpp_operand( $func_args->[1], $curr_set );
         }
         elsif ( $func_op eq ASTType::ROSE_OP_ZERO_EXTEND ) {
 
-            # The second operand should be a plain integer
-            # It should not be wrapped in ops->number_())
-            my $child1 = $node->get_nth_child(1);
-            if ( $child1->is_num_node() ) {
-                $child1->set_type(ASTType::LIT_ID);
-            }
+            # The width is a plain integer
+            make_cpp_operand( $func_args->[1], $curr_set );
         }
         elsif ( $func_op eq ASTType::ROSE_OP_EXTRACT ) {
-            my ( undef, $lhs, $rhs ) = @$func_args;
-            my $const_fold_lhs = try_const_fold($lhs);
-            my $const_fold_rhs = try_const_fold($rhs);
-            if ( $const_fold_lhs->{ok} && $const_fold_rhs->{ok} ) {
-                my $lhs_node = $node->get_nth_child(1);
-                my $rhs_node = $node->get_nth_child(2);
-                $lhs_node->set_value( $const_fold_lhs->{value} );
-                $lhs_node->set_type(ASTType::LIT_ID);
-                $rhs_node->set_value( $const_fold_rhs->{value} );
-                $rhs_node->set_type(ASTType::LIT_ID);
-            }
+
+            # The bounds are plain integers
+            make_cpp_operand( $func_args->[1], $curr_set );
+            make_cpp_operand( $func_args->[2], $curr_set );
+        }
+        elsif ( $node->is_op(ASTType::ROSE_OP_WRITE_MEM) ) {
+
+            # The width is a plain integer
+            make_cpp_operand( $func_args->[1], $curr_set );
         }
         elsif ( $func_op eq ASTType::ROSE_OP_NUMBER ) {
             # The first operand should be a plain integer
@@ -367,13 +473,13 @@ sub adjust_bitvec_assign {
         }
         if ( $id_node->is_vec_range_node() ) {
             my $bitvec_node = $id_node->get_value();
-            my ( $beg_index_node, $end_index_node ) =
+            my ( $high_index_node, $low_index_node ) =
               @{ $id_node->get_children() };
             my ($assign_bits_node) = @{$children_node};
 
             my $new_value_node = ASTBuildHelper::build_bitvec_range_assign(
-                $bitvec_node,    $beg_index_node,
-                $end_index_node, $assign_bits_node
+                $bitvec_node,    $high_index_node,
+                $low_index_node, $assign_bits_node
             );
 
             $node->set_type(ASTType::EXP_ASSIGN);
@@ -446,6 +552,17 @@ sub change_op_var {
     }
 }
 
+# For a variable set by
+#   let x = if cond then signed(...) else unsigned(...)
+# (or the arms the other way round), the condition under which x is signed.
+sub signed_cond {
+    my ($ite_node) = @_;
+    my $cond_node = $ite_node->get_nth_child(0);
+    return $ite_node->get_nth_child(1)->get_attribute("signedness")
+      ? $cond_node
+      : ASTBuildHelper::build_boolean_not($cond_node);
+}
+
 sub adjust_mul_div_rem_signedness {
     my ( $node, $curr_set, $lookup ) = @_;
     for my $child ( @{ $node->get_children() } ) {
@@ -497,7 +614,7 @@ sub adjust_mul_div_rem_signedness {
             my $lhs_cond = ASTNode->new_num_node($lhs_signedness);
             if ( $lhs_signedness == ParserCommon::ITE_SIGNEDNESS ) {
                 if ( $lhs_lookup_ref_node->is_func_node() ) {
-                    $lhs_cond = $lhs_lookup_ref_node->get_nth_child(0);
+                    $lhs_cond = signed_cond($lhs_lookup_ref_node);
                 }
                 else {
                     $lhs_cond = ASTNode->new_num_node($lhs_signedness);
@@ -506,7 +623,7 @@ sub adjust_mul_div_rem_signedness {
             my $rhs_cond = ASTNode->new_num_node($rhs_signedness);
             if ( $rhs_signedness == ParserCommon::ITE_SIGNEDNESS ) {
                 if ( $rhs_lookup_ref_node->is_func_node() ) {
-                    $rhs_cond = $rhs_lookup_ref_node->get_nth_child(0);
+                    $rhs_cond = signed_cond($rhs_lookup_ref_node);
                 }
                 else {
                     $rhs_cond = ASTNode->new_num_node($rhs_signedness);
@@ -523,49 +640,12 @@ sub adjust_mul_div_rem_signedness {
                 [ $lhs_node, $rhs_node ] );
 
             if ( !$lhs_cond->is_num_node() && !$rhs_cond->is_num_node() ) {
-                my $cond_ss = ASTNode->new_func_node(
-                    ASTType::ROSE_OP_BAND,
-                    [
-                        ASTNode->new_func_node(
-                            ASTType::ROSE_OP_BOOL, [$lhs_cond]
-                        ),
-                        ASTNode->new_func_node(
-                            ASTType::ROSE_OP_BOOL, [$rhs_cond]
-                        ),
-                    ]
-                );
-                my $cond_su = ASTNode->new_func_node(
-                    ASTType::ROSE_OP_BAND,
-                    [
-                        ASTNode->new_func_node(
-                            ASTType::ROSE_OP_BOOL, [$lhs_cond]
-                        ),
-                        ASTNode->new_func_node(
-                            ASTType::ROSE_OP_BOOL,
-                            [
-                                ASTNode->new_func_node(
-                                    ASTType::ROSE_OP_BAND, [$rhs_cond]
-                                )
-                            ]
-                        ),
-                    ]
-                );
-                my $cond_us = ASTNode->new_func_node(
-                    ASTType::ROSE_OP_BAND,
-                    [
-                        ASTNode->new_func_node(
-                            ASTType::ROSE_OP_BOOL, [$lhs_cond]
-                        ),
-                        ASTNode->new_func_node(
-                            ASTType::ROSE_OP_BOOL,
-                            [
-                                ASTNode->new_func_node(
-                                    ASTType::ROSE_OP_BAND, [$rhs_cond]
-                                )
-                            ]
-                        ),
-                    ]
-                );
+                my $cond_ss =
+                  ASTBuildHelper::build_boolean_and( $lhs_cond, $rhs_cond );
+                my $cond_su = ASTBuildHelper::build_boolean_and( $lhs_cond,
+                    ASTBuildHelper::build_boolean_not($rhs_cond) );
+                my $cond_us = ASTBuildHelper::build_boolean_and(
+                    ASTBuildHelper::build_boolean_not($lhs_cond), $rhs_cond );
                 my $ite_node1 =
                   ASTNode->new_ite_node( $cond_us, $us_mul_node, $uu_mul_node );
                 my $ite_node2 =
@@ -683,10 +763,10 @@ sub adjust_mul_div_rem_signedness {
             my $sdiv_node = ASTNode->new_func_node( ASTType::ROSE_OP_SDIV,
                 [ $lhs_node, $rhs_node ] );
             my $udiv_node = ASTNode->new_func_node( ASTType::ROSE_OP_UDIV,
-                [ $rhs_node, $lhs_node ] );
+                [ $lhs_node, $rhs_node ] );
             if ( $signedness == ParserCommon::ITE_SIGNEDNESS ) {
                 if ( $lhs_lookup_ref_node->is_func_node() ) {
-                    $cond = $lhs_lookup_ref_node->get_nth_child(0);
+                    $cond = signed_cond($lhs_lookup_ref_node);
                 }
                 else {
                     $cond = ASTNode->new_num_node($signedness);
@@ -743,10 +823,10 @@ sub adjust_mul_div_rem_signedness {
             my $sdiv_node = ASTNode->new_func_node( ASTType::ROSE_OP_SREM,
                 [ $lhs_node, $rhs_node ] );
             my $udiv_node = ASTNode->new_func_node( ASTType::ROSE_OP_UREM,
-                [ $rhs_node, $lhs_node ] );
+                [ $lhs_node, $rhs_node ] );
             if ( $signedness == ParserCommon::ITE_SIGNEDNESS ) {
                 if ( $lhs_lookup_ref_node->is_func_node() ) {
-                    $cond = $lhs_lookup_ref_node->get_nth_child(0);
+                    $cond = signed_cond($lhs_lookup_ref_node);
                 }
                 else {
                     $cond = ASTNode->new_num_node($signedness);

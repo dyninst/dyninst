@@ -369,13 +369,14 @@ our @FN_DISPATCH = (
             my ( $self, $exps_ast, $curr_set ) = @_;
             my $id  = $self->do_exp( $exps_ast->[0], $curr_set );
             my $exp = $self->do_exp( $exps_ast->[1], $curr_set );
+            # extend_value(is_unsigned, value)
             return ASTNode->new_ite_node(
                 $id,
                 ASTNode->new_func_node(
-                    ROSE_OP_SIGN_EXTEND, [ $exp, ASTNode->new_num_node(XLEN) ]
+                    ROSE_OP_ZERO_EXTEND, [ $exp, ASTNode->new_num_node(XLEN) ]
                 ),
                 ASTNode->new_func_node(
-                    ROSE_OP_ZERO_EXTEND, [ $exp, ASTNode->new_num_node(XLEN) ]
+                    ROSE_OP_SIGN_EXTEND, [ $exp, ASTNode->new_num_node(XLEN) ]
                 ),
             );
         }
@@ -410,13 +411,13 @@ our @FN_DISPATCH = (
         qr/^bool_to_bit(s)?$/,
         sub {
             my ( $self, $exps_ast, $curr_set ) = @_;
-            return ASTNode->new_func_node(
-                ROSE_OP_NUMBER,
-                [
-                    ASTNode->new_num_node(XLEN),
-                    $self->do_exp( $exps_ast->[0], $curr_set )
-                ]
-            );
+            my $bool_node = $self->do_exp( $exps_ast->[0], $curr_set );
+
+            # A semantic condition already is a one-bit value
+            return $bool_node
+              unless ASTAdjust::is_cpp_expr( $bool_node, $curr_set );
+            return ASTNode->new_func_node( ROSE_OP_NUMBER,
+                [ ASTNode->new_num_node(1), $bool_node ] );
         }
     ],
 
@@ -446,8 +447,8 @@ our @FN_DISPATCH = (
             my $value_node    = $self->do_exp( $value_ast,    $curr_set );
             my $high_bit_node = $self->do_exp( $high_bit_ast, $curr_set );
             my $low_bit_node  = $self->do_exp( $low_bit_ast,  $curr_set );
-            return ASTNode->new_func_node( ROSE_OP_EXTRACT,
-                [ $value_node, $low_bit_node, $high_bit_node ] );
+            return ASTBuildHelper::build_extract( $value_node, $low_bit_node,
+                $high_bit_node );
 
         }
     ],
@@ -461,17 +462,31 @@ our @FN_DISPATCH = (
               $self->do_exp( $concat_bit_ast, $curr_set );
             my $concat_bit_hex = $concat_bit_hex_node->get_value();
             my $concat_bit_len = length($concat_bit_hex) * 4;
-            my $concat_bit_num = sprintf( "%x", $concat_bit_hex );
+            my $concat_bit_num = hex($concat_bit_hex);
 
             # Get the bit length of value
             my $concat_bit_len_node = ASTNode->new_num_node($concat_bit_len);
             my $shift_left_node = ASTNode->new_func_node( ROSE_OP_SHIFT_LEFT,
                 [ $concat_id_node, $concat_bit_len_node ] );
-            return $concat_bit_num
+            my $concat_node =
+              $concat_bit_num
               ? ASTNode->new_func_node( ROSE_OP_ADD,
                 [ $shift_left_node, ASTNode->new_num_node($concat_bit_num) ] )
               : $shift_left_node;
 
+            # The shift is done at XLEN; keep the concatenation as wide as
+            # SAIL's, so that a sign_extend of it extends from its top bit
+            my $id_bits = $concat_id_node->is_var_node()
+              && ASTAdjust::arg_attribute( $curr_set,
+                $concat_id_node->get_value(), "bits" );
+            return $concat_node unless $id_bits;
+            return ASTNode->new_func_node(
+                ROSE_OP_EXTRACT,
+                [
+                    $concat_node, ASTNode->new_num_node(0),
+                    ASTNode->new_num_node( $id_bits + $concat_bit_len )
+                ]
+            );
         }
     ],
     [
@@ -481,8 +496,8 @@ our @FN_DISPATCH = (
             my $value_node = $self->do_exp( $exps_ast->[0], $curr_set );
             my $bit_node   = $self->do_exp( $exps_ast->[1], $curr_set );
 
-            return ASTNode->new_func_node( ROSE_OP_EXTRACT,
-                [ $value_node, $bit_node, $bit_node ] );
+            return ASTBuildHelper::build_extract( $value_node, $bit_node,
+                $bit_node );
         }
     ],
 
@@ -491,71 +506,41 @@ our @FN_DISPATCH = (
         sub {
             my ( $self, $exps_ast, $curr_set ) = @_;
 
+            # [value with idx = bit]
             my $value_node = $self->do_exp( $exps_ast->[0], $curr_set );
-            my $bit_node   = $self->do_exp( $exps_ast->[1], $curr_set );
-            my $bit        = $bit_node->get_value();
+            my $idx_node   = $self->do_exp( $exps_ast->[1], $curr_set );
+            my $bit_node   = $self->do_exp( $exps_ast->[2], $curr_set );
 
-            if ( $bit == 0 ) {
-                return ASTNode->new_func_node(
-                    ROSE_OP_CONCAT,
-                    [
-                        ASTNode->new_func_node(
-                            ROSE_OP_EXTRACT,
-                            [
-                                $value_node,
-                                ASTNode->new_num_node(1),
-                                ASTNode->new_num_node( XLEN - 1 ),
-                            ]
-                        ),
-                        $bit_node
-                    ]
-                );
-            }
-            elsif ( $bit == XLEN - 1 ) {
-                return ASTNode->new_func_node(
-                    ROSE_OP_CONCAT,
-                    [
-                        $bit_node,
-                        ASTNode->new_func_node(
-                            ROSE_OP_EXTRACT,
-                            [
-                                $value_node,
-                                ASTNode->new_num_node(0),
-                                ASTNode->new_num_node( XLEN - 2 ),
-                            ]
-                        )
-                    ]
-                );
-            }
-            else {
-                return ASTNode->new_func_node(
-                    ROSE_OP_CONCAT,
-                    [
-                        ASTNode->new_func_node(
-                            ROSE_OP_EXTRACT,
-                            [
-                                $value_node,
-                                ASTNode->new_num_node( $bit + 1 ),
-                                ASTNode->new_num_node( XLEN - 1 ),
-                            ]
-                        ),
-                        ASTNode->new_func_node(
-                            ROSE_OP_CONCAT,
-                            [
-                                $bit_node,
-                                ASTNode->new_func_node(
-                                    ROSE_OP_EXTRACT,
-                                    [
-                                        $value_node,
-                                        ASTNode->new_num_node(0),
-                                        ASTNode->new_num_node( $bit - 1 ),
-                                    ]
-                                )
-                            ]
-                        )
-                    ]
-                );
-            }
+            return ASTBuildHelper::build_bitvec_index_assign( $value_node,
+                $idx_node, $bit_node )
+              unless $bit_node->is_bin_node;
+
+            # A constant bit is set or cleared with a mask rather than
+            # concatenated: parseAPI's simplifier reduces a concat whose high
+            # part is not constant to its low part, which loses a jalr target.
+            my $idx = ASTAdjust::try_const_fold($idx_node);
+            $idx->{ok} or die "Error: $curr_set: bit index is not constant";
+            my $mask =
+              $idx->{value} == 0
+              ? "uint64_t{1}"
+              : "(uint64_t{1} << $idx->{value})";
+            my ( $op, $mask_str ) =
+              $bit_node->get_value() eq "1"
+              ? ( ROSE_OP_BOR,  $mask )
+              : ( ROSE_OP_BAND, "~$mask" );
+            return ASTNode->new_func_node(
+                $op,
+                [
+                    $value_node,
+                    ASTNode->new_func_node(
+                        ROSE_OP_NUMBER,
+                        [
+                            ASTNode->new_num_node(XLEN),
+                            ASTNode->new_id_node($mask_str)
+                        ]
+                    )
+                ]
+            );
         }
     ],
 

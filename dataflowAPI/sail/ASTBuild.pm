@@ -12,10 +12,12 @@ use ASTType      qw(
   ROSE_OP_CONCAT
   ROSE_OP_EADDR
   ROSE_OP_EXTRACT
+  ROSE_OP_ITE
   ROSE_OP_JUMP
-  ROSE_OP_READ_IMM
+  ROSE_OP_NEG
   ROSE_OP_READ_MEM
   ROSE_OP_READ_REG
+  ROSE_OP_SHIFT_LEFT
   ROSE_OP_SIGNED_GEQ
   ROSE_OP_SIGNED_GT
   ROSE_OP_SIGNED_LEQ
@@ -86,12 +88,12 @@ sub do_pat {
     }
 
     if ( my $pvec = $ast->{P_vector_subrange} ) {
-        my ( $p_id_ast, $p_beg_ast, $p_end_ast ) = @$pvec;
-        my $p_id_node  = $self->do_pat( $p_id_ast,  $curr_set );
-        my $p_beg_node = $self->do_pat( $p_beg_ast, $curr_set );
-        my $p_end_node = $self->do_pat( $p_end_ast, $curr_set );
-        return ASTNode->new_func_node( ROSE_OP_EXTRACT,
-            [ $p_id_node, $p_beg_node, $p_end_node ] );
+        my ( $p_id_ast, $p_high_ast, $p_low_ast ) = @$pvec;
+        my $p_id_node   = $self->do_pat( $p_id_ast,   $curr_set );
+        my $p_high_node = $self->do_pat( $p_high_ast, $curr_set );
+        my $p_low_node  = $self->do_pat( $p_low_ast,  $curr_set );
+        return ASTBuildHelper::build_extract( $p_id_node, $p_low_node,
+            $p_high_node );
     }
 
     if ( exists $ast->{P_wild} ) {
@@ -161,7 +163,63 @@ sub do_letbind {
       if $exp_node->is_var_node
       && $id_node->get_value() eq $exp_node->get_value();
 
+    return ASTNode->new_null_node
+      if is_signed_overflow_clamp( $id_node, $exp_node );
+
+    # An offset computed from an immediate that Capstone keeps in the memory
+    # operand is applied by effectiveAddress, and the immediate has no
+    # variable of its own
+    return ASTNode->new_null_node
+      if uses_in_address_arg( $exp_node, $curr_set );
+
     return ASTNode->new_assign_node( $id_node, $exp_node );
+}
+
+sub uses_in_address_arg {
+    my ( $node, $curr_set ) = @_;
+    if ( $node->is_var_node ) {
+        return ASTAdjust::arg_attribute( $curr_set, $node->get_value(),
+            "in_address" );
+    }
+    return grep { uses_in_address_arg( $_, $curr_set ) }
+      @{ $node->get_children() };
+}
+
+# SAIL's division semantics clamp a signed quotient that overflows:
+#   let q = if ... & q >= 2 ^ (n - 1) then negate(2 ^ (n - 1)) else q
+# SAIL's int is unbounded, but the generated code computes q at the operand
+# width, where 2 ^ (n - 1) is already the most negative value: q >= it holds
+# for every q, and the overflowing quotient wraps to that value by itself.
+# The clamp is dropped.
+sub is_signed_overflow_clamp {
+    my ( $id_node, $exp_node ) = @_;
+    return 0 unless $exp_node->is_func_node && $exp_node->is_op(ROSE_OP_ITE);
+    my ( $cond_node, $then_node, $else_node ) = @{ $exp_node->get_children() };
+    my $var = $id_node->get_value();
+    my $is_pow2 = sub {
+        my ($node) = @_;
+        return $node->is_func_node
+          && $node->is_op(ROSE_OP_SHIFT_LEFT)
+          && $node->get_nth_child(0)->is_num_node
+          && $node->get_nth_child(0)->get_value() == 1;
+    };
+    my $compares_var;
+    $compares_var = sub {
+        my ($node) = @_;
+        return 0 unless $node->is_func_node;
+        return 1
+          if $node->is_op(ROSE_OP_SIGNED_GEQ)
+          && $node->get_nth_child(0)->is_var_node
+          && $node->get_nth_child(0)->get_value() eq $var
+          && $is_pow2->( $node->get_nth_child(1) );
+        return grep { $compares_var->($_) } @{ $node->get_children() };
+    };
+    return $else_node->is_var_node
+      && $else_node->get_value() eq $var
+      && $then_node->is_func_node
+      && $then_node->is_op(ROSE_OP_NEG)
+      && $is_pow2->( $then_node->get_nth_child(0) )
+      && $compares_var->($cond_node);
 }
 
 sub do_lexp {
@@ -204,11 +262,11 @@ sub do_lexp {
     }
 
     if ( my $range = $ast->{LE_vector_range} ) {
-        my ( $vec_ast, $start_ast, $end_ast ) = @$range;
-        my $vec_node   = $self->do_lexp( $vec_ast, $curr_set );
-        my $start_node = $self->do_exp( $start_ast, $curr_set );
-        my $end_node   = $self->do_exp( $end_ast,   $curr_set );
-        return ASTNode->new_vec_range_node( $vec_node, $start_node, $end_node );
+        my ( $vec_ast, $high_ast, $low_ast ) = @$range;
+        my $vec_node  = $self->do_lexp( $vec_ast, $curr_set );
+        my $high_node = $self->do_exp( $high_ast, $curr_set );
+        my $low_node  = $self->do_exp( $low_ast,  $curr_set );
+        return ASTNode->new_vec_range_node( $vec_node, $high_node, $low_node );
     }
 
     if ( my $vec = $ast->{LE_vector_concat} ) {
@@ -283,18 +341,6 @@ sub do_exp {
           if $id eq "RETIRE_SUCCESS" || $id eq "RETIRE_FAIL";
 
         $id = ParserCommon::rename_invalid_id($id);
-
-        return ASTNode->new_func_node( ROSE_OP_READ_IMM,
-            [ ASTNode->new_var_node($id) ] )
-          if ( exists $ParserConfig::ARGS_PER_SUBSET{$curr_set}
-            && exists $ParserConfig::ARGS_PER_SUBSET{$curr_set}{$id}
-            && $ParserConfig::ARGS_PER_SUBSET{$curr_set}{$id}{need_read} );
-
-        return ASTNode->new_func_node( ROSE_OP_READ_IMM,
-            [ ASTNode->new_var_node($id) ] )
-          if ( exists $ParserConfig::ARGS_PER_SUBSET{$curr_set}
-            && exists $ParserConfig::ARGS_PER_SUBSET{$curr_set}{$id}
-            && $ParserConfig::ARGS_PER_SUBSET{$curr_set}{$id}{need_read} );
 
         if ( exists $ParserConfig::GLOBAL_VARS{$id} ) {
             my $value = $ParserConfig::GLOBAL_VARS{$id}{value};
@@ -852,8 +898,8 @@ sub do_exp {
 
             my $ite = ASTNode->new_ite_node(
                 $cond_node,
-                $if_node->get_nth_child(0),
-                $else_node->get_nth_child(0)
+                $if_node->get_nth_child(1),
+                $else_node->get_nth_child(1)
             );
 
             return ASTNode->new_func_node( ASTType::ROSE_OP_WRITE_REG,

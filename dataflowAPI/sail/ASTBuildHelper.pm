@@ -23,108 +23,113 @@ our @EXPORT_OK = qw(
   build_boolean_not
   build_boolean_and
   build_boolean_or
+  build_extract
   build_bitvec_index_assign
   build_bitvec_range_assign
 );
 
 sub build_boolean_not {
     my ($exp_node) = @_;
-    return ASTNode->new_func_node( ROSE_OP_BNOT,
+    my $node = ASTNode->new_func_node( ROSE_OP_BNOT,
         [ ASTNode->new_func_node( ROSE_OP_BOOL, [$exp_node] ), ] );
+    $node->set_attribute( "boolean", 1 );
+    return $node;
 }
 
 sub build_boolean_and {
     my ( $exp1_node, $exp2_node ) = @_;
-    return ASTNode->new_func_node(
+    my $node = ASTNode->new_func_node(
         ROSE_OP_BAND,
         [
             ASTNode->new_func_node( ROSE_OP_BOOL, [$exp1_node] ),
             ASTNode->new_func_node( ROSE_OP_BOOL, [$exp2_node] ),
         ]
     );
+    $node->set_attribute( "boolean", 1 );
+    return $node;
 }
 
 sub build_boolean_or {
     my ( $exp1_node, $exp2_node ) = @_;
-    return ASTNode->new_func_node(
+    my $node = ASTNode->new_func_node(
         ROSE_OP_BOR,
         [
             ASTNode->new_func_node( ROSE_OP_BOOL, [$exp1_node] ),
             ASTNode->new_func_node( ROSE_OP_BOOL, [$exp2_node] ),
         ]
     );
+    $node->set_attribute( "boolean", 1 );
+    return $node;
+}
+
+# SAIL bit ranges name the top bit (inclusive); ROSE's extract takes an
+# exclusive end.  Build extract(value, low, high + 1).
+sub build_extract {
+    my ( $value_node, $low_node, $high_node ) = @_;
+    my $end_node;
+
+    # v[n - 1 .. 0] is common; end it at n rather than n - 1 + 1
+    if (   $high_node->is_func_node()
+        && $high_node->is_op(ROSE_OP_SUB)
+        && $high_node->get_nth_child(1)->is_num_node()
+        && $high_node->get_nth_child(1)->get_value() == 1 )
+    {
+        $end_node = $high_node->get_nth_child(0);
+    }
+    else {
+        $end_node = ASTNode->new_func_node( ROSE_OP_ADD,
+            [ $high_node, ASTNode->new_num_node(1) ] );
+        $end_node->set_attribute( "binary_op",         1 );
+        $end_node->set_attribute( "is_const_foldable", 1 );
+    }
+    return ASTNode->new_func_node( ROSE_OP_EXTRACT,
+        [ $value_node, $low_node, $end_node ] );
 }
 
 sub build_bitvec_index_assign {
     my ( $bitvec_node, $idx_node, $value_node ) = @_;
-    return ASTNode->new_func_node(
-        ROSE_OP_CONCAT,
-        [
-            ASTNode->new_func_node(
-                ROSE_OP_EXTRACT,
-                [
-                    $bitvec_node,
-                    ASTNode->new_num_node(0),
-                    ASTNode->new_func_node(
-                        ROSE_OP_SUB, [ $idx_node, ASTNode->new_num_node(1) ]
-                    )
-                ]
-            ),
-            ASTNode->new_func_node(
-                ROSE_OP_CONCAT,
-                [
-                    $value_node,
-                    ASTNode->new_func_node(
-                        ROSE_OP_EXTRACT,
-                        [
-                            $bitvec_node,
-                            ASTNode->new_func_node(
-                                ROSE_OP_ADD,
-                                [ $idx_node, ASTNode->new_num_node(1) ]
-                            ),
-                            ASTNode->new_num_node(XLEN)
-                        ]
-                    )
-                ]
-            )
-        ]
-    );
+    return build_bitvec_range_assign( $bitvec_node, $idx_node, $idx_node,
+        $value_node );
 }
 
+# bitvec[high .. low] = value, as concat(bitvec[low-1 .. 0], value,
+# bitvec[XLEN-1 .. high+1]), leaving out the parts that are empty; ROSE's
+# concat puts its first operand low.
 sub build_bitvec_range_assign {
-    my ( $bitvec_node, $beg_node, $end_node, $value_node ) = @_;
-    return ASTNode->new_func_node(
-        ROSE_OP_CONCAT,
-        [
-            ASTNode->new_func_node(
-                ROSE_OP_EXTRACT,
-                [
-                    $bitvec_node,
-                    ASTNode->new_num_node(0),
-                    ASTNode->new_func_node(
-                        ROSE_OP_SUB, [ $beg_node, ASTNode->new_num_node(1) ]
-                    )
-                ]
-            ),
-            ASTNode->new_func_node(
-                ROSE_OP_CONCAT,
-                [
-                    $value_node,
-                    ASTNode->new_func_node(
-                        ROSE_OP_EXTRACT,
-                        [
-                            $bitvec_node,
-                            ASTNode->new_func_node(
-                                ROSE_OP_ADD,
-                                [ $end_node, ASTNode->new_num_node(1) ]
-                            ),
-                            ASTNode->new_num_node(XLEN)
-                        ]
-                    )
-                ]
-            )
-        ]
-    );
+    my ( $bitvec_node, $high_node, $low_node, $value_node ) = @_;
+    my $above_node = ASTNode->new_func_node( ROSE_OP_ADD,
+        [ $high_node, ASTNode->new_num_node(1) ] );
+    $above_node->set_attribute( "binary_op",         1 );
+    $above_node->set_attribute( "is_const_foldable", 1 );
+
+    my $low  = ASTAdjust::try_const_fold($low_node);
+    my $high = ASTAdjust::try_const_fold($high_node);
+    my $node = $value_node;
+    if ( !$high->{ok} || $high->{value} < XLEN - 1 ) {
+        $node = ASTNode->new_func_node(
+            ROSE_OP_CONCAT,
+            [
+                $node,
+                ASTNode->new_func_node(
+                    ROSE_OP_EXTRACT,
+                    [ $bitvec_node, $above_node, ASTNode->new_num_node(XLEN) ]
+                )
+            ]
+        );
+    }
+    if ( !$low->{ok} || $low->{value} > 0 ) {
+        $node = ASTNode->new_func_node(
+            ROSE_OP_CONCAT,
+            [
+                ASTNode->new_func_node(
+                    ROSE_OP_EXTRACT,
+                    [ $bitvec_node, ASTNode->new_num_node(0), $low_node ]
+                ),
+                $node
+            ]
+        );
+    }
+    return $node;
 }
 
 1;
