@@ -16,7 +16,6 @@ our @EXPORT_OK = qw(
   print_store_init_code
   print_mul_init_code
   print_div_init_code
-  print_rem_init_code
 );
 
 sub print_rose_code {
@@ -607,32 +606,19 @@ sub print_mul_init_code {
     print_indent( "}\n",                            $indent_lvl );
 }
 
+# Set is_unsigned from the opcode: $signed_op or $unsigned_op
 sub print_div_init_code {
-    my ($indent_lvl) = @_;
-    print_indent( "switch (insn->get_kind()) {\n", $indent_lvl );
-    print_indent( "case rose_riscv64_op_div:\n",   $indent_lvl + 1 );
-    print_indent( "is_unsigned = 1;\n",            $indent_lvl + 2 );
-    print_indent( "break;\n",                      $indent_lvl + 2 );
-    print_indent( "case rose_riscv64_op_divu:\n",  $indent_lvl + 1 );
-    print_indent( "is_unsigned = 0;\n",            $indent_lvl + 2 );
-    print_indent( "break;\n",                      $indent_lvl + 2 );
-    print_indent( "default:\n",                    $indent_lvl + 1 );
-    print_indent( "assert(0);\n",                  $indent_lvl + 2 );
-    print_indent( "}\n",                           $indent_lvl );
-}
-
-sub print_rem_init_code {
-    my ($indent_lvl) = @_;
-    print_indent( "switch (insn->get_kind()) {\n", $indent_lvl );
-    print_indent( "case rose_riscv64_op_rem:\n",   $indent_lvl + 1 );
-    print_indent( "is_unsigned = 1;\n",            $indent_lvl + 2 );
-    print_indent( "break;\n",                      $indent_lvl + 2 );
-    print_indent( "case rose_riscv64_op_remu:\n",  $indent_lvl + 1 );
-    print_indent( "is_unsigned = 0;\n",            $indent_lvl + 2 );
-    print_indent( "break;\n",                      $indent_lvl + 2 );
-    print_indent( "default:\n",                    $indent_lvl + 1 );
-    print_indent( "assert(0);\n",                  $indent_lvl + 2 );
-    print_indent( "}\n",                           $indent_lvl );
+    my ( $indent_lvl, $signed_op, $unsigned_op ) = @_;
+    print_indent( "switch (insn->get_kind()) {\n",        $indent_lvl );
+    print_indent( "case rose_riscv64_op_$signed_op:\n",   $indent_lvl + 1 );
+    print_indent( "is_unsigned = 1;\n",                   $indent_lvl + 2 );
+    print_indent( "break;\n",                             $indent_lvl + 2 );
+    print_indent( "case rose_riscv64_op_$unsigned_op:\n", $indent_lvl + 1 );
+    print_indent( "is_unsigned = 0;\n",                   $indent_lvl + 2 );
+    print_indent( "break;\n",                             $indent_lvl + 2 );
+    print_indent( "default:\n",                           $indent_lvl + 1 );
+    print_indent( "assert(0);\n",                         $indent_lvl + 2 );
+    print_indent( "}\n",                                  $indent_lvl );
 }
 
 1;

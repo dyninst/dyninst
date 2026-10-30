@@ -14,7 +14,6 @@ use PrintROSE qw(
   print_store_init_code
   print_mul_init_code
   print_div_init_code
-  print_rem_init_code
 );
 
 our @EXPORT_OK = qw(
@@ -507,7 +506,7 @@ our %ARGS_PER_SUBSET = %{
             is_unsigned => {
                 init_code => sub {
                     print_indent( "bool is_unsigned;\n", 2 );
-                    print_div_init_code(2);
+                    print_div_init_code( 2, "div", "divu" );
                 },
                 need_number => 1,
             },
@@ -532,7 +531,7 @@ our %ARGS_PER_SUBSET = %{
             is_unsigned => {
                 init_code => sub {
                     print_indent( "bool is_unsigned;\n", 2 );
-                    print_rem_init_code(2);
+                    print_div_init_code( 2, "rem", "remu" );
                 },
                 need_number => 1,
             },
@@ -575,7 +574,7 @@ our %ARGS_PER_SUBSET = %{
             is_unsigned => {
                 init_code => sub {
                     print_indent( "bool is_unsigned;\n", 2 );
-                    print_div_init_code(2);
+                    print_div_init_code( 2, "divw", "divuw" );
                 },
                 need_number => 1,
             },
@@ -600,7 +599,7 @@ our %ARGS_PER_SUBSET = %{
             is_unsigned => {
                 init_code => sub {
                     print_indent( "bool is_unsigned;\n", 2 );
-                    print_rem_init_code(2);
+                    print_div_init_code( 2, "remw", "remuw" );
                 },
                 need_number => 1,
             },
