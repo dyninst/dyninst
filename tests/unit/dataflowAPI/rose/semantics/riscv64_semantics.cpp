@@ -312,6 +312,66 @@ namespace {
     {"lui   a0, 0x12345",     0x12345537, 0,                   0,                   0,      0,           rv::a0, 0,  0x12345000},
     {"lui   a0, 0x80000",     0x80000537, 0,                   0,                   0,      0,           rv::a0, 0,  0xffffffff80000000},
     {"auipc a0, 0x80000",     0x80000517, 0,                   0,                   0,      0,           rv::a0, 0,  0xffffffff80001000},
+
+    // Loads extend the value read as the instruction says.
+    {"lb    a0, 0(a2)",       0x00060503, 0,                   mem_addr,            0,      0x80008080,  rv::a0, 0,  0xffffffffffffff80},
+    {"lbu   a0, 0(a2)",       0x00064503, 0,                   mem_addr,            0,      0x80008080,  rv::a0, 0,  0x80},
+    {"lh    a0, 0(a2)",       0x00061503, 0,                   mem_addr,            0,      0x80008080,  rv::a0, 0,  0xffffffffffff8080},
+    {"lhu   a0, 0(a2)",       0x00065503, 0,                   mem_addr,            0,      0x80008080,  rv::a0, 0,  0x8080},
+    {"lw    a0, 0(a2)",       0x00062503, 0,                   mem_addr,            0,      0x80008080,  rv::a0, 0,  0xffffffff80008080},
+    {"lwu   a0, 0(a2)",       0x00066503, 0,                   mem_addr,            0,      0x80008080,  rv::a0, 0,  0x80008080},
+
+    // The high half of the product with a negative rs2.
+    {"mulh  a0, a1, a2",      0x02c59533, 2,                   minus1,              0,      0,           rv::a0, 0,  minus1},
+    {"mulhsu a0, a1, a2",     0x02c5a533, 2,                   minus1,              0,      0,           rv::a0, 0,  1},
+
+    // AMOs: a 32-bit sum wraps, rd is the old value sign-extended, min and max compare
+    // signed.
+    {"amoadd.w  a0, a1, (a2)", 0x00b6252f, 1,                   mem_addr,            0,      0x7fffffff,  mem,    4,  0x80000000},
+    {"amoadd.w  a0, a1, (a2)", 0x00b6252f, 1,                   mem_addr,            0,      0x7fffffff,  rv::a0, 0,  0x7fffffff},
+    {"amoswap.w a0, a1, (a2)", 0x08b6252f, 5,                   mem_addr,            0,      0x80000000,  mem,    4,  5},
+    {"amoswap.w a0, a1, (a2)", 0x08b6252f, 5,                   mem_addr,            0,      0x80000000,  rv::a0, 0,  0xffffffff80000000},
+    {"amomin.w  a0, a1, (a2)", 0x80b6252f, 1,                   mem_addr,            0,      0xffffffff,  mem,    4,  0xffffffff},
+    {"amomax.w  a0, a1, (a2)", 0xa0b6252f, 1,                   mem_addr,            0,      0xffffffff,  mem,    4,  1},
+    {"amomin.d  a0, a1, (a2)", 0x80b6352f, 1,                   mem_addr,            0,      minus1,      mem,    8,  minus1},
+    {"amomax.d  a0, a1, (a2)", 0xa0b6352f, 1,                   mem_addr,            0,      minus1,      mem,    8,  1},
+
+    // Division corners: signed overflow wraps, division by zero gives all ones, the
+    // remainder by zero is rs1.
+    {"div   a0, a1, a2",      0x02c5c533, 0x8000000000000000,  minus1,              0,      0,           rv::a0, 0,  0x8000000000000000},
+    {"rem   a0, a1, a2",      0x02c5e533, 0x8000000000000000,  minus1,              0,      0,           rv::a0, 0,  0},
+    {"rem   a0, a1, a2",      0x02c5e533, 0xfffffffffffffff9,  2,                   0,      0,           rv::a0, 0,  minus1},
+    {"div   a0, a1, a2",      0x02c5c533, 5,                   0,                   0,      0,           rv::a0, 0,  minus1},
+    {"rem   a0, a1, a2",      0x02c5e533, 5,                   0,                   0,      0,           rv::a0, 0,  5},
+    {"divw  a0, a1, a2",      0x02c5c53b, 0x80000000,          minus1,              0,      0,           rv::a0, 0,  0xffffffff80000000},
+    {"divw  a0, a1, a2",      0x02c5c53b, 5,                   0,                   0,      0,           rv::a0, 0,  minus1},
+    {"remw  a0, a1, a2",      0x02c5e53b, 0xfffffff9,          0,                   0,      0,           rv::a0, 0,  0xfffffffffffffff9},
+    {"divuw a0, a1, a2",      0x02c5d53b, 5,                   0,                   0,      0,           rv::a0, 0,  minus1},
+    {"remuw a0, a1, a2",      0x02c5f53b, 7,                   0,                   0,      0,           rv::a0, 0,  7},
+
+    // lr reads and sign-extends; slt and slti compare signed.
+    {"lr.w  a0, (a2)",        0x1006252f, 0,                   mem_addr,            0,      0x80000000,  rv::a0, 0,  0xffffffff80000000},
+    {"lr.d  a0, (a2)",        0x1006352f, 0,                   mem_addr,            0,      0x1122334455667788, rv::a0, 0, 0x1122334455667788},
+    {"slt   a0, a1, a2",      0x00c5a533, minus1,              1,                   0,      0,           rv::a0, 0,  1},
+    {"slt   a0, a1, a2",      0x00c5a533, 1,                   minus1,              0,      0,           rv::a0, 0,  0},
+    {"slti  a0, a1, 1",       0x0015a513, minus1,              0,                   0,      0,           rv::a0, 0,  1},
+
+    // jal jumps to pc + imm and links the next instruction.
+    {"jal   ra, 16",          0x010000ef, 0,                   0,                   0,      0,           rv::pc, 0,  insn_addr + 16},
+    {"jal   ra, 16",          0x010000ef, 0,                   0,                   0,      0,           rv::ra, 0,  insn_addr + 4},
+
+    // A load and a store with a displacement.
+    {"lw    a0, 8(a2)",       0x00862503, 0,                   mem_addr - 8,        0,      0x80008080,  rv::a0, 0,  0xffffffff80008080},
+    {"sw    a1, 8(a2)",       0x00b62423, 0x1122334455667788,  mem_addr - 8,        0,      0,           mem,    4,  0x55667788},
+
+    // Right shifts, logical and arithmetic, by register and immediate.
+    {"srl   a0, a1, a2",      0x00c5d533, 0x8000000000000000,  40,                  0,      0,           rv::a0, 0,  0x800000},
+    {"sra   a0, a1, a2",      0x40c5d533, 0x8000000000000000,  40,                  0,      0,           rv::a0, 0,  0xffffffffff800000},
+    {"srli  a0, a1, 40",      0x0285d513, 0x8000000000000000,  0,                   0,      0,           rv::a0, 0,  0x800000},
+    {"srai  a0, a1, 40",      0x4285d513, 0x8000000000000000,  0,                   0,      0,           rv::a0, 0,  0xffffffffff800000},
+    {"srlw  a0, a1, a2",      0x00c5d53b, 0x80000000,          4,                   0,      0,           rv::a0, 0,  0x8000000},
+    {"srliw a0, a1, 4",       0x0045d51b, 0x80000000,          0,                   0,      0,           rv::a0, 0,  0x8000000},
+    {"sraiw a0, a1, 4",       0x4045d51b, 0x80000000,          0,                   0,      0,           rv::a0, 0,  0xfffffffff8000000},
   };
   // clang-format on
 
