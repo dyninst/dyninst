@@ -1458,16 +1458,51 @@ bool DwarfWalker::parseStructUnionClass() {
     dwarf_printf("(0x%lx) Struct/Union/Class name from dwarf: %s\n", id(), curName().c_str());
 
     {
-        // Two kinds of declaration carry no members and no size, and are skipped along
-        // with their children (method and static member declarations):
-        //  - A DW_AT_signature stand-in. Parsing it would register an empty type under
-        //    the definition's id (see definition_die).
-        //  - Any declaration inside a type unit. Type units all land in the default
-        //    module, where an empty declaration would compete by name with the type
-        //    unit that defines the same type, and typesByName keeps the first one.
+        // Skip declarations of types defined somewhere else.
+        //
+        // We don't want to create a type for a declaration like `class Foo;`, since it
+        // doesn't contain the type's members.
+        //
+        // DWARF 5, section 5.7.1:
+        //
+        //   An incomplete structure, union or class type is represented by a structure,
+        //   union or class entry that does not have a byte size attribute and that has a
+        //   DW_AT_declaration attribute.
+        //
+        //   If the complete declaration of a type has been placed in a separate type
+        //   unit (see Section 3.1.4 on page 68), an incomplete declaration of that type
+        //   in the compilation unit may provide the unique 8-byte signature of the type
+        //   using a DW_AT_signature attribute.
+        //
+        // What compilers emit differs from the standard. With -fdebug-types-section,
+        // GCC 8.5 and 12 leave DW_AT_declaration off about 40% of the entries that carry
+        // DW_AT_signature; in C, all of them. Clang 15 to 20 always includes it. No
+        // compiler we checked gives such an entry a size. So an entry with
+        // DW_AT_signature is treated as a declaration whether or not it says so.
+        //
+        // An entry is skipped, with its children (declarations of methods and static
+        // members), when it has neither DW_AT_byte_size nor DW_AT_bit_size (5.7.1
+        // allows either on a structure) and either
+        //  - it has DW_AT_signature. definition_die() leads to the type unit that
+        //    defines the type, and the definition is parsed there; or
+        //  - it has DW_AT_declaration and is inside a type unit. Every type unit is
+        //    parsed into the default module, where an empty declaration would compete
+        //    by name with the definition, and typesByName keeps whichever comes first.
+        //
+        // A plain declaration in a compile unit is still parsed into a named type with
+        // no members. Nothing in it leads to a definition, and some types have none in
+        // the program: in `struct Opaque *p;` the declaration is all there is, and
+        // skipping it would leave `p` pointing to an unnamed type.
+        //
+        // A definition with DW_AT_specification, completing an earlier declaration (as
+        // for a nested class defined outside its class), is parsed as a type of its own.
+        // Only subprograms and variables follow DW_AT_specification (see
+        // handleSpecification); definition_die() follows only DW_AT_signature.
         Dwarf_Die e = entry();
-        bool stand_in = dwarf_hasattr(&e, DW_AT_signature);
-        if(stand_in || (dwarf_hasattr(&e, DW_AT_declaration) && DwarfDyninst::is_in_type_unit(e))) {
+        bool const has_size = dwarf_hasattr(&e, DW_AT_byte_size) || dwarf_hasattr(&e, DW_AT_bit_size);
+        bool const stand_in = dwarf_hasattr(&e, DW_AT_signature);
+        bool const type_unit_decl = dwarf_hasattr(&e, DW_AT_declaration) && DwarfDyninst::is_in_type_unit(e);
+        if(!has_size && (stand_in || type_unit_decl)) {
             dwarf_printf("(0x%lx) Skipping %s declaration of %s\n", id(),
                     stand_in ? "DW_AT_signature" : "type unit", curName().c_str());
             setParseChild(false);
