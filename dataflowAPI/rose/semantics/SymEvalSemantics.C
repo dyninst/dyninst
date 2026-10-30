@@ -729,16 +729,40 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::addWithCarries(cons
                                                                          const BaseSemantics::SValuePtr &b_,
                                                                          const BaseSemantics::SValuePtr &c_,
                                                                          BaseSemantics::SValuePtr &carry_out) {
-    BaseSemantics::SValuePtr aa_ = unsignedExtend(a_, a_->get_width() + 1);
-    BaseSemantics::SValuePtr bb_ = unsignedExtend(b_, b_->get_width() + 1);
-    BaseSemantics::SValuePtr sum_ = createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::addOp, aa_,
-                                                    createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::addOp, bb_, c_));
+    BaseSemantics::SValuePtr sum_ = createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::addOp, a_,
+                                                    createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::addOp, b_, c_));
 
-    BaseSemantics::SValuePtr cc_ = createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::xorOp, aa_,
-                                                   createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::xorOp, bb_, sum_));
-    carry_out = extract(cc_, 1, a_->get_width() + 1);
+    // Bit i of carry_out is the carry out of bit i, majority(a, b, carry in), computed at the
+    // operands' width: constants fold in 64 bits, so a 65-bit sum would lose its top carry.
+    carry_out = or_(and_(a_, b_), and_(or_(a_, b_), invert(sum_)));
 
-    return extract(sum_, 0, a_->get_width());
+    return sum_;
+}
+
+// a - b, as a + ~b + 1.
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::difference(const BaseSemantics::SValuePtr &a_,
+                                                                     const BaseSemantics::SValuePtr &b_) {
+    return add(a_, add(invert(b_), number_(b_->get_width(), 1)));
+}
+
+// The comparisons take the top bit of a value as wide as the operands, not of a difference one
+// bit wider (as the base class does), for the same reason as addWithCarries.
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::isUnsignedLessThan(const BaseSemantics::SValuePtr &a_,
+                                                                             const BaseSemantics::SValuePtr &b_) {
+    size_t nbits = a_->get_width();
+    BaseSemantics::SValuePtr diff = difference(a_, b_);
+    // The borrow out of each bit of a - b.
+    BaseSemantics::SValuePtr borrows = or_(and_(invert(a_), b_), and_(invert(xor_(a_, b_)), diff));
+    return extract(borrows, nbits - 1, nbits);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::isSignedLessThan(const BaseSemantics::SValuePtr &a_,
+                                                                           const BaseSemantics::SValuePtr &b_) {
+    size_t nbits = a_->get_width();
+    BaseSemantics::SValuePtr diff = difference(a_, b_);
+    // Same signs: a - b cannot overflow, take its sign. Different signs: a < b iff a is negative.
+    BaseSemantics::SValuePtr lt = xor_(diff, and_(xor_(a_, b_), xor_(diff, a_)));
+    return extract(lt, nbits - 1, nbits);
 }
 
 BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::negate(const BaseSemantics::SValuePtr &a_) {
