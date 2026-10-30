@@ -411,13 +411,13 @@ our @FN_DISPATCH = (
         qr/^bool_to_bit(s)?$/,
         sub {
             my ( $self, $exps_ast, $curr_set ) = @_;
-            return ASTNode->new_func_node(
-                ROSE_OP_NUMBER,
-                [
-                    ASTNode->new_num_node(XLEN),
-                    $self->do_exp( $exps_ast->[0], $curr_set )
-                ]
-            );
+            my $bool_node = $self->do_exp( $exps_ast->[0], $curr_set );
+
+            # A semantic condition already is a one-bit value
+            return $bool_node
+              unless ASTAdjust::is_cpp_expr( $bool_node, $curr_set );
+            return ASTNode->new_func_node( ROSE_OP_NUMBER,
+                [ ASTNode->new_num_node(1), $bool_node ] );
         }
     ],
 
