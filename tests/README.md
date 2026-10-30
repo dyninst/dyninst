@@ -33,7 +33,7 @@ When more than one type of test is enabled (e.g., `VALUE=ALL`), each type can be
 ## Adding a test
 
 Every test is added with `dyninst_add_test`, from
-`tests/cmake/DyninstAddTest.cmake`. It always creates the test: if the
+`cmake/common/ctest/DyninstAddTest.cmake`. It always creates the test: if the
 test cannot be built or run in this configuration, because an option is
 off or a tool is missing, ctest reports it as skipped and says why. Only
 `DYNINST_ENABLE_TESTS` decides which tests exist, so every build of a
@@ -171,7 +171,7 @@ examines as its input. The keywords mean what they do for
 `dyninst_add_test`. If a requirement is not met, the target is not
 created, and a test whose `COMMAND` runs it is skipped. Every test
 executable, from either function, links `dyninst_test_support`, which
-puts `tests/` on the include path for `dyninst_test_skip.h`.
+puts `cmake/common/ctest/` on the include path for `dyninst_test_skip.h`.
 
 ### Requirements
 
@@ -289,7 +289,7 @@ There are two ways to skip:
   keeps being compiled.
 
 A test does both with `skip_message()` from
-`tests/dyninst_test_skip.h`, which every test can include:
+`cmake/common/ctest/dyninst_test_skip.h`, which every test can include:
 
     return skip_message("HOME is not set");
 

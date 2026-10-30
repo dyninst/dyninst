@@ -1,6 +1,11 @@
 include_guard(GLOBAL)
 
-list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/tests/cmake")
+list(
+  INSERT CMAKE_MODULE_PATH
+  0
+  "${PROJECT_SOURCE_DIR}/tests/cmake"
+  "${PROJECT_SOURCE_DIR}/cmake/common/ctest"
+)
 
 include(DyninstTestRequirements)
 
