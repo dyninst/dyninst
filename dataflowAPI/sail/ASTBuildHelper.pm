@@ -93,35 +93,43 @@ sub build_bitvec_index_assign {
 }
 
 # bitvec[high .. low] = value, as concat(bitvec[low-1 .. 0], value,
-# bitvec[XLEN-1 .. high+1]); ROSE's concat puts its first operand low.
+# bitvec[XLEN-1 .. high+1]), leaving out the parts that are empty; ROSE's
+# concat puts its first operand low.
 sub build_bitvec_range_assign {
     my ( $bitvec_node, $high_node, $low_node, $value_node ) = @_;
     my $above_node = ASTNode->new_func_node( ROSE_OP_ADD,
         [ $high_node, ASTNode->new_num_node(1) ] );
     $above_node->set_attribute( "binary_op",         1 );
     $above_node->set_attribute( "is_const_foldable", 1 );
-    return ASTNode->new_func_node(
-        ROSE_OP_CONCAT,
-        [
-            ASTNode->new_func_node(
-                ROSE_OP_EXTRACT,
-                [ $bitvec_node, ASTNode->new_num_node(0), $low_node ]
-            ),
-            ASTNode->new_func_node(
-                ROSE_OP_CONCAT,
-                [
-                    $value_node,
-                    ASTNode->new_func_node(
-                        ROSE_OP_EXTRACT,
-                        [
-                            $bitvec_node, $above_node,
-                            ASTNode->new_num_node(XLEN)
-                        ]
-                    )
-                ]
-            )
-        ]
-    );
+
+    my $low  = ASTAdjust::try_const_fold($low_node);
+    my $high = ASTAdjust::try_const_fold($high_node);
+    my $node = $value_node;
+    if ( !$high->{ok} || $high->{value} < XLEN - 1 ) {
+        $node = ASTNode->new_func_node(
+            ROSE_OP_CONCAT,
+            [
+                $node,
+                ASTNode->new_func_node(
+                    ROSE_OP_EXTRACT,
+                    [ $bitvec_node, $above_node, ASTNode->new_num_node(XLEN) ]
+                )
+            ]
+        );
+    }
+    if ( !$low->{ok} || $low->{value} > 0 ) {
+        $node = ASTNode->new_func_node(
+            ROSE_OP_CONCAT,
+            [
+                ASTNode->new_func_node(
+                    ROSE_OP_EXTRACT,
+                    [ $bitvec_node, ASTNode->new_num_node(0), $low_node ]
+                ),
+                $node
+            ]
+        );
+    }
+    return $node;
 }
 
 1;

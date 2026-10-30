@@ -492,71 +492,41 @@ our @FN_DISPATCH = (
         sub {
             my ( $self, $exps_ast, $curr_set ) = @_;
 
+            # [value with idx = bit]
             my $value_node = $self->do_exp( $exps_ast->[0], $curr_set );
-            my $bit_node   = $self->do_exp( $exps_ast->[1], $curr_set );
-            my $bit        = $bit_node->get_value();
+            my $idx_node   = $self->do_exp( $exps_ast->[1], $curr_set );
+            my $bit_node   = $self->do_exp( $exps_ast->[2], $curr_set );
 
-            if ( $bit == 0 ) {
-                return ASTNode->new_func_node(
-                    ROSE_OP_CONCAT,
-                    [
-                        ASTNode->new_func_node(
-                            ROSE_OP_EXTRACT,
-                            [
-                                $value_node,
-                                ASTNode->new_num_node(1),
-                                ASTNode->new_num_node( XLEN - 1 ),
-                            ]
-                        ),
-                        $bit_node
-                    ]
-                );
-            }
-            elsif ( $bit == XLEN - 1 ) {
-                return ASTNode->new_func_node(
-                    ROSE_OP_CONCAT,
-                    [
-                        $bit_node,
-                        ASTNode->new_func_node(
-                            ROSE_OP_EXTRACT,
-                            [
-                                $value_node,
-                                ASTNode->new_num_node(0),
-                                ASTNode->new_num_node( XLEN - 2 ),
-                            ]
-                        )
-                    ]
-                );
-            }
-            else {
-                return ASTNode->new_func_node(
-                    ROSE_OP_CONCAT,
-                    [
-                        ASTNode->new_func_node(
-                            ROSE_OP_EXTRACT,
-                            [
-                                $value_node,
-                                ASTNode->new_num_node( $bit + 1 ),
-                                ASTNode->new_num_node( XLEN - 1 ),
-                            ]
-                        ),
-                        ASTNode->new_func_node(
-                            ROSE_OP_CONCAT,
-                            [
-                                $bit_node,
-                                ASTNode->new_func_node(
-                                    ROSE_OP_EXTRACT,
-                                    [
-                                        $value_node,
-                                        ASTNode->new_num_node(0),
-                                        ASTNode->new_num_node( $bit - 1 ),
-                                    ]
-                                )
-                            ]
-                        )
-                    ]
-                );
-            }
+            return ASTBuildHelper::build_bitvec_index_assign( $value_node,
+                $idx_node, $bit_node )
+              unless $bit_node->is_bin_node;
+
+            # A constant bit is set or cleared with a mask rather than
+            # concatenated: parseAPI's simplifier reduces a concat whose high
+            # part is not constant to its low part, which loses a jalr target.
+            my $idx = ASTAdjust::try_const_fold($idx_node);
+            $idx->{ok} or die "Error: $curr_set: bit index is not constant";
+            my $mask =
+              $idx->{value} == 0
+              ? "uint64_t{1}"
+              : "(uint64_t{1} << $idx->{value})";
+            my ( $op, $mask_str ) =
+              $bit_node->get_value() eq "1"
+              ? ( ROSE_OP_BOR,  $mask )
+              : ( ROSE_OP_BAND, "~$mask" );
+            return ASTNode->new_func_node(
+                $op,
+                [
+                    $value_node,
+                    ASTNode->new_func_node(
+                        ROSE_OP_NUMBER,
+                        [
+                            ASTNode->new_num_node(XLEN),
+                            ASTNode->new_id_node($mask_str)
+                        ]
+                    )
+                ]
+            );
         }
     ],
 
