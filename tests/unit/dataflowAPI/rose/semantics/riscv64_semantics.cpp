@@ -254,6 +254,10 @@ namespace {
     {"add   a0, a1, a2",      0x00c58533, 5,                   7,                   0,      0,           rv::a0, 0,  12},
     {"sub   a0, a1, a2",      0x40c58533, 5,                   7,                   0,      0,           rv::a0, 0,  0xfffffffffffffffe},
     {"blt   a1, a2, 8",       0x00c5c463, minus1,              1,                   0,      0,           rv::pc, 0,  insn_addr + 8},
+
+    // Loads and stores reach memory at the address in rs1 (a2).
+    {"sw    a1, 0(a2)",       0x00b62023, 0x1122334455667788,  mem_addr,            0,      0,           mem,    4,  0x55667788},
+    {"ld    a0, 0(a2)",       0x00063503, 0,                   mem_addr,            0,      0x1122334455667788, rv::a0, 0, 0x1122334455667788},
   };
   // clang-format on
 
