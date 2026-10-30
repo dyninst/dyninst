@@ -425,7 +425,7 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
             case ROSEOperation::negateOp:
                                           if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
                                               ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-                                              return ConstantAST::create(Constant(~child0->val().val, 64));
+                                              return ConstantAST::create(Constant(lowBits(-child0->val().val, bitsOf(child0->val())), child0->val().size));
                                           }
 
                                           break;
