@@ -191,7 +191,7 @@ with the reason a test prints when it is not met:
 | `native`                 | code generation for the host           |
 | `dynamic`                | `DYNINST_ENABLE_DYNAMIC_TESTS`         |
 | `userns`                 | `DYNINST_ENABLE_USERNS_TESTS`          |
-| `stackanalysis_any_arch` | not `DYNINST_CODEGEN_ARCH_AARCH64`     |
+| `stackanalysis_any_arch` | not a native aarch64 build             |
 
 - `test_binaries`: The test_binaries repository, which
   `DYNINST_ENABLE_TESTS=ALL` downloads; its path is
@@ -229,8 +229,9 @@ with the reason a test prints when it is not met:
   whose mutatee is x86_64 assembly needs `host:x86_64 native`.
 
 - `stackanalysis_any_arch`: StackAnalysis takes its entry state from the
-  build's code-generation architecture, and an aarch64 build has none for
-  the code of another architecture.
+  build's code-generation architecture, and a native aarch64 build has none
+  for the code of another architecture. An aarch64 build on an x86_64 host
+  uses x86's entry state.
 
 - `dynamic` and `userns`: The test drives a live process with ptrace
   (`dynamic`), or creates unprivileged user namespaces with `unshare()`
