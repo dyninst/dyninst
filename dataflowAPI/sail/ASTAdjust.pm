@@ -356,21 +356,13 @@ sub adjust_func_operands {
         }
         elsif ( $func_op eq ASTType::ROSE_OP_SIGN_EXTEND ) {
 
-            # The second operand should be a plain integer
-            # It should not be wrapped in ops->number_())
-            my $child1 = $node->get_nth_child(1);
-            if ( $child1->is_num_node() ) {
-                $child1->set_type(ASTType::LIT_ID);
-            }
+            # The width is a plain integer
+            make_cpp_operand( $func_args->[1], $curr_set );
         }
         elsif ( $func_op eq ASTType::ROSE_OP_ZERO_EXTEND ) {
 
-            # The second operand should be a plain integer
-            # It should not be wrapped in ops->number_())
-            my $child1 = $node->get_nth_child(1);
-            if ( $child1->is_num_node() ) {
-                $child1->set_type(ASTType::LIT_ID);
-            }
+            # The width is a plain integer
+            make_cpp_operand( $func_args->[1], $curr_set );
         }
         elsif ( $func_op eq ASTType::ROSE_OP_EXTRACT ) {
 
