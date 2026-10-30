@@ -32,7 +32,6 @@
 #include "Immediate.h"
 #include "Visitor.h"
 
-#include <boost/assign/list_of.hpp>
 #include <boost/make_shared.hpp>
 #include <iostream>
 #include <sstream>
@@ -73,12 +72,7 @@ namespace Dyninst { namespace InstructionAPI {
     return name_ + std::string(":0x") + Immediate::format(f);
   }
 
-  ArmConditionImmediate::ArmConditionImmediate(const Result& val) : Immediate(val) {
-    m_condLookupMap =
-        boost::assign::map_list_of(0, "eq")(1, "ne")(2, "cs")(3, "cc")(4, "mi")(5, "pl")(6, "vs")(
-            7, "vc")(8, "hi")(9, "ls")(10, "ge")(11, "lt")(12, "gt")(13, "le")(14, "al")(15, "nv")
-            .convert_to_container<std::map<unsigned int, std::string>>();
-  }
+  ArmConditionImmediate::ArmConditionImmediate(const Result& val) : Immediate(val) {}
 
   Immediate::Ptr ArmConditionImmediate::makeArmConditionImmediate(const Result& val) {
     Immediate::Ptr ret = boost::make_shared<ArmConditionImmediate>(val);
@@ -88,21 +82,19 @@ namespace Dyninst { namespace InstructionAPI {
   std::string ArmConditionImmediate::format(Architecture, formatStyle f) const { return format(f); }
 
   std::string ArmConditionImmediate::format(formatStyle) const {
+    static const std::map<unsigned int, std::string> condNames = {
+        {0, "eq"},  {1, "ne"},  {2, "cs"},  {3, "cc"},  {4, "mi"},  {5, "pl"},
+        {6, "vs"},  {7, "vc"},  {8, "hi"},  {9, "ls"},  {10, "ge"}, {11, "lt"},
+        {12, "gt"}, {13, "le"}, {14, "al"}, {15, "nv"}};
+
     unsigned int cond_val = eval().convert<unsigned int>();
-    if(m_condLookupMap.count(cond_val) > 0)
-      return m_condLookupMap.find(cond_val)->second;
+    if(condNames.count(cond_val) > 0)
+      return condNames.find(cond_val)->second;
     else
       return "Error: Invalid condition code for ARM64!";
   }
 
-  ArmPrfmTypeImmediate::ArmPrfmTypeImmediate(const Result& val) : Immediate(val) {
-    m_prfmTypeLookupMap =
-        boost::assign::map_list_of(0, "PLDL1KEEP")(1, "PLDL1STRM")(2, "PLDL2KEEP")(3, "PLDL2STRM")(
-            4, "PLDL3KEEP")(5, "PLDL3STRM")(8, "PLIL1KEEP")(9, "PLIL1STRM")(10, "PLIL2KEEP")(
-            11, "PLIL2STRM")(12, "PLIL3KEEP")(13, "PLIL3STRM")(16, "PSTL1KEEP")(17, "PSTL1STRM")(
-            18, "PSTL2KEEP")(19, "PSTL2STRM")(20, "PSTL3KEEP")(21, "PSTL3STRM")
-            .convert_to_container<std::map<unsigned int, std::string>>();
-  }
+  ArmPrfmTypeImmediate::ArmPrfmTypeImmediate(const Result& val) : Immediate(val) {}
 
   Immediate::Ptr ArmPrfmTypeImmediate::makeArmPrfmTypeImmediate(const Result& val) {
     Immediate::Ptr ret = boost::make_shared<ArmPrfmTypeImmediate>(val);
@@ -112,9 +104,17 @@ namespace Dyninst { namespace InstructionAPI {
   std::string ArmPrfmTypeImmediate::format(Architecture, formatStyle f) const { return format(f); }
 
   std::string ArmPrfmTypeImmediate::format(formatStyle) const {
+    static const std::map<unsigned int, std::string> prfmTypeNames = {
+        {0, "PLDL1KEEP"},  {1, "PLDL1STRM"},  {2, "PLDL2KEEP"},
+        {3, "PLDL2STRM"},  {4, "PLDL3KEEP"},  {5, "PLDL3STRM"},
+        {8, "PLIL1KEEP"},  {9, "PLIL1STRM"},  {10, "PLIL2KEEP"},
+        {11, "PLIL2STRM"}, {12, "PLIL3KEEP"}, {13, "PLIL3STRM"},
+        {16, "PSTL1KEEP"}, {17, "PSTL1STRM"}, {18, "PSTL2KEEP"},
+        {19, "PSTL2STRM"}, {20, "PSTL3KEEP"}, {21, "PSTL3STRM"}};
+
     unsigned prfm_type = eval().convert<unsigned int>();
-    if(m_prfmTypeLookupMap.count(prfm_type) > 0)
-      return m_prfmTypeLookupMap.find(prfm_type)->second;
+    if(prfmTypeNames.count(prfm_type) > 0)
+      return prfmTypeNames.find(prfm_type)->second;
     else
       return "Error: Invalid prefetech memory type for ARM64!";
   }
