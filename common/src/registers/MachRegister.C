@@ -1157,6 +1157,10 @@ namespace Dyninst {
   }
 
   std::vector<MachRegister> const& MachRegister::getAllRegistersForArch(Dyninst::Architecture arch) {
-    return registers::get_registry().all_regs[arch];
+    // find(), not operator[], so the registry is never written after it is built
+    static const std::vector<MachRegister> none;
+    auto const& all_regs = registers::get_registry().all_regs;
+    auto it = all_regs.find(arch);
+    return it == all_regs.end() ? none : it->second;
   }
 }
