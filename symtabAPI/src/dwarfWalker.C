@@ -31,6 +31,9 @@
 #include "common/src/vgannotations.h"
 #include "compiler_diagnostics.h"
 #include "dwarfWalker.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include "Module.h"
 #include "Symtab.h"
 #include "Collections.h"
@@ -47,6 +50,7 @@
 #include <dwarf/src/dwarf_subrange.h>
 #include <dwarf_names.h>
 #include <dwarf_cu_info.h>
+#include <algorithm>
 #include <stack>
 #include "symbolDemangleWithCache.h"
 
@@ -95,8 +99,6 @@ DwarfWalker::DwarfWalker(Symtab *symtab, ::Dwarf *dbg, std::shared_ptr<ParsedFun
    addr_size(0),
    offset_size(0),
    extension_size(0),
-   signature(),
-   typeoffset(0),
    next_cu_header(0),
    compile_offset(0)
 {
@@ -118,15 +120,122 @@ static inline void ompc_leftmost(Module* &out, Module* &in) {
     reduction(leftmost : Module* : ompc_leftmost(omp_out, omp_in)) \
     initializer(omp_priv = NULL)
 
+namespace {
+/*
+ * One libdw handle per worker, over the Elf the walk's original handle was built on.
+ *
+ * libdw is not safe for concurrent use of a single Dwarf handle: it interns CU and
+ * abbrev state lazily as the walk reaches it. Sharing one handle across the parse
+ * below makes dwarf_child() intermittently fail with "invalid DWARF" on DIEs that
+ * are perfectly valid, and parse_int() treats that as fatal, so a whole module's
+ * types disappear.
+ *
+ * A supplementary file (dwz -m, named by .gnu_debugaltlink) is shared state too: its
+ * units are interned lazily as references reach them (#914), and like any unit they
+ * hold a dwarf_getlocations() cache (#2410). So each worker also gets its own handle
+ * for the supplementary file, over the original's, attached with dwarf_setalt().
+ *
+ * The handles are minted here, serially, because dwarf_begin_elf() reads the section
+ * table through the shared Elf. Afterwards each handle touches only its own state and
+ * the Elf's section data, which is read-only from this point on.
+ *
+ * A handle owns none of the Elf, so dwarf_end() on it leaves the original untouched.
+ * dwarf_end() does not end a handle attached with dwarf_setalt(), so the pool ends the
+ * supplementary handles itself.
+ */
+class DwarfHandlePool {
+    std::vector<Dwarf *> handles;
+    std::vector<Dwarf *> alt_handles;
+
+public:
+    DwarfHandlePool(Dwarf *original, unsigned workers) {
+        if(!original) return;
+
+        Elf *elf = dwarf_getelf(original);
+        if(!elf) return;
+
+        Elf *alt_elf = nullptr;
+        if(Dwarf *alt = dwarf_getalt(original)) {
+            alt_elf = dwarf_getelf(alt);
+            if(!alt_elf) return;
+        }
+
+        handles.reserve(workers);
+        for(unsigned i = 0; i < workers; i++) {
+            Dwarf *d = dwarf_begin_elf(elf, DWARF_C_READ, NULL);
+            if(!d) break;
+            if(alt_elf) {
+                Dwarf *a = dwarf_begin_elf(alt_elf, DWARF_C_READ, NULL);
+                if(!a) {
+                    dwarf_end(d);
+                    break;
+                }
+                dwarf_setalt(d, a);
+                alt_handles.push_back(a);
+            }
+            handles.push_back(d);
+        }
+    }
+
+    ~DwarfHandlePool() {
+        for(auto *d : handles) dwarf_end(d);
+        for(auto *a : alt_handles) dwarf_end(a);
+    }
+
+    DwarfHandlePool(DwarfHandlePool const &) = delete;
+    DwarfHandlePool &operator=(DwarfHandlePool const &) = delete;
+
+    bool holds(unsigned workers) const { return handles.size() == workers; }
+    Dwarf *operator[](unsigned i) const { return handles[i]; }
+};
+
+/*
+ * Every worker re-reads into its own handle the unit and abbreviation data the others
+ * have already read, so past a point more workers make the parse slower and larger.
+ * The parse was fastest with 8 to 16 workers on every file measured, and at 96 took
+ * 1.3 to 3.3 times as long as at 16.
+ */
+constexpr unsigned max_workers = 16;
+
+unsigned worker_count(size_t units) {
+#ifdef _OPENMP
+    size_t n = std::min<size_t>(omp_get_max_threads(), max_workers);
+    return (unsigned) std::max<size_t>(1, std::min(n, units));
+#else
+    (void) units;
+    return 1u;
+#endif
+}
+
+unsigned worker_index() {
+#ifdef _OPENMP
+    return (unsigned) omp_get_thread_num();
+#else
+    return 0u;
+#endif
+}
+
+/*
+ * A Dwarf_Die is only meaningful to the handle that produced it, so the units are
+ * carried across to the workers as section offsets and re-resolved there.
+ */
+struct UnitRef {
+    Dwarf_Off die_offset;
+    bool in_types;
+};
+
+bool resolve_unit(Dwarf *dbg, UnitRef const &u, Dwarf_Die &die) {
+    if(u.in_types) return dwarf_offdie_types(dbg, u.die_offset, &die) != NULL;
+    return dwarf_offdie(dbg, u.die_offset, &die) != NULL;
+}
+}
+
 bool DwarfWalker::parse() {
     dwarf_printf("In DwarfWalker::parse() Parsing DWARF for %s, dgb():0x%p\n",filename().c_str(), (void*)dbg());
 
     /* Start the dwarven debugging. */
     Module *fixUnknownMod = NULL;
     mod() = NULL;
-
-    /* Prepopulate type signatures for DW_FORM_ref_sig8 */
-    findAllSig8Types();
 
     /* First .debug_types (0), then .debug_info (1).
      * In DWARF4, only .debug_types contains DW_TAG_type_unit,
@@ -142,20 +251,24 @@ bool DwarfWalker::parse() {
     compile_offset = next_cu_header = 0;
 
     /* Iterate over the compilation-unit headers for .debug_types. */
-    uint64_t type_signaturep;
-    std::vector<Dwarf_Die> module_dies;
+    std::vector<UnitRef> units;
+    Dwarf_Die cu_die;
+    // Unused, but not optional: a non-NULL signature pointer is what makes
+    // dwarf_next_unit() read .debug_types instead of .debug_info.
+    uint64_t type_signature;
     for(Dwarf_Off cu_off = 0;
             dwarf_next_unit(dbg(), cu_off, &next_cu_header, &cu_header_length,
                 NULL, &abbrev_offset, &addr_size, &offset_size,
-                &type_signaturep, NULL) == 0;
+                &type_signature, NULL) == 0;
             cu_off = next_cu_header)
     {
-        if(!dwarf_offdie_types(dbg(), cu_off + cu_header_length, &current_cu_die))
+        Dwarf_Off die_off = cu_off + cu_header_length;
+        if(!dwarf_offdie_types(dbg(), die_off, &cu_die))
             continue;
-        module_dies.push_back(current_cu_die);
+        units.push_back({die_off, true});
         compile_offset = next_cu_header;
     }
-    size_t total_from_unit = module_dies.size();
+    size_t total_from_unit = units.size();
     dwarf_printf("Modules from dwarf_next_unit: %zu\n", total_from_unit);
 
     /* Iterate over the compilation-unit headers for .debug_info. */
@@ -164,30 +277,41 @@ bool DwarfWalker::parse() {
                 &abbrev_offset, &addr_size, &offset_size) == 0;
             cu_off = next_cu_header)
     {
-        if(!dwarf_offdie(dbg(), cu_off + cu_header_length, &current_cu_die))
+        Dwarf_Off die_off = cu_off + cu_header_length;
+        if(!dwarf_offdie(dbg(), die_off, &cu_die))
             continue;
-        module_dies.push_back(current_cu_die);
+        units.push_back({die_off, false});
         compile_offset = next_cu_header;
     }
     compile_offset = 0;
-    dwarf_printf("Modules from dwarf_nextcu: %zu\n", module_dies.size() - total_from_unit);
+    dwarf_printf("Modules from dwarf_nextcu: %zu\n", units.size() - total_from_unit);
 
-    if (dwarf_getalt(dbg()) != NULL) {
+    unsigned const workers = worker_count(units.size());
+    DwarfHandlePool pool(dbg(), workers > 1 ? workers : 0);
+
+    if (workers < 2 || !pool.holds(workers)) {
+        // One worker, or no private handles: parse on the one shared handle.
+        dwarf_printf("Parsing %zu units serially with %u worker(s)\n", units.size(), workers);
         DwarfWalker w(symtab(), dbg());
-        for (unsigned int i = 0; i < module_dies.size(); i++) {
+        for (unsigned int i = 0; i < units.size(); i++) {
+            Dwarf_Die die;
+            if (!resolve_unit(dbg(), units[i], die)) continue;
             w.push();
-            w.parseModule(module_dies[i],fixUnknownMod);
+            w.parseModule(die, fixUnknownMod);
             w.pop();
         }
     } else {
-#pragma omp parallel
+#pragma omp parallel num_threads(workers)
     {
-    DwarfWalker w(symtab(), dbg(), parsedFuncs);
+    Dwarf *worker_dbg = pool[worker_index()];
+    DwarfWalker w(symtab(), worker_dbg, parsedFuncs);
 #pragma omp for reduction(leftmost:fixUnknownMod) \
         schedule(dynamic) nowait
-    for (unsigned int i = 0; i < module_dies.size(); i++) {
+    for (unsigned int i = 0; i < units.size(); i++) {
+        Dwarf_Die die;
+        if (!resolve_unit(worker_dbg, units[i], die)) continue;
         w.push();
-        w.parseModule(module_dies[i],fixUnknownMod);
+        w.parseModule(die, fixUnknownMod);
         w.pop();
     }
     }
@@ -233,11 +357,15 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
     std::string moduleName = DwarfDyninst::die_name(moduleDIE);
 
     auto moduleTag = dwarf_tag(&moduleDIE);
-    if (moduleName.empty() && moduleTag == DW_TAG_type_unit) {
-      uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
-      char buf[20];
-      snprintf(buf, sizeof(buf), "{%016llx}", (unsigned long long)sig8);
-      moduleName = buf;
+    if (moduleName.empty() && DwarfDyninst::is_in_type_unit(moduleDIE)) {
+      // A type unit has no name; call it by its signature.
+      if (auto sig8 = DwarfDyninst::type_unit_signature(moduleDIE)) {
+        char buf[20];
+        snprintf(buf, sizeof(buf), "{%016llx}", (unsigned long long)*sig8);
+        moduleName = buf;
+      } else {
+        dwarf_printf("(0x%lx) Type unit without a signature\n", id());
+      }
     }
 
     dwarf_printf("Next DWARF module: %s with DIE %p and tag %d\n", moduleName.c_str(), (void*)moduleDIE.addr, moduleTag);
@@ -252,21 +380,21 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
     // These may not be set.
     Address tempModLow, tempModHigh;
     modLow = modHigh = 0;
-    Dwarf_Die e;
-    bool found_entry = dwarf_offdie(dbg(),offset(), &e);
-    if(!found_entry) return false;
 
-    if (findConstant(DW_AT_low_pc, tempModLow, &e, dbg())) {
+    if (findConstant(DW_AT_low_pc, tempModLow, &moduleDIE, dbg())) {
         modLow = convertDebugOffset(tempModLow);
     }
-    if (findConstant(DW_AT_high_pc, tempModHigh, &e, dbg())) {
+    if (findConstant(DW_AT_high_pc, tempModHigh, &moduleDIE, dbg())) {
         modHigh = convertDebugOffset(tempModHigh);
     }
 
-    // Find the Symtab Module corresponding to this CU
-    mod() = [this]() {
-      SymtabAPI::Module* m = symtab()->findModuleByOffset(offset());
-      if(m) return m;
+    // Find the Symtab Module corresponding to this CU. Modules are keyed by .debug_info
+    // offset, so a .debug_types unit can only match one by coincidence.
+    mod() = [this, &moduleDIE]() {
+      if(DwarfDyninst::is_in_debug_info(moduleDIE)) {
+        SymtabAPI::Module* m = symtab()->findModuleByOffset(offset());
+        if(m) return m;
+      }
       return symtab()->getDefaultModule();
     }();
 
@@ -1329,6 +1457,59 @@ bool DwarfWalker::parseStructUnionClass() {
     curName() = die_name();
     dwarf_printf("(0x%lx) Struct/Union/Class name from dwarf: %s\n", id(), curName().c_str());
 
+    {
+        // Skip declarations of types defined somewhere else.
+        //
+        // We don't want to create a type for a declaration like `class Foo;`, since it
+        // doesn't contain the type's members.
+        //
+        // DWARF 5, section 5.7.1:
+        //
+        //   An incomplete structure, union or class type is represented by a structure,
+        //   union or class entry that does not have a byte size attribute and that has a
+        //   DW_AT_declaration attribute.
+        //
+        //   If the complete declaration of a type has been placed in a separate type
+        //   unit (see Section 3.1.4 on page 68), an incomplete declaration of that type
+        //   in the compilation unit may provide the unique 8-byte signature of the type
+        //   using a DW_AT_signature attribute.
+        //
+        // What compilers emit differs from the standard. With -fdebug-types-section,
+        // GCC 8.5 and 12 leave DW_AT_declaration off about 40% of the entries that carry
+        // DW_AT_signature; in C, all of them. Clang 15 to 20 always includes it. No
+        // compiler we checked gives such an entry a size. So an entry with
+        // DW_AT_signature is treated as a declaration whether or not it says so.
+        //
+        // An entry is skipped, with its children (declarations of methods and static
+        // members), when it has neither DW_AT_byte_size nor DW_AT_bit_size (5.7.1
+        // allows either on a structure) and either
+        //  - it has DW_AT_signature. definition_die() leads to the type unit that
+        //    defines the type, and the definition is parsed there; or
+        //  - it has DW_AT_declaration and is inside a type unit. Every type unit is
+        //    parsed into the default module, where an empty declaration would compete
+        //    by name with the definition, and typesByName keeps whichever comes first.
+        //
+        // A plain declaration in a compile unit is still parsed into a named type with
+        // no members. Nothing in it leads to a definition, and some types have none in
+        // the program: in `struct Opaque *p;` the declaration is all there is, and
+        // skipping it would leave `p` pointing to an unnamed type.
+        //
+        // A definition with DW_AT_specification, completing an earlier declaration (as
+        // for a nested class defined outside its class), is parsed as a type of its own.
+        // Only subprograms and variables follow DW_AT_specification (see
+        // handleSpecification); definition_die() follows only DW_AT_signature.
+        Dwarf_Die e = entry();
+        bool const has_size = dwarf_hasattr(&e, DW_AT_byte_size) || dwarf_hasattr(&e, DW_AT_bit_size);
+        bool const stand_in = dwarf_hasattr(&e, DW_AT_signature);
+        bool const type_unit_decl = dwarf_hasattr(&e, DW_AT_declaration) && DwarfDyninst::is_in_type_unit(e);
+        if(!has_size && (stand_in || type_unit_decl)) {
+            dwarf_printf("(0x%lx) Skipping %s declaration of %s\n", id(),
+                    stand_in ? "DW_AT_signature" : "type unit", curName().c_str());
+            setParseChild(false);
+            return true;
+        }
+    }
+
     if (!nameDefined()) {
         /* anonymous unions, structs and classes are explicitely labelled */
         Dwarf_Word lineNumber;
@@ -1697,9 +1878,7 @@ bool DwarfWalker::getReturnType(boost::shared_ptr<Type>&returnType) {
     Dwarf_Attribute typeAttribute;
     Dwarf_Attribute* status = 0;
 
-    bool is_info = true;
     Dwarf_Die e = entry();
-    is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
     status = dwarf_attr(&e, DW_AT_type, &typeAttribute);
 
     if ( status == 0) {
@@ -1710,7 +1889,7 @@ bool DwarfWalker::getReturnType(boost::shared_ptr<Type>&returnType) {
     /* There's a return type attribute. */
     dwarf_printf("(0x%lx) Return type is not void\n", id());
 
-    bool ret = findAnyType( typeAttribute, is_info, returnType );
+    bool ret = findAnyType( typeAttribute, returnType );
     return ret;
 }
 
@@ -1765,16 +1944,14 @@ bool DwarfWalker::findType(boost::shared_ptr<Type>&type, bool defaultToVoid) {
         return false;
     }
 
-    bool is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
-
-    bool ret = findAnyType( typeAttribute, is_info, type );
+    bool ret = findAnyType( typeAttribute, type );
     return ret;
 }
 
-bool DwarfWalker::findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset) {
+bool DwarfWalker::findReferencedDie(Dwarf_Attribute attr, Dwarf_Die &die) {
     Dwarf_Half form = dwarf_whatform(&attr);
     switch (form) {
-        /* These forms are suitable as direct DIE offsets */
+        /* These forms are suitable as direct DIE references */
         case DW_FORM_ref1:
         case DW_FORM_ref2:
         case DW_FORM_ref4:
@@ -1784,57 +1961,56 @@ bool DwarfWalker::findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset) {
         case DW_FORM_data4:
         case DW_FORM_data8:
         case DW_FORM_GNU_ref_alt:
-            {
-                //TODO debug to compare values of offset
-                Dwarf_Die die;
-                auto ret_p = dwarf_formref_die(&attr, &die);
-                if(!ret_p) return false;
-                offset = dwarf_dieoffset(&die);
-                return true;
-            }
-            /* Then there's DW_FORM_sec_offset which refer other sections, or
-             * DW_FORM_GNU_ref_alt that refers to a whole different file.  We can't
-             * use such forms as a die offset, even if dwarf_global_formref is
-             * willing to decode it. */
+        /* libdw resolves a signature to the defining DIE inside the type unit it names,
+         * so it reaches a DIE like any other reference form. */
+        case DW_FORM_ref_sig8:
+            return dwarf_formref_die(&attr, &die) != NULL;
         default:
-            dwarf_printf("(0x%lx) error Can't use form 0x%x as a die offset\n", id(), static_cast<std::uint32_t>(form));
+            /* Anything else, such as DW_FORM_sec_offset, which refers to another
+             * section, is not a DIE reference, even where dwarf_global_formref()
+             * would decode it. */
+            dwarf_printf("(0x%lx) error Can't use form 0x%x as a die reference\n", id(), static_cast<std::uint32_t>(form));
             return false;
     }
 }
 
-bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
-        bool is_info, boost::shared_ptr<Type>&type)
-{
-    /* If this is a ref_sig8, look for the type elsewhere. */
-    Dwarf_Half form = dwarf_whatform(&typeAttribute);
-    if (form == DW_FORM_ref_sig8) {
-        Dwarf_Sig8 sig8;
-        const char * sig = dwarf_formstring(&typeAttribute);
-        if(!sig) return false;
-        memcpy(sig8.signature, sig, 8);
-        return findSig8Type(&sig8, type);
+/*
+ * The DIE that actually defines the type `die` names.
+ *
+ * With -fdebug-types-section a type is emitted once, in a type unit, and every other
+ * unit carries a memberless DW_AT_declaration stand-in holding DW_AT_signature. The
+ * stand-in and the definition are one type and must share one type_id, or the
+ * stand-in becomes a second, empty copy that can displace the real one.
+ *
+ * Returns `die` unchanged when it is not such a stand-in.
+ */
+static Dwarf_Die definition_die(Dwarf_Die die) {
+    Dwarf_Attribute sig;
+    Dwarf_Die def;
+    if(dwarf_attr(&die, DW_AT_signature, &sig) && dwarf_formref_die(&sig, &def)) {
+        return def;
     }
+    return die;
+}
 
-    Dwarf_Off typeOffset;
-    if (!findDieOffset( typeAttribute, typeOffset)) return false;
-
-    /* NB: It's possible for an incomplete type to have a DW_AT_signature
-     * reference to a complete definition.  For example, GCC may output just the
-     * subprograms for a struct's methods in one CU, with the full struct
-     * defined in a type unit.
-     *
-     * No DW_AT_type has been found referencing an incomplete type this way,
-     * but if it did, here's the place to look for that DW_AT_signature and
-     * recurse into findAnyType again.
-     */
-
+bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute, boost::shared_ptr<Type>&type)
+{
     Dwarf_Die dieType;
-    auto ret_p = dwarf_formref_die(&typeAttribute, &dieType);
-    if(!ret_p) return false;
+    if (!findReferencedDie( typeAttribute, dieType)) return false;
 
+    /* An incomplete type may carry a DW_AT_signature reference to the complete
+     * definition.  For example, GCC may output just the subprograms for a struct's
+     * methods in one CU, with the full struct defined in a type unit.
+     */
+    dieType = definition_die(dieType);
+    Dwarf_Off typeOffset = dwarf_dieoffset(&dieType);
+
+    // Derive both halves of the offset's namespace from the referenced DIE, not from the
+    // DIE doing the referencing: a type_id key is only meaningful against the section and
+    // file the offset is relative to.
     Dwarf * desc = dwarf_cu_getdwarf(dieType.cu);
     bool is_sup = dbg()!=desc;
-    typeId_t type_id = get_type_id(typeOffset, is_info, is_sup);
+    typeId_t type_id = get_type_id(typeOffset, DwarfDyninst::is_in_debug_info(dieType), is_sup);
 
     dwarf_printf("(0x%lx) type offset 0x%lx, is_supplemental=%s\n", id(), (unsigned long)typeOffset, is_sup?"true":"false");
 
@@ -2271,7 +2447,7 @@ boost::shared_ptr<typeSubrange> DwarfWalker::parseSubrange(Dwarf_Die *entry) {
   }
 
   Dwarf_Off subrangeOffset = dwarf_dieoffset(entry);
-  bool is_info = !dwarf_hasattr_integrate(entry, DW_TAG_type_unit);
+  bool is_info = DwarfDyninst::is_in_debug_info(*entry);
   // The subrange DIE may live in a DWZ supplementary file (its DW_AT_type/dimension
   // resolved through .gnu_debugaltlink). Compute is_sup from the DIE's own CU rather
   // than hardcoding false: a supplementary-file subrange and a main-file type can share
@@ -2507,85 +2683,9 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info, bool is_sup)
 
 typeId_t DwarfWalker::type_id()
 {
-    Dwarf_Die e(entry());
-    bool is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
+    Dwarf_Die e = definition_die(entry());
     Dwarf * desc = dwarf_cu_getdwarf(e.cu);
-    return get_type_id(offset(), is_info, dbg()!=desc);
-}
-
-void DwarfWalker::findAllSig8Types()
-{
-    /* First .debug_types (0), then .debug_info (1).
-     * In DWARF4, only .debug_types contains DW_TAG_type_unit,
-     * but DWARF5 is considering them for .debug_info too.*/
-    compile_offset = next_cu_header = 0;
-
-    /* Iterate over the compilation-unit headers for .debug_types. */
-    uint64_t type_signaturep;
-    for(Dwarf_Off cu_off = 0;
-            dwarf_next_unit(dbg(), cu_off, &next_cu_header, &cu_header_length,
-                NULL, &abbrev_offset, &addr_size, &offset_size,
-                &type_signaturep, NULL) == 0;
-            cu_off = next_cu_header)
-    {
-        if(!dwarf_offdie_types(dbg(), cu_off + cu_header_length, &current_cu_die))
-            continue;
-
-        if (DwarfDyninst::is_partial_unit(current_cu_die)) {
-            continue;
-        }
-        parseModuleSig8(false);
-        compile_offset = next_cu_header;
-    }
-
-    /* Iterate over the compilation-unit headers for .debug_info. */
-    for(Dwarf_Off cu_off = 0;
-            dwarf_nextcu(dbg(), cu_off, &next_cu_header, &cu_header_length,
-                &abbrev_offset, &addr_size, &offset_size) == 0;
-            cu_off = next_cu_header)
-    {
-        if(!dwarf_offdie(dbg(), cu_off + cu_header_length, &current_cu_die))
-            continue;
-        if (DwarfDyninst::is_partial_unit(current_cu_die)) {
-            continue;
-        }
-        parseModuleSig8(true);
-        compile_offset = next_cu_header;
-    }
-}
-
-bool DwarfWalker::parseModuleSig8(bool is_info)
-{
-    if (!DwarfDyninst::is_type_unit(current_cu_die))
-        return false;
-    uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
-    typeId_t type_id = get_type_id(typeoffset, is_info, false);
-
-    {
-      dyn_c_hash_map<uint64_t, typeId_t>::accessor a;
-      sig8_type_ids_.insert(a, std::make_pair(sig8, type_id));
-    }
-    dwarf_printf("Mapped Sig8 {%016llx} to type id 0x%x\n", (unsigned long long) sig8, (unsigned int)type_id);
-    return true;
-}
-
-bool DwarfWalker::findSig8Type(Dwarf_Sig8 * s, boost::shared_ptr<Type>&returnType)
-{
-   uint64_t sig8 = * reinterpret_cast<uint64_t*>(s);
-   typeId_t type_id = 0;
-   {
-     dyn_c_hash_map<uint64_t, typeId_t>::const_accessor a;
-     if(sig8_type_ids_.find(a, sig8)) type_id = a->second;
-   }
-
-   if(type_id){
-     returnType = tc()->findOrCreateType(type_id, Type::share);
-     dwarf_printf("Found Sig8 {%016llx} as type id 0x%x\n", (unsigned long long) sig8, (unsigned int)type_id);
-     return true;
-   }
-
-   dwarf_printf("Couldn't find Sig8 {%016llx}!\n", (unsigned long long) sig8);
-   return false;
+    return get_type_id(dwarf_dieoffset(&e), DwarfDyninst::is_in_debug_info(e), dbg()!=desc);
 }
 
 Object *DwarfParseActions::obj() const {

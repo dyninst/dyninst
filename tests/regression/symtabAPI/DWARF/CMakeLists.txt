@@ -69,3 +69,57 @@ dyninst_add_test(
     "_QMshapesPassumed_size:v=1:?" "_QMshapesPfixed:w=3:7" "_QMshapesPfixed:u=1:10"
   REQUIRES test_binaries
 )
+
+# 32 threads catches a shared libdw handle even on a two-core machine. Each
+# run is a fresh process; the serial parse and eight parallel ones take about
+# a second, even on two cores. A walk that corrupts libdw's trees can loop
+# forever instead of crashing, hence the timeout.
+#
+# shared_types_dwz*.so keep their shared types in partial units of their own
+# (single-file dwz); shared_types_alt*_a.so in a supplementary file
+# (multi-file dwz, #914). Those with a 5 are DWARF 5, the others DWARF 4.
+set(_targ parallel_parse)
+dyninst_add_test_executable(${_targ} SOURCE_FILES parallel_parse.cpp DEPS symtabAPI)
+set(_bin_dir "${DYNINST_TEST_BINARIES_DIR}/symtabAPI/DWARF/parallel_parse")
+foreach(_bin shared_types_dwz shared_types_dwz5 shared_types_alt_a shared_types_alt5_a)
+  dyninst_add_test(
+    symtabAPI_${_targ}_${_bin}_test
+    TYPE regression
+    COMMAND ${_targ} "${_bin_dir}/${_bin}.so" 32 8
+    REQUIRES test_binaries
+    PROPERTIES TIMEOUT 60
+  )
+endforeach()
+
+# Variables whose types are defined in type units (-fdebug-types-section),
+# each with the size and field count the same program gets without type
+# units (cxx_plain4, c_plain4). The C program defines two different structs
+# tagged Shape, one in each unit.
+set(_targ type_units)
+dyninst_add_test_executable(${_targ} SOURCE_FILES type_units.cpp DEPS symtabAPI)
+set(_bin_dir "${DYNINST_TEST_BINARIES_DIR}/symtabAPI/DWARF/type_units")
+set(
+  _cxx_expected
+  "gshape=120/8"
+  "gmap=48"
+  "gptr=16"
+  "gfun=32"
+  "gnode=32/8"
+)
+set(_c_expected "ga=4/1" "gb=24/3")
+foreach(_bin cxx_tu4 cxx_tu5 cxx_plain4)
+  dyninst_add_test(
+    symtabAPI_${_targ}_${_bin}_test
+    TYPE regression
+    COMMAND ${_targ} "${_bin_dir}/${_bin}" ${_cxx_expected}
+    REQUIRES test_binaries
+  )
+endforeach()
+foreach(_bin c_tu4 c_tu5 c_plain4)
+  dyninst_add_test(
+    symtabAPI_${_targ}_${_bin}_test
+    TYPE regression
+    COMMAND ${_targ} "${_bin_dir}/${_bin}" ${_c_expected}
+    REQUIRES test_binaries
+  )
+endforeach()
