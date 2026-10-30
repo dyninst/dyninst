@@ -710,7 +710,7 @@ sub adjust_mul_div_rem_signedness {
             my $sdiv_node = ASTNode->new_func_node( ASTType::ROSE_OP_SDIV,
                 [ $lhs_node, $rhs_node ] );
             my $udiv_node = ASTNode->new_func_node( ASTType::ROSE_OP_UDIV,
-                [ $rhs_node, $lhs_node ] );
+                [ $lhs_node, $rhs_node ] );
             if ( $signedness == ParserCommon::ITE_SIGNEDNESS ) {
                 if ( $lhs_lookup_ref_node->is_func_node() ) {
                     $cond = $lhs_lookup_ref_node->get_nth_child(0);
@@ -770,7 +770,7 @@ sub adjust_mul_div_rem_signedness {
             my $sdiv_node = ASTNode->new_func_node( ASTType::ROSE_OP_SREM,
                 [ $lhs_node, $rhs_node ] );
             my $udiv_node = ASTNode->new_func_node( ASTType::ROSE_OP_UREM,
-                [ $rhs_node, $lhs_node ] );
+                [ $lhs_node, $rhs_node ] );
             if ( $signedness == ParserCommon::ITE_SIGNEDNESS ) {
                 if ( $lhs_lookup_ref_node->is_func_node() ) {
                     $cond = $lhs_lookup_ref_node->get_nth_child(0);
