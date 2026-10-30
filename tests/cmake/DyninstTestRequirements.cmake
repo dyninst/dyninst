@@ -69,6 +69,6 @@ dyninst_test_requirement(
 )
 dyninst_test_requirement(
   stackanalysis_any_arch
-  WHEN NOT DYNINST_CODEGEN_ARCH_AARCH64
-  REASON "StackAnalysis has no entry state for other architectures in an aarch64 build"
+  WHEN NOT DYNINST_CODEGEN_ARCH_AARCH64 OR DYNINST_HOST_ARCH_X86_64
+  REASON "StackAnalysis has no entry state in a native aarch64 build"
 )

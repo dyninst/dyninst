@@ -5,8 +5,8 @@
  * assignment to a register other than a flag in its entry block (the startup
  * code always writes one), slice backward from it and expand the slice with
  * the default simplification. The expansion must not throw and must give that
- * assignment an expression. The simplification runs StackAnalysis, which cannot analyze
- * every architecture's code on every build.
+ * assignment an expression. The simplification runs StackAnalysis, which cannot
+ * analyze every architecture's code on every build.
  *
  * Usage: expand_slice <executable>...
  */
@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <exception>
 #include <iostream>
+#include <set>
 #include <vector>
 
 namespace pa = Dyninst::ParseAPI;
