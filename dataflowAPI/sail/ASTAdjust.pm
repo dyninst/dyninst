@@ -365,13 +365,13 @@ sub adjust_bitvec_assign {
         }
         if ( $id_node->is_vec_range_node() ) {
             my $bitvec_node = $id_node->get_value();
-            my ( $beg_index_node, $end_index_node ) =
+            my ( $high_index_node, $low_index_node ) =
               @{ $id_node->get_children() };
             my ($assign_bits_node) = @{$children_node};
 
             my $new_value_node = ASTBuildHelper::build_bitvec_range_assign(
-                $bitvec_node,    $beg_index_node,
-                $end_index_node, $assign_bits_node
+                $bitvec_node,    $high_index_node,
+                $low_index_node, $assign_bits_node
             );
 
             $node->set_type(ASTType::EXP_ASSIGN);

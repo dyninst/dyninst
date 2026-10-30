@@ -85,12 +85,12 @@ sub do_pat {
     }
 
     if ( my $pvec = $ast->{P_vector_subrange} ) {
-        my ( $p_id_ast, $p_beg_ast, $p_end_ast ) = @$pvec;
-        my $p_id_node  = $self->do_pat( $p_id_ast,  $curr_set );
-        my $p_beg_node = $self->do_pat( $p_beg_ast, $curr_set );
-        my $p_end_node = $self->do_pat( $p_end_ast, $curr_set );
-        return ASTNode->new_func_node( ROSE_OP_EXTRACT,
-            [ $p_id_node, $p_beg_node, $p_end_node ] );
+        my ( $p_id_ast, $p_high_ast, $p_low_ast ) = @$pvec;
+        my $p_id_node   = $self->do_pat( $p_id_ast,   $curr_set );
+        my $p_high_node = $self->do_pat( $p_high_ast, $curr_set );
+        my $p_low_node  = $self->do_pat( $p_low_ast,  $curr_set );
+        return ASTBuildHelper::build_extract( $p_id_node, $p_low_node,
+            $p_high_node );
     }
 
     if ( exists $ast->{P_wild} ) {
@@ -203,11 +203,11 @@ sub do_lexp {
     }
 
     if ( my $range = $ast->{LE_vector_range} ) {
-        my ( $vec_ast, $start_ast, $end_ast ) = @$range;
-        my $vec_node   = $self->do_lexp( $vec_ast, $curr_set );
-        my $start_node = $self->do_exp( $start_ast, $curr_set );
-        my $end_node   = $self->do_exp( $end_ast,   $curr_set );
-        return ASTNode->new_vec_range_node( $vec_node, $start_node, $end_node );
+        my ( $vec_ast, $high_ast, $low_ast ) = @$range;
+        my $vec_node  = $self->do_lexp( $vec_ast, $curr_set );
+        my $high_node = $self->do_exp( $high_ast, $curr_set );
+        my $low_node  = $self->do_exp( $low_ast,  $curr_set );
+        return ASTNode->new_vec_range_node( $vec_node, $high_node, $low_node );
     }
 
     if ( my $vec = $ast->{LE_vector_concat} ) {

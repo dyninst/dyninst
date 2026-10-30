@@ -446,8 +446,8 @@ our @FN_DISPATCH = (
             my $value_node    = $self->do_exp( $value_ast,    $curr_set );
             my $high_bit_node = $self->do_exp( $high_bit_ast, $curr_set );
             my $low_bit_node  = $self->do_exp( $low_bit_ast,  $curr_set );
-            return ASTNode->new_func_node( ROSE_OP_EXTRACT,
-                [ $value_node, $low_bit_node, $high_bit_node ] );
+            return ASTBuildHelper::build_extract( $value_node, $low_bit_node,
+                $high_bit_node );
 
         }
     ],
@@ -481,8 +481,8 @@ our @FN_DISPATCH = (
             my $value_node = $self->do_exp( $exps_ast->[0], $curr_set );
             my $bit_node   = $self->do_exp( $exps_ast->[1], $curr_set );
 
-            return ASTNode->new_func_node( ROSE_OP_EXTRACT,
-                [ $value_node, $bit_node, $bit_node ] );
+            return ASTBuildHelper::build_extract( $value_node, $bit_node,
+                $bit_node );
         }
     ],
 
