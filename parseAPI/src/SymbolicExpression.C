@@ -11,6 +11,52 @@ using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::DataflowAPI;
 
+namespace {
+    // A constant's value is its low 'size' bits; size 0 means 64.
+    size_t bitsOf(const Constant &c) {
+        return (c.size == 0 || c.size > 64) ? 64 : c.size;
+    }
+
+    uint64_t lowBits(uint64_t v, size_t size) {
+        return size >= 64 ? v : v & ((1ULL << size) - 1);
+    }
+
+    uint64_t signExtendBits(uint64_t v, size_t from) {
+        if (from >= 64) return v;
+        v = lowBits(v, from);
+        return ((v >> (from - 1)) & 1) ? v | ~((1ULL << from) - 1) : v;
+    }
+
+    // The 128-bit product of two 64-bit values, as hi:lo.
+    void multiply128(uint64_t a, uint64_t b, bool isSigned, uint64_t &hi, uint64_t &lo) {
+        uint64_t const a0 = a & 0xffffffff, a1 = a >> 32, b0 = b & 0xffffffff, b1 = b >> 32;
+        uint64_t const p00 = a0 * b0, p01 = a0 * b1, p10 = a1 * b0, p11 = a1 * b1;
+        uint64_t const mid = (p00 >> 32) + (p01 & 0xffffffff) + (p10 & 0xffffffff);
+        lo = (p00 & 0xffffffff) | (mid << 32);
+        hi = p11 + (p01 >> 32) + (p10 >> 32) + (mid >> 32);
+        if (isSigned) {
+            if (static_cast<int64_t>(a) < 0) hi -= b;
+            if (static_cast<int64_t>(b) < 0) hi -= a;
+        }
+    }
+
+    // The product of a multiply of two constants, as hi:lo with its width; false if ast is not one.
+    bool constantProduct(const AST::Ptr &ast, uint64_t &hi, uint64_t &lo, size_t &width) {
+        if (ast->getID() != AST::V_RoseAST) return false;
+        RoseAST::Ptr r = boost::static_pointer_cast<RoseAST>(ast);
+        bool const isSigned = r->val().op == ROSEOperation::sMultOp;
+        if (!isSigned && r->val().op != ROSEOperation::uMultOp) return false;
+        if (r->child(0)->getID() != AST::V_ConstantAST || r->child(1)->getID() != AST::V_ConstantAST) return false;
+        Constant const c0 = boost::static_pointer_cast<ConstantAST>(r->child(0))->val();
+        Constant const c1 = boost::static_pointer_cast<ConstantAST>(r->child(1))->val();
+        uint64_t const v0 = isSigned ? signExtendBits(c0.val, bitsOf(c0)) : lowBits(c0.val, bitsOf(c0));
+        uint64_t const v1 = isSigned ? signExtendBits(c1.val, bitsOf(c1)) : lowBits(c1.val, bitsOf(c1));
+        multiply128(v0, v1, isSigned, hi, lo);
+        width = bitsOf(c0) + bitsOf(c1);
+        return true;
+    }
+}
+
 bool SymbolicExpression::ReadMemory(Address addr, uint64_t &v, int ) {
     int addressWidth = cs->getAddressWidth();
     if (addressWidth == 4) {
@@ -60,13 +106,7 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                 } else if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
                     ConstantAST::Ptr child = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
                     size_t size = child->val().size;
-                    uint64_t val = child->val().val;
-                    if (size < 64) {
-                        uint64_t mask = (1ULL << size) - 1;
-                        val = (~val) & mask;
-                    } else
-                        val = ~val;
-                    return ConstantAST::create(Constant(val, size));
+                    return ConstantAST::create(Constant(lowBits(~child->val().val, bitsOf(child->val())), size));
                 }
                 break;
             case ROSEOperation::extendMSBOp: {
@@ -76,11 +116,29 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                               if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
                                                   ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
                                                   ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-                                                  return ConstantAST::create(Constant(child0->val().val, child1->val().val));
+                                                  return ConstantAST::create(Constant(lowBits(child0->val().val, bitsOf(child0->val())), child1->val().val));
                                               }
                                               return roseAST->child(0);
                                           }
             case ROSEOperation::extractOp: {
+                                               uint64_t hi, lo;
+                                               size_t width;
+                                               if (constantProduct(roseAST->child(0), hi, lo, width) &&
+                                                   roseAST->child(1)->getID() == AST::V_ConstantAST &&
+                                                   roseAST->child(2)->getID() == AST::V_ConstantAST) {
+                                                   // A product wider than 64 bits is folded where its bits are taken.
+                                                   uint64_t const from = ConstantAST::convert(roseAST->child(1))->val().val;
+                                                   uint64_t const to = ConstantAST::convert(roseAST->child(2))->val().val;
+                                                   // Bits that do not fit a constant stay a multiply, for an
+                                                   // enclosing extract to take.
+                                                   if (to - from > 64) return roseAST->child(0);
+                                                   uint64_t v = 0;
+                                                   if (from < 64)
+                                                       v = (lo >> from) | (from ? hi << (64 - from) : 0);
+                                                   else if (from < 128)
+                                                       v = hi >> (from - 64);
+                                                   return ConstantAST::create(Constant(lowBits(v, to - from), to - from));
+                                               }
                                                if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
                                                     assert(roseAST->child(1)->getID() == AST::V_ConstantAST);
                                                     assert(roseAST->child(2)->getID() == AST::V_ConstantAST);
@@ -95,7 +153,8 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                                     uint64_t newValue{val->val().val};
                                                     if(highBitPos < 64)
                                                         newValue &= ((1ULL << highBitPos) - 1);  // zero highBitPos and higher
-                                                    newValue >>= lowBitPos;                  // shift to bit 0, eliminating unwanted low bits
+                                                    // A constant holds 64 bits, so bits from 64 up are zero (and a shift by 64 is undefined).
+                                                    newValue = lowBitPos < 64 ? newValue >> lowBitPos : 0;
 
                                                     return ConstantAST::create(Constant(newValue, highBitPos - lowBitPos));
                                                }
@@ -106,21 +165,12 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                                   if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
                                                       ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
                                                       ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-                                                      uint64_t val = child0->val().val;
-                                                      if (val & (1 << (child0->val().size - 1))) {
-                                                          switch (child0->val().size) {
-                                                              case 16:
-                                                                  val = val | SIGNEX_64_16;
-                                                                  break;
-                                                              case 32:
-                                                                  val = val | SIGNEX_64_32;
-                                                                  break;
-                                                              default:
-                                                                  break;
-                                                          }
-                                                      } 
+                                                      // The sign is extended through all 64 bits, whatever the new size: a
+                                                      // 32-bit value added to a 64-bit address (Power reads its registers as
+                                                      // 32 bits, and extracts of variables are dropped) must keep its sign.
                                                       size_t size = child1->val().val;
-                                                      return ConstantAST::create(Constant(val,size));
+                                                      uint64_t val = signExtendBits(child0->val().val, bitsOf(child0->val()));
+                                                      return ConstantAST::create(Constant(val, size));
                                                   }		    
                                                   return roseAST->child(0);
                                               }
@@ -128,7 +178,8 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                               if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
                                                   ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
                                                   ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-                                                  uint64_t val = (child1->val().val << child0->val().size) + child0->val().val;
+                                                  size_t const low = bitsOf(child0->val());
+                                                  uint64_t val = (low < 64 ? child1->val().val << low : 0) + lowBits(child0->val().val, low);
                                                   size_t size = child1->val().size + child0->val().size;
                                                   return ConstantAST::create(Constant(val,size));
                                               }		    
@@ -156,7 +207,7 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                                   size = child0->val().size;
                                               else
                                                   size = child1->val().size;
-                                              return ConstantAST::create(Constant(val,size));
+                                              return ConstantAST::create(Constant(size ? lowBits(val, size) : val, size));
                                           }
                                           // Case 2: anything adding zero stays the same
                                           if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
@@ -234,9 +285,17 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
             case ROSEOperation::sMultOp:
             case ROSEOperation::uMultOp:
                                           if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
-                                              ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-                                              ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-                                              return ConstantAST::create(Constant(child0->val().val * child1->val().val, 64));
+                                              uint64_t hi, lo;
+                                              size_t width;
+                                              constantProduct(ast, hi, lo, width);
+                                              // A product that needs more than 64 bits stays a multiply, for an
+                                              // enclosing extract to take its bits.
+                                              if (width <= 64)
+                                                  return ConstantAST::create(Constant(lowBits(lo, width), width));
+                                              bool const isSigned = roseAST->val().op == ROSEOperation::sMultOp;
+                                              if (hi == 0 && !(isSigned && (lo >> 63)))
+                                                  return ConstantAST::create(Constant(lo, width));
+                                              break;
                                           }
                                           if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
                                               ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
@@ -259,7 +318,8 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                           else if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
                                               ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
                                               ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-                                              return ConstantAST::create(Constant(child0->val().val ^ child1->val().val, 64));
+                                              return ConstantAST::create(Constant(child0->val().val ^ child1->val().val,
+                                                                                  std::max(child0->val().size, child1->val().size)));
                                           }
 
                                           break;
@@ -285,7 +345,18 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                           if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
                                               ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
                                               ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-                                              return ConstantAST::create(Constant(child0->val().val << child1->val().val, 64));
+                                              // The result has the width of the shifted value.
+                                              size_t const size = bitsOf(child0->val());
+                                              uint64_t const v = lowBits(child0->val().val, size);
+                                              uint64_t n = child1->val().val;
+                                              uint64_t val;
+                                              if (roseAST->val().op == ROSEOperation::rotateLOp) {
+                                                  n %= size;
+                                                  val = n ? (v << n) | (v >> (size - n)) : v;
+                                              } else {
+                                                  val = n < size ? v << n : 0;
+                                              }
+                                              return ConstantAST::create(Constant(lowBits(val, size), child0->val().size));
                                           }
                                           if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
                                               parsing_printf("keep multi one %d\n", keepMultiOne);
@@ -316,7 +387,7 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
             case ROSEOperation::ifOp:
                                           if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
                                               ConstantAST::Ptr c = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-                                              if (c->val().val != 0) {
+                                              if (lowBits(c->val().val, bitsOf(c->val())) != 0) {
                                                   return roseAST->child(1);
                                               } else {
                                                   return roseAST->child(2);
@@ -328,7 +399,10 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
                                           if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
                                               ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
                                               ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-                                              return ConstantAST::create(Constant(child0->val().val >> child1->val().val, 64));
+                                              size_t const size = bitsOf(child0->val());
+                                              uint64_t const n = child1->val().val;
+                                              uint64_t const val = n < size ? lowBits(child0->val().val, size) >> n : 0;
+                                              return ConstantAST::create(Constant(val, child0->val().size));
                                           }
                                           if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
                                               parsing_printf("keep multi one %d\n", keepMultiOne);
@@ -341,7 +415,7 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
 
                                           if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
                                               ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-                                              if(child0->val().val == 0)
+                                              if(lowBits(child0->val().val, bitsOf(child0->val())) == 0)
                                                   return ConstantAST::create(Constant(1, 1));
                                               else
                                                   return ConstantAST::create(Constant(0, 1));
