@@ -90,7 +90,19 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
 
       ConstantAST::Ptr size = ConstantAST::convert(newKids[1]);
       ConstantAST::Ptr val = ConstantAST::convert(newKids[0]);
-      return ConstantAST::create(Constant(val->val().val, size->val().val));
+      // The operand's value is its low 'from' bits (size 0 means 64).
+      uint64_t const from = val->val().size == 0 ? 64 : val->val().size;
+      uint64_t const to = size->val().val;
+      uint64_t v = val->val().val;
+      if (from < 64) {
+        v &= (1ULL << from) - 1;
+        if (r->val().op == ROSEOperation::signExtendOp && ((v >> (from - 1)) & 1))
+          v |= ~((1ULL << from) - 1);
+      }
+      // A sign extension keeps its sign through all 64 bits, as in SymbolicExpression::SimplifyRoot.
+      if (to < 64 && r->val().op != ROSEOperation::signExtendOp)
+        v &= (1ULL << to) - 1;
+      return ConstantAST::create(Constant(v, to));
     }
       
 
@@ -113,7 +125,8 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
       uint64_t newValue{val->val().val};
       if(highBitPos < 64)
         newValue &= ((1ULL << highBitPos) - 1);  // zero highBitPos and higher
-      newValue >>= lowBitPos;                  // shift to bit 0, eliminating unwanted low bits
+      // A constant holds 64 bits, so bits from 64 up are zero (and a shift by 64 is undefined).
+      newValue = lowBitPos < 64 ? newValue >> lowBitPos : 0;
 
       return ConstantAST::create(Constant(newValue, highBitPos - lowBitPos));
 
