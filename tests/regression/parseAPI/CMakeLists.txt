@@ -1,5 +1,6 @@
 include_guard(GLOBAL)
 
 add_subdirectory(IndirectControlFlowAnalysis)
+add_subdirectory(JumpTableTargets)
 add_subdirectory(parseGaps)
 add_subdirectory(UnappliedRelocations)
