@@ -229,9 +229,7 @@ sub adjust_func_operands {
             my $width_bytes_node = ASTNode->new_var_node(WIDTH_BYTES_VAR);
             push @$func_args, $width_bytes_node;
         }
-        elsif ($node->is_op(ASTType::ROSE_OP_READ_REG)
-            || $node->is_op(ASTType::ROSE_OP_READ_IMM) )
-        {
+        elsif ( $node->is_op(ASTType::ROSE_OP_READ_REG) ) {
             # Add Implicit width
             my $xlen_node = ASTNode->new_id_node(XLEN);
             my $zero_node = ASTNode->new_id_node(0);

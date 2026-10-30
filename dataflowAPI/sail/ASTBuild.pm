@@ -13,7 +13,6 @@ use ASTType      qw(
   ROSE_OP_EADDR
   ROSE_OP_EXTRACT
   ROSE_OP_JUMP
-  ROSE_OP_READ_IMM
   ROSE_OP_READ_MEM
   ROSE_OP_READ_REG
   ROSE_OP_SIGNED_GEQ
@@ -283,18 +282,6 @@ sub do_exp {
           if $id eq "RETIRE_SUCCESS" || $id eq "RETIRE_FAIL";
 
         $id = ParserCommon::rename_invalid_id($id);
-
-        return ASTNode->new_func_node( ROSE_OP_READ_IMM,
-            [ ASTNode->new_var_node($id) ] )
-          if ( exists $ParserConfig::ARGS_PER_SUBSET{$curr_set}
-            && exists $ParserConfig::ARGS_PER_SUBSET{$curr_set}{$id}
-            && $ParserConfig::ARGS_PER_SUBSET{$curr_set}{$id}{need_read} );
-
-        return ASTNode->new_func_node( ROSE_OP_READ_IMM,
-            [ ASTNode->new_var_node($id) ] )
-          if ( exists $ParserConfig::ARGS_PER_SUBSET{$curr_set}
-            && exists $ParserConfig::ARGS_PER_SUBSET{$curr_set}{$id}
-            && $ParserConfig::ARGS_PER_SUBSET{$curr_set}{$id}{need_read} );
 
         if ( exists $ParserConfig::GLOBAL_VARS{$id} ) {
             my $value = $ParserConfig::GLOBAL_VARS{$id}{value};

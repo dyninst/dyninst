@@ -49,7 +49,11 @@ sub print_rose_code {
     }
     print("\n");
 
-    print_all_declare( $body_node, $curr_set, {} );
+    # Arguments read in the prologue are already declared
+    my %read_args = map { $_ => {} }
+      grep { $ParserConfig::ARGS_PER_SUBSET{$curr_set}{$_}{need_read} }
+      keys %{ $ParserConfig::ARGS_PER_SUBSET{$curr_set} };
+    print_all_declare( $body_node, $curr_set, \%read_args );
     print_indent( "", 2 );
     print_ast( $body_node, $curr_set, \%lookup, 2 );
     print(";\n");
@@ -328,7 +332,6 @@ sub print_ast {
             ASTType::ROSE_OP_NEG          => 'ops->negate',
             ASTType::ROSE_OP_NUMBER       => 'ops->number_',
             ASTType::ROSE_OP_POPC         => 'd->PopCount',
-            ASTType::ROSE_OP_READ_IMM     => 'd->read',
             ASTType::ROSE_OP_READ_REG     => 'd->read',
             ASTType::ROSE_OP_REV8         => 'd->Rev8',
             ASTType::ROSE_OP_ROTATE_LEFT  => 'ops->rotateLeft',
