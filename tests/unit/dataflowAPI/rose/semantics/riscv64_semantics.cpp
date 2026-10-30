@@ -258,6 +258,23 @@ namespace {
     // Loads and stores reach memory at the address in rs1 (a2).
     {"sw    a1, 0(a2)",       0x00b62023, 0x1122334455667788,  mem_addr,            0,      0,           mem,    4,  0x55667788},
     {"ld    a0, 0(a2)",       0x00063503, 0,                   mem_addr,            0,      0x1122334455667788, rv::a0, 0, 0x1122334455667788},
+
+    // 32-bit operations take and give 32 bits.
+    {"addiw a0, a1, 1",       0x0015851b, 0x7fffffff,          0,                   0,      0,           rv::a0, 0,  0xffffffff80000000},
+    {"addw  a0, a1, a2",      0x00c5853b, 0x40000000,          0x40000000,          0,      0,           rv::a0, 0,  0xffffffff80000000},
+    {"subw  a0, a1, a2",      0x40c5853b, 0x80000000,          0,                   0,      0,           rv::a0, 0,  0xffffffff80000000},
+    {"slliw a0, a1, 3",       0x0035951b, 0x10000000,          0,                   0,      0,           rv::a0, 0,  0xffffffff80000000},
+    {"mulw  a0, a1, a2",      0x02c5853b, 0x80000000,          1,                   0,      0,           rv::a0, 0,  0xffffffff80000000},
+
+    // Shift amounts: 6 bits for the 64-bit shifts, 5 for the 32-bit ones.
+    {"sll   a0, a1, a2",      0x00c59533, 1,                   40,                  0,      0,           rv::a0, 0,  0x10000000000},
+    {"slli  a0, a1, 40",      0x02859513, 1,                   0,                   0,      0,           rv::a0, 0,  0x10000000000},
+    {"sllw  a0, a1, a2",      0x00c5953b, 1,                   31,                  0,      0,           rv::a0, 0,  0xffffffff80000000},
+    {"sraw  a0, a1, a2",      0x40c5d53b, 0x80000000,          4,                   0,      0,           rv::a0, 0,  0xfffffffff8000000},
+
+    // The low and high halves of the 128-bit product, of signed or unsigned operands.
+    {"mul   a0, a1, a2",      0x02c58533, minus1,              0x8000000000000000,  0,      0,           rv::a0, 0,  0x8000000000000000},
+    {"mulh  a0, a1, a2",      0x02c59533, minus1,              2,                   0,      0,           rv::a0, 0,  minus1},
   };
   // clang-format on
 

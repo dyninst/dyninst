@@ -285,7 +285,7 @@ struct IP_SHIFTIOP : P {
     SgAsmExpression *rd = args[0];
     enum Riscv64InstructionKind op = insn->get_kind();
 
-    shamt = ops->extract(shamt, 0, 5);
+    shamt = ops->extract(shamt, 0, 6);
     switch (op) {
     case rose_riscv64_op_slli: {
       d->write(rd, ops->shiftLeft(d->read(rs1, 64, 0), shamt));
@@ -350,12 +350,12 @@ struct IP_RTYPE : P {
     }
     case rose_riscv64_op_sll: {
       d->write(rd, ops->shiftLeft(d->read(rs1, 64, 0),
-                                  ops->extract(d->read(rs2, 64, 0), 0, 5)));
+                                  ops->extract(d->read(rs2, 64, 0), 0, 6)));
       break;
     }
     case rose_riscv64_op_srl: {
       d->write(rd, ops->shiftRight(d->read(rs1, 64, 0),
-                                   ops->extract(d->read(rs2, 64, 0), 0, 5)));
+                                   ops->extract(d->read(rs2, 64, 0), 0, 6)));
       break;
     }
     case rose_riscv64_op_sub: {
@@ -365,7 +365,7 @@ struct IP_RTYPE : P {
     case rose_riscv64_op_sra: {
       d->write(rd, ops->shiftRightArithmetic(
                        d->read(rs1, 64, 0),
-                       ops->extract(d->read(rs2, 64, 0), 0, 5)));
+                       ops->extract(d->read(rs2, 64, 0), 0, 6)));
       break;
     }
     default: {
@@ -488,7 +488,7 @@ struct IP_ADDIW : P {
 
     BaseSemantics::SValuePtr result;
     result = ops->add(d->read(rs1, 64, 0), d->SignExtend(imm, 64));
-    d->write(rd, d->SignExtend(ops->extract(result, 0, 31), 64));
+    d->write(rd, d->SignExtend(ops->extract(result, 0, 32), 64));
     return;
   }
 };
@@ -507,8 +507,8 @@ struct IP_RTYPEW : P {
     BaseSemantics::SValuePtr rs1_val;
     BaseSemantics::SValuePtr rs2_val;
     BaseSemantics::SValuePtr result;
-    rs1_val = ops->extract(d->read(rs1, 64, 0), 0, 31);
-    rs2_val = ops->extract(d->read(rs2, 64, 0), 0, 31);
+    rs1_val = ops->extract(d->read(rs1, 64, 0), 0, 32);
+    rs2_val = ops->extract(d->read(rs2, 64, 0), 0, 32);
     switch (op) {
     case rose_riscv64_op_addw: {
       result = ops->add(rs1_val, rs2_val);
@@ -519,15 +519,15 @@ struct IP_RTYPEW : P {
       break;
     }
     case rose_riscv64_op_sllw: {
-      result = ops->shiftLeft(rs1_val, ops->extract(rs2_val, 0, 4));
+      result = ops->shiftLeft(rs1_val, ops->extract(rs2_val, 0, 5));
       break;
     }
     case rose_riscv64_op_srlw: {
-      result = ops->shiftRight(rs1_val, ops->extract(rs2_val, 0, 4));
+      result = ops->shiftRight(rs1_val, ops->extract(rs2_val, 0, 5));
       break;
     }
     case rose_riscv64_op_sraw: {
-      result = ops->shiftRightArithmetic(rs1_val, ops->extract(rs2_val, 0, 4));
+      result = ops->shiftRightArithmetic(rs1_val, ops->extract(rs2_val, 0, 5));
       break;
     }
     default: {
@@ -553,7 +553,7 @@ struct IP_SHIFTIWOP : P {
 
     BaseSemantics::SValuePtr rs1_val;
     BaseSemantics::SValuePtr result;
-    rs1_val = ops->extract(d->read(rs1, 64, 0), 0, 31);
+    rs1_val = ops->extract(d->read(rs1, 64, 0), 0, 32);
     switch (op) {
     case rose_riscv64_op_slliw: {
       result = ops->shiftLeft(rs1_val, shamt);
@@ -642,8 +642,8 @@ struct IP_MUL : P {
                          ops->unsignedMultiply(rs1_int, rs2_int)))),
         0, 128);
     d->write(rd, ops->ite(ops->number_(64, mul_op_high),
-                          ops->extract(result_wide, 64, 127),
-                          ops->extract(result_wide, 0, 63)));
+                          ops->extract(result_wide, 64, 128),
+                          ops->extract(result_wide, 0, 64)));
     return;
   }
 };
@@ -750,8 +750,8 @@ struct IP_MULW : P {
     BaseSemantics::SValuePtr rs1_int;
     BaseSemantics::SValuePtr rs2_int;
     BaseSemantics::SValuePtr result32;
-    rs1_bits = ops->extract(d->read(rs1, 64, 0), 0, 31);
-    rs2_bits = ops->extract(d->read(rs2, 64, 0), 0, 31);
+    rs1_bits = ops->extract(d->read(rs1, 64, 0), 0, 32);
+    rs2_bits = ops->extract(d->read(rs2, 64, 0), 0, 32);
     rs1_int = rs1_bits;
     rs2_int = rs2_bits;
     result32 = ops->extract(ops->signedMultiply(rs1_int, rs2_int), 0, 32);
@@ -786,8 +786,8 @@ struct IP_DIVW : P {
     BaseSemantics::SValuePtr rs1_int;
     BaseSemantics::SValuePtr rs2_int;
     BaseSemantics::SValuePtr quotient;
-    rs1_bits = ops->extract(d->read(rs1, 64, 0), 0, 31);
-    rs2_bits = ops->extract(d->read(rs2, 64, 0), 0, 31);
+    rs1_bits = ops->extract(d->read(rs1, 64, 0), 0, 32);
+    rs2_bits = ops->extract(d->read(rs2, 64, 0), 0, 32);
     rs1_int = ops->ite(ops->number_(64, is_unsigned), rs1_bits, rs1_bits);
     rs2_int = ops->ite(ops->number_(64, is_unsigned), rs2_bits, rs2_bits);
     quotient = ops->ite(ops->isEqual(rs2_int, ops->number_(64, 0)),
@@ -834,8 +834,8 @@ struct IP_REMW : P {
     BaseSemantics::SValuePtr rs1_int;
     BaseSemantics::SValuePtr rs2_int;
     BaseSemantics::SValuePtr remainder;
-    rs1_bits = ops->extract(d->read(rs1, 64, 0), 0, 31);
-    rs2_bits = ops->extract(d->read(rs2, 64, 0), 0, 31);
+    rs1_bits = ops->extract(d->read(rs1, 64, 0), 0, 32);
+    rs2_bits = ops->extract(d->read(rs2, 64, 0), 0, 32);
     rs1_int = ops->ite(ops->number_(64, is_unsigned), rs1_bits, rs1_bits);
     rs2_int = ops->ite(ops->number_(64, is_unsigned), rs2_bits, rs2_bits);
     remainder = ops->ite(ops->isEqual(rs2_int, ops->number_(64, 0)), rs1_int,
