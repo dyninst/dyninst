@@ -20,12 +20,6 @@ namespace Dyninst {
 
   MachRegister::MachRegister() : reg(0) {}
 
-  MachRegister::MachRegister(signed int r, std::string n) : MachRegister(r) {
-    registers::registry &reg_info = registers::get_registry();
-    reg_info.names.emplace(r, std::move(n));
-    reg_info.all_regs[getArchitecture()].push_back(*this);
-  }
-
   unsigned int MachRegister::regClass() const { return reg & 0x00ff0000; }
 
   int32_t MachRegister::getLengthID() const {
