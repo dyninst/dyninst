@@ -462,17 +462,31 @@ our @FN_DISPATCH = (
               $self->do_exp( $concat_bit_ast, $curr_set );
             my $concat_bit_hex = $concat_bit_hex_node->get_value();
             my $concat_bit_len = length($concat_bit_hex) * 4;
-            my $concat_bit_num = sprintf( "%x", $concat_bit_hex );
+            my $concat_bit_num = hex($concat_bit_hex);
 
             # Get the bit length of value
             my $concat_bit_len_node = ASTNode->new_num_node($concat_bit_len);
             my $shift_left_node = ASTNode->new_func_node( ROSE_OP_SHIFT_LEFT,
                 [ $concat_id_node, $concat_bit_len_node ] );
-            return $concat_bit_num
+            my $concat_node =
+              $concat_bit_num
               ? ASTNode->new_func_node( ROSE_OP_ADD,
                 [ $shift_left_node, ASTNode->new_num_node($concat_bit_num) ] )
               : $shift_left_node;
 
+            # The shift is done at XLEN; keep the concatenation as wide as
+            # SAIL's, so that a sign_extend of it extends from its top bit
+            my $id_bits = $concat_id_node->is_var_node()
+              && ASTAdjust::arg_attribute( $curr_set,
+                $concat_id_node->get_value(), "bits" );
+            return $concat_node unless $id_bits;
+            return ASTNode->new_func_node(
+                ROSE_OP_EXTRACT,
+                [
+                    $concat_node, ASTNode->new_num_node(0),
+                    ASTNode->new_num_node( $id_bits + $concat_bit_len )
+                ]
+            );
         }
     ],
     [

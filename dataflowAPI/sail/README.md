@@ -230,7 +230,7 @@ struct IP_UTYPE : P {
         enum Riscv64InstructionKind op = insn->get_kind();
 
         BaseSemantics::SValuePtr off;
-        off = d->SignExtend(ops->shiftLeft(imm, ops->number_(64, 12)), 64);
+        off = d->SignExtend(ops->extract(ops->shiftLeft(imm, ops->number_(64, 12)), 0, 32), 64);
         switch (op) {
             case rose_riscv64_op_lui: {
                 d->write(rd, off);
@@ -338,6 +338,7 @@ Besides `init_code`, which prints the C++ that declares the argument, an argumen
 * `need_read`: the argument is a register-sized value. `init_code` reads it once into an `SValuePtr` named after the SAIL argument.
 * `need_number`: the argument is a plain C++ variable, such as a flag or a width set by a switch on the opcode. It becomes `ops->number_(64, x)` where a semantic value is needed, and stays C++ in integer operands (`extract` bounds, memory widths, extension widths) and in conditions, which are then decided in C++.
 * `in_address`: the argument is part of Capstone's memory operand and has no variable of its own. `d->effectiveAddress` applies it, and bindings computed from it are left out.
+* `bits`: the width of the SAIL argument, where it is narrower than the register-sized read and the width matters (UTYPE's 20-bit `imm`, whose `imm @ 0x000` is sign-extended from bit 31).
 * `max_value`: the largest value the argument can take, used to decide bounds checks such as `width <= xlen_bytes` at generation time.
 * `unsupported` (on `op`): SAIL opcodes that Capstone does not decode. Their match arms are left out, and `op == <unsupported>` is false.
 

@@ -68,6 +68,7 @@ our %ARGS_PER_SUBSET = %{
                     );
                 },
                 need_read => 1,
+                bits      => 20,
             },
             rd => {
                 init_code =>
