@@ -42,6 +42,7 @@
 #include "frame.h"
 #include "procstate.h"
 #include "walker.h"
+#include "swk_errors.h"
 
 #include <string>
 #include <map>
@@ -125,8 +126,11 @@ class LVReader : public MemRegReader
       void *symtab_v{};
       std::string lib;
       Symtab *symtab{};
-      if (g.getLibOffset(lib, offset, symtab_v))
+      if (g.getLibOffset(lib, offset, symtab_v)) {
          symtab = symtab_v ? static_cast<Symtab *>(symtab_v) : getSymtabForName(lib);
+         if (!symtab)
+            setLastError(err_symtab, "No Symtab for the library of a frame");
+      }
 
       bool result = symtab && symtab->getRegValueAtFrame(offset, reg, val, this);
       current_depth++;
@@ -160,6 +164,12 @@ static Dyninst::SymtabAPI::Function *getFunctionForFrame(Frame f)
    }
    else {
       symtab = getSymtabForName(lib_name);
+   }
+   // A frame in a library the walker knows should always have a Symtab;
+   // report a missing one instead of passing NULL on.
+   if (!symtab) {
+      setLastError(err_symtab, "No Symtab for the library of a frame");
+      return NULL;
    }
    Function *func;
    result = symtab->getContainingFunction(offset, func);

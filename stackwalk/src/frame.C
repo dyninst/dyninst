@@ -347,6 +347,10 @@ bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*& symta
   offset = getRA() - la.second;
 
   symtab = static_cast<void *>(SymtabWrapper::getSymtab(lib));
+  if (!symtab) {
+    sw_printf("[%s:%d] - no Symtab for library %s at %lx\n",
+              FILE__, __LINE__, lib.c_str(), getRA());
+  }
 
   return true;
 }
