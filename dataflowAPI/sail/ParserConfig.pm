@@ -240,7 +240,10 @@ our %ARGS_PER_SUBSET = %{
         ),
 
         LOAD => ordered_hash(
-            imm => { init_code => sub { } },
+            imm => {
+                init_code  => sub { },
+                in_address => 1,
+            },
             rs1 => {
                 init_code => sub {
                     print_indent( "SgAsmExpression *rs1 = args[1];\n", 2 );
@@ -265,7 +268,10 @@ our %ARGS_PER_SUBSET = %{
         ),
 
         STORE => ordered_hash(
-            imm => { init_code => sub { } },
+            imm => {
+                init_code  => sub { },
+                in_address => 1,
+            },
             rs1 => {
                 init_code => sub {
                     print_indent( "SgAsmExpression *rs1 = args[1];\n", 2 );

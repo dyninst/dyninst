@@ -166,7 +166,24 @@ sub do_letbind {
     return ASTNode->new_null_node
       if is_signed_overflow_clamp( $id_node, $exp_node );
 
+    # An offset computed from an immediate that Capstone keeps in the memory
+    # operand is applied by effectiveAddress, and the immediate has no
+    # variable of its own
+    return ASTNode->new_null_node
+      if uses_in_address_arg( $exp_node, $curr_set );
+
     return ASTNode->new_assign_node( $id_node, $exp_node );
+}
+
+sub uses_in_address_arg {
+    my ( $node, $curr_set ) = @_;
+    if ( $node->is_var_node ) {
+        my $arg =
+          $ParserConfig::ARGS_PER_SUBSET{$curr_set}{ $node->get_value() };
+        return $arg && $arg->{in_address};
+    }
+    return grep { uses_in_address_arg( $_, $curr_set ) }
+      @{ $node->get_children() };
 }
 
 # SAIL's division semantics clamp a signed quotient that overflows:
