@@ -604,6 +604,10 @@ namespace rose {
                                                                     size_t new_width);
                     virtual BaseSemantics::SValuePtr add(const BaseSemantics::SValuePtr &a_,
                                                          const BaseSemantics::SValuePtr &b_);
+                    virtual BaseSemantics::SValuePtr isUnsignedLessThan(const BaseSemantics::SValuePtr &a_,
+                                                                        const BaseSemantics::SValuePtr &b_);
+                    virtual BaseSemantics::SValuePtr isSignedLessThan(const BaseSemantics::SValuePtr &a_,
+                                                                      const BaseSemantics::SValuePtr &b_);
                     virtual BaseSemantics::SValuePtr addWithCarries(const BaseSemantics::SValuePtr &a_,
                                                                     const BaseSemantics::SValuePtr &b_,
                                                                     const BaseSemantics::SValuePtr &c_,
@@ -631,6 +635,9 @@ namespace rose {
                                              const BaseSemantics::SValuePtr &cond);
 
                 private:
+                    BaseSemantics::SValuePtr difference(const BaseSemantics::SValuePtr &a_,
+                                                        const BaseSemantics::SValuePtr &b_);
+
                     // ROSE uses (size_t)-1 bits for an expression without a type.
                     static bool known_width(size_t nbits) {
                         return nbits != 0 && nbits <= 128;
