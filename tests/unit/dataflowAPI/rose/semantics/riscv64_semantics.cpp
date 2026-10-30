@@ -31,7 +31,9 @@
 // Checks the riscv64 instruction semantics by value: SymEval expands what an instruction
 // writes to a register or to memory, the expression is evaluated with a1, a2, a5, pc and
 // one memory word set to known values, and the result is compared with what the RISC-V
-// specification gives for those inputs.
+// specification gives for those inputs. For a register, the expression with those
+// register values substituted is also run through parseAPI's simplifier, which jump-table
+// and call-target analysis use: if it folds to a constant, that must be the same value.
 //
 // SymEval's expressions record a width only on extract, signExtend, the zero extension
 // and deref, so the evaluation infers the others from the operands, keeps sums and
@@ -43,6 +45,7 @@
 #include "RoseAST.h"
 #include "SymEval.h"
 #include "VariableAST.h"
+#include "parseAPI/src/SymbolicExpression.h"
 #include "registers/riscv64_regs.h"
 
 #include <algorithm>
@@ -231,6 +234,39 @@ namespace {
     }
   }
 
+  // e with the registers of m replaced by 64-bit constants, or null if e reads memory (the
+  // simplifier would read it from a binary).
+  Dyninst::AST::Ptr with_constants(Dyninst::AST::Ptr const &e, machine const &m) {
+    switch(e->getID()) {
+      case Dyninst::AST::V_VariableAST: {
+        Dyninst::MachRegister const reg =
+            df::VariableAST::convert(e)->val().reg.absloc().reg();
+        auto const i = m.regs.find(reg);
+        if(i == m.regs.end()) {
+          return e;
+        }
+        return df::ConstantAST::create(df::Constant(i->second, 64));
+      }
+      case Dyninst::AST::V_RoseAST: {
+        df::RoseAST::Ptr const r = df::RoseAST::convert(e);
+        if(r->val().op == df::ROSEOperation::derefOp) {
+          return nullptr;
+        }
+        Dyninst::AST::Children kids;
+        for(unsigned i = 0; i < r->numChildren(); ++i) {
+          Dyninst::AST::Ptr const k = with_constants(r->child(i), m);
+          if(!k) {
+            return nullptr;
+          }
+          kids.push_back(k);
+        }
+        return df::RoseAST::create(r->val(), kids);
+      }
+      default:
+        return e;
+    }
+  }
+
   std::string hex(uint64_t v) {
     std::ostringstream s;
     s << "0x" << std::hex << v;
@@ -376,6 +412,19 @@ namespace {
     {"srlw  a0, a1, a2",      0x00c5d53b, 0x80000000,          4,                   0,      0,           rv::a0, 0,  0x8000000},
     {"srliw a0, a1, 4",       0x0045d51b, 0x80000000,          0,                   0,      0,           rv::a0, 0,  0x8000000},
     {"sraiw a0, a1, 4",       0x4045d51b, 0x80000000,          0,                   0,      0,           rv::a0, 0,  0xfffffffff8000000},
+
+    // Unsigned comparisons: operands 2^63 or more apart, where the sign of their 64-bit
+    // difference is not the borrow.
+    {"bltu  a1, a2, 8",       0x00c5e463, minus1,              1,                   0,      0,           rv::pc, 0,  insn_addr},
+    {"bgeu  a1, a2, 8",       0x00c5f463, minus1,              1,                   0,      0,           rv::pc, 0,  insn_addr + 8},
+    {"sltu  a0, a1, a2",      0x00c5b533, minus1,              1,                   0,      0,           rv::a0, 0,  0},
+    {"sltu  a0, a1, a2",      0x00c5b533, 1,                   minus1,              0,      0,           rv::a0, 0,  1},
+    {"sltiu a0, a1, 1",       0x0015b513, minus1,              0,                   0,      0,           rv::a0, 0,  0},
+    {"sltiu a0, a1, 1",       0x0015b513, 0,                   0,                   0,      0,           rv::a0, 0,  1},
+    {"amominu.w a0, a1, (a2)", 0xc0b6252f, 1,                   mem_addr,            0,      0xffffffff,  mem,    4,  1},
+    {"amomaxu.w a0, a1, (a2)", 0xe0b6252f, 1,                   mem_addr,            0,      0xffffffff,  mem,    4,  0xffffffff},
+    {"amominu.d a0, a1, (a2)", 0xc0b6352f, 1,                   mem_addr,            0,      minus1,      mem,    8,  1},
+    {"amomaxu.d a0, a1, (a2)", 0xe0b6352f, 1,                   mem_addr,            0,      minus1,      mem,    8,  minus1},
   };
   // clang-format on
 
@@ -430,6 +479,22 @@ namespace {
     } catch(std::exception const &x) {
       std::cerr << c.text << ": " << x.what() << "\n  " << e->format() << '\n';
       return false;
+    }
+    if(!c.mem_width) {
+      if(AST::Ptr const k = with_constants(e, m)) {
+        SymbolicExpression se;
+        se.cs = nullptr;
+        se.cr = nullptr;
+        AST::Ptr const folded = se.SimplifyAnAST(k, insn_addr);
+        if(folded->getID() == AST::V_ConstantAST) {
+          uint64_t const got = DataflowAPI::ConstantAST::convert(folded)->val().val;
+          if(got != c.expected) {
+            std::cerr << c.text << ": " << name << " folds to " << hex(got) << ", expected "
+                      << hex(c.expected) << "\n  " << e->format() << '\n';
+            return false;
+          }
+        }
+      }
     }
     return true;
   }
