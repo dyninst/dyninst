@@ -50,14 +50,14 @@ namespace Dyninst { namespace registers {
   };
 
   // Every register's name, and the registers of each architecture in the
-  // order they are defined.  Built from the tables in dyn_regs.C the first
-  // time it is asked for; never destroyed, so it outlives every caller.
+  // order they are defined.  Built from the table in dyn_regs.C the first
+  // time it is asked for, and read-only after that.
   struct registry {
     name_cache names;
     register_cache all_regs;
   };
 
-  registry &get_registry();
+  registry const &get_registry();
 
 }}
 
