@@ -765,6 +765,7 @@ AST::Ptr ExtPCSensVisitor::visit(RoseAST *r) {
     break;
   }
   case ROSEOperation::extendMSBOp:
+  case ROSEOperation::extendOp:
   case ROSEOperation::extractOp: {
     DiffVar tmp = diffs_.top();
     for (unsigned i = 0; i < r->numChildren(); ++i) {

@@ -1378,9 +1378,11 @@ DispatcherRiscv64::readMemory(const BaseSemantics::SValuePtr &addr,
   SymEvalSemantics::StateASTPtr state =
       SymEvalSemantics::StateAST::promote(operators->currentState());
 
-  // The second, third and fourth arguments will remain unused
-  return state->readMemory(addr, operators->unspecified_(1), NULL, NULL,
-                           readSize);
+  // The second, third and fourth arguments will remain unused. readSize is in
+  // bytes.
+  return state
+      ->readMemory(addr, operators->unspecified_(1), NULL, NULL, readSize)
+      ->copy(8 * readSize);
 }
 
 void DispatcherRiscv64::writeMemory(const BaseSemantics::SValuePtr &addr,

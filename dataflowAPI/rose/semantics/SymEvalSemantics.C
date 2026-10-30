@@ -697,7 +697,27 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::signExtend(const Ba
                                                                      uint64_t newwidth) {
     BaseSemantics::SValuePtr width_ = SymEvalSemantics::SValue::instance(64, newwidth);
 
-    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::signExtendOp, a_, width_);
+    // A ROSE expression without a type reports (size_t)-1 bits, and Dispatcher::read extends
+    // to that width: keep the operand's width rather than take it.
+    size_t nbits = known_width(newwidth) ? newwidth : a_->get_width();
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::signExtendOp, a_, width_, nbits);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::unsignedExtend(const BaseSemantics::SValuePtr &a_,
+                                                                         size_t new_width) {
+    size_t width = a_->get_width();
+    if (new_width == width || !known_width(new_width) || !known_width(width))
+        return a_->copy();
+    if (new_width < width)
+        return extract(a_, 0, new_width);
+
+    // A node of its own, so that a value one bit wider than its operands (the borrow of an
+    // unsigned comparison, the carry of an addition) has that bit in the expression.
+    Dyninst::AST::Ptr a = SValue::promote(a_)->get_expression();
+    Dyninst::AST::Ptr width_ = Dyninst::DataflowAPI::ConstantAST::create(Dyninst::DataflowAPI::Constant(new_width, 64));
+    Dyninst::AST::Ptr ast = Dyninst::DataflowAPI::RoseAST::create(
+        Dyninst::DataflowAPI::ROSEOperation(Dyninst::DataflowAPI::ROSEOperation::extendOp, new_width), a, width_);
+    return SymEvalSemantics::SValue::instance(ast, new_width);
 }
 
 BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::add(const BaseSemantics::SValuePtr &a_,
@@ -709,16 +729,40 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::addWithCarries(cons
                                                                          const BaseSemantics::SValuePtr &b_,
                                                                          const BaseSemantics::SValuePtr &c_,
                                                                          BaseSemantics::SValuePtr &carry_out) {
-    BaseSemantics::SValuePtr aa_ = unsignedExtend(a_, a_->get_width() + 1);
-    BaseSemantics::SValuePtr bb_ = unsignedExtend(b_, b_->get_width() + 1);
-    BaseSemantics::SValuePtr sum_ = createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::addOp, aa_,
-                                                    createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::addOp, bb_, c_));
+    BaseSemantics::SValuePtr sum_ = createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::addOp, a_,
+                                                    createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::addOp, b_, c_));
 
-    BaseSemantics::SValuePtr cc_ = createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::xorOp, aa_,
-                                                   createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::xorOp, bb_, sum_));
-    carry_out = extract(cc_, 1, a_->get_width() + 1);
+    // Bit i of carry_out is the carry out of bit i, majority(a, b, carry in), computed at the
+    // operands' width: constants fold in 64 bits, so a 65-bit sum would lose its top carry.
+    carry_out = or_(and_(a_, b_), and_(or_(a_, b_), invert(sum_)));
 
-    return extract(sum_, 0, a_->get_width());
+    return sum_;
+}
+
+// a - b, as a + ~b + 1.
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::difference(const BaseSemantics::SValuePtr &a_,
+                                                                     const BaseSemantics::SValuePtr &b_) {
+    return add(a_, add(invert(b_), number_(b_->get_width(), 1)));
+}
+
+// The comparisons take the top bit of a value as wide as the operands, not of a difference one
+// bit wider (as the base class does), for the same reason as addWithCarries.
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::isUnsignedLessThan(const BaseSemantics::SValuePtr &a_,
+                                                                             const BaseSemantics::SValuePtr &b_) {
+    size_t nbits = a_->get_width();
+    BaseSemantics::SValuePtr diff = difference(a_, b_);
+    // The borrow out of each bit of a - b.
+    BaseSemantics::SValuePtr borrows = or_(and_(invert(a_), b_), and_(invert(xor_(a_, b_)), diff));
+    return extract(borrows, nbits - 1, nbits);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::isSignedLessThan(const BaseSemantics::SValuePtr &a_,
+                                                                           const BaseSemantics::SValuePtr &b_) {
+    size_t nbits = a_->get_width();
+    BaseSemantics::SValuePtr diff = difference(a_, b_);
+    // Same signs: a - b cannot overflow, take its sign. Different signs: a < b iff a is negative.
+    BaseSemantics::SValuePtr lt = xor_(diff, and_(xor_(a_, b_), xor_(diff, a_)));
+    return extract(lt, nbits - 1, nbits);
 }
 
 BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::negate(const BaseSemantics::SValuePtr &a_) {
@@ -765,7 +809,8 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::readMemory(const Re
                                                                      const BaseSemantics::SValuePtr &addr,
                                                                      const BaseSemantics::SValuePtr &dflt,
                                                                      const BaseSemantics::SValuePtr &/*cond*/) {
-    return currentState()->readMemory(addr, dflt, this, this);
+    // The read's size is dflt's value (see MemoryStateAST::readMemory), in bits.
+    return currentState()->readMemory(addr, dflt, this, this)->copy(dflt->get_number());
 }
 
 void SymEvalSemantics::RiscOperatorsAST::writeMemory(const RegisterDescriptor &/*segreg*/,
