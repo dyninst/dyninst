@@ -275,6 +275,10 @@ namespace {
     // The low and high halves of the 128-bit product, of signed or unsigned operands.
     {"mul   a0, a1, a2",      0x02c58533, minus1,              0x8000000000000000,  0,      0,           rv::a0, 0,  0x8000000000000000},
     {"mulh  a0, a1, a2",      0x02c59533, minus1,              2,                   0,      0,           rv::a0, 0,  minus1},
+
+    // jalr jumps to a5 + 8 with bit 0 cleared and links the next instruction.
+    {"jalr  ra, 8(a5)",       0x008780e7, 0,                   0,                   0x1001, 0,           rv::pc, 0,  0x1008},
+    {"jalr  ra, 8(a5)",       0x008780e7, 0,                   0,                   0x1001, 0,           rv::ra, 0,  insn_addr + 4},
   };
   // clang-format on
 
