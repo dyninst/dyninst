@@ -110,9 +110,7 @@ typedef enum {
  
 DYNINST_EXPORT const char *visibility2Str(visibility_t v);
 				  
-#define TYPE_ANNOTATABLE_CLASS AnnotatableDense
-
-class DYNINST_EXPORT Type : public  TYPE_ANNOTATABLE_CLASS
+class DYNINST_EXPORT Type : public  AnnotatableDense
 {
    friend class typeCollection;
    static Type* upgradePlaceholder(Type *placeholder, Type *new_type);
@@ -243,9 +241,7 @@ public:
    void updateUniqueTypeId(typeId_t);
 };
 
-#define FIELD_ANNOTATABLE_CLASS AnnotatableDense
-
-class DYNINST_EXPORT Field : public FIELD_ANNOTATABLE_CLASS
+class DYNINST_EXPORT Field : public AnnotatableDense
 {
    friend class typeStruct;
    friend class typeUnion;
@@ -518,7 +514,7 @@ class DYNINST_EXPORT typeCommon : public fieldListType {
 typeCommon& Type::asCommonType() { return dynamic_cast<typeCommon&>(*this); }
 bool Type::isCommonType() { return dynamic_cast<typeCommon*>(this) != NULL; }
 
-class DYNINST_EXPORT CBlock : public AnnotatableSparse
+class DYNINST_EXPORT CBlock
 {
    friend class typeCommon;
  private:

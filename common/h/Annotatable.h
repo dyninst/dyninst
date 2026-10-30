@@ -107,28 +107,6 @@ class AnnotationClass : public AnnotationClassBase {
 	  size_t size() {return sizeof(T);}
 };
 
-
-typedef enum {
-	    sparse,
-		dense
-} sparse_or_dense_anno_t;
-
-typedef struct {
-	AnnotationClassBase *acb;
-	void *data;
-	void *parent_id;
-	sparse_or_dense_anno_t sod;
-} ser_rec_t;
-
-typedef enum {
-	sp_add_anno = 2,
-	sp_rem_anno = 3,
-	sp_add_cont_item = 4,
-	sp_rem_cont_item = 5
-} ser_post_op_t;
-
-DYNINST_EXPORT const char *serPostOp2Str(ser_post_op_t);
-
 class DYNINST_EXPORT AnnotatableDense
 {
 	typedef void *anno_list_t;
@@ -333,8 +311,6 @@ class DYNINST_EXPORT AnnotatableDense
 	  }
 };
 
-#define AN_INLINE inline
-
 class DYNINST_EXPORT AnnotatableSparse
 {
    public:
@@ -443,7 +419,7 @@ class DYNINST_EXPORT AnnotatableSparse
       }
 
       template <class T>
-      AN_INLINE annos_by_type_t *getAnnosOfType(AnnotationClass<T> &a_id, bool do_create =false) const
+      annos_by_type_t *getAnnosOfType(AnnotationClass<T> &a_id, bool do_create =false) const
       {
          AnnotationClassID aid = a_id.getID();
 
@@ -478,7 +454,7 @@ class DYNINST_EXPORT AnnotatableSparse
          return target;
       }
 
-	  AN_INLINE bool addAnnotation(const void *a, AnnotationClassID aid)
+	  bool addAnnotation(const void *a, AnnotationClassID aid)
 	  {
 		  if (annotation_debug_flag())
 		  {
@@ -608,7 +584,7 @@ class DYNINST_EXPORT AnnotatableSparse
       }
 
       template<class T>
-      AN_INLINE bool addAnnotation(const T *a, AnnotationClass<T> &a_id)
+      bool addAnnotation(const T *a, AnnotationClass<T> &a_id)
          {
 		  annotatable_printf("%s[%d]:  Sparse(%p):  Add %s-%d, %s\n", FILE__, __LINE__, 
 				  (void*)this, a_id.getName().c_str(), a_id.getID(), typeid(T).name());
@@ -644,7 +620,7 @@ class DYNINST_EXPORT AnnotatableSparse
          }
 
       template<class T>
-      AN_INLINE bool getAnnotation(T *&a, AnnotationClass<T> &a_id) const 
+      bool getAnnotation(T *&a, AnnotationClass<T> &a_id) const 
       {
          a = NULL;
 

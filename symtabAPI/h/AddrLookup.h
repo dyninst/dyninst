@@ -31,7 +31,7 @@
 #ifndef __AddrLookup_H__
 #define __AddrLookup_H__
 
-#include "Annotatable.h"
+#include "dyninst_visibility.h"
 #include <string>
 #include <vector>
 #include <map>
@@ -49,7 +49,7 @@ typedef struct {
    Address dataAddr;
 } LoadedLibrary;
 
-class DYNINST_EXPORT AddressLookup : public AnnotatableSparse
+class DYNINST_EXPORT AddressLookup
 {
  private:
    AddressTranslate *translator;

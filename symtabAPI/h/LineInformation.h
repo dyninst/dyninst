@@ -36,7 +36,6 @@
 #include <vector>
 #include "symutil.h"
 #include "RangeLookup.h"
-#include "Annotatable.h"
 #include "Statement.h"
 
 #define NEW_GETSOURCELINES_INTERFACE

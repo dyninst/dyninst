@@ -41,7 +41,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "Annotatable.h"
 #include "Aggregate.h"
 #include "Variable.h"
 #include "VariableLocation.h"

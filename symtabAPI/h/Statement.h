@@ -31,7 +31,6 @@
 #ifndef __STATEMENT__H__
 #define __STATEMENT__H__
 
-#include "Annotatable.h"
 #include "RangeLookup.h"
 #include "StringTable.h"
 #include "dyninst_visibility.h"

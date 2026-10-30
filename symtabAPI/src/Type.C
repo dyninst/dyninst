@@ -1456,7 +1456,7 @@ static int findIntrensicType(std::string &name)
 
 
 Field::Field() :
-	FIELD_ANNOTATABLE_CLASS(),
+	AnnotatableDense(),
 	type_(NULL),
 	vis_(visUnknown),
 	offset_(-1)
@@ -1469,7 +1469,7 @@ Field::Field() :
  * type = offset = size = 0;
  */
 Field::Field(std::string name, boost::shared_ptr<Type> typ, int offsetVal, visibility_t vis) :
-	FIELD_ANNOTATABLE_CLASS(),
+	AnnotatableDense(),
    fieldName_(name), 
    type_(typ), 
    vis_(vis), 
@@ -1502,7 +1502,7 @@ unsigned int Field::getSize()
 }
 
 Field::Field(Field &oField) :
-	FIELD_ANNOTATABLE_CLASS()
+	AnnotatableDense()
 {
    type_ = oField.type_;
    offset_ = oField.offset_;

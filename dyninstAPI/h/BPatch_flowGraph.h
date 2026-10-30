@@ -34,7 +34,6 @@
 #include <string>
 #include <set>
 #include <map>
-#include "Annotatable.h"
 #include "BPatch_Vector.h"
 #include "BPatch_basicBlock.h"
 #include "BPatch_basicBlockLoop.h"
@@ -61,8 +60,7 @@ namespace Dyninst {
         class PatchLoop;
     }
 }    
-class DYNINST_EXPORT BPatch_flowGraph : 
-      public Dyninst::AnnotatableSparse 
+class DYNINST_EXPORT BPatch_flowGraph
 {
   friend class BPatch_basicBlock;
   friend class BPatch_edge;

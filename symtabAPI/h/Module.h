@@ -31,7 +31,6 @@
 #ifndef __MODULE__H__
 #define __MODULE__H__
 
-#include "Annotatable.h"
 #include "RangeLookup.h"
 #include "Statement.h"
 #include "Symbol.h"

@@ -128,7 +128,6 @@ localVar::localVar(std::string name,  boost::shared_ptr<Type> typ, std::string f
 
 localVar::localVar(localVar &lvar)
 :
-	AnnotatableSparse(),
 	name_(lvar.name_),
 	type_(lvar.type_),
 	fileName_(lvar.fileName_),

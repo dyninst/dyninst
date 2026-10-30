@@ -35,7 +35,6 @@
 
 #include "dyninst_visibility.h"
 #include "dyntypes.h"
-#include "Annotatable.h"
 
 
 namespace Dyninst {
@@ -48,7 +47,7 @@ namespace SymtabAPI {
  * Currently only used on Linux
  **/
 
-class DYNINST_EXPORT ExceptionBlock : public AnnotatableSparse {
+class DYNINST_EXPORT ExceptionBlock {
   // Accessors provide consistent access to the *original* offsets.
   // We allow this to be updated (e.g. to account for relocated code
    public:
