@@ -187,6 +187,8 @@ with the reason a test prints when it is not met:
 | `static_exe`       | the toolchain links static executables |
 | `static_lib:<lib>` | `<lib>_static` is built                |
 | `codegen:<arch>`   | code generation for `<arch>`           |
+| `host:<arch>`      | the host is `<arch>`                   |
+| `native`           | code generation for the host           |
 | `dynamic`          | `DYNINST_ENABLE_DYNAMIC_TESTS`         |
 | `userns`           | `DYNINST_ENABLE_USERNS_TESTS`          |
 
@@ -197,10 +199,22 @@ with the reason a test prints when it is not met:
 - `static_lib:<lib>`: `<lib>` is any Dyninst library.
   `ENABLE_STATIC_LIBS` builds the static ones.
 
-- `codegen:<arch>`: As in `DYNINST_CODEGEN_ARCH_<ARCH>`: `x86_64`,
-  `i386`, `aarch64`, `ppc64le`, `riscv64`, `amdgpu_gfx908`,
+- `codegen:<arch>`: `<arch>` is one of `DYNINST_CODEGEN_ARCHES`:
+  `x86_64`, `i386`, `aarch64`, `ppc64le`, `riscv64`, `amdgpu_gfx908`,
   `amdgpu_gfx90a`, `amdgpu_gfx940` or `amdgpu_gfx950`. `codegen:i386` is
   also met for x86_64, which builds the IA-32 emitter too.
+
+- `host:<arch>`: The test runs code written for one architecture, such
+  as assembly. `<arch>` is one of `DYNINST_HOST_ARCHES`: `x86_64`,
+  `i386`, `aarch64`, `ppc64le` or `riscv64`.
+
+- `native`: The test runs a program that Dyninst instruments or
+  rewrites, which works only when Dyninst generates code for the host.
+  It is not met when `DYNINST_CODEGEN_ARCH` names another architecture,
+  as in the codegen cross-build CI jobs, which build for aarch64,
+  ppc64le, i386 and amdgpu on an x86_64 host. `dynamic` does not imply
+  it: a test can attach with ptrace without generating code. A test
+  whose mutatee is x86_64 assembly needs `host:x86_64 native`.
 
 - `dynamic` and `userns`: The test drives a live process with ptrace
   (`dynamic`), or creates unprivileged user namespaces with `unshare()`
