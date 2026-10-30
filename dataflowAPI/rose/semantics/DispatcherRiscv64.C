@@ -624,23 +624,13 @@ struct IP_MUL : P {
     rs2_bits = d->read(rs2, 64, 0);
     rs1_int = ops->ite(ops->number_(64, mul_op_signed_rs1), rs1_bits, rs1_bits);
     rs2_int = ops->ite(ops->number_(64, mul_op_signed_rs2), rs2_bits, rs2_bits);
-    result_wide = ops->extract(
-        ops->ite(
-            ops->and_(ops->boolean_(ops->number_(64, mul_op_signed_rs1)),
-                      ops->boolean_(ops->number_(64, mul_op_signed_rs2))),
-            ops->signedMultiply(rs1_int, rs2_int),
-            ops->ite(
-                ops->and_(ops->boolean_(ops->number_(64, mul_op_signed_rs1)),
-                          ops->boolean_(ops->invert(
-                              ops->number_(64, mul_op_signed_rs2)))),
-                d->signedUnsignedMultiply(rs1_int, rs2_int),
-                ops->ite(ops->and_(
-                             ops->boolean_(ops->number_(64, mul_op_signed_rs1)),
-                             ops->boolean_(ops->invert(
-                                 ops->number_(64, mul_op_signed_rs2)))),
-                         d->signedUnsignedMultiply(rs2_int, rs1_int),
-                         ops->unsignedMultiply(rs1_int, rs2_int)))),
-        0, 128);
+    if (mul_op_signed_rs1 && mul_op_signed_rs2)
+      result_wide = ops->signedMultiply(rs1_int, rs2_int);
+    else if (mul_op_signed_rs1)
+      result_wide = d->signedUnsignedMultiply(rs1_int, rs2_int);
+    else
+      result_wide = ops->unsignedMultiply(rs1_int, rs2_int);
+    result_wide = ops->extract(result_wide, 0, 128);
     d->write(rd, ops->ite(ops->number_(64, mul_op_high),
                           ops->extract(result_wide, 64, 128),
                           ops->extract(result_wide, 0, 64)));
@@ -1592,10 +1582,13 @@ DispatcherRiscv64::signedUnsignedMultiply(const BaseSemantics::SValuePtr &a,
       a, operators->number_(numBits, numBits - 1));
   // two's complement if a is negative
   auto absA = operators->subtract(operators->xor_(a, sign), sign);
-  // lower numBits of unsigned multipy
-  auto m = operators->extract(operators->unsignedMultiply(absA, b), 0, numBits);
+  // the whole product, as signedMultiply and unsignedMultiply give it
+  auto m = operators->extract(operators->unsignedMultiply(absA, b), 0,
+                              2 * numBits);
+  auto wideSign = operators->signExtend(sign, 2 * numBits);
   // two's complement if a is negative
-  auto result = operators->subtract(operators->xor_(m, sign), sign);
+  auto result =
+      operators->subtract(operators->xor_(m, wideSign), wideSign);
 
   return result;
 }
