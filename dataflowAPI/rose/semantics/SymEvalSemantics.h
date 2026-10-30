@@ -600,6 +600,8 @@ namespace rose {
                     virtual BaseSemantics::SValuePtr equalToZero(const BaseSemantics::SValuePtr &a_);
                     virtual BaseSemantics::SValuePtr signExtend(const BaseSemantics::SValuePtr &a_,
                                                                 uint64_t newwidth = 0);
+                    virtual BaseSemantics::SValuePtr unsignedExtend(const BaseSemantics::SValuePtr &a_,
+                                                                    size_t new_width);
                     virtual BaseSemantics::SValuePtr add(const BaseSemantics::SValuePtr &a_,
                                                          const BaseSemantics::SValuePtr &b_);
                     virtual BaseSemantics::SValuePtr addWithCarries(const BaseSemantics::SValuePtr &a_,
