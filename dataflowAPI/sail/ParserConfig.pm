@@ -312,12 +312,12 @@ our %ARGS_PER_SUBSET = %{
             rl  => { init_code => sub { } },
             rs2 => {
                 init_code => sub {
-                    print_indent( "SgAsmExpression *rs2 = args[2];\n", 2 );
+                    print_indent( "SgAsmExpression *rs2 = args[1];\n", 2 );
                 },
             },
             rs1 => {
                 init_code => sub {
-                    print_indent( "SgAsmExpression *rs1 = args[1];\n", 2 );
+                    print_indent( "SgAsmExpression *rs1 = args[2];\n", 2 );
                 },
             },
             width => {
