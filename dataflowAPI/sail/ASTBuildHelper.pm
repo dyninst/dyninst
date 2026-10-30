@@ -60,11 +60,22 @@ sub build_boolean_or {
 # exclusive end.  Build extract(value, low, high + 1).
 sub build_extract {
     my ( $value_node, $low_node, $high_node ) = @_;
-    my $end_node =
-      ASTNode->new_func_node( ROSE_OP_ADD,
-        [ $high_node, ASTNode->new_num_node(1) ] );
-    $end_node->set_attribute( "binary_op",         1 );
-    $end_node->set_attribute( "is_const_foldable", 1 );
+    my $end_node;
+
+    # v[n - 1 .. 0] is common; end it at n rather than n - 1 + 1
+    if (   $high_node->is_func_node()
+        && $high_node->is_op(ROSE_OP_SUB)
+        && $high_node->get_nth_child(1)->is_num_node()
+        && $high_node->get_nth_child(1)->get_value() == 1 )
+    {
+        $end_node = $high_node->get_nth_child(0);
+    }
+    else {
+        $end_node = ASTNode->new_func_node( ROSE_OP_ADD,
+            [ $high_node, ASTNode->new_num_node(1) ] );
+        $end_node->set_attribute( "binary_op",         1 );
+        $end_node->set_attribute( "is_const_foldable", 1 );
+    }
     return ASTNode->new_func_node( ROSE_OP_EXTRACT,
         [ $value_node, $low_node, $end_node ] );
 }

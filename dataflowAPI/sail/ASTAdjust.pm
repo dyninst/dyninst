@@ -209,6 +209,37 @@ sub adjust_match {
     }
 }
 
+# A node is a C++ expression if it is built from numbers, the need_number
+# arguments (plain C++ variables) and C++ arithmetic over them.
+sub is_cpp_expr {
+    my ( $node, $curr_set ) = @_;
+    return 1 if $node->is_num_node() || $node->is_id_node();
+    if ( $node->is_var_node() ) {
+        my $arg = $ParserConfig::ARGS_PER_SUBSET{$curr_set}{ $node->get_value() };
+        return $arg && $arg->{need_number};
+    }
+    return 0
+      unless $node->is_func_node()
+      && ( $node->has_attribute("unary_op")
+        || $node->has_attribute("binary_op") );
+    for my $child ( @{ $node->get_children() } ) {
+        return 0 unless is_cpp_expr( $child, $curr_set );
+    }
+    return 1;
+}
+
+# Turn an operand that ROSE takes as a plain integer into a C++ expression,
+# e.g. ops->extract(x, 0, width * 8) instead of ops->number_(64, width) ...
+sub make_cpp_operand {
+    my ( $node, $curr_set ) = @_;
+    is_cpp_expr( $node, $curr_set )
+      or die "Error: $curr_set: operand is not a C++ integer expression";
+    my $expr = PrintROSE::build_expr( $node, 0, 0 );
+    $node->set_type(ASTType::LIT_ID);
+    $node->set_value($expr);
+    $node->set_children( [] );
+}
+
 # Normalize function operands by inserting implicit arguments
 
 # Also rewrite constant operands as LIT_ID type (literals) where required.
@@ -225,8 +256,8 @@ sub adjust_func_operands {
 
         if ( $node->is_op(ASTType::ROSE_OP_READ_MEM) ) {
 
-            # Add Implicit width
-            my $width_bytes_node = ASTNode->new_var_node(WIDTH_BYTES_VAR);
+            # Add Implicit width, a plain integer
+            my $width_bytes_node = ASTNode->new_id_node(WIDTH_BYTES_VAR);
             push @$func_args, $width_bytes_node;
         }
         elsif ( $node->is_op(ASTType::ROSE_OP_READ_REG) ) {
@@ -255,17 +286,15 @@ sub adjust_func_operands {
             }
         }
         elsif ( $func_op eq ASTType::ROSE_OP_EXTRACT ) {
-            my ( undef, $lhs, $rhs ) = @$func_args;
-            my $const_fold_lhs = try_const_fold($lhs);
-            my $const_fold_rhs = try_const_fold($rhs);
-            if ( $const_fold_lhs->{ok} && $const_fold_rhs->{ok} ) {
-                my $lhs_node = $node->get_nth_child(1);
-                my $rhs_node = $node->get_nth_child(2);
-                $lhs_node->set_value( $const_fold_lhs->{value} );
-                $lhs_node->set_type(ASTType::LIT_ID);
-                $rhs_node->set_value( $const_fold_rhs->{value} );
-                $rhs_node->set_type(ASTType::LIT_ID);
-            }
+
+            # The bounds are plain integers
+            make_cpp_operand( $func_args->[1], $curr_set );
+            make_cpp_operand( $func_args->[2], $curr_set );
+        }
+        elsif ( $node->is_op(ASTType::ROSE_OP_WRITE_MEM) ) {
+
+            # The width is a plain integer
+            make_cpp_operand( $func_args->[1], $curr_set );
         }
         elsif ( $func_op eq ASTType::ROSE_OP_NUMBER ) {
             # The first operand should be a plain integer
