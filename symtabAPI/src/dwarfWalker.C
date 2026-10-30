@@ -357,12 +357,15 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
     std::string moduleName = DwarfDyninst::die_name(moduleDIE);
 
     auto moduleTag = dwarf_tag(&moduleDIE);
-    if (moduleName.empty() && moduleTag == DW_TAG_type_unit) {
-      uint64_t sig8 = 0;
-      DwarfDyninst::type_unit_signature(moduleDIE, sig8);
-      char buf[20];
-      snprintf(buf, sizeof(buf), "{%016llx}", (unsigned long long)sig8);
-      moduleName = buf;
+    if (moduleName.empty() && DwarfDyninst::is_in_type_unit(moduleDIE)) {
+      // A type unit has no name; call it by its signature.
+      if (auto sig8 = DwarfDyninst::type_unit_signature(moduleDIE)) {
+        char buf[20];
+        snprintf(buf, sizeof(buf), "{%016llx}", (unsigned long long)*sig8);
+        moduleName = buf;
+      } else {
+        dwarf_printf("(0x%lx) Type unit without a signature\n", id());
+      }
     }
 
     dwarf_printf("Next DWARF module: %s with DIE %p and tag %d\n", moduleName.c_str(), (void*)moduleDIE.addr, moduleTag);

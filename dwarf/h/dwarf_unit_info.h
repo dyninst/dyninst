@@ -31,6 +31,8 @@
 #ifndef DWARF_UNIT_INFO_H
 #define DWARF_UNIT_INFO_H
 
+#include <boost/optional.hpp>
+#include <cstdint>
 #include <dwarf.h>
 #include <elfutils/libdw.h>
 
@@ -75,20 +77,18 @@ namespace Dyninst { namespace DwarfDyninst {
 
   /*
    * The 8-byte type signature of the type unit headed by `die`, as DW_FORM_ref_sig8
-   * spells it. Returns false, leaving `signature` untouched, if `die` does not head a
-   * type unit.
+   * spells it, or none if `die` does not head a type unit.
    */
-  inline bool type_unit_signature(Dwarf_Die die, uint64_t &signature) {
+  inline boost::optional<uint64_t> type_unit_signature(Dwarf_Die die) {
     uint8_t unit_type{};
     uint64_t unit_id{};
     if(!die.cu || dwarf_cu_info(die.cu, NULL, &unit_type, NULL, NULL, &unit_id, NULL, NULL) != 0) {
-      return false;
+      return boost::none;
     }
     if(unit_type != DW_UT_type) {
-      return false;
+      return boost::none;
     }
-    signature = unit_id;
-    return true;
+    return unit_id;
   }
 }}
 
