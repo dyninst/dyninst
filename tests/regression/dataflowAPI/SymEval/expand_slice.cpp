@@ -8,9 +8,7 @@
  * assignment an expression. The simplification runs StackAnalysis, which cannot analyze
  * every architecture's code on every build.
  *
- * Usage: expand_slice [--skip <reason>] <executable>...
- * With --skip, or without executables, the test reports a skip (exit status
- * 77).
+ * Usage: expand_slice <executable>...
  */
 #include "AbslocInterface.h"
 #include "CFG.h"
@@ -24,7 +22,6 @@
 #include <cstdlib>
 #include <exception>
 #include <iostream>
-#include <string>
 #include <vector>
 
 namespace pa = Dyninst::ParseAPI;
@@ -105,7 +102,7 @@ namespace {
       return false;
     }
     Dyninst::AST::Ptr ast = value(g, a, res);
-    std::cout << path << ": 0x" << std::hex << addr << std::dec << " " << a->format() << " = "
+    std::cerr << path << ": 0x" << std::hex << addr << std::dec << " " << a->format() << " = "
               << (ast ? ast->format() : "<none>") << "\n";
     if(rv == df::SymEval::FAILED || !ast) {
       std::cerr << path << ": no expression for the assignment\n";
@@ -117,13 +114,9 @@ namespace {
 }
 
 int main(int argc, char** argv) {
-  if(argc >= 3 && std::string{argv[1]} == "--skip") {
-    std::cout << "skipping: " << argv[2] << "\n";
-    return 77;
-  }
   if(argc < 2) {
-    std::cout << "skipping: needs the test binaries (DYNINST_ENABLE_TESTS=ALL)\n";
-    return 77;
+    std::cerr << "usage: " << argv[0] << " <executable>...\n";
+    return EXIT_FAILURE;
   }
   bool ok = true;
   for(int i = 1; i < argc; ++i) {
