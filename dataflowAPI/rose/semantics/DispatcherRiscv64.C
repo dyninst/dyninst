@@ -872,8 +872,8 @@ struct IP_LOADRES : P {
 // Command: perl json_to_rose.pl --insn-set=STORECON
 struct IP_STORECON : P {
   void p(D d, Ops ops, I insn, A args, B raw) {
-    SgAsmExpression *rs2 = args[2];
-    SgAsmExpression *rs1 = args[1];
+    SgAsmExpression *rs2 = args[1];
+    SgAsmExpression *rs1 = args[2];
     size_t width = lrsc_width_str(insn);
     SgAsmExpression *rd = args[0];
 
