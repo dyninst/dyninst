@@ -169,7 +169,7 @@ struct IP_JALR : P {
     BaseSemantics::SValuePtr target;
     link_address = ops->add(PC, ops->number_(64, insn->get_size()));
     target = ops->add(d->read(rs1, 64, 0), d->SignExtend(imm, 64));
-    d->BranchTo(ops->concat(ops->extract(target, 1, 63), ops->number_(64, 0)));
+    d->BranchTo(ops->and_(target, ops->number_(64, ~uint64_t{1})));
     d->write(rd, link_address);
     return;
   }
