@@ -14,6 +14,20 @@ cmake_host_system_information(RESULT _host_arch QUERY OS_PLATFORM)
 set(_32bit_x86_arches "i386" "i686")
 set(_64bit_x86_arches "x86_64" "amd64")
 set(_amdgpu_arches "amdgpu_gfx908" "amdgpu_gfx90a" "amdgpu_gfx940" "amdgpu_gfx950")
+
+# The architectures Dyninst can be built on, and the ones it can generate code for,
+# by the names DYNINST_HOST_ARCH and DYNINST_CODEGEN_ARCH use
+set(
+  DYNINST_HOST_ARCHES
+  "x86_64"
+  "i386"
+  "aarch64"
+  "ppc64le"
+  "riscv64"
+)
+set(DYNINST_CODEGEN_ARCHES ${DYNINST_HOST_ARCHES} ${_amdgpu_arches})
+
+# The names the host reports and DYNINST_CODEGEN_ARCH accepts, which include aliases
 set(
   _known_arches
   "ppc64le"
@@ -56,8 +70,14 @@ if(DYNINST_OS_Linux OR DYNINST_OS_FreeBSD)
   set(DYNINST_OS_UNIX TRUE)
 endif()
 
+# DYNINST_HOST_ARCH and DYNINST_CODEGEN_ARCH name the two architectures as the
+# DYNINST_*_ARCH_* variables do, in lower case: x86_64 for amd64, i386 for i686.
+# DYNINST_CODEGEN_ARCH, set below, hides the option of that name: it is the
+# architecture the option selects, the host's when the option is empty.
+set(DYNINST_HOST_ARCH ${_host_arch})
 if("${_host_arch}" IN_LIST _64bit_x86_arches)
   set(DYNINST_HOST_ARCH_X86_64 TRUE)
+  set(DYNINST_HOST_ARCH x86_64)
 elseif("${_host_arch}" STREQUAL "aarch64")
   set(DYNINST_HOST_ARCH_AARCH64 TRUE)
 elseif("${_host_arch}" STREQUAL "ppc64le")
@@ -67,6 +87,7 @@ elseif("${_host_arch}" STREQUAL "riscv64")
   set(DYNINST_ENABLE_CAPSTONE ON)
 elseif("${_host_arch}" IN_LIST _32bit_x86_arches)
   set(DYNINST_HOST_ARCH_I386 TRUE)
+  set(DYNINST_HOST_ARCH i386)
 endif()
 
 set(_codegen_arch ${_host_arch})
@@ -81,8 +102,10 @@ if(DYNINST_CODEGEN_ARCH)
   endif()
 endif()
 
+set(DYNINST_CODEGEN_ARCH ${_codegen_arch})
 if("${_codegen_arch}" IN_LIST _64bit_x86_arches)
   set(DYNINST_CODEGEN_ARCH_X86_64 TRUE)
+  set(DYNINST_CODEGEN_ARCH x86_64)
 elseif("${_codegen_arch}" STREQUAL "aarch64")
   set(DYNINST_CODEGEN_ARCH_AARCH64 TRUE)
 elseif("${_codegen_arch}" STREQUAL "ppc64le")
@@ -92,6 +115,7 @@ elseif("${_codegen_arch}" STREQUAL "riscv64")
   set(DYNINST_ENABLE_CAPSTONE ON)
 elseif("${_codegen_arch}" IN_LIST _32bit_x86_arches)
   set(DYNINST_CODEGEN_ARCH_I386 TRUE)
+  set(DYNINST_CODEGEN_ARCH i386)
 elseif("${_codegen_arch}" STREQUAL "amdgpu_gfx908")
   set(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908 TRUE)
 elseif("${_codegen_arch}" STREQUAL "amdgpu_gfx90a")
@@ -102,6 +126,14 @@ elseif("${_codegen_arch}" STREQUAL "amdgpu_gfx950")
   set(DYNINST_CODEGEN_ARCH_AMDGPU_GFX950 TRUE)
 else()
   message(FATAL_ERROR "Missing CODEGEN ARCH")
+endif()
+
+# Whether Dyninst generates code for the host it is built on, so that a
+# program it instruments or rewrites can run here
+if("${DYNINST_HOST_ARCH}" STREQUAL "${DYNINST_CODEGEN_ARCH}")
+  set(DYNINST_CODEGEN_NATIVE TRUE)
+else()
+  set(DYNINST_CODEGEN_NATIVE FALSE)
 endif()
 
 # --- DEPRECATED ---
@@ -128,6 +160,7 @@ elseif("${_host_os}" STREQUAL "Windows")
   set(DYNINST_PLATFORM i386-unknown-nt4.0)
 endif()
 
-message(STATUS "Host arch = ${_host_arch}")
-message(STATUS "Codegen arch = ${_codegen_arch}")
+message(STATUS "DYNINST_HOST_ARCH = ${DYNINST_HOST_ARCH}")
+message(STATUS "DYNINST_CODEGEN_ARCH = ${DYNINST_CODEGEN_ARCH}")
+message(STATUS "DYNINST_CODEGEN_NATIVE = ${DYNINST_CODEGEN_NATIVE}")
 message(STATUS "DYNINST_PLATFORM = ${DYNINST_PLATFORM}")
