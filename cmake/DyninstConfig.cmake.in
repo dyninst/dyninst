@@ -17,6 +17,17 @@ include("${CMAKE_CURRENT_LIST_DIR}/DyninstTargets.cmake")
 set(DYNINST_PLATFORM "@DYNINST_PLATFORM@")
 set(DYNINST_INTERNAL_DEFINES @TESTSUITE_PLATFORM_CAPABILITIES@)
 
+# The architecture Dyninst was built on, the one it generates code for, and
+# whether they are the same. Only then can a program Dyninst instruments or
+# rewrites run on that host.
+set(DYNINST_HOST_ARCH "@DYNINST_HOST_ARCH@")
+set(DYNINST_CODEGEN_ARCH "@DYNINST_CODEGEN_ARCH@")
+set(DYNINST_CODEGEN_NATIVE @DYNINST_CODEGEN_NATIVE@)
+
+# The architectures Dyninst can be built on, and the ones it can generate code for
+set(DYNINST_HOST_ARCHES @DYNINST_HOST_ARCHES@)
+set(DYNINST_CODEGEN_ARCHES @DYNINST_CODEGEN_ARCHES@)
+
 foreach(COMP ${Dyninst_FIND_COMPONENTS})
   if(TARGET Dyninst::${COMP})
     set(Dyninst_${COMP}_FOUND TRUE)
