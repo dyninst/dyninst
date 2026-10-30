@@ -697,7 +697,10 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::signExtend(const Ba
                                                                      uint64_t newwidth) {
     BaseSemantics::SValuePtr width_ = SymEvalSemantics::SValue::instance(64, newwidth);
 
-    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::signExtendOp, a_, width_);
+    // A ROSE expression without a type reports (size_t)-1 bits, and Dispatcher::read extends
+    // to that width: keep the operand's width rather than take it.
+    size_t nbits = known_width(newwidth) ? newwidth : a_->get_width();
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::signExtendOp, a_, width_, nbits);
 }
 
 BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::add(const BaseSemantics::SValuePtr &a_,
@@ -765,7 +768,8 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::readMemory(const Re
                                                                      const BaseSemantics::SValuePtr &addr,
                                                                      const BaseSemantics::SValuePtr &dflt,
                                                                      const BaseSemantics::SValuePtr &/*cond*/) {
-    return currentState()->readMemory(addr, dflt, this, this);
+    // The read's size is dflt's value (see MemoryStateAST::readMemory), in bits.
+    return currentState()->readMemory(addr, dflt, this, this)->copy(dflt->get_number());
 }
 
 void SymEvalSemantics::RiscOperatorsAST::writeMemory(const RegisterDescriptor &/*segreg*/,
