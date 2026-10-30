@@ -119,7 +119,8 @@ struct IP_UTYPE : P {
     enum Riscv64InstructionKind op = insn->get_kind();
 
     BaseSemantics::SValuePtr off;
-    off = d->SignExtend(ops->shiftLeft(imm, ops->number_(64, 12)), 64);
+    off = d->SignExtend(
+        ops->extract(ops->shiftLeft(imm, ops->number_(64, 12)), 0, 32), 64);
     switch (op) {
     case rose_riscv64_op_lui: {
       d->write(rd, off);

@@ -307,6 +307,11 @@ namespace {
     {"remu  a0, a1, a2",      0x02c5f533, 0xffffffffffffff9c,  10,                  0,      0,           rv::a0, 0,  6},
     {"divu  a0, a1, a2",      0x02c5d533, 5,                   0,                   0,      0,           rv::a0, 0,  minus1},
     {"remu  a0, a1, a2",      0x02c5f533, 5,                   0,                   0,      0,           rv::a0, 0,  5},
+
+    // lui and auipc put the 20-bit immediate in bits 12..31 and sign-extend it.
+    {"lui   a0, 0x12345",     0x12345537, 0,                   0,                   0,      0,           rv::a0, 0,  0x12345000},
+    {"lui   a0, 0x80000",     0x80000537, 0,                   0,                   0,      0,           rv::a0, 0,  0xffffffff80000000},
+    {"auipc a0, 0x80000",     0x80000517, 0,                   0,                   0,      0,           rv::a0, 0,  0xffffffff80001000},
   };
   // clang-format on
 
