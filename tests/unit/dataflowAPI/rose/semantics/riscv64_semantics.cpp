@@ -279,6 +279,10 @@ namespace {
     // jalr jumps to a5 + 8 with bit 0 cleared and links the next instruction.
     {"jalr  ra, 8(a5)",       0x008780e7, 0,                   0,                   0x1001, 0,           rv::pc, 0,  0x1008},
     {"jalr  ra, 8(a5)",       0x008780e7, 0,                   0,                   0x1001, 0,           rv::ra, 0,  insn_addr + 4},
+
+    // sc stores rs2 (a1) at the address in rs1 (a2).
+    {"sc.w  a0, a1, (a2)",    0x18b6252f, 0x1122334455667788,  mem_addr,            0,      0xdeadbeef,  mem,    4,  0x55667788},
+    {"sc.d  a0, a1, (a2)",    0x18b6352f, 0x1122334455667788,  mem_addr,            0,      0xdeadbeef,  mem,    8,  0x1122334455667788},
   };
   // clang-format on
 
