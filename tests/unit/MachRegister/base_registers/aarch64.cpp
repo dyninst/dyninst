@@ -13,25 +13,40 @@ int main() {
   BASEREG_CHECK(aarch64::x8, aarch64::x8);
   BASEREG_CHECK(aarch64::x30, aarch64::x30);
 
-  // FPR 8 -> 64
-  BASEREG_CHECK(aarch64::b0, aarch64::q0);
-  BASEREG_CHECK(aarch64::b8, aarch64::q8);
-  BASEREG_CHECK(aarch64::b31, aarch64::q31);
+  // FPR 8 -> SVE vector
+  BASEREG_CHECK(aarch64::b0, aarch64::z0);
+  BASEREG_CHECK(aarch64::b8, aarch64::z8);
+  BASEREG_CHECK(aarch64::b31, aarch64::z31);
 
-  // FPR 16 -> 64
-  BASEREG_CHECK(aarch64::h0, aarch64::q0);
-  BASEREG_CHECK(aarch64::h8, aarch64::q8);
-  BASEREG_CHECK(aarch64::h31, aarch64::q31);
+  // FPR 16 -> SVE vector
+  BASEREG_CHECK(aarch64::h0, aarch64::z0);
+  BASEREG_CHECK(aarch64::h8, aarch64::z8);
+  BASEREG_CHECK(aarch64::h31, aarch64::z31);
 
-  // FPR 32 -> 64
-  BASEREG_CHECK(aarch64::s0, aarch64::q0);
-  BASEREG_CHECK(aarch64::s8, aarch64::q8);
-  BASEREG_CHECK(aarch64::s31, aarch64::q31);
+  // FPR 32 -> SVE vector
+  BASEREG_CHECK(aarch64::s0, aarch64::z0);
+  BASEREG_CHECK(aarch64::s8, aarch64::z8);
+  BASEREG_CHECK(aarch64::s31, aarch64::z31);
 
-  // FPR 64 -> 64
-  BASEREG_CHECK(aarch64::q0, aarch64::q0);
-  BASEREG_CHECK(aarch64::q8, aarch64::q8);
-  BASEREG_CHECK(aarch64::q31, aarch64::q31);
+  // FPR 64 -> SVE vector
+  BASEREG_CHECK(aarch64::d0, aarch64::z0);
+  BASEREG_CHECK(aarch64::d8, aarch64::z8);
+  BASEREG_CHECK(aarch64::d31, aarch64::z31);
+
+  // FPR 128 -> SVE vector
+  BASEREG_CHECK(aarch64::q0, aarch64::z0);
+  BASEREG_CHECK(aarch64::q8, aarch64::z8);
+  BASEREG_CHECK(aarch64::q31, aarch64::z31);
+
+  // Upper 64 bits of FPR 128 -> SVE vector
+  BASEREG_CHECK(aarch64::hq0, aarch64::z0);
+  BASEREG_CHECK(aarch64::hq8, aarch64::z8);
+  BASEREG_CHECK(aarch64::hq31, aarch64::z31);
+
+  // SVE vector -> SVE vector
+  BASEREG_CHECK(aarch64::z0, aarch64::z0);
+  BASEREG_CHECK(aarch64::z8, aarch64::z8);
+  BASEREG_CHECK(aarch64::z31, aarch64::z31);
 
   // SPR 32 -> 64
   BASEREG_CHECK(aarch64::wsp, aarch64::sp);
@@ -88,6 +103,23 @@ int main() {
   BASEREG_CHECK(aarch64::Ip1, aarch64::x17);
   BASEREG_CHECK(aarch64::x17, aarch64::Ip1);
   BASEREG_CHECK(aarch64::x17, aarch64::x17);
+
+  // SVE, SVE2 and SME registers that alias no FPR
+  BASEREG_CHECK(aarch64::p0, aarch64::p0);
+  BASEREG_CHECK(aarch64::p15, aarch64::p15);
+  BASEREG_CHECK(aarch64::ffr, aarch64::ffr);
+  BASEREG_CHECK(aarch64::vg, aarch64::vg);
+  BASEREG_CHECK(aarch64::zt0, aarch64::zt0);
+  BASEREG_CHECK(aarch64::za, aarch64::za);
+
+  // Every base register is itself a register
+  for(auto r : Dyninst::MachRegister::getAllRegistersForArch(Dyninst::Arch_aarch64)) {
+    auto const base = r.getBaseRegister();
+    if(base.name() == "<INVALID_REG>") {
+      std::cerr << "FAILED " << r.name() << " has no valid base register: " << base;
+      return EXIT_FAILURE;
+    }
+  }
 
   return EXIT_SUCCESS;
 }
