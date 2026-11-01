@@ -105,6 +105,18 @@ namespace Dyninst {
      */
     bool isVector() const;
 
+    /* Checks if this is a GPU lane-partitioned vector data register
+     *
+     *  On a SIMT GPU (AMDGPU VGPR/ACC_VGPR) one architectural register names a
+     *  per-lane array, and a vector write only updates the lanes active in EXEC;
+     *  inactive lanes keep their previous value. A write is therefore a PARTIAL
+     *  (read-modify-write) definition, not a full kill, which liveness must model
+     *  so a value carried across a divergent region (written under a narrowed EXEC)
+     *  is not reported dead. Unlike isVector(), this excludes scalar status/mask
+     *  registers (vcc/exec/scc) whose writes are not lane-masked the same way.
+     */
+    bool isGPUVector() const;
+
     /* Checks if this is a control/status register
      *
      *  Control registers influence the execution behavior of the Processing

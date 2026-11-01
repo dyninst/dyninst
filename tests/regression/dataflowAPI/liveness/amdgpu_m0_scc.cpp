@@ -10,9 +10,13 @@
 #include <map>
 
 /*
- * Liveness of M0 and SCC around real writer/reader pairs in the gfx908
+ * Liveness of M0, SCC, and VGPRs around real writer/reader pairs in the gfx908
  * IndirectControlFlowAnalysis test binary:
  *
+ *   0x191c  v_mov_b32 v4, v20          writes v4 (EXEC-masked -> partial def)
+ *   0x1920  v_readfirstlane_b32 s4, v4 reads v4
+ *   0x193c  v_mov_b32 v0, 0            writes v0 under s_and_saveexec (divergent)
+ *   0x1944  global_load_dwordx2 .. v0  reads v0
  *   0x1c70  s_and_b32 m0, s14, 0xff    writes M0
  *   0x1c7c  global_store_dwordx2 ...
  *   0x1c84  s_sendmsg MSG_INTERRUPT    reads M0
@@ -35,6 +39,12 @@ namespace {
     {0x1cbc, Dyninst::amdgpu_gfx908::src_scc, false},
     {0x1cc0, Dyninst::amdgpu_gfx908::src_scc, true},
     {0x1cc4, Dyninst::amdgpu_gfx908::src_scc, false},
+    // VGPR partial-def (this change): a VGPR write is EXEC-masked, so it is a read-modify-write,
+    // not a full kill, and the register is live BEFORE the write. Without the change both are
+    // reported dead (full kill). 0x191c writes v4 (used right after at 0x1920); 0x193c writes v0
+    // inside the s_and_saveexec divergent region (used at the global_load at 0x1944).
+    {0x191c, Dyninst::amdgpu_gfx908::v4, true},
+    {0x193c, Dyninst::amdgpu_gfx908::v0, true},
   };
 }
 
