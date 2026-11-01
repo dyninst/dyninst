@@ -215,6 +215,25 @@ std::vector<rv64i_tests> make_tests64() {
       di::register_rw_test{ reg_set{s2}, reg_set{s3} },
       di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{s2}, reg_set{} } }
     },
+    // Displacements wider than the access
+    { // lbu a5, 0x100(a4)
+      {0x83,0x47,0x07,0x10},
+      di::opcode_test{riscv64_op_lbu, "lbu", "lbu a5, 0x100(a4)"},
+      di::register_rw_test{ reg_set{a4}, reg_set{a5} },
+      di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{a4}, reg_set{} } }
+    },
+    { // lb a5, -0x7f0(a4)
+      {0x83,0x07,0x07,0x81},
+      di::opcode_test{riscv64_op_lb, "lb", "lb a5, 0xfffff810(a4)"},
+      di::register_rw_test{ reg_set{a4}, reg_set{a5} },
+      di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{a4}, reg_set{} } }
+    },
+    { // lhu a2, 0x7fe(a4)
+      {0x03,0x56,0xe7,0x7f},
+      di::opcode_test{riscv64_op_lhu, "lhu", "lhu a2, 0x7fe(a4)"},
+      di::register_rw_test{ reg_set{a4}, reg_set{a2} },
+      di::mem_test{ reads_memory, !writes_memory, di::register_rw_test{ reg_set{a4}, reg_set{} } }
+    },
 
     // --- Stores (S-type) ---
     { // sb a4, 0(s2)
@@ -228,6 +247,18 @@ std::vector<rv64i_tests> make_tests64() {
       di::opcode_test{riscv64_op_sh, "sh", "sh a5, 0x2(s3)"},
       di::register_rw_test{ reg_set{a5, s3}, reg_set{} },
       di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{s3} } }
+    },
+    { // sb a5, 0x100(a4)
+      {0x23,0x00,0xf7,0x10},
+      di::opcode_test{riscv64_op_sb, "sb", "sb a5, 0x100(a4)"},
+      di::register_rw_test{ reg_set{a5, a4}, reg_set{} },
+      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{a4} } }
+    },
+    { // sh a5, 0x100(a4)
+      {0x23,0x10,0xf7,0x10},
+      di::opcode_test{riscv64_op_sh, "sh", "sh a5, 0x100(a4)"},
+      di::register_rw_test{ reg_set{a5, a4}, reg_set{} },
+      di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{a4} } }
     },
     { // sw s4, 4(t5)
       {0x23,0x22,0x4f,0x01},

@@ -158,7 +158,7 @@ std::vector<rv64f_tests> make_tests64() {
     },
     { // fsd fs8, -14(t0)
       {0x27,0xb9,0x82,0xff},
-      di::opcode_test{riscv64_op_fsd, "fsd", "fsd fs8, 0xfffffffffffffff2(t0)"},
+      di::opcode_test{riscv64_op_fsd, "fsd", "fsd fs8, 0xfffffff2(t0)"},
       di::register_rw_test{ reg_set{f24, t0}, reg_set{} },
       di::mem_test{ !reads_memory, writes_memory, di::register_rw_test{ reg_set{}, reg_set{t0} } }
     },

@@ -258,11 +258,16 @@ void InstructionDecoder_riscv64::decode_mem(const Instruction &insn, cs_riscv_op
   const entryID eid = insn.getOperation().getID();
   const int8_t size = riscv::mem_size(eid);
   auto const type = size_to_type_signed(size);
+  auto const reg_type = size_to_type_signed(RISCV_REG_SIZE);
+  auto const imm_type = size_to_type_signed(RISCV_IMM_SIZE);
 
-  auto disp = Immediate::makeImmediate(Result(type, operand.mem.disp));
+  // Only the dereference has the access width: lbu takes a 12-bit
+  // displacement and a 64-bit address but reads one byte.
+  auto disp = Immediate::makeImmediate(Result(imm_type, operand.mem.disp));
   auto base = makeRegisterExpression(riscv::translate_register(
       static_cast<riscv_reg>(operand.mem.base), this->mode));
-  auto add = makeAddExpression(std::move(base), std::move(disp), type);
+  auto add = makeAddExpression(std::move(base), std::move(disp),
+                               std::max(reg_type, imm_type));
   auto deref = makeDereferenceExpression(std::move(add), type);
   if (is_encoded) {
     add_encoded_operand(std::move(deref), riscv::is_mem_load(eid),
