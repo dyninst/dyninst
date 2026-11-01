@@ -85,17 +85,15 @@ bool IA_amdgpu::isNop() const
 }
 
 // SIMT block-split trigger: this instruction changes the EXEC mask, so it should START a new basic
-// block (divergence saveexec, mask flips, or the s_or-exec reconvergence). We detect a WRITE to EXEC
-// by register identity in the write set — this catches every exec-writer regardless of opcode
-// (saveexec, s_or/s_xor/s_and exec, ...), matching the analysis's isExecSplitPoint. A plain mov into
-// EXEC is excluded (a benign save/restore, not a divergence transition — the "except mov" case).
+// block. We detect a WRITE to EXEC by register identity in the write set — this catches every
+// exec-writer regardless of opcode (saveexec, s_or/s_xor/s_and exec, AND `s_mov exec, …`), matching
+// the analysis's isExecSplitPoint. Every mask transition is isolated, including the restore
+// (`s_mov exec, saved`) and the whole-wave expand (`s_mov exec, -1`); a `s_mov sdst, exec` that merely
+// *reads* EXEC does not write it and so does not split. (Was previously an "except mov" exclusion;
+// dropped so restore/expand transitions are their own single-entry blocks — see docs/MASK_ALGEBRA.md.)
 bool IA_amdgpu::isModifyExecMask() const
 {
     Instruction ci = curInsn();
-    auto id = ci.getOperation().getID();
-    if(id == amdgpu_gfx908_op_S_MOV_B64 ||
-       id == amdgpu_gfx90a_op_S_MOV_B64 || id == amdgpu_gfx940_op_S_MOV_B64)
-        return false;
     std::set<RegisterAST::Ptr> written;
     ci.getWriteSet(written);
     for(const auto &w : written) {
