@@ -552,7 +552,10 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction curInsn, Block *blk, Addr
       //assert(index >= 0);
       if(index>=0){
           ret.written[index] = true;
-          if ((cur != base && cur.size() < 4) || isMMX(base)) ret.read[index] = true;
+          // Partial (read-modify-write) def: x86 subreg/MMX keep untouched bits, AMDGPU VGPR/AGPR
+          // writes are EXEC-masked (isGPUVector), so the register stays live across the write.
+          if ((cur != base && cur.size() < 4) || isMMX(base) || base.isGPUVector())
+              ret.read[index] = true;
       }
     }
   }
