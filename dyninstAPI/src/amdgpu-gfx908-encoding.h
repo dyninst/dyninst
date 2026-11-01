@@ -36,7 +36,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-namespace amdgpu_gfx908_enc {
+namespace AmdgpuGfx908 {
+namespace enc {
 
 enum Format : uint8_t {
   ENC_SOP1,
@@ -280,6 +281,7 @@ extern const char *const oprTypeNames[NUM_OPR];
 extern const RegVal *const regvals[NUM_OPR];
 extern const uint16_t nregvals[NUM_OPR];
 
-}  // namespace amdgpu_gfx908_enc
+}  // namespace enc
+}  // namespace AmdgpuGfx908
 
 #endif  // AMDGPU_GFX908_ENCODING_H
