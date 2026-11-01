@@ -28,10 +28,30 @@
 
 #include "amdgpu-gfx908-details.h"
 #include "unaligned_memory_access.h"
+#include "amdgpu_pack.hpp"
 
 namespace AmdgpuGfx908 {
 
 using namespace Dyninst;
+
+// The emit* primitives below pack instruction words through a generated, table-driven encoder
+// (amdgpu_pack::packWordU64 over the machine-readable-ISA tables in amdgpu_gfx908_encoding.{h,C})
+// rather than open-coded bit layouts, so field positions come from the ISA description instead of
+// hand-maintained masks. The legacy set*/ContentMask bit helpers are retained for reference; the
+// emit* functions no longer use them.
+namespace PK = amdgpu_pack;
+namespace GE = amdgpu_gfx908_enc;
+
+static inline void appendWord32(codeGen &gen, uint32_t w) {
+  auto p = gen.cur_ptr();
+  append_memory_as(p, w);
+  gen.update(p);
+}
+static inline void appendWord64(codeGen &gen, uint64_t w) {
+  auto p = gen.cur_ptr();
+  append_memory_as(p, w);
+  gen.update(p);
+}
 
 // === SOP1 BEGIN ===
 void setEncodingSop1(uint32_t &rawInst) {
@@ -62,20 +82,11 @@ void setSrc0Sop1(uint32_t value, uint32_t &rawInst) {
 
 void emitSop1(unsigned opcode, Register dest, Register src0, bool hasLiteral, uint32_t literal,
               codeGen &gen) {
-  uint32_t newRawInst = 0xFFFFFFFF;
-  setEncodingSop1(newRawInst);
-  setFixedBitsSop1(newRawInst);
-  setOpcodeSop1(opcode, newRawInst);
-  setDstSop1(dest, newRawInst);
-  setSrc0Sop1(src0, newRawInst);
-
+  uint32_t w = (uint32_t)PK::packWordU64(GE::ENC_SOP1, opcode, {{GE::SDST, dest}, {GE::SSRC0, src0}});
   auto rawInstBuffer = gen.cur_ptr();
-  append_memory_as(rawInstBuffer, newRawInst);
-
-  if (hasLiteral) {
+  append_memory_as(rawInstBuffer, w);
+  if (hasLiteral)
     append_memory_as(rawInstBuffer, literal);
-  }
-
   gen.update(rawInstBuffer);
 }
 // === SOP1 END ===
@@ -109,17 +120,8 @@ void emitSop2(unsigned opcode, Register dest, Register src0, Register src1, code
   // AmdgpuGfx908 supports only one literal operand in SOP2.
   // Thus src0 and src1 can't be 255 at the same time.
   assert(!(src0 == 255 && src1 == 255));
-
-  uint32_t newRawInst = 0xFFFFFFFF;
-  setEncodingSop2(newRawInst);
-  setOpcodeSop2(opcode, newRawInst);
-  setDstSop2(dest, newRawInst);
-  setSrc1Sop2(src1, newRawInst);
-  setSrc0Sop2(src0, newRawInst);
-
-  auto rawInstBuffer = gen.cur_ptr();
-  append_memory_as(rawInstBuffer, newRawInst);
-  gen.update(rawInstBuffer);
+  appendWord32(gen, (uint32_t)PK::packWordU64(GE::ENC_SOP2, opcode,
+                                              {{GE::SDST, dest}, {GE::SSRC0, src0}, {GE::SSRC1, src1}}));
 }
 
 void emitSop2WithSrc1Literal(unsigned opcode, Register dest, Register src0, uint32_t src1Literal,
@@ -159,16 +161,8 @@ void setSrc0SopC(uint32_t value, uint32_t &rawInst) {
 }
 
 void emitSopC(unsigned opcode, Register src0, Register src1, codeGen &gen) {
-  uint32_t newRawInst = 0xFFFFFFFF;
-  setEncodingSopC(newRawInst);
-  setFixedBitsSopC(newRawInst);
-  setOpcodeSopC(opcode, newRawInst);
-  setSrc1SopC(src1, newRawInst);
-  setSrc0SopC(src0, newRawInst);
-
-  auto rawInstBuffer = gen.cur_ptr();
-  append_memory_as(rawInstBuffer, newRawInst);
-  gen.update(rawInstBuffer);
+  appendWord32(gen, (uint32_t)PK::packWordU64(GE::ENC_SOPC, opcode,
+                                              {{GE::SSRC0, src0}, {GE::SSRC1, src1}}));
 }
 // === SOPC END ===
 
@@ -200,16 +194,8 @@ void setSImm16SopK(int16_t value, uint32_t &rawInst) {
 }
 
 void emitSopK(unsigned opcode, Register dest, int16_t simm16, codeGen &gen) {
-  uint32_t newRawInst = 0xFFFFFFFF;
-  setEncodingSopK(newRawInst);
-  setFixedBitsSopK(newRawInst);
-  setOpcodeSopK(opcode, newRawInst);
-  setDstSopK(dest, newRawInst);
-  setSImm16SopK(simm16, newRawInst);
-
-  auto rawInstBuffer = gen.cur_ptr();
-  append_memory_as(rawInstBuffer, newRawInst);
-  gen.update(rawInstBuffer);
+  appendWord32(gen, (uint32_t)PK::packWordU64(GE::ENC_SOPK, opcode,
+                    {{GE::SDST, dest}, {GE::SIMM16, (uint32_t)(uint16_t)simm16}}));
 }
 // === SOPK END ===
 
@@ -236,15 +222,8 @@ void setSImm16SopP(int16_t value, uint32_t &rawInst) {
 }
 
 void emitSopP(unsigned opcode, int16_t simm16, codeGen &gen) {
-  uint32_t newRawInst = 0xFFFFFFFF;
-  setEncodingSopP(newRawInst);
-  setFixedBitsSopP(newRawInst);
-  setOpcodeSopP(opcode, newRawInst);
-  setSImm16SopP(simm16, newRawInst);
-
-  auto rawInstBuffer = gen.cur_ptr();
-  append_memory_as(rawInstBuffer, newRawInst);
-  gen.update(rawInstBuffer);
+  appendWord32(gen, (uint32_t)PK::packWordU64(GE::ENC_SOPP, opcode,
+                    {{GE::SIMM16, (uint32_t)(uint16_t)simm16}}));
 }
 // === SOPP END ===
 
@@ -320,24 +299,12 @@ void setOffsetSmem(uint64_t value, uint64_t &rawInst) {
 }
 
 void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset, codeGen &gen) {
-  uint64_t newRawInst = 0xFFFFFFFFFFFFFFFF;
-
-  setEncodingSmem(newRawInst);
-  setOpcodeSmem(opcode, newRawInst);
-  setImmSmem(getSmemImmBit(opcode), newRawInst);
-  setGlcSmem(0, newRawInst);
-  setNvSmem(0, newRawInst);
-  setSoeSmem(0, newRawInst);
-  setR1Smem(newRawInst);
-  setSdataSmem(sdata, newRawInst);
-  setSbaseSmem(sbase, newRawInst);
-  setSoffsetSmem(0, newRawInst);
-  setR4Smem(newRawInst);
-  setOffsetSmem(offset, newRawInst);
-
-  auto rawInstBuffer = gen.cur_ptr();
-  append_memory_as(rawInstBuffer, newRawInst);
-  gen.update(rawInstBuffer);
+  // Callers pass `sbase` already halved (the SGPR-pair index); the generated SBASE field halves
+  // internally (valueLo=1), so pass sbase<<1 to round-trip to the same 6-bit value. GLC/NV/SOFFSET_EN
+  // default to 0 (unset).
+  appendWord64(gen, PK::packWordU64(GE::ENC_SMEM, opcode,
+                    {{GE::SDATA, (uint32_t)sdata}, {GE::SBASE, (uint32_t)(sbase << 1)},
+                     {GE::OFFSET, (uint32_t)offset}, {GE::IMM, getSmemImmBit(opcode)}}));
 }
 // === SMEM END ===
 
