@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "AmdgpuPointHandler.h"
+#include "amdgpu-point-handler.h"
 
 #include "BPatch_addressSpace.h"
 #include "BPatch_module.h"
@@ -40,7 +40,7 @@
 #include "external/amdgpu/AMDHSAKernelDescriptor.h"
 
 // Our wrapper around it
-#include "AmdgpuKernelDescriptor.h"
+#include "amdgpu-kernel-descriptor.h"
 
 #include "ASTs/ast.h"
 #include "debug.h"

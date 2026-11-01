@@ -35,8 +35,8 @@ set(_public_headers ${_BPatch_public_headers})
 set(
   _private_headers
   src/addressSpace.h
-  src/AmdgpuKernelDescriptor.h
-  src/AmdgpuPointHandler.h
+  src/amdgpu-kernel-descriptor.h
+  src/amdgpu-point-handler.h
   ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDHSAKernelDescriptor.h
   ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDGPUEFlags.h
   src/binaryEdit.h
@@ -103,8 +103,8 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     src/addressSpace-amdgpu-gfx908.C
     src/inst-amdgpu.C
     src/emit-amdgpu.C
-    src/AmdgpuKernelDescriptor.C
-    src/AmdgpuPointHandler.C
+    src/amdgpu-kernel-descriptor.C
+    src/amdgpu-point-handler.C
     src/amdgpu-gfx908-details.C
   )
 endif()
