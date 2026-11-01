@@ -233,7 +233,8 @@ public:
   // set PC = PC + SignExtend(wordOffset * 4) + 4
   void emitShortJump(int16_t wordOffset, codeGen &gen);
 
-  void emitLongJump(Register reg, uint64_t fromAddress, uint64_t toAddress, codeGen &gen);
+  void emitLongJump(Register pcPair, Register diffPair, uint64_t fromAddress, uint64_t toAddress,
+                    codeGen &gen);
 
   // Indirect call through an 8-byte function-pointer slot at slotAddr.
   // Allocates scratch SGPRs internally, loads the target from the slot via

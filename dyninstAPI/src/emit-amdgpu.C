@@ -2149,10 +2149,15 @@ void EmitterAmdgpuGfx908::emitShortJump(int16_t wordOffset, codeGen &gen) {
 }
 
 // For this we need reg, reg+1, reg+2, reg+3.
-void EmitterAmdgpuGfx908::emitLongJump(Register reg, uint64_t fromAddress, uint64_t toAddress,
-                                       codeGen &gen) {
-  assert(isValidSgprBlock(reg) && "reg must be a valid SGPR block");
-  assert(reg.getCount() == 4 && "reg must have 4 registers");
+// The long jump uses two independent 64-bit SGPR pairs: pcPair (s_getpc_b64 result, then += diff, the
+// target PC) and diffPair (the 64-bit to-from displacement). Each only needs even alignment on its own,
+// so the caller allocates them separately rather than one contiguous 4-register block (which would force
+// 4 contiguous free SGPRs when 2+2 non-contiguous would do).
+void EmitterAmdgpuGfx908::emitLongJump(Register pcPair, Register diffPair, uint64_t fromAddress,
+                                       uint64_t toAddress, codeGen &gen) {
+  assert(isValidSgprBlock(pcPair) && isValidSgprBlock(diffPair) &&
+         "pcPair/diffPair must be valid SGPR blocks");
+  assert(pcPair.getCount() == 2 && diffPair.getCount() == 2 && "pcPair/diffPair must each be a pair");
 
   // s_getpc_b64 will give us beginning of next instruction.
   // So our fromAddress must be incremented by 4 to accomodate for this.
@@ -2162,23 +2167,19 @@ void EmitterAmdgpuGfx908::emitLongJump(Register reg, uint64_t fromAddress, uint6
   assert(signedFromAddress > 0 && signedToAddress > 0 && "Both addresses must be positive");
   int64_t diff = signedToAddress - signedFromAddress;
 
-  emitSop1(S_GETPC_B64, /* dest= */ reg.getId(), /* src0 =*/0, /* hasLiteral = */ false,
+  // pcPair = PC of the next instruction.
+  emitSop1(S_GETPC_B64, /* dest= */ pcPair.getId(), /* src0 =*/0, /* hasLiteral = */ false,
            /* literal=*/0, gen);
 
-  // we store the diff = to - from in this register pair
-  Register diffRegPair(OperandRegId(reg.getId() + 2), RegKind::SCALAR, BlockSize(2));
-  this->emitLoadConst(diffRegPair, (uint64_t)diff, gen);
-  // Now we have:
-  // reg+2 = lower bits of diff
-  // reg+3 = upper bits of diff
+  // diffPair = diff = to - from (lo in diffPair[0], hi in diffPair[1]).
+  this->emitLoadConst(diffPair, (uint64_t)diff, gen);
 
-  // reg = reg + <reg+2>, SCC = carry
-  emitSop2(S_ADD_U32, reg.getId(), reg.getId(), reg.getId() + 2, gen);
-  // <reg+1> = <reg+1> + <reg+3> + carry
-  emitSop2(S_ADDC_U32, reg.getId() + 1, reg.getId() + 1, reg.getId() + 3, gen);
+  // pcPair += diffPair, 64-bit add with carry through SCC.
+  emitSop2(S_ADD_U32, pcPair.getId(), pcPair.getId(), diffPair.getId(), gen);
+  emitSop2(S_ADDC_U32, pcPair.getId() + 1, pcPair.getId() + 1, diffPair.getId() + 1, gen);
 
   // S_SETPC_B64 writes to the PC, so dest = 0 just like the assembler does.
-  emitSop1(S_SETPC_B64, /* dest = */ 0, reg.getId(), /* hasLiteral = */ false, /* literal=*/0, gen);
+  emitSop1(S_SETPC_B64, /* dest = */ 0, pcPair.getId(), /* hasLiteral = */ false, /* literal=*/0, gen);
 }
 
 void EmitterAmdgpuGfx908::emitIndirectCall(Address slotAddr, Register lrPair, codeGen &gen) {
