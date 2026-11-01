@@ -312,6 +312,17 @@ public:
   // default (otherwise a gfx942 kernel's prologue would emit the gfx908 scratch idiom).
   unsigned getAmdgpuMach() const { return amdgpuMach; }
 
+  // Arch-family predicates (public: consumers branch register-model/granule/ABI on these).
+  bool isGfx6() const;
+  bool isGfx7() const;
+  bool isGfx8() const;
+  bool isGfx9() const;
+  bool isGfx90aOr942() const;
+  bool isGfx9Plus() const;
+  bool isGfx10() const;
+  bool isGfx10Plus() const;
+  bool isGfx11() const;
+
 private:
   void dumpCOMPUTE_PGM_RSRC3(std::ostream &os) const;
   void dumpCOMPUTE_PGM_RSRC3_Gfx90a(std::ostream &os) const;
@@ -322,16 +333,6 @@ private:
   void dumpCOMPUTE_PGM_RSRC2(std::ostream &os) const;
 
   void dumpKernelCodeProperties(std::ostream &os) const;
-
-  bool isGfx6() const;
-  bool isGfx7() const;
-  bool isGfx8() const;
-  bool isGfx9() const;
-  bool hasGfx90aComputePgmRsrc3Layout() const;
-  bool isGfx9Plus() const;
-  bool isGfx10() const;
-  bool isGfx10Plus() const;
-  bool isGfx11() const;
 
   std::string name;
 
