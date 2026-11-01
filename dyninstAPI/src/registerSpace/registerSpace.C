@@ -1302,6 +1302,14 @@ void registerSpace::specializeSpace(const bitArray &liveRegs) {
 }
 
 bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
+	// AMDGPU: the codegen Register <-> MachRegister mapping is 1:1 and derived (convertRegID), so there
+	// is no regToMachReg* table to range over.
+	assert(addr_width == 8 && "AMDGPU has 64-bit (8-byte) address space, but has 32 bit registers");
+	static LivenessAnalyzer live2(8);
+	MachRegister mr = convertRegID(reg, Arch_amdgpu_gfx908);
+	return liveRegs[live2.getIndex(mr)];
+#else
 	static LivenessAnalyzer live1(4);
 	static LivenessAnalyzer live2(8);
 	std::pair<std::multimap<Register, MachRegister>::iterator, std::multimap<Register, MachRegister>::iterator> range;
@@ -1316,15 +1324,8 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 #endif
 	}
 	else {
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
-    assert(addr_width == 8 && "AMDGPU has 64-bit (8-byte) address space, but has 32 bit registers");
-	  range = regToMachReg32.equal_range(reg);
-		live = &live2;
-#else
 		range = regToMachReg64.equal_range(reg);
 		live = &live2;
-#endif
-
 	}
 	if (range.first == range.second) assert(0);
 	for (std::multimap<Register, MachRegister>::iterator iter = range.first; iter != range.second; ++iter){
@@ -1335,6 +1336,7 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
     }
 
 	return false;
+#endif
 }
 
 bool registerSpace::canAllocate(Register reg) const {

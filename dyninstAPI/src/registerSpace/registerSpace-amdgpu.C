@@ -1,5 +1,6 @@
 #include "arch-amdgpu.h"
 #include "registerSpace/registerSpace.h"
+#include "registerSpace/RegisterConversion.h"
 #include "debug.h"
 #include "dyn_register.h"
 #include <vector>
@@ -38,16 +39,18 @@ void registerSpace::initialize32() {
                                          registerSlot::VGPR));
   }
 
+  // SPRs: reserved special registers. Their codegen Register id (the ISA operand code) is derived from
+  // the MachRegister via convertRegID, so the operand codes live in one place (the generated
+  // specialRegs[] table) rather than being hand-listed here.
   // clang-format off
-    // SPRs
-    registers.push_back(new registerSlot(NS_amdgpu::RegisterConstants::flat_scratch_lo, "flat_scratch_lo", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(NS_amdgpu::RegisterConstants::flat_scratch_hi, "flat_scratch_hi", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(NS_amdgpu::RegisterConstants::xnack_mask_lo, "xnack_mask_lo", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(NS_amdgpu::RegisterConstants::xnack_mask_hi, "xnack_mask_hi", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(NS_amdgpu::RegisterConstants::vcc_lo, "vcc_lo", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(NS_amdgpu::RegisterConstants::vcc_hi, "vcc_hi", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(NS_amdgpu::RegisterConstants::exec_lo, "exec_lo", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(NS_amdgpu::RegisterConstants::exec_hi, "exec_hi", true, registerSlot::liveAlways, registerSlot::SPR));
+    registers.push_back(new registerSlot(convertRegID(amdgpu_gfx908::flat_scratch_lo), "flat_scratch_lo", true, registerSlot::liveAlways, registerSlot::SPR));
+    registers.push_back(new registerSlot(convertRegID(amdgpu_gfx908::flat_scratch_hi), "flat_scratch_hi", true, registerSlot::liveAlways, registerSlot::SPR));
+    registers.push_back(new registerSlot(convertRegID(amdgpu_gfx908::xnack_mask_lo), "xnack_mask_lo", true, registerSlot::liveAlways, registerSlot::SPR));
+    registers.push_back(new registerSlot(convertRegID(amdgpu_gfx908::xnack_mask_hi), "xnack_mask_hi", true, registerSlot::liveAlways, registerSlot::SPR));
+    registers.push_back(new registerSlot(convertRegID(amdgpu_gfx908::vcc_lo), "vcc_lo", true, registerSlot::liveAlways, registerSlot::SPR));
+    registers.push_back(new registerSlot(convertRegID(amdgpu_gfx908::vcc_hi), "vcc_hi", true, registerSlot::liveAlways, registerSlot::SPR));
+    registers.push_back(new registerSlot(convertRegID(amdgpu_gfx908::exec_lo), "exec_lo", true, registerSlot::liveAlways, registerSlot::SPR));
+    registers.push_back(new registerSlot(convertRegID(amdgpu_gfx908::exec_hi), "exec_hi", true, registerSlot::liveAlways, registerSlot::SPR));
   // clang-format on
 
   registerSpace::createRegisterSpace64(registers);

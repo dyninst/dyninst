@@ -107,6 +107,7 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908 OR DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
     src/AmdgpuPointHandler.C
     src/amdgpu-kernel-meta.C
     src/amdgpu-gfx908-details.C
+    src/amdgpu_gfx908_encoding.C
   )
 endif()
 
