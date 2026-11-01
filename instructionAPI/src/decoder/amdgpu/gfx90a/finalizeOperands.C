@@ -1,16 +1,15 @@
-#include "registers/AMDGPU/amdgpu_gfx940_regs.h"
-#include "InstructionDecoder-amdgpu-gfx940.h"
+#include "registers/amdgpu/amdgpu_gfx90a_regs.h"
+#include "InstructionDecoder-amdgpu-gfx90a.h"
 
 namespace Dyninst {
 namespace InstructionAPI {
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_DSOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_DSOperands()
     {
         layout_ENC_DS & layout = insn_layout.ENC_DS;
         switch (layout.OP)  {
             case 0:  case 1:  case 2:  case 3:  case 4:   // DS_ADD_U32,DS_SUB_U32,DS_RSUB_U32,DS_INC_U32,DS_DEC_U32,
             case 5:  case 6:  case 7:  case 8:  case 9:   // DS_MIN_I32,DS_MAX_I32,DS_MIN_U32,DS_MAX_U32,DS_AND_B32,
             case 10:  case 11:  case 18:  case 19:  case 21:   // DS_OR_B32,DS_XOR_B32,DS_MIN_F32,DS_MAX_F32,DS_ADD_F32,
-            case 23:  case 24:   // DS_PK_ADD_F16,DS_PK_ADD_BF16,
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false);
                 appendOPR_DSMEM(0,false,true,1,true);
@@ -67,7 +66,6 @@ namespace InstructionAPI {
             case 36:  case 37:  case 38:  case 39:   // DS_DEC_RTN_U32,DS_MIN_RTN_I32,DS_MAX_RTN_I32,DS_MIN_RTN_U32,
             case 40:  case 41:  case 42:  case 43:   // DS_MAX_RTN_U32,DS_AND_RTN_B32,DS_OR_RTN_B32,DS_XOR_RTN_B32,
             case 45:  case 50:  case 51:  case 53:   // DS_WRXCHG_RTN_B32,DS_MIN_RTN_F32,DS_MAX_RTN_F32,DS_ADD_RTN_F32,
-            case 183:  case 184:   // DS_PK_ADD_RTN_F16,DS_PK_ADD_RTN_BF16,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true);
                 appendOPR_VGPR(layout.ADDR,true,false);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA0,true,false);
@@ -288,7 +286,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_FLATOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_FLATOperands()
     {
         layout_ENC_FLAT & layout = insn_layout.ENC_FLAT;
         switch (layout.OP)  {
@@ -301,8 +299,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 21:   // FLAT_LOAD_DWORDX2,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,2);
@@ -310,8 +308,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 22:   // FLAT_LOAD_DWORDX3,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,3);
@@ -319,8 +317,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,3,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 23:   // FLAT_LOAD_DWORDX4,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,4);
@@ -328,8 +326,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,4,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 24:  case 25:  case 26:   // FLAT_STORE_BYTE,FLAT_STORE_BYTE_D16_HI,FLAT_STORE_SHORT,
             case 27:  case 28:   // FLAT_STORE_SHORT_D16_HI,FLAT_STORE_DWORD,
@@ -338,8 +336,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,1,true);
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 29:   // FLAT_STORE_DWORDX2,
                 appendOPR_VGPR(layout.ADDR,true,false,2);
@@ -347,8 +345,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,2,true);
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 30:   // FLAT_STORE_DWORDX3,
                 appendOPR_VGPR(layout.ADDR,true,false,2);
@@ -356,8 +354,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,3,true);
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 31:   // FLAT_STORE_DWORDX4,
                 appendOPR_VGPR(layout.ADDR,true,false,2);
@@ -365,13 +363,12 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,4,true);
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 64:  case 66:  case 67:  case 68:   // FLAT_ATOMIC_SWAP,FLAT_ATOMIC_ADD,FLAT_ATOMIC_SUB,FLAT_ATOMIC_SMIN,
             case 69:  case 70:  case 71:  case 72:   // FLAT_ATOMIC_UMIN,FLAT_ATOMIC_SMAX,FLAT_ATOMIC_UMAX,FLAT_ATOMIC_AND,
             case 73:  case 74:  case 75:  case 76:   // FLAT_ATOMIC_OR,FLAT_ATOMIC_XOR,FLAT_ATOMIC_INC,FLAT_ATOMIC_DEC,
-            case 77:  case 78:  case 82:   // FLAT_ATOMIC_ADD_F32,FLAT_ATOMIC_PK_ADD_F16,FLAT_ATOMIC_PK_ADD_BF16,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true);
                 appendOPR_VGPR(layout.ADDR,true,false,2);
                 appendOPR_VGPR_OR_ACCVGPR(layout.DATA,true,false);
@@ -379,8 +376,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 65:   // FLAT_ATOMIC_CMPSWAP,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true);
@@ -390,8 +387,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 79:  case 80:  case 81:   // FLAT_ATOMIC_ADD_F64,FLAT_ATOMIC_MIN_F64,FLAT_ATOMIC_MAX_F64,
             case 96:  case 98:  case 99:   // FLAT_ATOMIC_SWAP_X2,FLAT_ATOMIC_ADD_X2,FLAT_ATOMIC_SUB_X2,
@@ -405,8 +402,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 97:   // FLAT_ATOMIC_CMPSWAP_X2,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,2);
@@ -416,13 +413,13 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_FLAT_GLBLOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_FLAT_GLBLOperands()
     {
         layout_ENC_FLAT_GLBL & layout = insn_layout.ENC_FLAT_GLBL;
         switch (layout.OP)  {
@@ -441,8 +438,8 @@ namespace InstructionAPI {
                 }
                 appendOPR_GPUMEM(0,true,false,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 21:   // GLOBAL_LOAD_DWORDX2,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,2);
@@ -456,8 +453,8 @@ namespace InstructionAPI {
                 }
                 appendOPR_GPUMEM(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 22:   // GLOBAL_LOAD_DWORDX3,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,3);
@@ -471,8 +468,8 @@ namespace InstructionAPI {
                 }
                 appendOPR_GPUMEM(0,true,false,3,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 23:   // GLOBAL_LOAD_DWORDX4,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,4);
@@ -486,8 +483,8 @@ namespace InstructionAPI {
                 }
                 appendOPR_GPUMEM(0,true,false,4,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 24:  case 25:  case 26:   // GLOBAL_STORE_BYTE,GLOBAL_STORE_BYTE_D16_HI,GLOBAL_STORE_SHORT,
             case 27:  case 28:   // GLOBAL_STORE_SHORT_D16_HI,GLOBAL_STORE_DWORD,
@@ -502,8 +499,8 @@ namespace InstructionAPI {
                 }
                 appendOPR_GPUMEM(0,false,true,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 29:   // GLOBAL_STORE_DWORDX2,
                 if (layout.SADDR == 0x7f)  {
@@ -517,8 +514,8 @@ namespace InstructionAPI {
                 }
                 appendOPR_GPUMEM(0,false,true,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 30:   // GLOBAL_STORE_DWORDX3,
                 if (layout.SADDR == 0x7f)  {
@@ -532,8 +529,8 @@ namespace InstructionAPI {
                 }
                 appendOPR_GPUMEM(0,false,true,3,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 31:   // GLOBAL_STORE_DWORDX4,
                 if (layout.SADDR == 0x7f)  {
@@ -547,28 +544,13 @@ namespace InstructionAPI {
                 }
                 appendOPR_GPUMEM(0,false,true,4,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
-                break;
-            case 38:  case 39:  case 40:   // GLOBAL_LOAD_LDS_UBYTE,GLOBAL_LOAD_LDS_SBYTE,GLOBAL_LOAD_LDS_USHORT,
-            case 41:  case 42:   // GLOBAL_LOAD_LDS_SSHORT,GLOBAL_LOAD_LDS_DWORD,
-                appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true);
-                if (layout.SADDR == 0x7f)  {
-                    appendOPR_VGPR(layout.ADDR,true,false,2);
-                } else {
-                    appendOPR_VGPR(layout.ADDR,true,false);
-                }
-                if (layout.SADDR != 0x7f)  {
-                    appendOPR_SREG(layout.SADDR,true,false,2);
-                }
-                appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 64:  case 66:  case 67:  case 68:   // GLOBAL_ATOMIC_SWAP,GLOBAL_ATOMIC_ADD,GLOBAL_ATOMIC_SUB,GLOBAL_ATOMIC_SMIN,
             case 69:  case 70:  case 71:  case 72:   // GLOBAL_ATOMIC_UMIN,GLOBAL_ATOMIC_SMAX,GLOBAL_ATOMIC_UMAX,GLOBAL_ATOMIC_AND,
             case 73:  case 74:  case 75:  case 76:   // GLOBAL_ATOMIC_OR,GLOBAL_ATOMIC_XOR,GLOBAL_ATOMIC_INC,GLOBAL_ATOMIC_DEC,
-            case 77:  case 78:  case 82:   // GLOBAL_ATOMIC_ADD_F32,GLOBAL_ATOMIC_PK_ADD_F16,GLOBAL_ATOMIC_PK_ADD_BF16,
+            case 77:  case 78:   // GLOBAL_ATOMIC_ADD_F32,GLOBAL_ATOMIC_PK_ADD_F16,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true);
                 if (layout.SADDR == 0x7f)  {
                     appendOPR_VGPR(layout.ADDR,true,false,2);
@@ -582,8 +564,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,1,true);
                 appendOPR_GPUMEM(0,true,false,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 65:   // GLOBAL_ATOMIC_CMPSWAP,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true);
@@ -599,8 +581,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,1,true);
                 appendOPR_GPUMEM(0,true,false,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 79:  case 80:  case 81:   // GLOBAL_ATOMIC_ADD_F64,GLOBAL_ATOMIC_MIN_F64,GLOBAL_ATOMIC_MAX_F64,
             case 96:  case 98:  case 99:   // GLOBAL_ATOMIC_SWAP_X2,GLOBAL_ATOMIC_ADD_X2,GLOBAL_ATOMIC_SUB_X2,
@@ -620,8 +602,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,2,true);
                 appendOPR_GPUMEM(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 97:   // GLOBAL_ATOMIC_CMPSWAP_X2,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,2);
@@ -637,13 +619,13 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,2,true);
                 appendOPR_GPUMEM(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_FLAT_SCRATCHOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_FLAT_SCRATCHOperands()
     {
         layout_ENC_FLAT_SCRATCH & layout = insn_layout.ENC_FLAT_SCRATCH;
         switch (layout.OP)  {
@@ -663,8 +645,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 21:   // SCRATCH_LOAD_DWORDX2,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,2);
@@ -679,8 +661,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 22:   // SCRATCH_LOAD_DWORDX3,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,3);
@@ -695,8 +677,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,3,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 23:   // SCRATCH_LOAD_DWORDX4,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,4);
@@ -711,8 +693,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,4,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 24:  case 25:  case 26:   // SCRATCH_STORE_BYTE,SCRATCH_STORE_BYTE_D16_HI,SCRATCH_STORE_SHORT,
             case 27:  case 28:   // SCRATCH_STORE_SHORT_D16_HI,SCRATCH_STORE_DWORD,
@@ -728,8 +710,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,1,true);
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 29:   // SCRATCH_STORE_DWORDX2,
                 if (layout.SADDR == 0x7f)  {
@@ -744,8 +726,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,2,true);
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 30:   // SCRATCH_STORE_DWORDX3,
                 if (layout.SADDR == 0x7f)  {
@@ -760,8 +742,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,3,true);
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 31:   // SCRATCH_STORE_DWORDX4,
                 if (layout.SADDR == 0x7f)  {
@@ -776,29 +758,64 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,4,true);
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
-                break;
-            case 38:  case 39:  case 40:   // SCRATCH_LOAD_LDS_UBYTE,SCRATCH_LOAD_LDS_SBYTE,SCRATCH_LOAD_LDS_USHORT,
-            case 41:  case 42:   // SCRATCH_LOAD_LDS_SSHORT,SCRATCH_LOAD_LDS_DWORD,
-                appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true);
-                if (layout.SADDR == 0x7f)  {
-                    appendOPR_VGPR(layout.ADDR,true,false,2);
-                } else {
-                    appendOPR_VGPR(layout.ADDR,true,false);
-                }
-                if (layout.SADDR != 0x7f)  {
-                    appendOPR_SREG(layout.SADDR,true,false,2);
-                }
-                appendOPR_FLAT_SCRATCH(0,true,false,2,true);
-                appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_MTBUFOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_MIMGOperands()
+    {
+        layout_ENC_MIMG & layout = insn_layout.ENC_MIMG;
+        switch (layout.OP)  {
+            case 0:  case 1:  case 2:  case 3:   // IMAGE_LOAD,IMAGE_LOAD_MIP,IMAGE_LOAD_PCK,IMAGE_LOAD_PCK_SGN,
+            case 4:  case 5:   // IMAGE_LOAD_MIP_PCK,IMAGE_LOAD_MIP_PCK_SGN,
+                appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,false,true,4);
+                appendOPR_VGPR(layout.VADDR,true,false,4);
+                appendOPR_SREG(layout.SRSRC,true,false,8);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                break;
+            case 8:  case 9:  case 10:  case 11:   // IMAGE_STORE,IMAGE_STORE_MIP,IMAGE_STORE_PCK,IMAGE_STORE_MIP_PCK,
+                appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,true,false,4);
+                appendOPR_VGPR(layout.VADDR,true,false,4);
+                appendOPR_SREG(layout.SRSRC,true,false,8);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                break;
+            case 14:   // IMAGE_GET_RESINFO,
+                appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,false,true,4);
+                appendOPR_VGPR(layout.VADDR,true,false);
+                appendOPR_SREG(layout.SRSRC,true,false,8);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                break;
+            case 16:  case 18:  case 19:  case 20:   // IMAGE_ATOMIC_SWAP,IMAGE_ATOMIC_ADD,IMAGE_ATOMIC_SUB,IMAGE_ATOMIC_SMIN,
+            case 21:  case 22:  case 23:  case 24:   // IMAGE_ATOMIC_UMIN,IMAGE_ATOMIC_SMAX,IMAGE_ATOMIC_UMAX,IMAGE_ATOMIC_AND,
+            case 25:  case 26:  case 27:  case 28:   // IMAGE_ATOMIC_OR,IMAGE_ATOMIC_XOR,IMAGE_ATOMIC_INC,IMAGE_ATOMIC_DEC,
+                appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,false,true,4);
+                appendOPR_VGPR(layout.VADDR,true,false,4);
+                appendOPR_SREG(layout.SRSRC,true,false,8);
+                appendOPR_GPUMEM(0,false,true,1,true);
+                appendOPR_GPUMEM(0,true,false,1,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                break;
+            case 17:   // IMAGE_ATOMIC_CMPSWAP,
+                appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,false,true);
+                appendOPR_VGPR(layout.VADDR,true,false,4);
+                appendOPR_SREG(layout.SRSRC,true,false,8);
+                appendOPR_GPUMEM(0,false,true,1,true);
+                appendOPR_GPUMEM(0,true,false,1,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                break;
+            case 32:   // IMAGE_SAMPLE,
+                appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,false,true,4);
+                appendOPR_VGPR(layout.VADDR,true,false,3);
+                appendOPR_SREG(layout.SRSRC,true,false,8);
+                appendOPR_SREG(layout.SSAMP,true,false,4);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                break;
+        }
+    }
+
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_MTBUFOperands()
     {
         layout_ENC_MTBUF & layout = insn_layout.ENC_MTBUF;
         switch (layout.OP)  {
@@ -808,7 +825,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 break;
             case 1:   // TBUFFER_LOAD_FORMAT_XY,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,false,true,2);
@@ -816,7 +833,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 break;
             case 2:   // TBUFFER_LOAD_FORMAT_XYZ,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,false,true,3);
@@ -824,7 +841,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,3,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 break;
             case 3:   // TBUFFER_LOAD_FORMAT_XYZW,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,false,true,4);
@@ -832,7 +849,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 break;
             case 4:  case 12:   // TBUFFER_STORE_FORMAT_X,TBUFFER_STORE_FORMAT_D16_X,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,true,false);
@@ -840,7 +857,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 break;
             case 5:   // TBUFFER_STORE_FORMAT_XY,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,true,false,2);
@@ -848,7 +865,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 break;
             case 6:   // TBUFFER_STORE_FORMAT_XYZ,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,true,false,3);
@@ -856,7 +873,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,3,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 break;
             case 7:   // TBUFFER_STORE_FORMAT_XYZW,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,true,false,4);
@@ -864,7 +881,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 break;
             case 9:   // TBUFFER_LOAD_FORMAT_D16_XY,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,false,true);
@@ -872,7 +889,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 break;
             case 10:   // TBUFFER_LOAD_FORMAT_D16_XYZ,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,false,true,2);
@@ -880,7 +897,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,3,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 break;
             case 11:   // TBUFFER_LOAD_FORMAT_D16_XYZW,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,false,true,2);
@@ -888,7 +905,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 break;
             case 13:   // TBUFFER_STORE_FORMAT_D16_XY,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,true,false);
@@ -896,7 +913,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 break;
             case 14:   // TBUFFER_STORE_FORMAT_D16_XYZ,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,true,false,2);
@@ -904,7 +921,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,3,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 break;
             case 15:   // TBUFFER_STORE_FORMAT_D16_XYZW,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,true,false,2);
@@ -912,12 +929,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 break;
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_MUBUFOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_MUBUFOperands()
     {
         layout_ENC_MUBUF & layout = insn_layout.ENC_MUBUF;
         switch (layout.OP)  {
@@ -930,7 +947,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -938,12 +955,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -954,7 +971,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -962,12 +979,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -978,7 +995,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -986,12 +1003,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,3,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1002,7 +1019,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1010,12 +1027,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1028,7 +1045,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1036,12 +1053,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1052,7 +1069,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1060,12 +1077,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1076,7 +1093,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1084,12 +1101,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,3,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1100,7 +1117,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1108,12 +1125,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1124,7 +1141,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1132,12 +1149,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1148,7 +1165,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1156,12 +1173,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,3,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1172,7 +1189,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1180,12 +1197,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1196,7 +1213,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1204,12 +1221,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1220,7 +1237,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1228,12 +1245,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,3,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1244,7 +1261,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1252,24 +1269,38 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
                 }
                 break;
-            case 40:  case 41:   // BUFFER_WBL2,BUFFER_INV,
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+            case 40:  case 41:  case 62:  case 63:   // BUFFER_WBL2,BUFFER_INVL2,BUFFER_WBINVL1,BUFFER_WBINVL1_VOL,
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
+                }
+                if (layout.OFFSET)  {
+                    insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
+                }
+                break;
+            case 61:   // BUFFER_STORE_LDS_DWORD,
+                appendOPR_SREG(layout.SRSRC,true,false,4);
+                appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
+                if (layout.IDXEN)  {
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
+                }
+                if (layout.OFFEN)  {
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1283,7 +1314,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1292,12 +1323,12 @@ namespace InstructionAPI {
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,1,true);
                 appendOPR_GPUMEM(0,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1308,7 +1339,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1317,12 +1348,12 @@ namespace InstructionAPI {
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,1,true);
                 appendOPR_GPUMEM(0,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1337,7 +1368,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1346,12 +1377,12 @@ namespace InstructionAPI {
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,2,true);
                 appendOPR_GPUMEM(0,true,false,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1362,7 +1393,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1371,12 +1402,12 @@ namespace InstructionAPI {
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,2,true);
                 appendOPR_GPUMEM(0,true,false,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1385,7 +1416,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_SMEMOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_SMEMOperands()
     {
         layout_ENC_SMEM & layout = insn_layout.ENC_SMEM;
         switch (layout.OP)  {
@@ -1394,136 +1425,136 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 1:  case 6:   // S_LOAD_DWORDX2,S_SCRATCH_LOAD_DWORDX2,
                 appendOPR_SREG(layout.SDATA,false,true,2);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 2:  case 7:   // S_LOAD_DWORDX4,S_SCRATCH_LOAD_DWORDX4,
                 appendOPR_SREG(layout.SDATA,false,true,4);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 3:   // S_LOAD_DWORDX8,
                 appendOPR_SREG(layout.SDATA,false,true,8);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,8,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 4:   // S_LOAD_DWORDX16,
                 appendOPR_SREG(layout.SDATA,false,true,16);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,16,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 8:   // S_BUFFER_LOAD_DWORD,
                 appendOPR_SREG(layout.SDATA,false,true);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 9:   // S_BUFFER_LOAD_DWORDX2,
                 appendOPR_SREG(layout.SDATA,false,true,2);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 10:   // S_BUFFER_LOAD_DWORDX4,
                 appendOPR_SREG(layout.SDATA,false,true,4);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 11:   // S_BUFFER_LOAD_DWORDX8,
                 appendOPR_SREG(layout.SDATA,false,true,8);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,8,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 12:   // S_BUFFER_LOAD_DWORDX16,
                 appendOPR_SREG(layout.SDATA,false,true,16);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,16,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 16:  case 21:   // S_STORE_DWORD,S_SCRATCH_STORE_DWORD,
                 appendOPR_SREG(layout.SDATA,true,false);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,false,true,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 17:  case 22:   // S_STORE_DWORDX2,S_SCRATCH_STORE_DWORDX2,
                 appendOPR_SREG(layout.SDATA,true,false,2);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,false,true,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 18:  case 23:   // S_STORE_DWORDX4,S_SCRATCH_STORE_DWORDX4,
                 appendOPR_SREG(layout.SDATA,true,false,4);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,false,true,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 24:   // S_BUFFER_STORE_DWORD,
                 appendOPR_SREG(layout.SDATA,true,false);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,false,true,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 25:   // S_BUFFER_STORE_DWORDX2,
                 appendOPR_SREG(layout.SDATA,true,false,2);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,false,true,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 26:   // S_BUFFER_STORE_DWORDX4,
                 appendOPR_SREG(layout.SDATA,true,false,4);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,false,true,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 32:  case 33:  case 34:  case 35:   // S_DCACHE_INV,S_DCACHE_WB,S_DCACHE_INV_VOL,S_DCACHE_WB_VOL,
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 36:  case 37:   // S_MEMTIME,S_MEMREALTIME,
                 appendOPR_SREG(layout.SDATA,false,true,2);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 38:   // S_ATC_PROBE,
                 appendOPR_SIMM8(layout.SDATA,true,false);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 39:   // S_ATC_PROBE_BUFFER,
                 appendOPR_SIMM8(layout.SDATA,true,false);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 40:  case 41:   // S_DCACHE_DISCARD,S_DCACHE_DISCARD_X2,
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 64:  case 66:  case 67:   // S_BUFFER_ATOMIC_SWAP,S_BUFFER_ATOMIC_ADD,S_BUFFER_ATOMIC_SUB,
             case 68:  case 69:  case 70:   // S_BUFFER_ATOMIC_SMIN,S_BUFFER_ATOMIC_UMIN,S_BUFFER_ATOMIC_SMAX,
@@ -1532,7 +1563,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SDATA,false,true);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 65:  case 96:  case 98:   // S_BUFFER_ATOMIC_CMPSWAP,S_BUFFER_ATOMIC_SWAP_X2,S_BUFFER_ATOMIC_ADD_X2,
             case 99:  case 100:  case 101:   // S_BUFFER_ATOMIC_SUB_X2,S_BUFFER_ATOMIC_SMIN_X2,S_BUFFER_ATOMIC_UMIN_X2,
@@ -1542,13 +1573,13 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SDATA,false,true,2);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 97:   // S_BUFFER_ATOMIC_CMPSWAP_X2,
                 appendOPR_SREG(layout.SDATA,false,true,4);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 128:  case 130:  case 131:  case 132:   // S_ATOMIC_SWAP,S_ATOMIC_ADD,S_ATOMIC_SUB,S_ATOMIC_SMIN,
             case 133:  case 134:  case 135:  case 136:   // S_ATOMIC_UMIN,S_ATOMIC_SMAX,S_ATOMIC_UMAX,S_ATOMIC_AND,
@@ -1556,7 +1587,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SDATA,false,true);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 129:  case 160:  case 162:  case 163:   // S_ATOMIC_CMPSWAP,S_ATOMIC_SWAP_X2,S_ATOMIC_ADD_X2,S_ATOMIC_SUB_X2,
             case 164:  case 165:  case 166:  case 167:   // S_ATOMIC_SMIN_X2,S_ATOMIC_UMIN_X2,S_ATOMIC_SMAX_X2,S_ATOMIC_UMAX_X2,
@@ -1565,18 +1596,18 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SDATA,false,true,2);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
             case 161:   // S_ATOMIC_CMPSWAP_X2,
                 appendOPR_SREG(layout.SDATA,false,true,4);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,16),true,true,true);
                 break;
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_SOP1Operands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_SOP1Operands()
     {
         layout_ENC_SOP1 & layout = insn_layout.ENC_SOP1;
         switch (layout.OP)  {
@@ -1689,7 +1720,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeSOP1_INST_LITERALOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeSOP1_INST_LITERALOperands()
     {
         layout_SOP1_INST_LITERAL & layout = insn_layout.SOP1_INST_LITERAL;
         switch (layout.OP)  {
@@ -1759,7 +1790,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_SOP2Operands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_SOP2Operands()
     {
         layout_ENC_SOP2 & layout = insn_layout.ENC_SOP2;
         switch (layout.OP)  {
@@ -1830,7 +1861,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeSOP2_INST_LITERALOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeSOP2_INST_LITERALOperands()
     {
         layout_SOP2_INST_LITERAL & layout = insn_layout.SOP2_INST_LITERAL;
         switch (layout.OP)  {
@@ -2018,7 +2049,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_SOPCOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_SOPCOperands()
     {
         layout_ENC_SOPC & layout = insn_layout.ENC_SOPC;
         switch (layout.OP)  {
@@ -2052,7 +2083,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeSOPC_INST_LITERALOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeSOPC_INST_LITERALOperands()
     {
         layout_SOPC_INST_LITERAL & layout = insn_layout.SOPC_INST_LITERAL;
         switch (layout.OP)  {
@@ -2146,7 +2177,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_SOPKOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_SOPKOperands()
     {
         layout_ENC_SOPK & layout = insn_layout.ENC_SOPK;
         switch (layout.OP)  {
@@ -2193,7 +2224,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeSOPK_INST_LITERALOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeSOPK_INST_LITERALOperands()
     {
         layout_SOPK_INST_LITERAL & layout = insn_layout.SOPK_INST_LITERAL;
         switch (layout.OP)  {
@@ -2204,12 +2235,12 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_SOPPOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_SOPPOperands()
     {
         layout_ENC_SOPP & layout = insn_layout.ENC_SOPP;
         switch (layout.OP)  {
             case 0:  case 11:  case 13:  case 14:  case 15:  case 18:   // S_NOP,S_SETKILL,S_SETHALT,S_SLEEP,S_SETPRIO,S_TRAP,
-            case 20:  case 21:  case 31:   // S_INCPERFLEVEL,S_DECPERFLEVEL,S_SET_VALU_COEXEC_MODE,
+            case 20:  case 21:   // S_INCPERFLEVEL,S_DECPERFLEVEL,
                 appendOPR_SIMM16(layout.SIMM16,true,false);
                 break;
             case 1:  case 3:  case 10:  case 19:  case 27:   // S_ENDPGM,S_WAKEUP,S_BARRIER,S_ICACHE_INV,S_ENDPGM_SAVED,
@@ -2244,17 +2275,17 @@ namespace InstructionAPI {
                     uint32_t lgkmcnt = ((layout.SIMM16>>8) & 0xf);
                     if (vmcnt != 0x3f)
                     {
-                        insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,32),false,true);
+                        insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::vmcnt,0,32),false,true);
                         insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32,vmcnt)),false,false);
                     }
                     if (expcnt != 0x7)
                     {
-                        insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::expcnt,0,32),false,true);
+                        insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::expcnt,0,32),false,true);
                         insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32,expcnt)),false,false);
                     }
                     if (lgkmcnt != 0xf)
                     {
-                        insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,32),false,true);
+                        insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx90a::lgkmcnt,0,32),false,true);
                         insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32,lgkmcnt)),false,false);
                     }
                 }
@@ -2278,7 +2309,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_VOP1Operands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_VOP1Operands()
     {
         layout_ENC_VOP1 & layout = insn_layout.ENC_VOP1;
         switch (layout.OP)  {
@@ -2296,8 +2327,7 @@ namespace InstructionAPI {
             case 64:  case 65:  case 66:  case 67:   // V_LOG_F16,V_EXP_F16,V_FREXP_MANT_F16,V_FREXP_EXP_I16_F16,
             case 68:  case 69:  case 70:  case 71:  case 72:   // V_FLOOR_F16,V_CEIL_F16,V_TRUNC_F16,V_RNDNE_F16,V_FRACT_F16,
             case 73:  case 74:  case 75:  case 76:   // V_SIN_F16,V_COS_F16,V_EXP_LEGACY_F32,V_LOG_LEGACY_F32,
-            case 77:  case 78:  case 79:  case 84:   // V_CVT_NORM_I16_F16,V_CVT_NORM_U16_F16,V_SAT_PK_U8_I16,V_CVT_F32_FP8,
-            case 85:   // V_CVT_F32_BF8,
+            case 77:  case 78:  case 79:   // V_CVT_NORM_I16_F16,V_CVT_NORM_U16_F16,V_SAT_PK_U8_I16,
                 appendOPR_VGPR(layout.VDST,false,true);
                 appendOPR_SRC(layout.SRC0,true,false);
                 break;
@@ -2309,13 +2339,12 @@ namespace InstructionAPI {
                 appendOPR_VGPR(layout.VDST,false,true);
                 appendOPR_SRC(layout.SRC0,true,false,2);
                 break;
-            case 4:  case 16:  case 22:  case 86:   // V_CVT_F64_I32,V_CVT_F64_F32,V_CVT_F64_U32,V_CVT_PK_F32_FP8,
-            case 87:   // V_CVT_PK_F32_BF8,
+            case 4:  case 16:  case 22:   // V_CVT_F64_I32,V_CVT_F64_F32,V_CVT_F64_U32,
                 appendOPR_VGPR(layout.VDST,false,true,2);
                 appendOPR_SRC(layout.SRC0,true,false);
                 break;
             case 23:  case 24:  case 25:  case 26:  case 37:   // V_TRUNC_F64,V_CEIL_F64,V_RNDNE_F64,V_FLOOR_F64,V_RCP_F64,
-            case 38:  case 40:  case 49:  case 50:  case 56:   // V_RSQ_F64,V_SQRT_F64,V_FREXP_MANT_F64,V_FRACT_F64,V_MOV_B64,
+            case 38:  case 40:  case 49:  case 50:   // V_RSQ_F64,V_SQRT_F64,V_FREXP_MANT_F64,V_FRACT_F64,
                 appendOPR_VGPR(layout.VDST,false,true,2);
                 appendOPR_SRC(layout.SRC0,true,false,2);
                 break;
@@ -2330,7 +2359,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP1_INST_LITERALOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOP1_INST_LITERALOperands()
     {
         layout_VOP1_INST_LITERAL & layout = insn_layout.VOP1_INST_LITERAL;
         switch (layout.OP)  {
@@ -2349,15 +2378,13 @@ namespace InstructionAPI {
             case 63:  case 64:  case 65:  case 66:  case 67:   // V_RSQ_F16,V_LOG_F16,V_EXP_F16,V_FREXP_MANT_F16,V_FREXP_EXP_I16_F16,
             case 68:  case 69:  case 70:  case 71:  case 72:   // V_FLOOR_F16,V_CEIL_F16,V_TRUNC_F16,V_RNDNE_F16,V_FRACT_F16,
             case 73:  case 74:  case 75:  case 76:   // V_SIN_F16,V_COS_F16,V_EXP_LEGACY_F32,V_LOG_LEGACY_F32,
-            case 77:  case 78:  case 79:  case 84:   // V_CVT_NORM_I16_F16,V_CVT_NORM_U16_F16,V_SAT_PK_U8_I16,V_CVT_F32_FP8,
-            case 85:   // V_CVT_F32_BF8,
+            case 77:  case 78:  case 79:   // V_CVT_NORM_I16_F16,V_CVT_NORM_U16_F16,V_SAT_PK_U8_I16,
                 appendOPR_VGPR(layout.VDST,false,true);
                 insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32,layout.LITERAL)),true,false);
                 break;
             case 4:  case 16:  case 22:  case 23:  case 24:   // V_CVT_F64_I32,V_CVT_F64_F32,V_CVT_F64_U32,V_TRUNC_F64,V_CEIL_F64,
             case 25:  case 26:  case 37:  case 38:  case 40:   // V_RNDNE_F64,V_FLOOR_F64,V_RCP_F64,V_RSQ_F64,V_SQRT_F64,
-            case 49:  case 50:  case 56:  case 86:   // V_FREXP_MANT_F64,V_FRACT_F64,V_MOV_B64,V_CVT_PK_F32_FP8,
-            case 87:   // V_CVT_PK_F32_BF8,
+            case 49:  case 50:   // V_FREXP_MANT_F64,V_FRACT_F64,
                 appendOPR_VGPR(layout.VDST,false,true,2);
                 insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32,layout.LITERAL)),true,false);
                 break;
@@ -2368,7 +2395,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP1_VOP_DPPOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOP1_VOP_DPPOperands()
     {
         layout_VOP1_VOP_DPP & layout = insn_layout.VOP1_VOP_DPP;
         switch (layout.OP)  {
@@ -2386,8 +2413,7 @@ namespace InstructionAPI {
             case 64:  case 65:  case 66:  case 67:   // V_LOG_F16,V_EXP_F16,V_FREXP_MANT_F16,V_FREXP_EXP_I16_F16,
             case 68:  case 69:  case 70:  case 71:  case 72:   // V_FLOOR_F16,V_CEIL_F16,V_TRUNC_F16,V_RNDNE_F16,V_FRACT_F16,
             case 73:  case 74:  case 75:  case 76:   // V_SIN_F16,V_COS_F16,V_EXP_LEGACY_F32,V_LOG_LEGACY_F32,
-            case 77:  case 78:  case 79:  case 84:   // V_CVT_NORM_I16_F16,V_CVT_NORM_U16_F16,V_SAT_PK_U8_I16,V_CVT_F32_FP8,
-            case 85:   // V_CVT_F32_BF8,
+            case 77:  case 78:  case 79:   // V_CVT_NORM_I16_F16,V_CVT_NORM_U16_F16,V_SAT_PK_U8_I16,
                 appendOPR_VGPR(layout.VDST,false,true);
                 appendOPR_VGPR(layout.VSRC0,true,false);
                 break;
@@ -2395,12 +2421,11 @@ namespace InstructionAPI {
                 appendOPR_VGPR(layout.VDST,false,true);
                 appendOPR_VGPR(layout.VSRC0,true,false,2);
                 break;
-            case 4:  case 22:  case 86:  case 87:   // V_CVT_F64_I32,V_CVT_F64_U32,V_CVT_PK_F32_FP8,V_CVT_PK_F32_BF8,
+            case 4:  case 22:   // V_CVT_F64_I32,V_CVT_F64_U32,
                 appendOPR_VGPR(layout.VDST,false,true,2);
                 appendOPR_VGPR(layout.VSRC0,true,false);
                 break;
             case 23:  case 24:  case 26:  case 49:  case 50:   // V_TRUNC_F64,V_CEIL_F64,V_FLOOR_F64,V_FREXP_MANT_F64,V_FRACT_F64,
-            case 56:   // V_MOV_B64,
                 appendOPR_VGPR(layout.VDST,false,true,2);
                 appendOPR_VGPR(layout.VSRC0,true,false,2);
                 break;
@@ -2411,7 +2436,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP1_VOP_SDWAOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOP1_VOP_SDWAOperands()
     {
         layout_VOP1_VOP_SDWA & layout = insn_layout.VOP1_VOP_SDWA;
         switch (layout.OP)  {
@@ -2429,27 +2454,18 @@ namespace InstructionAPI {
             case 64:  case 65:  case 66:  case 67:   // V_LOG_F16,V_EXP_F16,V_FREXP_MANT_F16,V_FREXP_EXP_I16_F16,
             case 68:  case 69:  case 70:  case 71:  case 72:   // V_FLOOR_F16,V_CEIL_F16,V_TRUNC_F16,V_RNDNE_F16,V_FRACT_F16,
             case 73:  case 74:  case 75:  case 76:   // V_SIN_F16,V_COS_F16,V_EXP_LEGACY_F32,V_LOG_LEGACY_F32,
-            case 77:  case 78:  case 79:  case 84:   // V_CVT_NORM_I16_F16,V_CVT_NORM_U16_F16,V_SAT_PK_U8_I16,V_CVT_F32_FP8,
-            case 85:   // V_CVT_F32_BF8,
+            case 77:  case 78:  case 79:   // V_CVT_NORM_I16_F16,V_CVT_NORM_U16_F16,V_SAT_PK_U8_I16,
                 appendOPR_VGPR(layout.VDST,false,true);
                 appendOPR_SRC_SIMPLE(layout.S0 ? layout.VSRC0 : layout.VSRC0 + 256,true,false);
-                break;
-            case 56:   // V_MOV_B64,
-                appendOPR_VGPR(layout.VDST,false,true,2);
-                appendOPR_SRC_SIMPLE(layout.S0 ? layout.VSRC0 : layout.VSRC0 + 256,true,false,2);
                 break;
             case 82:   // V_ACCVGPR_MOV_B32,
                 appendOPR_ACCVGPR(layout.VDST,false,true);
                 appendOPR_SRC_ACCVGPR(layout.S0 ? layout.VSRC0 : layout.VSRC0 + 256,true,false);
                 break;
-            case 86:  case 87:   // V_CVT_PK_F32_FP8,V_CVT_PK_F32_BF8,
-                appendOPR_VGPR(layout.VDST,false,true,2);
-                appendOPR_SRC_SIMPLE(layout.S0 ? layout.VSRC0 : layout.VSRC0 + 256,true,false);
-                break;
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_VOP3Operands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_VOP3Operands()
     {
         layout_ENC_VOP3 & layout = insn_layout.ENC_VOP3;
         switch (layout.OP)  {
@@ -2468,7 +2484,7 @@ namespace InstructionAPI {
             case 385:  case 386:  case 387:  case 388:   // V_EXP_F16,V_FREXP_MANT_F16,V_FREXP_EXP_I16_F16,V_FLOOR_F16,
             case 389:  case 390:  case 391:  case 392:  case 393:   // V_CEIL_F16,V_TRUNC_F16,V_RNDNE_F16,V_FRACT_F16,V_SIN_F16,
             case 394:  case 395:  case 396:  case 397:   // V_COS_F16,V_EXP_LEGACY_F32,V_LOG_LEGACY_F32,V_CVT_NORM_I16_F16,
-            case 398:  case 399:  case 404:  case 405:   // V_CVT_NORM_U16_F16,V_SAT_PK_U8_I16,V_CVT_F32_FP8,V_CVT_F32_BF8,
+            case 398:  case 399:   // V_CVT_NORM_U16_F16,V_SAT_PK_U8_I16,
                 appendOPR_VGPR(layout.VDST,false,true);
                 appendOPR_SRC_NOLIT(layout.SRC0,true,false);
                 break;
@@ -2480,13 +2496,12 @@ namespace InstructionAPI {
                 appendOPR_VGPR(layout.VDST,false,true);
                 appendOPR_SRC_NOLIT(layout.SRC0,true,false,2);
                 break;
-            case 324:  case 336:  case 342:  case 406:   // V_CVT_F64_I32,V_CVT_F64_F32,V_CVT_F64_U32,V_CVT_PK_F32_FP8,
-            case 407:   // V_CVT_PK_F32_BF8,
+            case 324:  case 336:  case 342:   // V_CVT_F64_I32,V_CVT_F64_F32,V_CVT_F64_U32,
                 appendOPR_VGPR(layout.VDST,false,true,2);
                 appendOPR_SRC_NOLIT(layout.SRC0,true,false);
                 break;
             case 343:  case 344:  case 345:  case 346:  case 357:   // V_TRUNC_F64,V_CEIL_F64,V_RNDNE_F64,V_FLOOR_F64,V_RCP_F64,
-            case 358:  case 360:  case 369:  case 370:  case 376:   // V_RSQ_F64,V_SQRT_F64,V_FREXP_MANT_F64,V_FRACT_F64,V_MOV_B64,
+            case 358:  case 360:  case 369:  case 370:   // V_RSQ_F64,V_SQRT_F64,V_FREXP_MANT_F64,V_FRACT_F64,
                 appendOPR_VGPR(layout.VDST,false,true,2);
                 appendOPR_SRC_NOLIT(layout.SRC0,true,false,2);
                 break;
@@ -2507,18 +2522,18 @@ namespace InstructionAPI {
             case 257:  case 258:  case 259:  case 261:  case 262:   // V_ADD_F32,V_SUB_F32,V_SUBREV_F32,V_MUL_F32,V_MUL_I32_I24,
             case 263:  case 264:  case 265:  case 266:   // V_MUL_HI_I32_I24,V_MUL_U32_U24,V_MUL_HI_U32_U24,V_MIN_F32,
             case 267:  case 268:  case 269:  case 270:  case 271:   // V_MAX_F32,V_MIN_I32,V_MAX_I32,V_MIN_U32,V_MAX_U32,
-            case 275:  case 276:  case 277:  case 287:  case 288:   // V_AND_B32,V_OR_B32,V_XOR_B32,V_ADD_F16,V_SUB_F16,
-            case 290:  case 291:  case 294:  case 295:  case 297:   // V_MUL_F16,V_MAC_F16,V_ADD_U16,V_SUB_U16,V_MUL_LO_U16,
-            case 301:  case 302:  case 303:  case 304:  case 305:   // V_MAX_F16,V_MIN_F16,V_MAX_U16,V_MAX_I16,V_MIN_U16,
-            case 306:  case 307:  case 308:  case 309:  case 311:   // V_MIN_I16,V_LDEXP_F16,V_ADD_U32,V_SUB_U32,V_DOT2C_F32_F16,
-            case 312:  case 313:  case 314:  case 315:   // V_DOT2C_I32_I16,V_DOT4C_I32_I8,V_DOT8C_I32_I4,V_FMAC_F32,
-            case 316:  case 317:  case 496:  case 645:   // V_PK_FMAC_F16,V_XNOR_B32,V_CVT_PKACCUM_U8_F32,V_MUL_LO_U32,
-            case 646:  case 647:  case 648:  case 651:   // V_MUL_HI_U32,V_MUL_HI_I32,V_LDEXP_F32,V_BCNT_U32_B32,
-            case 652:  case 653:  case 659:  case 660:   // V_MBCNT_LO_U32_B32,V_MBCNT_HI_U32_B32,V_BFM_B32,V_CVT_PKNORM_I16_F32,
-            case 661:  case 662:  case 663:   // V_CVT_PKNORM_U16_F32,V_CVT_PKRTZ_F16_F32,V_CVT_PK_U16_U32,
-            case 664:  case 665:  case 666:  case 668:   // V_CVT_PK_I16_I32,V_CVT_PKNORM_I16_F16,V_CVT_PKNORM_U16_F16,V_ADD_I32,
-            case 669:  case 670:  case 671:  case 672:  case 673:   // V_SUB_I32,V_ADD_I16,V_SUB_I16,V_PACK_B32_F16,V_MUL_LEGACY_F32,
-            case 674:  case 675:  case 676:  case 677:   // V_CVT_PK_FP8_F32,V_CVT_PK_BF8_F32,V_CVT_SR_FP8_F32,V_CVT_SR_BF8_F32,
+            case 275:  case 276:  case 277:  case 278:  case 287:   // V_AND_B32,V_OR_B32,V_XOR_B32,V_MAC_F32,V_ADD_F16,
+            case 288:  case 290:  case 291:  case 294:  case 295:   // V_SUB_F16,V_MUL_F16,V_MAC_F16,V_ADD_U16,V_SUB_U16,
+            case 297:  case 301:  case 302:  case 303:  case 304:   // V_MUL_LO_U16,V_MAX_F16,V_MIN_F16,V_MAX_U16,V_MAX_I16,
+            case 305:  case 306:  case 307:  case 308:  case 309:   // V_MIN_U16,V_MIN_I16,V_LDEXP_F16,V_ADD_U32,V_SUB_U32,
+            case 311:  case 312:  case 313:  case 314:   // V_DOT2C_F32_F16,V_DOT2C_I32_I16,V_DOT4C_I32_I8,V_DOT8C_I32_I4,
+            case 315:  case 316:  case 317:  case 496:   // V_FMAC_F32,V_PK_FMAC_F16,V_XNOR_B32,V_CVT_PKACCUM_U8_F32,
+            case 645:  case 646:  case 647:  case 648:   // V_MUL_LO_U32,V_MUL_HI_U32,V_MUL_HI_I32,V_LDEXP_F32,
+            case 651:  case 652:  case 653:  case 659:   // V_BCNT_U32_B32,V_MBCNT_LO_U32_B32,V_MBCNT_HI_U32_B32,V_BFM_B32,
+            case 660:  case 661:  case 662:   // V_CVT_PKNORM_I16_F32,V_CVT_PKNORM_U16_F32,V_CVT_PKRTZ_F16_F32,
+            case 663:  case 664:  case 665:   // V_CVT_PK_U16_U32,V_CVT_PK_I16_I32,V_CVT_PKNORM_I16_F16,
+            case 666:  case 668:  case 669:  case 670:  case 671:   // V_CVT_PKNORM_U16_F16,V_ADD_I32,V_SUB_I32,V_ADD_I16,V_SUB_I16,
+            case 672:  case 673:   // V_PACK_B32_F16,V_MUL_LEGACY_F32,
                 appendOPR_VGPR(layout.VDST,false,true);
                 appendOPR_SRC_NOLIT(layout.SRC0,true,false);
                 appendOPR_SRC_SIMPLE(layout.SRC1,true,false);
@@ -2535,19 +2550,19 @@ namespace InstructionAPI {
                 appendOPR_SRC_SIMPLE(layout.SRC0,true,false);
                 appendOPR_SRC_SIMPLE(layout.SRC1,true,false);
                 break;
-            case 450:  case 451:  case 452:  case 453:   // V_MAD_I32_I24,V_MAD_U32_U24,V_CUBEID_F32,V_CUBESC_F32,
-            case 454:  case 455:  case 456:  case 457:  case 458:   // V_CUBETC_F32,V_CUBEMA_F32,V_BFE_U32,V_BFE_I32,V_BFI_B32,
-            case 459:  case 461:  case 462:  case 463:  case 464:   // V_FMA_F32,V_LERP_U8,V_ALIGNBIT_B32,V_ALIGNBYTE_B32,V_MIN3_F32,
-            case 465:  case 466:  case 467:  case 468:  case 469:   // V_MIN3_I32,V_MIN3_U32,V_MAX3_F32,V_MAX3_I32,V_MAX3_U32,
-            case 470:  case 471:  case 472:  case 473:  case 474:   // V_MED3_F32,V_MED3_I32,V_MED3_U32,V_SAD_U8,V_SAD_HI_U8,
-            case 475:  case 476:  case 477:  case 478:  case 484:   // V_SAD_U16,V_SAD_U32,V_CVT_PK_U8_F32,V_DIV_FIXUP_F32,V_MSAD_U8,
-            case 490:  case 491:  case 492:  case 493:   // V_MAD_LEGACY_F16,V_MAD_LEGACY_U16,V_MAD_LEGACY_I16,V_PERM_B32,
-            case 494:  case 495:  case 497:  case 498:   // V_FMA_LEGACY_F16,V_DIV_FIXUP_LEGACY_F16,V_MAD_U32_U16,V_MAD_I32_I16,
-            case 499:  case 500:  case 501:  case 502:  case 503:   // V_XAD_U32,V_MIN3_F16,V_MIN3_I16,V_MIN3_U16,V_MAX3_F16,
-            case 504:  case 505:  case 506:  case 507:  case 508:   // V_MAX3_I16,V_MAX3_U16,V_MED3_F16,V_MED3_I16,V_MED3_U16,
-            case 509:  case 510:  case 511:  case 512:   // V_LSHL_ADD_U32,V_ADD_LSHL_U32,V_ADD3_U32,V_LSHL_OR_B32,
-            case 513:  case 514:  case 515:  case 516:  case 517:   // V_AND_OR_B32,V_OR3_B32,V_MAD_F16,V_MAD_U16,V_MAD_I16,
-            case 518:  case 519:   // V_FMA_F16,V_DIV_FIXUP_F16,
+            case 448:  case 449:  case 450:  case 451:   // V_MAD_LEGACY_F32,V_MAD_F32,V_MAD_I32_I24,V_MAD_U32_U24,
+            case 452:  case 453:  case 454:  case 455:  case 456:   // V_CUBEID_F32,V_CUBESC_F32,V_CUBETC_F32,V_CUBEMA_F32,V_BFE_U32,
+            case 457:  case 458:  case 459:  case 461:  case 462:   // V_BFE_I32,V_BFI_B32,V_FMA_F32,V_LERP_U8,V_ALIGNBIT_B32,
+            case 463:  case 464:  case 465:  case 466:  case 467:   // V_ALIGNBYTE_B32,V_MIN3_F32,V_MIN3_I32,V_MIN3_U32,V_MAX3_F32,
+            case 468:  case 469:  case 470:  case 471:  case 472:   // V_MAX3_I32,V_MAX3_U32,V_MED3_F32,V_MED3_I32,V_MED3_U32,
+            case 473:  case 474:  case 475:  case 476:  case 477:   // V_SAD_U8,V_SAD_HI_U8,V_SAD_U16,V_SAD_U32,V_CVT_PK_U8_F32,
+            case 478:  case 484:  case 490:  case 491:   // V_DIV_FIXUP_F32,V_MSAD_U8,V_MAD_LEGACY_F16,V_MAD_LEGACY_U16,
+            case 492:  case 493:  case 494:  case 495:   // V_MAD_LEGACY_I16,V_PERM_B32,V_FMA_LEGACY_F16,V_DIV_FIXUP_LEGACY_F16,
+            case 497:  case 498:  case 499:  case 500:  case 501:   // V_MAD_U32_U16,V_MAD_I32_I16,V_XAD_U32,V_MIN3_F16,V_MIN3_I16,
+            case 502:  case 503:  case 504:  case 505:  case 506:   // V_MIN3_U16,V_MAX3_F16,V_MAX3_I16,V_MAX3_U16,V_MED3_F16,
+            case 507:  case 508:  case 509:  case 510:  case 511:   // V_MED3_I16,V_MED3_U16,V_LSHL_ADD_U32,V_ADD_LSHL_U32,V_ADD3_U32,
+            case 512:  case 513:  case 514:  case 515:  case 516:   // V_LSHL_OR_B32,V_AND_OR_B32,V_OR3_B32,V_MAD_F16,V_MAD_U16,
+            case 517:  case 518:  case 519:   // V_MAD_I16,V_FMA_F16,V_DIV_FIXUP_F16,
                 appendOPR_VGPR(layout.VDST,false,true);
                 appendOPR_SRC_NOLIT(layout.SRC0,true,false);
                 appendOPR_SRC_SIMPLE(layout.SRC1,true,false);
@@ -2573,7 +2588,7 @@ namespace InstructionAPI {
                 appendOPR_SRC_SIMPLE(layout.SRC2,true,false,2);
                 appendOPR_VCC(0,true,false,2,true);
                 break;
-            case 485:  case 486:  case 520:   // V_QSAD_PK_U16_U8,V_MQSAD_PK_U16_U8,V_LSHL_ADD_U64,
+            case 485:  case 486:   // V_QSAD_PK_U16_U8,V_MQSAD_PK_U16_U8,
                 appendOPR_VGPR(layout.VDST,false,true,2);
                 appendOPR_SRC_NOLIT(layout.SRC0,true,false,2);
                 appendOPR_SRC_SIMPLE(layout.SRC1,true,false);
@@ -2685,7 +2700,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_VOP2Operands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_VOP2Operands()
     {
         layout_ENC_VOP2 & layout = insn_layout.ENC_VOP2;
         switch (layout.OP)  {
@@ -2698,11 +2713,12 @@ namespace InstructionAPI {
             case 1:  case 2:  case 3:  case 5:  case 6:   // V_ADD_F32,V_SUB_F32,V_SUBREV_F32,V_MUL_F32,V_MUL_I32_I24,
             case 7:  case 8:  case 9:  case 10:  case 11:   // V_MUL_HI_I32_I24,V_MUL_U32_U24,V_MUL_HI_U32_U24,V_MIN_F32,V_MAX_F32,
             case 12:  case 13:  case 14:  case 15:  case 19:   // V_MIN_I32,V_MAX_I32,V_MIN_U32,V_MAX_U32,V_AND_B32,
-            case 20:  case 21:  case 31:  case 32:  case 34:   // V_OR_B32,V_XOR_B32,V_ADD_F16,V_SUB_F16,V_MUL_F16,
-            case 35:  case 38:  case 39:  case 41:  case 45:   // V_MAC_F16,V_ADD_U16,V_SUB_U16,V_MUL_LO_U16,V_MAX_F16,
-            case 46:  case 47:  case 48:  case 49:  case 50:   // V_MIN_F16,V_MAX_U16,V_MAX_I16,V_MIN_U16,V_MIN_I16,
-            case 51:  case 52:  case 53:  case 55:  case 56:   // V_LDEXP_F16,V_ADD_U32,V_SUB_U32,V_DOT2C_F32_F16,V_DOT2C_I32_I16,
-            case 57:  case 58:  case 59:  case 60:  case 61:   // V_DOT4C_I32_I8,V_DOT8C_I32_I4,V_FMAC_F32,V_PK_FMAC_F16,V_XNOR_B32,
+            case 20:  case 21:  case 22:  case 31:  case 32:   // V_OR_B32,V_XOR_B32,V_MAC_F32,V_ADD_F16,V_SUB_F16,
+            case 34:  case 35:  case 38:  case 39:  case 41:   // V_MUL_F16,V_MAC_F16,V_ADD_U16,V_SUB_U16,V_MUL_LO_U16,
+            case 45:  case 46:  case 47:  case 48:  case 49:   // V_MAX_F16,V_MIN_F16,V_MAX_U16,V_MAX_I16,V_MIN_U16,
+            case 50:  case 51:  case 52:  case 53:  case 55:   // V_MIN_I16,V_LDEXP_F16,V_ADD_U32,V_SUB_U32,V_DOT2C_F32_F16,
+            case 56:  case 57:  case 58:  case 59:   // V_DOT2C_I32_I16,V_DOT4C_I32_I8,V_DOT8C_I32_I4,V_FMAC_F32,
+            case 60:  case 61:   // V_PK_FMAC_F16,V_XNOR_B32,
                 appendOPR_VGPR(layout.VDST,false,true);
                 appendOPR_SRC(layout.SRC0,true,false);
                 appendOPR_VGPR(layout.VSRC1,true,false);
@@ -2747,7 +2763,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP2_INST_LITERALOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOP2_INST_LITERALOperands()
     {
         layout_VOP2_INST_LITERAL & layout = insn_layout.VOP2_INST_LITERAL;
         switch (layout.OP)  {
@@ -2761,11 +2777,11 @@ namespace InstructionAPI {
             case 7:  case 8:  case 9:  case 10:  case 11:   // V_MUL_HI_I32_I24,V_MUL_U32_U24,V_MUL_HI_U32_U24,V_MIN_F32,V_MAX_F32,
             case 12:  case 13:  case 14:  case 15:  case 16:   // V_MIN_I32,V_MAX_I32,V_MIN_U32,V_MAX_U32,V_LSHRREV_B32,
             case 17:  case 18:  case 19:  case 20:  case 21:   // V_ASHRREV_I32,V_LSHLREV_B32,V_AND_B32,V_OR_B32,V_XOR_B32,
-            case 31:  case 32:  case 33:  case 34:  case 35:   // V_ADD_F16,V_SUB_F16,V_SUBREV_F16,V_MUL_F16,V_MAC_F16,
-            case 38:  case 39:  case 40:  case 41:  case 42:   // V_ADD_U16,V_SUB_U16,V_SUBREV_U16,V_MUL_LO_U16,V_LSHLREV_B16,
-            case 43:  case 44:  case 45:  case 46:  case 47:   // V_LSHRREV_B16,V_ASHRREV_I16,V_MAX_F16,V_MIN_F16,V_MAX_U16,
-            case 48:  case 49:  case 50:  case 51:  case 52:   // V_MAX_I16,V_MIN_U16,V_MIN_I16,V_LDEXP_F16,V_ADD_U32,
-            case 53:  case 54:  case 55:  case 56:   // V_SUB_U32,V_SUBREV_U32,V_DOT2C_F32_F16,V_DOT2C_I32_I16,
+            case 22:  case 31:  case 32:  case 33:  case 34:   // V_MAC_F32,V_ADD_F16,V_SUB_F16,V_SUBREV_F16,V_MUL_F16,
+            case 35:  case 38:  case 39:  case 40:  case 41:   // V_MAC_F16,V_ADD_U16,V_SUB_U16,V_SUBREV_U16,V_MUL_LO_U16,
+            case 42:  case 43:  case 44:  case 45:  case 46:   // V_LSHLREV_B16,V_LSHRREV_B16,V_ASHRREV_I16,V_MAX_F16,V_MIN_F16,
+            case 47:  case 48:  case 49:  case 50:  case 51:   // V_MAX_U16,V_MAX_I16,V_MIN_U16,V_MIN_I16,V_LDEXP_F16,
+            case 52:  case 53:  case 54:  case 55:  case 56:   // V_ADD_U32,V_SUB_U32,V_SUBREV_U32,V_DOT2C_F32_F16,V_DOT2C_I32_I16,
             case 57:  case 58:  case 59:  case 60:  case 61:   // V_DOT4C_I32_I8,V_DOT8C_I32_I4,V_FMAC_F32,V_PK_FMAC_F16,V_XNOR_B32,
                 appendOPR_VGPR(layout.VDST,false,true);
                 insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32,layout.LITERAL)),true,false);
@@ -2776,7 +2792,7 @@ namespace InstructionAPI {
                 insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32,layout.LITERAL)),true,false);
                 appendOPR_VGPR(layout.VSRC1,true,false,2);
                 break;
-            case 23:  case 36:   // V_FMAMK_F32,V_MADMK_F16,
+            case 23:  case 36:   // V_MADMK_F32,V_MADMK_F16,
                 if (COND_VOP2_INST_LITERAL_default(insn_long))  {
                     appendOPR_VGPR(layout.VDST,false,true);
                     appendOPR_SRC(layout.SRC0,true,false);
@@ -2790,7 +2806,7 @@ namespace InstructionAPI {
                     appendOPR_VGPR(layout.VSRC1,true,false);
                 }
                 break;
-            case 24:  case 37:   // V_FMAAK_F32,V_MADAK_F16,
+            case 24:  case 37:   // V_MADAK_F32,V_MADAK_F16,
                 if (COND_VOP2_INST_LITERAL_default(insn_long))  {
                     appendOPR_VGPR(layout.VDST,false,true);
                     appendOPR_SRC(layout.SRC0,true,false);
@@ -2820,7 +2836,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP2_VOP_DPPOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOP2_VOP_DPPOperands()
     {
         layout_VOP2_VOP_DPP & layout = insn_layout.VOP2_VOP_DPP;
         switch (layout.OP)  {
@@ -2834,11 +2850,11 @@ namespace InstructionAPI {
             case 7:  case 8:  case 9:  case 10:  case 11:   // V_MUL_HI_I32_I24,V_MUL_U32_U24,V_MUL_HI_U32_U24,V_MIN_F32,V_MAX_F32,
             case 12:  case 13:  case 14:  case 15:  case 16:   // V_MIN_I32,V_MAX_I32,V_MIN_U32,V_MAX_U32,V_LSHRREV_B32,
             case 17:  case 18:  case 19:  case 20:  case 21:   // V_ASHRREV_I32,V_LSHLREV_B32,V_AND_B32,V_OR_B32,V_XOR_B32,
-            case 31:  case 32:  case 33:  case 34:  case 35:   // V_ADD_F16,V_SUB_F16,V_SUBREV_F16,V_MUL_F16,V_MAC_F16,
-            case 38:  case 39:  case 40:  case 41:  case 42:   // V_ADD_U16,V_SUB_U16,V_SUBREV_U16,V_MUL_LO_U16,V_LSHLREV_B16,
-            case 43:  case 44:  case 45:  case 46:  case 47:   // V_LSHRREV_B16,V_ASHRREV_I16,V_MAX_F16,V_MIN_F16,V_MAX_U16,
-            case 48:  case 49:  case 50:  case 51:  case 52:   // V_MAX_I16,V_MIN_U16,V_MIN_I16,V_LDEXP_F16,V_ADD_U32,
-            case 53:  case 54:  case 55:  case 56:   // V_SUB_U32,V_SUBREV_U32,V_DOT2C_F32_F16,V_DOT2C_I32_I16,
+            case 22:  case 31:  case 32:  case 33:  case 34:   // V_MAC_F32,V_ADD_F16,V_SUB_F16,V_SUBREV_F16,V_MUL_F16,
+            case 35:  case 38:  case 39:  case 40:  case 41:   // V_MAC_F16,V_ADD_U16,V_SUB_U16,V_SUBREV_U16,V_MUL_LO_U16,
+            case 42:  case 43:  case 44:  case 45:  case 46:   // V_LSHLREV_B16,V_LSHRREV_B16,V_ASHRREV_I16,V_MAX_F16,V_MIN_F16,
+            case 47:  case 48:  case 49:  case 50:  case 51:   // V_MAX_U16,V_MAX_I16,V_MIN_U16,V_MIN_I16,V_LDEXP_F16,
+            case 52:  case 53:  case 54:  case 55:  case 56:   // V_ADD_U32,V_SUB_U32,V_SUBREV_U32,V_DOT2C_F32_F16,V_DOT2C_I32_I16,
             case 57:  case 58:  case 59:  case 60:  case 61:   // V_DOT4C_I32_I8,V_DOT8C_I32_I4,V_FMAC_F32,V_PK_FMAC_F16,V_XNOR_B32,
                 appendOPR_VGPR(layout.VDST,false,true);
                 appendOPR_VGPR(layout.VSRC0,true,false);
@@ -2865,7 +2881,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP2_VOP_SDWAOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOP2_VOP_SDWAOperands()
     {
         layout_VOP2_VOP_SDWA & layout = insn_layout.VOP2_VOP_SDWA;
         switch (layout.OP)  {
@@ -2895,7 +2911,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP2_VOP_SDWA_SDST_ENCOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOP2_VOP_SDWA_SDST_ENCOperands()
     {
         layout_VOP2_VOP_SDWA_SDST_ENC & layout = insn_layout.VOP2_VOP_SDWA_SDST_ENC;
         switch (layout.OP)  {
@@ -2928,7 +2944,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP3_SDST_ENCOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOP3_SDST_ENCOperands()
     {
         layout_VOP3_SDST_ENC & layout = insn_layout.VOP3_SDST_ENC;
         switch (layout.OP)  {
@@ -2982,7 +2998,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_VOP3POperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_VOP3POperands()
     {
         layout_ENC_VOP3P & layout = insn_layout.ENC_VOP3P;
         switch (layout.OP)  {
@@ -3028,75 +3044,57 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP3P_MFMAOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOP3P_MFMAOperands()
     {
         layout_VOP3P_MFMA & layout = insn_layout.VOP3P_MFMA;
         switch (layout.OP)  {
-            case 62:  case 74:  case 77:   // V_MFMA_F32_16X16X8_XF32,V_MFMA_F32_4X4X4_16B_F16,V_MFMA_F32_16X16X16_F16,
-            case 87:  case 95:  case 97:   // V_MFMA_I32_16X16X32_I8,V_MFMA_F32_4X4X4_16B_BF16,V_MFMA_F32_16X16X16_BF16,
-            case 112:  case 113:  case 114:   // V_MFMA_F32_16X16X32_BF8_BF8,V_MFMA_F32_16X16X32_BF8_FP8,V_MFMA_F32_16X16X32_FP8_BF8,
-            case 115:   // V_MFMA_F32_16X16X32_FP8_FP8,
-                appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,4);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST((layout.ACC_CD && layout.SRC2 >= 256) ? layout.SRC2 + 512 : layout.SRC2,true,false,4);
-                break;
-            case 63:  case 73:  case 76:   // V_MFMA_F32_32X32X4_XF32,V_MFMA_F32_16X16X4_4B_F16,V_MFMA_F32_32X32X8_F16,
-            case 86:  case 94:  case 96:   // V_MFMA_I32_32X32X16_I8,V_MFMA_F32_16X16X4_4B_BF16,V_MFMA_F32_32X32X8_BF16,
-            case 116:  case 117:  case 118:   // V_MFMA_F32_32X32X16_BF8_BF8,V_MFMA_F32_32X32X16_BF8_FP8,V_MFMA_F32_32X32X16_FP8_BF8,
-            case 119:   // V_MFMA_F32_32X32X16_FP8_FP8,
-                appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,16);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST((layout.ACC_CD && layout.SRC2 >= 256) ? layout.SRC2 + 512 : layout.SRC2,true,false,16);
-                break;
-            case 64:  case 80:   // V_MFMA_F32_32X32X1_2B_F32,V_MFMA_I32_32X32X4_2B_I8,
+            case 64:  case 80:  case 104:   // V_MFMA_F32_32X32X1F32,V_MFMA_I32_32X32X4I8,V_MFMA_F32_32X32X2BF16,
                 appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,32);
                 appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false);
                 appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false);
                 appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST((layout.ACC_CD && layout.SRC2 >= 256) ? layout.SRC2 + 512 : layout.SRC2,true,false,32);
                 break;
-            case 65:  case 68:  case 81:   // V_MFMA_F32_16X16X1_4B_F32,V_MFMA_F32_32X32X2_F32,V_MFMA_I32_16X16X4_4B_I8,
+            case 65:  case 68:  case 81:   // V_MFMA_F32_16X16X1F32,V_MFMA_F32_32X32X2F32,V_MFMA_I32_16X16X4I8,
+            case 84:  case 105:  case 108:   // V_MFMA_I32_32X32X8I8,V_MFMA_F32_16X16X2BF16,V_MFMA_F32_32X32X4BF16,
                 appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,16);
                 appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false);
                 appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false);
                 appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST((layout.ACC_CD && layout.SRC2 >= 256) ? layout.SRC2 + 512 : layout.SRC2,true,false,16);
                 break;
-            case 66:  case 69:  case 82:   // V_MFMA_F32_4X4X1_16B_F32,V_MFMA_F32_16X16X4_F32,V_MFMA_I32_4X4X4_16B_I8,
+            case 66:  case 69:  case 82:   // V_MFMA_F32_4X4X1F32,V_MFMA_F32_16X16X4F32,V_MFMA_I32_4X4X4I8,
+            case 85:  case 107:  case 109:   // V_MFMA_I32_16X16X16I8,V_MFMA_F32_4X4X2BF16,V_MFMA_F32_16X16X8BF16,
                 appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,4);
                 appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false);
                 appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false);
                 appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST((layout.ACC_CD && layout.SRC2 >= 256) ? layout.SRC2 + 512 : layout.SRC2,true,false,4);
                 break;
-            case 72:  case 93:   // V_MFMA_F32_32X32X4_2B_F16,V_MFMA_F32_32X32X4_2B_BF16,
+            case 72:  case 99:   // V_MFMA_F32_32X32X4F16,V_MFMA_F32_32X32X4BF16_1K,
                 appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,32);
                 appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
                 appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,2);
                 appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST((layout.ACC_CD && layout.SRC2 >= 256) ? layout.SRC2 + 512 : layout.SRC2,true,false,32);
                 break;
-            case 98:  case 102:  case 106:   // V_SMFMAC_F32_16X16X32_F16,V_SMFMAC_F32_16X16X32_BF16,V_SMFMAC_I32_16X16X64_I8,
-            case 120:  case 121:   // V_SMFMAC_F32_16X16X64_BF8_BF8,V_SMFMAC_F32_16X16X64_BF8_FP8,
-            case 122:  case 123:   // V_SMFMAC_F32_16X16X64_FP8_BF8,V_SMFMAC_F32_16X16X64_FP8_FP8,
-                appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,4);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,4);
-                appendOPR_SRC_VGPR(layout.SRC2,true,false);
-                break;
-            case 100:  case 104:  case 108:   // V_SMFMAC_F32_32X32X16_F16,V_SMFMAC_F32_32X32X16_BF16,V_SMFMAC_I32_32X32X32_I8,
-            case 124:  case 125:   // V_SMFMAC_F32_32X32X32_BF8_BF8,V_SMFMAC_F32_32X32X32_BF8_FP8,
-            case 126:  case 127:   // V_SMFMAC_F32_32X32X32_FP8_BF8,V_SMFMAC_F32_32X32X32_FP8_FP8,
+            case 73:  case 76:  case 100:   // V_MFMA_F32_16X16X4F16,V_MFMA_F32_32X32X8F16,V_MFMA_F32_16X16X4BF16_1K,
+            case 102:   // V_MFMA_F32_32X32X8BF16_1K,
                 appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,16);
                 appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
-                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,4);
-                appendOPR_SRC_VGPR(layout.SRC2,true,false);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST((layout.ACC_CD && layout.SRC2 >= 256) ? layout.SRC2 + 512 : layout.SRC2,true,false,16);
                 break;
-            case 110:   // V_MFMA_F64_16X16X4_F64,
+            case 74:  case 77:  case 101:   // V_MFMA_F32_4X4X4F16,V_MFMA_F32_16X16X16F16,V_MFMA_F32_4X4X4BF16_1K,
+            case 103:   // V_MFMA_F32_16X16X16BF16_1K,
+                appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,4);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,2);
+                appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST((layout.ACC_CD && layout.SRC2 >= 256) ? layout.SRC2 + 512 : layout.SRC2,true,false,4);
+                break;
+            case 110:   // V_MFMA_F64_16X16X4F64,
                 appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,8);
                 appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
                 appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,2);
                 appendOPR_SRC_VGPR_OR_ACCVGPR_OR_CONST((layout.ACC_CD && layout.SRC2 >= 256) ? layout.SRC2 + 512 : layout.SRC2,true,false,8);
                 break;
-            case 111:   // V_MFMA_F64_4X4X4_4B_F64,
+            case 111:   // V_MFMA_F64_4X4X4F64,
                 appendOPR_VGPR_OR_ACCVGPR(layout.ACC_CD ? layout.VDST + 512 : layout.VDST,false,true,2);
                 appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 1) && layout.SRC0 >= 256) ? layout.SRC0 + 512 : layout.SRC0,true,false,2);
                 appendOPR_SRC_VGPR_OR_ACCVGPR(((layout.ACC & 2) && layout.SRC1 >= 256) ? layout.SRC1 + 512 : layout.SRC1,true,false,2);
@@ -3105,7 +3103,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_VOPCOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeENC_VOPCOperands()
     {
         layout_ENC_VOPC & layout = insn_layout.ENC_VOPC;
         switch (layout.OP)  {
@@ -3189,7 +3187,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOPC_INST_LITERALOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOPC_INST_LITERALOperands()
     {
         layout_VOPC_INST_LITERAL & layout = insn_layout.VOPC_INST_LITERAL;
         switch (layout.OP)  {
@@ -3262,7 +3260,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOPC_VOP_SDWA_SDST_ENCOperands()
+    void InstructionDecoder_amdgpu_gfx90a::finalizeVOPC_VOP_SDWA_SDST_ENCOperands()
     {
         layout_VOPC_VOP_SDWA_SDST_ENC & layout = insn_layout.VOPC_VOP_SDWA_SDST_ENC;
         switch (layout.OP)  {

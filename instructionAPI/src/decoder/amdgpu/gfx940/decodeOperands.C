@@ -1,4 +1,4 @@
-#include "registers/AMDGPU/amdgpu_gfx940_regs.h"
+#include "registers/amdgpu/amdgpu_gfx940_regs.h"
 #include "InstructionDecoder-amdgpu-gfx940.h"
 
 namespace Dyninst {

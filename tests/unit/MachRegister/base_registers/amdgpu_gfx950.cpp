@@ -1,5 +1,5 @@
 #include "basereg_check.h"
-#include "registers/AMDGPU/amdgpu_gfx950_regs.h"
+#include "registers/amdgpu/amdgpu_gfx950_regs.h"
 
 int main() {
   BASEREG_CHECK(amdgpu_gfx950::ttmp0, amdgpu_gfx950::ttmp0);

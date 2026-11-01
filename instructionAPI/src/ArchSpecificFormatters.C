@@ -16,10 +16,10 @@
 #include "../../common/h/compiler_diagnostics.h"
 #include "Architecture.h"
 #include "dyntypes.h"
-#include "registers/AMDGPU/amdgpu_gfx908_regs.h"
-#include "registers/AMDGPU/amdgpu_gfx90a_regs.h"
-#include "registers/AMDGPU/amdgpu_gfx940_regs.h"
-#include "registers/AMDGPU/amdgpu_gfx950_regs.h"
+#include "registers/amdgpu/amdgpu_gfx908_regs.h"
+#include "registers/amdgpu/amdgpu_gfx90a_regs.h"
+#include "registers/amdgpu/amdgpu_gfx940_regs.h"
+#include "registers/amdgpu/amdgpu_gfx950_regs.h"
 
 
 using namespace Dyninst::InstructionAPI;

@@ -1,9 +1,9 @@
-#include "registers/AMDGPU/amdgpu_gfx950_regs.h"
-#include "InstructionDecoder-amdgpu-gfx950.h"
+#include "registers/amdgpu/amdgpu_gfx90a_regs.h"
+#include "InstructionDecoder-amdgpu-gfx90a.h"
 
 namespace Dyninst {
 namespace InstructionAPI {
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_SOP1(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_SOP1(uint64_t I)
     {
         switch ( I & 0xff80ff00 )  {
             case 0xbe800000:  case 0xbe800100:  case 0xbe800200:  case 0xbe800300:
@@ -27,7 +27,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_SOPC(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_SOPC(uint64_t I)
     {
         switch ( I & 0xffff0000 )  {
             case 0xbf000000:  case 0xbf010000:  case 0xbf020000:  case 0xbf030000:
@@ -42,7 +42,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_SOPP(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_SOPP(uint64_t I)
     {
         switch ( I & 0xffff0000 )  {
             case 0xbf800000:  case 0xbf810000:  case 0xbf820000:  case 0xbf830000:
@@ -52,7 +52,7 @@ namespace InstructionAPI {
             case 0xbf900000:  case 0xbf910000:  case 0xbf920000:  case 0xbf930000:
             case 0xbf940000:  case 0xbf950000:  case 0xbf960000:  case 0xbf970000:
             case 0xbf980000:  case 0xbf990000:  case 0xbf9a0000:  case 0xbf9b0000:
-            case 0xbf9c0000:  case 0xbf9d0000:  case 0xbf9e0000:  case 0xbf9f0000:
+            case 0xbf9c0000:  case 0xbf9d0000:  case 0xbf9e0000:
                 return true;
 
             default:
@@ -60,7 +60,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_SOPK(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_SOPK(uint64_t I)
     {
         switch ( I & 0xff800000 )  {
             case 0xb0000000:  case 0xb0800000:  case 0xb1000000:  case 0xb1800000:
@@ -75,7 +75,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_SOP2(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_SOP2(uint64_t I)
     {
         switch ( I & 0xff800000 )  {
             case 0x80000000:  case 0x80800000:  case 0x81000000:  case 0x81800000:
@@ -99,7 +99,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_SMEM(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_SMEM(uint64_t I)
     {
         switch ( I & 0xfffc0000 )  {
             case 0xc0000000:  case 0xc0040000:  case 0xc0080000:  case 0xc00c0000:
@@ -130,7 +130,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_VOP1(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_VOP1(uint64_t I)
     {
         switch ( I & 0xfe01fe00 )  {
             case 0x7e000000:  case 0x7e000200:  case 0x7e000400:  case 0x7e000600:
@@ -146,15 +146,13 @@ namespace InstructionAPI {
             case 0x7e005200:  case 0x7e005400:  case 0x7e005600:  case 0x7e005800:
             case 0x7e005a00:  case 0x7e005c00:  case 0x7e005e00:  case 0x7e006000:
             case 0x7e006200:  case 0x7e006400:  case 0x7e006600:  case 0x7e006800:
-            case 0x7e006a00:  case 0x7e006e00:  case 0x7e007000:  case 0x7e007200:
-            case 0x7e007400:  case 0x7e007600:  case 0x7e007800:  case 0x7e007a00:
-            case 0x7e007c00:  case 0x7e007e00:  case 0x7e008000:  case 0x7e008200:
-            case 0x7e008400:  case 0x7e008600:  case 0x7e008800:  case 0x7e008a00:
-            case 0x7e008c00:  case 0x7e008e00:  case 0x7e009000:  case 0x7e009200:
-            case 0x7e009400:  case 0x7e009600:  case 0x7e009800:  case 0x7e009a00:
-            case 0x7e009c00:  case 0x7e009e00:  case 0x7e00a200:  case 0x7e00a400:
-            case 0x7e00a800:  case 0x7e00aa00:  case 0x7e00ac00:  case 0x7e00ae00:
-            case 0x7e00b000:  case 0x7e00b200:  case 0x7e00b400:  case 0x7e00b600:
+            case 0x7e006a00:  case 0x7e006e00:  case 0x7e007200:  case 0x7e007400:
+            case 0x7e007600:  case 0x7e007800:  case 0x7e007a00:  case 0x7e007c00:
+            case 0x7e007e00:  case 0x7e008000:  case 0x7e008200:  case 0x7e008400:
+            case 0x7e008600:  case 0x7e008800:  case 0x7e008a00:  case 0x7e008c00:
+            case 0x7e008e00:  case 0x7e009000:  case 0x7e009200:  case 0x7e009400:
+            case 0x7e009600:  case 0x7e009800:  case 0x7e009a00:  case 0x7e009c00:
+            case 0x7e009e00:  case 0x7e00a200:  case 0x7e00a400:
                 return true;
 
             default:
@@ -162,7 +160,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_VOPC(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_VOPC(uint64_t I)
     {
         switch ( I & 0xfffe0000 )  {
             case 0x7c200000:  case 0x7c220000:  case 0x7c240000:  case 0x7c260000:
@@ -222,7 +220,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_VOP2(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_VOP2(uint64_t I)
     {
         switch ( I & 0xfe000000 )  {
             case 0x0:  case 0x2000000:  case 0x4000000:  case 0x6000000:
@@ -247,30 +245,18 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_VOP3PX2(uint64_t I)
-    {
-        switch ( I & 0xffff0000 )  {
-            case 0xd3ac0000:
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_VOP3P(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_VOP3P(uint64_t I)
     {
         switch ( I & 0xffff0000 )  {
             case 0xd3800000:  case 0xd3810000:  case 0xd3820000:  case 0xd3830000:
             case 0xd3840000:  case 0xd3850000:  case 0xd3860000:  case 0xd3870000:
             case 0xd3880000:  case 0xd3890000:  case 0xd38a0000:  case 0xd38b0000:
             case 0xd38c0000:  case 0xd38d0000:  case 0xd38e0000:  case 0xd38f0000:
-            case 0xd3900000:  case 0xd3910000:  case 0xd3920000:  case 0xd39a0000:
-            case 0xd39b0000:  case 0xd39c0000:  case 0xd3a00000:  case 0xd3a10000:
-            case 0xd3a20000:  case 0xd3a30000:  case 0xd3a60000:  case 0xd3a70000:
-            case 0xd3a80000:  case 0xd3a90000:  case 0xd3aa0000:  case 0xd3ab0000:
-            case 0xd3b00000:  case 0xd3b10000:  case 0xd3b20000:  case 0xd3b30000:
-            case 0xd3d80000:  case 0xd3d90000:
+            case 0xd3900000:  case 0xd3910000:  case 0xd3920000:  case 0xd3a00000:
+            case 0xd3a10000:  case 0xd3a20000:  case 0xd3a30000:  case 0xd3a60000:
+            case 0xd3a70000:  case 0xd3a80000:  case 0xd3a90000:  case 0xd3aa0000:
+            case 0xd3ab0000:  case 0xd3b00000:  case 0xd3b10000:  case 0xd3b20000:
+            case 0xd3b30000:  case 0xd3d80000:  case 0xd3d90000:
                 return true;
 
             default:
@@ -278,7 +264,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_VOP3(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_VOP3(uint64_t I)
     {
         switch ( I & 0xffff0000 )  {
             case 0xd1400000:  case 0xd1410000:  case 0xd1420000:  case 0xd1430000:
@@ -294,118 +280,101 @@ namespace InstructionAPI {
             case 0xd1690000:  case 0xd16a0000:  case 0xd16b0000:  case 0xd16c0000:
             case 0xd16d0000:  case 0xd16e0000:  case 0xd16f0000:  case 0xd1700000:
             case 0xd1710000:  case 0xd1720000:  case 0xd1730000:  case 0xd1740000:
-            case 0xd1750000:  case 0xd1770000:  case 0xd1780000:  case 0xd1790000:
-            case 0xd17a0000:  case 0xd17b0000:  case 0xd17c0000:  case 0xd17d0000:
-            case 0xd17e0000:  case 0xd17f0000:  case 0xd1800000:  case 0xd1810000:
-            case 0xd1820000:  case 0xd1830000:  case 0xd1840000:  case 0xd1850000:
-            case 0xd1860000:  case 0xd1870000:  case 0xd1880000:  case 0xd1890000:
-            case 0xd18a0000:  case 0xd18b0000:  case 0xd18c0000:  case 0xd18d0000:
-            case 0xd18e0000:  case 0xd18f0000:  case 0xd1910000:  case 0xd1920000:
-            case 0xd1940000:  case 0xd1950000:  case 0xd1960000:  case 0xd1970000:
-            case 0xd1980000:  case 0xd1990000:  case 0xd19a0000:  case 0xd19b0000:
-            case 0xd1000000:  case 0xd1010000:  case 0xd1020000:  case 0xd1030000:
-            case 0xd1040000:  case 0xd1050000:  case 0xd1060000:  case 0xd1070000:
-            case 0xd1080000:  case 0xd1090000:  case 0xd10a0000:  case 0xd10b0000:
-            case 0xd10c0000:  case 0xd10d0000:  case 0xd10e0000:  case 0xd10f0000:
-            case 0xd1100000:  case 0xd1110000:  case 0xd1120000:  case 0xd1130000:
-            case 0xd1140000:  case 0xd1150000:  case 0xd1160000:  case 0xd11f0000:
-            case 0xd1200000:  case 0xd1210000:  case 0xd1220000:  case 0xd1230000:
-            case 0xd1260000:  case 0xd1270000:  case 0xd1280000:  case 0xd1290000:
-            case 0xd12a0000:  case 0xd12b0000:  case 0xd12c0000:  case 0xd12d0000:
-            case 0xd12e0000:  case 0xd12f0000:  case 0xd1300000:  case 0xd1310000:
-            case 0xd1320000:  case 0xd1330000:  case 0xd1340000:  case 0xd1350000:
-            case 0xd1360000:  case 0xd1370000:  case 0xd1380000:  case 0xd1390000:
-            case 0xd13a0000:  case 0xd13b0000:  case 0xd13c0000:  case 0xd13d0000:
-            case 0xd1c20000:  case 0xd1c30000:  case 0xd1c40000:  case 0xd1c50000:
-            case 0xd1c60000:  case 0xd1c70000:  case 0xd1c80000:  case 0xd1c90000:
-            case 0xd1ca0000:  case 0xd1cb0000:  case 0xd1cc0000:  case 0xd1cd0000:
-            case 0xd1ce0000:  case 0xd1cf0000:  case 0xd1d00000:  case 0xd1d10000:
-            case 0xd1d20000:  case 0xd1d30000:  case 0xd1d40000:  case 0xd1d50000:
-            case 0xd1d60000:  case 0xd1d70000:  case 0xd1d80000:  case 0xd1d90000:
-            case 0xd1da0000:  case 0xd1db0000:  case 0xd1dc0000:  case 0xd1dd0000:
-            case 0xd1de0000:  case 0xd1df0000:  case 0xd1e20000:  case 0xd1e30000:
-            case 0xd1e40000:  case 0xd1e50000:  case 0xd1e60000:  case 0xd1e70000:
-            case 0xd1ea0000:  case 0xd1eb0000:  case 0xd1ec0000:  case 0xd1ed0000:
-            case 0xd1ee0000:  case 0xd1ef0000:  case 0xd1f00000:  case 0xd1f10000:
-            case 0xd1f20000:  case 0xd1f30000:  case 0xd1f40000:  case 0xd1f50000:
-            case 0xd1f60000:  case 0xd1f70000:  case 0xd1f80000:  case 0xd1f90000:
-            case 0xd1fa0000:  case 0xd1fb0000:  case 0xd1fc0000:  case 0xd1fd0000:
-            case 0xd1fe0000:  case 0xd1ff0000:  case 0xd2000000:  case 0xd2010000:
-            case 0xd2020000:  case 0xd2030000:  case 0xd2040000:  case 0xd2050000:
-            case 0xd2060000:  case 0xd2070000:  case 0xd2080000:  case 0xd2330000:
-            case 0xd2340000:  case 0xd2350000:  case 0xd2360000:  case 0xd2370000:
-            case 0xd2380000:  case 0xd2390000:  case 0xd23a0000:  case 0xd23b0000:
-            case 0xd23c0000:  case 0xd23d0000:  case 0xd23e0000:  case 0xd23f0000:
-            case 0xd2400000:  case 0xd2410000:  case 0xd2420000:  case 0xd2430000:
-            case 0xd2440000:  case 0xd2450000:  case 0xd2460000:  case 0xd2470000:
-            case 0xd2480000:  case 0xd2490000:  case 0xd24a0000:  case 0xd24b0000:
-            case 0xd24c0000:  case 0xd24d0000:  case 0xd24e0000:  case 0xd24f0000:
-            case 0xd2500000:  case 0xd2510000:  case 0xd2520000:  case 0xd2530000:
-            case 0xd2540000:  case 0xd2550000:  case 0xd2560000:  case 0xd2570000:
-            case 0xd2580000:  case 0xd2590000:  case 0xd25a0000:  case 0xd25b0000:
-            case 0xd25c0000:  case 0xd25d0000:  case 0xd25e0000:  case 0xd25f0000:
-            case 0xd2600000:  case 0xd2610000:  case 0xd2620000:  case 0xd2630000:
-            case 0xd2650000:  case 0xd2660000:  case 0xd2670000:  case 0xd2680000:
-            case 0xd2690000:  case 0xd26a0000:  case 0xd2800000:  case 0xd2810000:
-            case 0xd2820000:  case 0xd2830000:  case 0xd2840000:  case 0xd2850000:
-            case 0xd2860000:  case 0xd2870000:  case 0xd2880000:  case 0xd2890000:
-            case 0xd28a0000:  case 0xd28b0000:  case 0xd28c0000:  case 0xd28d0000:
-            case 0xd28f0000:  case 0xd2900000:  case 0xd2910000:  case 0xd2920000:
-            case 0xd2930000:  case 0xd2940000:  case 0xd2950000:  case 0xd2960000:
-            case 0xd2970000:  case 0xd2980000:  case 0xd2990000:  case 0xd29a0000:
-            case 0xd29c0000:  case 0xd29d0000:  case 0xd29e0000:  case 0xd29f0000:
-            case 0xd2a00000:  case 0xd2a10000:  case 0xd2a20000:  case 0xd2a30000:
-            case 0xd2a40000:  case 0xd2a50000:  case 0xd2a60000:  case 0xd2a70000:
-            case 0xd2a80000:  case 0xd2a90000:  case 0xd0100000:  case 0xd0110000:
-            case 0xd0120000:  case 0xd0130000:  case 0xd0140000:  case 0xd0150000:
-            case 0xd0200000:  case 0xd0210000:  case 0xd0220000:  case 0xd0230000:
-            case 0xd0240000:  case 0xd0250000:  case 0xd0260000:  case 0xd0270000:
-            case 0xd0280000:  case 0xd0290000:  case 0xd02a0000:  case 0xd02b0000:
-            case 0xd02c0000:  case 0xd02d0000:  case 0xd02e0000:  case 0xd02f0000:
-            case 0xd0300000:  case 0xd0310000:  case 0xd0320000:  case 0xd0330000:
-            case 0xd0340000:  case 0xd0350000:  case 0xd0360000:  case 0xd0370000:
-            case 0xd0380000:  case 0xd0390000:  case 0xd03a0000:  case 0xd03b0000:
-            case 0xd03c0000:  case 0xd03d0000:  case 0xd03e0000:  case 0xd03f0000:
-            case 0xd0400000:  case 0xd0410000:  case 0xd0420000:  case 0xd0430000:
-            case 0xd0440000:  case 0xd0450000:  case 0xd0460000:  case 0xd0470000:
-            case 0xd0480000:  case 0xd0490000:  case 0xd04a0000:  case 0xd04b0000:
-            case 0xd04c0000:  case 0xd04d0000:  case 0xd04e0000:  case 0xd04f0000:
-            case 0xd0500000:  case 0xd0510000:  case 0xd0520000:  case 0xd0530000:
-            case 0xd0540000:  case 0xd0550000:  case 0xd0560000:  case 0xd0570000:
-            case 0xd0580000:  case 0xd0590000:  case 0xd05a0000:  case 0xd05b0000:
-            case 0xd05c0000:  case 0xd05d0000:  case 0xd05e0000:  case 0xd05f0000:
-            case 0xd0600000:  case 0xd0610000:  case 0xd0620000:  case 0xd0630000:
-            case 0xd0640000:  case 0xd0650000:  case 0xd0660000:  case 0xd0670000:
-            case 0xd0680000:  case 0xd0690000:  case 0xd06a0000:  case 0xd06b0000:
-            case 0xd06c0000:  case 0xd06d0000:  case 0xd06e0000:  case 0xd06f0000:
-            case 0xd0700000:  case 0xd0710000:  case 0xd0720000:  case 0xd0730000:
-            case 0xd0740000:  case 0xd0750000:  case 0xd0760000:  case 0xd0770000:
-            case 0xd0780000:  case 0xd0790000:  case 0xd07a0000:  case 0xd07b0000:
-            case 0xd07c0000:  case 0xd07d0000:  case 0xd07e0000:  case 0xd07f0000:
-            case 0xd0a00000:  case 0xd0a10000:  case 0xd0a20000:  case 0xd0a30000:
-            case 0xd0a40000:  case 0xd0a50000:  case 0xd0a60000:  case 0xd0a70000:
-            case 0xd0a80000:  case 0xd0a90000:  case 0xd0aa0000:  case 0xd0ab0000:
-            case 0xd0ac0000:  case 0xd0ad0000:  case 0xd0ae0000:  case 0xd0af0000:
-            case 0xd0b00000:  case 0xd0b10000:  case 0xd0b20000:  case 0xd0b30000:
-            case 0xd0b40000:  case 0xd0b50000:  case 0xd0b60000:  case 0xd0b70000:
-            case 0xd0b80000:  case 0xd0b90000:  case 0xd0ba0000:  case 0xd0bb0000:
-            case 0xd0bc0000:  case 0xd0bd0000:  case 0xd0be0000:  case 0xd0bf0000:
-            case 0xd0c00000:  case 0xd0c10000:  case 0xd0c20000:  case 0xd0c30000:
-            case 0xd0c40000:  case 0xd0c50000:  case 0xd0c60000:  case 0xd0c70000:
-            case 0xd0c80000:  case 0xd0c90000:  case 0xd0ca0000:  case 0xd0cb0000:
-            case 0xd0cc0000:  case 0xd0cd0000:  case 0xd0ce0000:  case 0xd0cf0000:
-            case 0xd0d00000:  case 0xd0d10000:  case 0xd0d20000:  case 0xd0d30000:
-            case 0xd0d40000:  case 0xd0d50000:  case 0xd0d60000:  case 0xd0d70000:
-            case 0xd0d80000:  case 0xd0d90000:  case 0xd0da0000:  case 0xd0db0000:
-            case 0xd0dc0000:  case 0xd0dd0000:  case 0xd0de0000:  case 0xd0df0000:
-            case 0xd0e00000:  case 0xd0e10000:  case 0xd0e20000:  case 0xd0e30000:
-            case 0xd0e40000:  case 0xd0e50000:  case 0xd0e60000:  case 0xd0e70000:
-            case 0xd0e80000:  case 0xd0e90000:  case 0xd0ea0000:  case 0xd0eb0000:
-            case 0xd0ec0000:  case 0xd0ed0000:  case 0xd0ee0000:  case 0xd0ef0000:
-            case 0xd0f00000:  case 0xd0f10000:  case 0xd0f20000:  case 0xd0f30000:
-            case 0xd0f40000:  case 0xd0f50000:  case 0xd0f60000:  case 0xd0f70000:
-            case 0xd0f80000:  case 0xd0f90000:  case 0xd0fa0000:  case 0xd0fb0000:
-            case 0xd0fc0000:  case 0xd0fd0000:  case 0xd0fe0000:  case 0xd0ff0000:
+            case 0xd1750000:  case 0xd1770000:  case 0xd1790000:  case 0xd17a0000:
+            case 0xd17b0000:  case 0xd17c0000:  case 0xd17d0000:  case 0xd17e0000:
+            case 0xd17f0000:  case 0xd1800000:  case 0xd1810000:  case 0xd1820000:
+            case 0xd1830000:  case 0xd1840000:  case 0xd1850000:  case 0xd1860000:
+            case 0xd1870000:  case 0xd1880000:  case 0xd1890000:  case 0xd18a0000:
+            case 0xd18b0000:  case 0xd18c0000:  case 0xd18d0000:  case 0xd18e0000:
+            case 0xd18f0000:  case 0xd1910000:  case 0xd1920000:  case 0xd1000000:
+            case 0xd1010000:  case 0xd1020000:  case 0xd1030000:  case 0xd1040000:
+            case 0xd1050000:  case 0xd1060000:  case 0xd1070000:  case 0xd1080000:
+            case 0xd1090000:  case 0xd10a0000:  case 0xd10b0000:  case 0xd10c0000:
+            case 0xd10d0000:  case 0xd10e0000:  case 0xd10f0000:  case 0xd1100000:
+            case 0xd1110000:  case 0xd1120000:  case 0xd1130000:  case 0xd1140000:
+            case 0xd1150000:  case 0xd1160000:  case 0xd11f0000:  case 0xd1200000:
+            case 0xd1210000:  case 0xd1220000:  case 0xd1230000:  case 0xd1260000:
+            case 0xd1270000:  case 0xd1280000:  case 0xd1290000:  case 0xd12a0000:
+            case 0xd12b0000:  case 0xd12c0000:  case 0xd12d0000:  case 0xd12e0000:
+            case 0xd12f0000:  case 0xd1300000:  case 0xd1310000:  case 0xd1320000:
+            case 0xd1330000:  case 0xd1340000:  case 0xd1350000:  case 0xd1360000:
+            case 0xd1370000:  case 0xd1380000:  case 0xd1390000:  case 0xd13a0000:
+            case 0xd13b0000:  case 0xd13c0000:  case 0xd13d0000:  case 0xd1c00000:
+            case 0xd1c10000:  case 0xd1c20000:  case 0xd1c30000:  case 0xd1c40000:
+            case 0xd1c50000:  case 0xd1c60000:  case 0xd1c70000:  case 0xd1c80000:
+            case 0xd1c90000:  case 0xd1ca0000:  case 0xd1cb0000:  case 0xd1cc0000:
+            case 0xd1cd0000:  case 0xd1ce0000:  case 0xd1cf0000:  case 0xd1d00000:
+            case 0xd1d10000:  case 0xd1d20000:  case 0xd1d30000:  case 0xd1d40000:
+            case 0xd1d50000:  case 0xd1d60000:  case 0xd1d70000:  case 0xd1d80000:
+            case 0xd1d90000:  case 0xd1da0000:  case 0xd1db0000:  case 0xd1dc0000:
+            case 0xd1dd0000:  case 0xd1de0000:  case 0xd1df0000:  case 0xd1e20000:
+            case 0xd1e30000:  case 0xd1e40000:  case 0xd1e50000:  case 0xd1e60000:
+            case 0xd1e70000:  case 0xd1ea0000:  case 0xd1eb0000:  case 0xd1ec0000:
+            case 0xd1ed0000:  case 0xd1ee0000:  case 0xd1ef0000:  case 0xd1f00000:
+            case 0xd1f10000:  case 0xd1f20000:  case 0xd1f30000:  case 0xd1f40000:
+            case 0xd1f50000:  case 0xd1f60000:  case 0xd1f70000:  case 0xd1f80000:
+            case 0xd1f90000:  case 0xd1fa0000:  case 0xd1fb0000:  case 0xd1fc0000:
+            case 0xd1fd0000:  case 0xd1fe0000:  case 0xd1ff0000:  case 0xd2000000:
+            case 0xd2010000:  case 0xd2020000:  case 0xd2030000:  case 0xd2040000:
+            case 0xd2050000:  case 0xd2060000:  case 0xd2070000:  case 0xd2800000:
+            case 0xd2810000:  case 0xd2820000:  case 0xd2830000:  case 0xd2840000:
+            case 0xd2850000:  case 0xd2860000:  case 0xd2870000:  case 0xd2880000:
+            case 0xd2890000:  case 0xd28a0000:  case 0xd28b0000:  case 0xd28c0000:
+            case 0xd28d0000:  case 0xd28f0000:  case 0xd2900000:  case 0xd2910000:
+            case 0xd2920000:  case 0xd2930000:  case 0xd2940000:  case 0xd2950000:
+            case 0xd2960000:  case 0xd2970000:  case 0xd2980000:  case 0xd2990000:
+            case 0xd29a0000:  case 0xd29c0000:  case 0xd29d0000:  case 0xd29e0000:
+            case 0xd29f0000:  case 0xd2a00000:  case 0xd2a10000:  case 0xd0100000:
+            case 0xd0110000:  case 0xd0120000:  case 0xd0130000:  case 0xd0140000:
+            case 0xd0150000:  case 0xd0200000:  case 0xd0210000:  case 0xd0220000:
+            case 0xd0230000:  case 0xd0240000:  case 0xd0250000:  case 0xd0260000:
+            case 0xd0270000:  case 0xd0280000:  case 0xd0290000:  case 0xd02a0000:
+            case 0xd02b0000:  case 0xd02c0000:  case 0xd02d0000:  case 0xd02e0000:
+            case 0xd02f0000:  case 0xd0300000:  case 0xd0310000:  case 0xd0320000:
+            case 0xd0330000:  case 0xd0340000:  case 0xd0350000:  case 0xd0360000:
+            case 0xd0370000:  case 0xd0380000:  case 0xd0390000:  case 0xd03a0000:
+            case 0xd03b0000:  case 0xd03c0000:  case 0xd03d0000:  case 0xd03e0000:
+            case 0xd03f0000:  case 0xd0400000:  case 0xd0410000:  case 0xd0420000:
+            case 0xd0430000:  case 0xd0440000:  case 0xd0450000:  case 0xd0460000:
+            case 0xd0470000:  case 0xd0480000:  case 0xd0490000:  case 0xd04a0000:
+            case 0xd04b0000:  case 0xd04c0000:  case 0xd04d0000:  case 0xd04e0000:
+            case 0xd04f0000:  case 0xd0500000:  case 0xd0510000:  case 0xd0520000:
+            case 0xd0530000:  case 0xd0540000:  case 0xd0550000:  case 0xd0560000:
+            case 0xd0570000:  case 0xd0580000:  case 0xd0590000:  case 0xd05a0000:
+            case 0xd05b0000:  case 0xd05c0000:  case 0xd05d0000:  case 0xd05e0000:
+            case 0xd05f0000:  case 0xd0600000:  case 0xd0610000:  case 0xd0620000:
+            case 0xd0630000:  case 0xd0640000:  case 0xd0650000:  case 0xd0660000:
+            case 0xd0670000:  case 0xd0680000:  case 0xd0690000:  case 0xd06a0000:
+            case 0xd06b0000:  case 0xd06c0000:  case 0xd06d0000:  case 0xd06e0000:
+            case 0xd06f0000:  case 0xd0700000:  case 0xd0710000:  case 0xd0720000:
+            case 0xd0730000:  case 0xd0740000:  case 0xd0750000:  case 0xd0760000:
+            case 0xd0770000:  case 0xd0780000:  case 0xd0790000:  case 0xd07a0000:
+            case 0xd07b0000:  case 0xd07c0000:  case 0xd07d0000:  case 0xd07e0000:
+            case 0xd07f0000:  case 0xd0a00000:  case 0xd0a10000:  case 0xd0a20000:
+            case 0xd0a30000:  case 0xd0a40000:  case 0xd0a50000:  case 0xd0a60000:
+            case 0xd0a70000:  case 0xd0a80000:  case 0xd0a90000:  case 0xd0aa0000:
+            case 0xd0ab0000:  case 0xd0ac0000:  case 0xd0ad0000:  case 0xd0ae0000:
+            case 0xd0af0000:  case 0xd0b00000:  case 0xd0b10000:  case 0xd0b20000:
+            case 0xd0b30000:  case 0xd0b40000:  case 0xd0b50000:  case 0xd0b60000:
+            case 0xd0b70000:  case 0xd0b80000:  case 0xd0b90000:  case 0xd0ba0000:
+            case 0xd0bb0000:  case 0xd0bc0000:  case 0xd0bd0000:  case 0xd0be0000:
+            case 0xd0bf0000:  case 0xd0c00000:  case 0xd0c10000:  case 0xd0c20000:
+            case 0xd0c30000:  case 0xd0c40000:  case 0xd0c50000:  case 0xd0c60000:
+            case 0xd0c70000:  case 0xd0c80000:  case 0xd0c90000:  case 0xd0ca0000:
+            case 0xd0cb0000:  case 0xd0cc0000:  case 0xd0cd0000:  case 0xd0ce0000:
+            case 0xd0cf0000:  case 0xd0d00000:  case 0xd0d10000:  case 0xd0d20000:
+            case 0xd0d30000:  case 0xd0d40000:  case 0xd0d50000:  case 0xd0d60000:
+            case 0xd0d70000:  case 0xd0d80000:  case 0xd0d90000:  case 0xd0da0000:
+            case 0xd0db0000:  case 0xd0dc0000:  case 0xd0dd0000:  case 0xd0de0000:
+            case 0xd0df0000:  case 0xd0e00000:  case 0xd0e10000:  case 0xd0e20000:
+            case 0xd0e30000:  case 0xd0e40000:  case 0xd0e50000:  case 0xd0e60000:
+            case 0xd0e70000:  case 0xd0e80000:  case 0xd0e90000:  case 0xd0ea0000:
+            case 0xd0eb0000:  case 0xd0ec0000:  case 0xd0ed0000:  case 0xd0ee0000:
+            case 0xd0ef0000:  case 0xd0f00000:  case 0xd0f10000:  case 0xd0f20000:
+            case 0xd0f30000:  case 0xd0f40000:  case 0xd0f50000:  case 0xd0f60000:
+            case 0xd0f70000:  case 0xd0f80000:  case 0xd0f90000:  case 0xd0fa0000:
+            case 0xd0fb0000:  case 0xd0fc0000:  case 0xd0fd0000:  case 0xd0fe0000:
+            case 0xd0ff0000:
                 return true;
 
             default:
@@ -413,7 +382,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_DS(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_DS(uint64_t I)
     {
         switch ( I & 0xfdfe0000 )  {
             case 0xd8000000:  case 0xd8020000:  case 0xd8040000:  case 0xd8060000:
@@ -421,33 +390,32 @@ namespace InstructionAPI {
             case 0xd8100000:  case 0xd8120000:  case 0xd8140000:  case 0xd8160000:
             case 0xd8180000:  case 0xd81a0000:  case 0xd81c0000:  case 0xd81e0000:
             case 0xd8200000:  case 0xd8220000:  case 0xd8240000:  case 0xd8260000:
-            case 0xd8280000:  case 0xd82a0000:  case 0xd82e0000:  case 0xd8300000:
-            case 0xd83a0000:  case 0xd83c0000:  case 0xd83e0000:  case 0xd8400000:
-            case 0xd8420000:  case 0xd8440000:  case 0xd8460000:  case 0xd8480000:
-            case 0xd84a0000:  case 0xd84c0000:  case 0xd84e0000:  case 0xd8500000:
-            case 0xd8520000:  case 0xd8540000:  case 0xd8560000:  case 0xd8580000:
-            case 0xd85a0000:  case 0xd85c0000:  case 0xd85e0000:  case 0xd8600000:
-            case 0xd8620000:  case 0xd8640000:  case 0xd8660000:  case 0xd8680000:
-            case 0xd86a0000:  case 0xd86c0000:  case 0xd86e0000:  case 0xd8700000:
-            case 0xd8720000:  case 0xd8740000:  case 0xd8760000:  case 0xd8780000:
-            case 0xd87a0000:  case 0xd87c0000:  case 0xd87e0000:  case 0xd8800000:
-            case 0xd8820000:  case 0xd8840000:  case 0xd8860000:  case 0xd8880000:
-            case 0xd88a0000:  case 0xd88c0000:  case 0xd88e0000:  case 0xd8900000:
-            case 0xd8920000:  case 0xd8940000:  case 0xd8960000:  case 0xd8980000:
-            case 0xd89a0000:  case 0xd89c0000:  case 0xd89e0000:  case 0xd8a00000:
-            case 0xd8a20000:  case 0xd8a40000:  case 0xd8a60000:  case 0xd8a80000:
-            case 0xd8aa0000:  case 0xd8ac0000:  case 0xd8ae0000:  case 0xd8b00000:
-            case 0xd8b20000:  case 0xd8b40000:  case 0xd8b60000:  case 0xd8b80000:
-            case 0xd8c00000:  case 0xd8c20000:  case 0xd8c40000:  case 0xd8c60000:
-            case 0xd8c80000:  case 0xd8ca0000:  case 0xd8cc0000:  case 0xd8ce0000:
-            case 0xd8d00000:  case 0xd8d20000:  case 0xd8d40000:  case 0xd8d60000:
-            case 0xd8d80000:  case 0xd8da0000:  case 0xd8dc0000:  case 0xd8de0000:
-            case 0xd8e00000:  case 0xd8e20000:  case 0xd8e40000:  case 0xd8e60000:
-            case 0xd8ec0000:  case 0xd8ee0000:  case 0xd8f00000:  case 0xd8f80000:
-            case 0xd8fc0000:  case 0xd96c0000:  case 0xd96e0000:  case 0xd9700000:
-            case 0xd97a0000:  case 0xd97c0000:  case 0xd9bc0000:  case 0xd9be0000:
-            case 0xd9c00000:  case 0xd9c20000:  case 0xd9c40000:  case 0xd9c60000:
-            case 0xd9fc0000:  case 0xd9fe0000:
+            case 0xd8280000:  case 0xd82a0000:  case 0xd83a0000:  case 0xd83c0000:
+            case 0xd83e0000:  case 0xd8400000:  case 0xd8420000:  case 0xd8440000:
+            case 0xd8460000:  case 0xd8480000:  case 0xd84a0000:  case 0xd84c0000:
+            case 0xd84e0000:  case 0xd8500000:  case 0xd8520000:  case 0xd8540000:
+            case 0xd8560000:  case 0xd8580000:  case 0xd85a0000:  case 0xd85c0000:
+            case 0xd85e0000:  case 0xd8600000:  case 0xd8620000:  case 0xd8640000:
+            case 0xd8660000:  case 0xd8680000:  case 0xd86a0000:  case 0xd86c0000:
+            case 0xd86e0000:  case 0xd8700000:  case 0xd8720000:  case 0xd8740000:
+            case 0xd8760000:  case 0xd8780000:  case 0xd87a0000:  case 0xd87c0000:
+            case 0xd87e0000:  case 0xd8800000:  case 0xd8820000:  case 0xd8840000:
+            case 0xd8860000:  case 0xd8880000:  case 0xd88a0000:  case 0xd88c0000:
+            case 0xd88e0000:  case 0xd8900000:  case 0xd8920000:  case 0xd8940000:
+            case 0xd8960000:  case 0xd8980000:  case 0xd89a0000:  case 0xd89c0000:
+            case 0xd89e0000:  case 0xd8a00000:  case 0xd8a20000:  case 0xd8a40000:
+            case 0xd8a60000:  case 0xd8a80000:  case 0xd8aa0000:  case 0xd8ac0000:
+            case 0xd8ae0000:  case 0xd8b00000:  case 0xd8b20000:  case 0xd8b40000:
+            case 0xd8b60000:  case 0xd8b80000:  case 0xd8c00000:  case 0xd8c20000:
+            case 0xd8c40000:  case 0xd8c60000:  case 0xd8c80000:  case 0xd8ca0000:
+            case 0xd8cc0000:  case 0xd8ce0000:  case 0xd8d00000:  case 0xd8d20000:
+            case 0xd8d40000:  case 0xd8d60000:  case 0xd8d80000:  case 0xd8da0000:
+            case 0xd8dc0000:  case 0xd8de0000:  case 0xd8e00000:  case 0xd8e20000:
+            case 0xd8e40000:  case 0xd8e60000:  case 0xd8ec0000:  case 0xd8ee0000:
+            case 0xd8f00000:  case 0xd8f80000:  case 0xd8fc0000:  case 0xd9300000:
+            case 0xd9320000:  case 0xd9340000:  case 0xd9360000:  case 0xd9380000:
+            case 0xd93a0000:  case 0xd96c0000:  case 0xd97a0000:  case 0xd97c0000:
+            case 0xd9bc0000:  case 0xd9be0000:  case 0xd9fc0000:  case 0xd9fe0000:
                 return true;
 
             default:
@@ -455,7 +423,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_MUBUF(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_MUBUF(uint64_t I)
     {
         switch ( I & 0xfdfc0000 )  {
             case 0xe0000000:  case 0xe0040000:  case 0xe0080000:  case 0xe00c0000:
@@ -468,15 +436,15 @@ namespace InstructionAPI {
             case 0xe0700000:  case 0xe0740000:  case 0xe0780000:  case 0xe07c0000:
             case 0xe0800000:  case 0xe0840000:  case 0xe0880000:  case 0xe08c0000:
             case 0xe0900000:  case 0xe0940000:  case 0xe0980000:  case 0xe09c0000:
-            case 0xe0a00000:  case 0xe0a40000:  case 0xe1000000:  case 0xe1040000:
-            case 0xe1080000:  case 0xe10c0000:  case 0xe1100000:  case 0xe1140000:
-            case 0xe1180000:  case 0xe11c0000:  case 0xe1200000:  case 0xe1240000:
-            case 0xe1280000:  case 0xe12c0000:  case 0xe1300000:  case 0xe1340000:
-            case 0xe1380000:  case 0xe13c0000:  case 0xe1400000:  case 0xe1440000:
-            case 0xe1480000:  case 0xe1800000:  case 0xe1840000:  case 0xe1880000:
-            case 0xe18c0000:  case 0xe1900000:  case 0xe1940000:  case 0xe1980000:
-            case 0xe19c0000:  case 0xe1a00000:  case 0xe1a40000:  case 0xe1a80000:
-            case 0xe1ac0000:  case 0xe1b00000:
+            case 0xe0a00000:  case 0xe0a40000:  case 0xe0f40000:  case 0xe0f80000:
+            case 0xe0fc0000:  case 0xe1000000:  case 0xe1040000:  case 0xe1080000:
+            case 0xe10c0000:  case 0xe1100000:  case 0xe1140000:  case 0xe1180000:
+            case 0xe11c0000:  case 0xe1200000:  case 0xe1240000:  case 0xe1280000:
+            case 0xe12c0000:  case 0xe1300000:  case 0xe1340000:  case 0xe1380000:
+            case 0xe13c0000:  case 0xe1400000:  case 0xe1440000:  case 0xe1800000:
+            case 0xe1840000:  case 0xe1880000:  case 0xe18c0000:  case 0xe1900000:
+            case 0xe1940000:  case 0xe1980000:  case 0xe19c0000:  case 0xe1a00000:
+            case 0xe1a40000:  case 0xe1a80000:  case 0xe1ac0000:  case 0xe1b00000:
                 return true;
 
             default:
@@ -484,7 +452,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_MTBUF(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_MTBUF(uint64_t I)
     {
         switch ( I & 0xfc078000 )  {
             case 0xe8000000:  case 0xe8008000:  case 0xe8010000:  case 0xe8018000:
@@ -498,7 +466,24 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_FLAT(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_MIMG(uint64_t I)
+    {
+        switch ( I & 0xfdfc0000 )  {
+            case 0xf0000000:  case 0xf0040000:  case 0xf0080000:  case 0xf00c0000:
+            case 0xf0100000:  case 0xf0140000:  case 0xf0200000:  case 0xf0240000:
+            case 0xf0280000:  case 0xf02c0000:  case 0xf0380000:  case 0xf0400000:
+            case 0xf0440000:  case 0xf0480000:  case 0xf04c0000:  case 0xf0500000:
+            case 0xf0540000:  case 0xf0580000:  case 0xf05c0000:  case 0xf0600000:
+            case 0xf0640000:  case 0xf0680000:  case 0xf06c0000:  case 0xf0700000:
+            case 0xf0800000:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_FLAT(uint64_t I)
     {
         switch ( I & 0xfdfcc000 )  {
             case 0xdc400000:  case 0xdc440000:  case 0xdc480000:  case 0xdc4c0000:
@@ -509,12 +494,11 @@ namespace InstructionAPI {
             case 0xdc900000:  case 0xdc940000:  case 0xdd000000:  case 0xdd040000:
             case 0xdd080000:  case 0xdd0c0000:  case 0xdd100000:  case 0xdd140000:
             case 0xdd180000:  case 0xdd1c0000:  case 0xdd200000:  case 0xdd240000:
-            case 0xdd280000:  case 0xdd2c0000:  case 0xdd300000:  case 0xdd340000:
-            case 0xdd380000:  case 0xdd3c0000:  case 0xdd400000:  case 0xdd440000:
-            case 0xdd480000:  case 0xdd800000:  case 0xdd840000:  case 0xdd880000:
-            case 0xdd8c0000:  case 0xdd900000:  case 0xdd940000:  case 0xdd980000:
-            case 0xdd9c0000:  case 0xdda00000:  case 0xdda40000:  case 0xdda80000:
-            case 0xddac0000:  case 0xddb00000:
+            case 0xdd280000:  case 0xdd2c0000:  case 0xdd300000:  case 0xdd3c0000:
+            case 0xdd400000:  case 0xdd440000:  case 0xdd800000:  case 0xdd840000:
+            case 0xdd880000:  case 0xdd8c0000:  case 0xdd900000:  case 0xdd940000:
+            case 0xdd980000:  case 0xdd9c0000:  case 0xdda00000:  case 0xdda40000:
+            case 0xdda80000:  case 0xddac0000:  case 0xddb00000:
                 return true;
 
             default:
@@ -522,7 +506,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_FLAT_GLBL(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_FLAT_GLBL(uint64_t I)
     {
         switch ( I & 0xfdfcc000 )  {
             case 0xdc408000:  case 0xdc448000:  case 0xdc488000:  case 0xdc4c8000:
@@ -530,17 +514,15 @@ namespace InstructionAPI {
             case 0xdc608000:  case 0xdc648000:  case 0xdc688000:  case 0xdc6c8000:
             case 0xdc708000:  case 0xdc748000:  case 0xdc788000:  case 0xdc7c8000:
             case 0xdc808000:  case 0xdc848000:  case 0xdc888000:  case 0xdc8c8000:
-            case 0xdc908000:  case 0xdc948000:  case 0xdc988000:  case 0xdc9c8000:
-            case 0xdca08000:  case 0xdca48000:  case 0xdca88000:  case 0xdd008000:
-            case 0xdd048000:  case 0xdd088000:  case 0xdd0c8000:  case 0xdd108000:
-            case 0xdd148000:  case 0xdd188000:  case 0xdd1c8000:  case 0xdd208000:
-            case 0xdd248000:  case 0xdd288000:  case 0xdd2c8000:  case 0xdd308000:
-            case 0xdd348000:  case 0xdd388000:  case 0xdd3c8000:  case 0xdd408000:
-            case 0xdd448000:  case 0xdd488000:  case 0xdd808000:  case 0xdd848000:
-            case 0xdd888000:  case 0xdd8c8000:  case 0xdd908000:  case 0xdd948000:
-            case 0xdd988000:  case 0xdd9c8000:  case 0xdda08000:  case 0xdda48000:
-            case 0xdda88000:  case 0xddac8000:  case 0xddb08000:  case 0xddf48000:
-            case 0xddf88000:
+            case 0xdc908000:  case 0xdc948000:  case 0xdd008000:  case 0xdd048000:
+            case 0xdd088000:  case 0xdd0c8000:  case 0xdd108000:  case 0xdd148000:
+            case 0xdd188000:  case 0xdd1c8000:  case 0xdd208000:  case 0xdd248000:
+            case 0xdd288000:  case 0xdd2c8000:  case 0xdd308000:  case 0xdd348000:
+            case 0xdd388000:  case 0xdd3c8000:  case 0xdd408000:  case 0xdd448000:
+            case 0xdd808000:  case 0xdd848000:  case 0xdd888000:  case 0xdd8c8000:
+            case 0xdd908000:  case 0xdd948000:  case 0xdd988000:  case 0xdd9c8000:
+            case 0xdda08000:  case 0xdda48000:  case 0xdda88000:  case 0xddac8000:
+            case 0xddb08000:
                 return true;
 
             default:
@@ -548,7 +530,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_ENC_FLAT_SCRATCH(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_ENC_FLAT_SCRATCH(uint64_t I)
     {
         switch ( I & 0xfdfcc000 )  {
             case 0xdc404000:  case 0xdc444000:  case 0xdc484000:  case 0xdc4c4000:
@@ -556,8 +538,7 @@ namespace InstructionAPI {
             case 0xdc604000:  case 0xdc644000:  case 0xdc684000:  case 0xdc6c4000:
             case 0xdc704000:  case 0xdc744000:  case 0xdc784000:  case 0xdc7c4000:
             case 0xdc804000:  case 0xdc844000:  case 0xdc884000:  case 0xdc8c4000:
-            case 0xdc904000:  case 0xdc944000:  case 0xdc984000:  case 0xdc9c4000:
-            case 0xdca04000:  case 0xdca44000:  case 0xdca84000:
+            case 0xdc904000:  case 0xdc944000:
                 return true;
 
             default:
@@ -565,7 +546,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_SOP1_INST_LITERAL(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_SOP1_INST_LITERAL(uint64_t I)
     {
         switch ( I & 0xff80ff00 )  {
             case 0xbe800000:  case 0xbe800100:  case 0xbe800200:  case 0xbe800300:
@@ -587,7 +568,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_SOP2_INST_LITERAL(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_SOP2_INST_LITERAL(uint64_t I)
     {
         switch ( I & 0xff800000 )  {
             case 0x80000000:  case 0x80800000:  case 0x81000000:  case 0x81800000:
@@ -610,7 +591,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_SOPC_INST_LITERAL(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_SOPC_INST_LITERAL(uint64_t I)
     {
         switch ( I & 0xffff0000 )  {
             case 0xbf000000:  case 0xbf010000:  case 0xbf020000:  case 0xbf030000:
@@ -625,7 +606,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_SOPK_INST_LITERAL(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_SOPK_INST_LITERAL(uint64_t I)
     {
         switch ( I & 0xff800000 )  {
             case 0xba000000:
@@ -636,7 +617,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_VOP1_INST_LITERAL(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_VOP1_INST_LITERAL(uint64_t I)
     {
         switch ( I & 0xfe01fe00 )  {
             case 0x7e000000:  case 0x7e000200:  case 0x7e000600:  case 0x7e000800:
@@ -652,14 +633,13 @@ namespace InstructionAPI {
             case 0x7e005400:  case 0x7e005600:  case 0x7e005800:  case 0x7e005a00:
             case 0x7e005c00:  case 0x7e005e00:  case 0x7e006000:  case 0x7e006200:
             case 0x7e006400:  case 0x7e006600:  case 0x7e006800:  case 0x7e006a00:
-            case 0x7e006e00:  case 0x7e007000:  case 0x7e007200:  case 0x7e007400:
-            case 0x7e007600:  case 0x7e007800:  case 0x7e007a00:  case 0x7e007c00:
-            case 0x7e007e00:  case 0x7e008000:  case 0x7e008200:  case 0x7e008400:
-            case 0x7e008600:  case 0x7e008800:  case 0x7e008a00:  case 0x7e008c00:
-            case 0x7e008e00:  case 0x7e009000:  case 0x7e009200:  case 0x7e009400:
-            case 0x7e009600:  case 0x7e009800:  case 0x7e009a00:  case 0x7e009c00:
-            case 0x7e009e00:  case 0x7e00a400:  case 0x7e00a800:  case 0x7e00aa00:
-            case 0x7e00ac00:  case 0x7e00ae00:  case 0x7e00b000:  case 0x7e00b600:
+            case 0x7e006e00:  case 0x7e007200:  case 0x7e007400:  case 0x7e007600:
+            case 0x7e007800:  case 0x7e007a00:  case 0x7e007c00:  case 0x7e007e00:
+            case 0x7e008000:  case 0x7e008200:  case 0x7e008400:  case 0x7e008600:
+            case 0x7e008800:  case 0x7e008a00:  case 0x7e008c00:  case 0x7e008e00:
+            case 0x7e009000:  case 0x7e009200:  case 0x7e009400:  case 0x7e009600:
+            case 0x7e009800:  case 0x7e009a00:  case 0x7e009c00:  case 0x7e009e00:
+            case 0x7e00a400:
                 return true;
 
             default:
@@ -667,7 +647,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_VOP1_VOP_DPP(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_VOP1_VOP_DPP(uint64_t I)
     {
         switch ( I & 0xfe01fe00 )  {
             case 0x7e000000:  case 0x7e000200:  case 0x7e000600:  case 0x7e000800:
@@ -681,15 +661,13 @@ namespace InstructionAPI {
             case 0x7e004800:  case 0x7e004e00:  case 0x7e005200:  case 0x7e005400:
             case 0x7e005600:  case 0x7e005800:  case 0x7e005a00:  case 0x7e005c00:
             case 0x7e005e00:  case 0x7e006000:  case 0x7e006200:  case 0x7e006400:
-            case 0x7e006600:  case 0x7e006800:  case 0x7e006e00:  case 0x7e007000:
-            case 0x7e007200:  case 0x7e007400:  case 0x7e007600:  case 0x7e007800:
-            case 0x7e007a00:  case 0x7e007c00:  case 0x7e007e00:  case 0x7e008000:
-            case 0x7e008200:  case 0x7e008400:  case 0x7e008600:  case 0x7e008800:
-            case 0x7e008a00:  case 0x7e008c00:  case 0x7e008e00:  case 0x7e009000:
-            case 0x7e009200:  case 0x7e009400:  case 0x7e009600:  case 0x7e009800:
-            case 0x7e009a00:  case 0x7e009c00:  case 0x7e009e00:  case 0x7e00a400:
-            case 0x7e00a800:  case 0x7e00aa00:  case 0x7e00ac00:  case 0x7e00ae00:
-            case 0x7e00b000:  case 0x7e00b600:
+            case 0x7e006600:  case 0x7e006800:  case 0x7e006e00:  case 0x7e007200:
+            case 0x7e007400:  case 0x7e007600:  case 0x7e007800:  case 0x7e007a00:
+            case 0x7e007c00:  case 0x7e007e00:  case 0x7e008000:  case 0x7e008200:
+            case 0x7e008400:  case 0x7e008600:  case 0x7e008800:  case 0x7e008a00:
+            case 0x7e008c00:  case 0x7e008e00:  case 0x7e009000:  case 0x7e009200:
+            case 0x7e009400:  case 0x7e009600:  case 0x7e009800:  case 0x7e009a00:
+            case 0x7e009c00:  case 0x7e009e00:  case 0x7e00a400:
                 return true;
 
             default:
@@ -697,7 +675,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_VOP1_VOP_SDWA(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_VOP1_VOP_SDWA(uint64_t I)
     {
         switch ( I & 0xfe01fe00 )  {
             case 0x7e000000:  case 0x7e000200:  case 0x7e000a00:  case 0x7e000c00:
@@ -709,14 +687,12 @@ namespace InstructionAPI {
             case 0x7e004800:  case 0x7e004e00:  case 0x7e005200:  case 0x7e005400:
             case 0x7e005600:  case 0x7e005800:  case 0x7e005a00:  case 0x7e005c00:
             case 0x7e005e00:  case 0x7e006600:  case 0x7e006800:  case 0x7e006e00:
-            case 0x7e007000:  case 0x7e007200:  case 0x7e007400:  case 0x7e007600:
-            case 0x7e007800:  case 0x7e007a00:  case 0x7e007c00:  case 0x7e007e00:
-            case 0x7e008000:  case 0x7e008200:  case 0x7e008400:  case 0x7e008600:
-            case 0x7e008800:  case 0x7e008a00:  case 0x7e008c00:  case 0x7e008e00:
-            case 0x7e009000:  case 0x7e009200:  case 0x7e009400:  case 0x7e009600:
-            case 0x7e009800:  case 0x7e009a00:  case 0x7e009c00:  case 0x7e009e00:
-            case 0x7e00a400:  case 0x7e00a800:  case 0x7e00aa00:  case 0x7e00ac00:
-            case 0x7e00ae00:  case 0x7e00b000:  case 0x7e00b600:
+            case 0x7e007200:  case 0x7e007400:  case 0x7e007600:  case 0x7e007800:
+            case 0x7e007a00:  case 0x7e007c00:  case 0x7e007e00:  case 0x7e008000:
+            case 0x7e008200:  case 0x7e008400:  case 0x7e008600:  case 0x7e008800:
+            case 0x7e008a00:  case 0x7e008c00:  case 0x7e008e00:  case 0x7e009000:
+            case 0x7e009200:  case 0x7e009400:  case 0x7e009600:  case 0x7e009800:
+            case 0x7e009a00:  case 0x7e009c00:  case 0x7e009e00:  case 0x7e00a400:
                 return true;
 
             default:
@@ -724,7 +700,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_VOP2_INST_LITERAL(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_VOP2_INST_LITERAL(uint64_t I)
     {
         switch ( I & 0xfe000000 )  {
             case 0x0:  case 0x2000000:  case 0x4000000:  case 0x6000000:
@@ -750,7 +726,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_VOP2_VOP_DPP(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_VOP2_VOP_DPP(uint64_t I)
     {
         switch ( I & 0xfe000000 )  {
             case 0x0:  case 0x2000000:  case 0x4000000:  case 0x6000000:
@@ -775,7 +751,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_VOP2_VOP_SDWA(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_VOP2_VOP_SDWA(uint64_t I)
     {
         switch ( I & 0xfe000000 )  {
             case 0x0:  case 0x2000000:  case 0x4000000:  case 0x6000000:
@@ -796,7 +772,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_VOP2_VOP_SDWA_SDST_ENC(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_VOP2_VOP_SDWA_SDST_ENC(uint64_t I)
     {
         switch ( I & 0xfe000000 )  {
             case 0x32000000:  case 0x34000000:  case 0x36000000:  case 0x38000000:
@@ -808,7 +784,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_VOP3_SDST_ENC(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_VOP3_SDST_ENC(uint64_t I)
     {
         switch ( I & 0xffff0000 )  {
             case 0xd1190000:  case 0xd11a0000:  case 0xd11b0000:  case 0xd11c0000:
@@ -821,26 +797,16 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_VOP3P_MFMA(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_VOP3P_MFMA(uint64_t I)
     {
         switch ( I & 0xffff0000 )  {
-            case 0xd3ad0000:  case 0xd3ae0000:  case 0xd3b50000:  case 0xd3b60000:
-            case 0xd3b70000:  case 0xd3b80000:  case 0xd3b90000:  case 0xd3ba0000:
-            case 0xd3bb0000:  case 0xd3bc0000:  case 0xd3bd0000:  case 0xd3c00000:
-            case 0xd3c10000:  case 0xd3c20000:  case 0xd3c30000:  case 0xd3c40000:
-            case 0xd3c50000:  case 0xd3c60000:  case 0xd3c70000:  case 0xd3c80000:
-            case 0xd3c90000:  case 0xd3ca0000:  case 0xd3cb0000:  case 0xd3cc0000:
-            case 0xd3cd0000:  case 0xd3ce0000:  case 0xd3cf0000:  case 0xd3d00000:
-            case 0xd3d10000:  case 0xd3d20000:  case 0xd3d30000:  case 0xd3d40000:
-            case 0xd3d50000:  case 0xd3d60000:  case 0xd3d70000:  case 0xd3da0000:
-            case 0xd3db0000:  case 0xd3dd0000:  case 0xd3de0000:  case 0xd3df0000:
-            case 0xd3e00000:  case 0xd3e10000:  case 0xd3e20000:  case 0xd3e40000:
-            case 0xd3e60000:  case 0xd3e80000:  case 0xd3ea0000:  case 0xd3ec0000:
-            case 0xd3ee0000:  case 0xd3ef0000:  case 0xd3f00000:  case 0xd3f10000:
-            case 0xd3f20000:  case 0xd3f30000:  case 0xd3f40000:  case 0xd3f50000:
-            case 0xd3f60000:  case 0xd3f70000:  case 0xd3f80000:  case 0xd3f90000:
-            case 0xd3fa0000:  case 0xd3fb0000:  case 0xd3fc0000:  case 0xd3fd0000:
-            case 0xd3fe0000:  case 0xd3ff0000:
+            case 0xd3c00000:  case 0xd3c10000:  case 0xd3c20000:  case 0xd3c40000:
+            case 0xd3c50000:  case 0xd3c80000:  case 0xd3c90000:  case 0xd3ca0000:
+            case 0xd3cc0000:  case 0xd3cd0000:  case 0xd3d00000:  case 0xd3d10000:
+            case 0xd3d20000:  case 0xd3d40000:  case 0xd3d50000:  case 0xd3e30000:
+            case 0xd3e40000:  case 0xd3e50000:  case 0xd3e60000:  case 0xd3e70000:
+            case 0xd3e80000:  case 0xd3e90000:  case 0xd3eb0000:  case 0xd3ec0000:
+            case 0xd3ed0000:  case 0xd3ee0000:  case 0xd3ef0000:
                 return true;
 
             default:
@@ -848,7 +814,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_VOPC_INST_LITERAL(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_VOPC_INST_LITERAL(uint64_t I)
     {
         switch ( I & 0xfffe0000 )  {
             case 0x7c200000:  case 0x7c220000:  case 0x7c240000:  case 0x7c260000:
@@ -908,7 +874,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::IS_VOPC_VOP_SDWA_SDST_ENC(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::IS_VOPC_VOP_SDWA_SDST_ENC(uint64_t I)
     {
         switch ( I & 0xfffe0000 )  {
             case 0x7c200000:  case 0x7c220000:  case 0x7c280000:  case 0x7c2a0000:
@@ -951,122 +917,122 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_ENC_SOP1_default(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_ENC_SOP1_default(uint64_t I)
     {
         return ((longfield<0,7>(I)) != 255);
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_ENC_SOPC_default(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_ENC_SOPC_default(uint64_t I)
     {
         return (((longfield<0,7>(I)) != 255) && ((longfield<8,15>(I)) != 255));
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_ENC_SOP2_default(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_ENC_SOP2_default(uint64_t I)
     {
         return (((longfield<0,7>(I)) != 255) && ((longfield<8,15>(I)) != 255));
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_ENC_VOP1_default(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_ENC_VOP1_default(uint64_t I)
     {
         return ((longfield<0,8>(I)) != 250 && (longfield<0,8>(I)) != 255 && (longfield<0,8>(I)) != 249);
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_ENC_VOPC_default(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_ENC_VOPC_default(uint64_t I)
     {
         return ((longfield<0,8>(I)) != 250 && (longfield<0,8>(I)) != 255 && (longfield<0,8>(I)) != 249);
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_ENC_VOP2_default(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_ENC_VOP2_default(uint64_t I)
     {
         return ((longfield<0,8>(I)) != 250 && (longfield<0,8>(I)) != 255 && (longfield<0,8>(I)) != 249);
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_SOP1_INST_LITERAL_has_lit_0(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_SOP1_INST_LITERAL_has_lit_0(uint64_t I)
     {
         return ((longfield<0,7>(I)) == 255);
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_SOP2_INST_LITERAL_has_lit_0(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_SOP2_INST_LITERAL_has_lit_0(uint64_t I)
     {
         return (((longfield<0,7>(I)) == 255) && ((longfield<8,15>(I)) != 255));
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_SOP2_INST_LITERAL_has_lit_1(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_SOP2_INST_LITERAL_has_lit_1(uint64_t I)
     {
         return (((longfield<0,7>(I)) != 255) && ((longfield<8,15>(I)) == 255));
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_SOP2_INST_LITERAL_has_lit_0_has_lit_1(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_SOP2_INST_LITERAL_has_lit_0_has_lit_1(uint64_t I)
     {
         return (((longfield<0,7>(I)) == 255) && ((longfield<8,15>(I)) == 255));
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_SOPC_INST_LITERAL_has_lit_0(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_SOPC_INST_LITERAL_has_lit_0(uint64_t I)
     {
         return (((longfield<0,7>(I)) == 255) && ((longfield<8,15>(I)) != 255));
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_SOPC_INST_LITERAL_has_lit_1(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_SOPC_INST_LITERAL_has_lit_1(uint64_t I)
     {
         return (((longfield<0,7>(I)) != 255) && ((longfield<8,15>(I)) == 255));
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_SOPC_INST_LITERAL_has_lit_0_has_lit_1(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_SOPC_INST_LITERAL_has_lit_0_has_lit_1(uint64_t I)
     {
         return (((longfield<0,7>(I)) == 255) && ((longfield<8,15>(I)) == 255));
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_VOP1_INST_LITERAL_has_lit(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_VOP1_INST_LITERAL_has_lit(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 255);
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_VOP1_VOP_DPP_has_dpp(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_VOP1_VOP_DPP_has_dpp(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 250);
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_VOP1_VOP_SDWA_has_sdwa(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_VOP1_VOP_SDWA_has_sdwa(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 249);
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_VOP2_INST_LITERAL_has_lit(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_VOP2_INST_LITERAL_has_lit(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 255);
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_VOP2_INST_LITERAL_default(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_VOP2_INST_LITERAL_default(uint64_t I)
     {
         return ((longfield<0,8>(I)) != 250 && (longfield<0,8>(I)) != 255 && (longfield<0,8>(I)) != 249);
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_VOP2_VOP_DPP_has_dpp(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_VOP2_VOP_DPP_has_dpp(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 250);
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_VOP2_VOP_SDWA_has_sdwa(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_VOP2_VOP_SDWA_has_sdwa(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 249);
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_VOP2_VOP_SDWA_SDST_ENC_has_sdwa(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_VOP2_VOP_SDWA_SDST_ENC_has_sdwa(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 249);
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_VOPC_INST_LITERAL_has_lit(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_VOPC_INST_LITERAL_has_lit(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 255);
     }
 
-    bool InstructionDecoder_amdgpu_gfx950::COND_VOPC_VOP_SDWA_SDST_ENC_has_sdwa(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx90a::COND_VOPC_VOP_SDWA_SDST_ENC_has_sdwa(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 249);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_SOP1()
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOP1()
     {
         insn_size = 4;
         layout_ENC_SOP1 & layout = insn_layout.ENC_SOP1;
@@ -1075,14 +1041,14 @@ namespace InstructionAPI {
         layout.SDST = longfield<16,22>(insn_long);
         layout.SSRC0 = longfield<0,7>(insn_long);
         assert(isArrayIndexValid(ENC_SOP1_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_SOP1_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_SOP1_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SOP1Operands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_SOPC()
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOPC()
     {
         insn_size = 4;
         layout_ENC_SOPC & layout = insn_layout.ENC_SOPC;
@@ -1091,14 +1057,14 @@ namespace InstructionAPI {
         layout.SSRC0 = longfield<0,7>(insn_long);
         layout.SSRC1 = longfield<8,15>(insn_long);
         assert(isArrayIndexValid(ENC_SOPC_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_SOPC_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_SOPC_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SOPCOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_SOPP()
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOPP()
     {
         insn_size = 4;
         layout_ENC_SOPP & layout = insn_layout.ENC_SOPP;
@@ -1106,14 +1072,14 @@ namespace InstructionAPI {
         layout.OP = longfield<16,22>(insn_long);
         layout.SIMM16 = longfield<0,15>(insn_long);
         assert(isArrayIndexValid(ENC_SOPP_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_SOPP_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_SOPP_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SOPPOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_SOPK()
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOPK()
     {
         insn_size = 4;
         layout_ENC_SOPK & layout = insn_layout.ENC_SOPK;
@@ -1122,14 +1088,14 @@ namespace InstructionAPI {
         layout.SDST = longfield<16,22>(insn_long);
         layout.SIMM16 = longfield<0,15>(insn_long);
         assert(isArrayIndexValid(ENC_SOPK_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_SOPK_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_SOPK_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SOPKOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_SOP2()
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_SOP2()
     {
         insn_size = 4;
         layout_ENC_SOP2 & layout = insn_layout.ENC_SOP2;
@@ -1139,14 +1105,14 @@ namespace InstructionAPI {
         layout.SSRC0 = longfield<0,7>(insn_long);
         layout.SSRC1 = longfield<8,15>(insn_long);
         assert(isArrayIndexValid(ENC_SOP2_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_SOP2_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_SOP2_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SOP2Operands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_SMEM()
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_SMEM()
     {
         insn_size = 8;
         layout_ENC_SMEM & layout = insn_layout.ENC_SMEM;
@@ -1161,14 +1127,14 @@ namespace InstructionAPI {
         layout.SOFFSET = longfield<57,63>(insn_long);
         layout.SOFFSET_EN = longfield<14,14>(insn_long);
         assert(isArrayIndexValid(ENC_SMEM_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_SMEM_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_SMEM_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SMEMOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_VOP1()
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP1()
     {
         insn_size = 4;
         layout_ENC_VOP1 & layout = insn_layout.ENC_VOP1;
@@ -1177,14 +1143,14 @@ namespace InstructionAPI {
         layout.SRC0 = longfield<0,8>(insn_long);
         layout.VDST = longfield<17,24>(insn_long);
         assert(isArrayIndexValid(ENC_VOP1_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_VOP1_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_VOP1_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOP1Operands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_VOPC()
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOPC()
     {
         insn_size = 4;
         layout_ENC_VOPC & layout = insn_layout.ENC_VOPC;
@@ -1193,14 +1159,14 @@ namespace InstructionAPI {
         layout.SRC0 = longfield<0,8>(insn_long);
         layout.VSRC1 = longfield<9,16>(insn_long);
         assert(isArrayIndexValid(ENC_VOPC_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_VOPC_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_VOPC_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOPCOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_VOP2()
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP2()
     {
         insn_size = 4;
         layout_ENC_VOP2 & layout = insn_layout.ENC_VOP2;
@@ -1210,44 +1176,14 @@ namespace InstructionAPI {
         layout.VDST = longfield<17,24>(insn_long);
         layout.VSRC1 = longfield<9,16>(insn_long);
         assert(isArrayIndexValid(ENC_VOP2_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_VOP2_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_VOP2_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOP2Operands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_VOP3PX2()
-    {
-        insn_size = 16;
-        layout_ENC_VOP3PX2 & layout = insn_layout.ENC_VOP3PX2;
-        layout.ABID = longfield<11,14>(insn_long2);
-        layout.ACC = longfield<59,60>(insn_long2);
-        layout.ACC_CD = longfield<15,15>(insn_long2);
-        layout.BLGP = longfield<61,63>(insn_long2);
-        layout.CBSZ = longfield<8,10>(insn_long2);
-        layout.ENCODING = longfield<23,31>(insn_long2);
-        layout.NEG = longfield<61,63>(insn_long);
-        layout.NEG_HI = longfield<8,10>(insn_long);
-        layout.OP = longfield<16,22>(insn_long2);
-        layout.OP_SEL = longfield<11,13>(insn_long);
-        layout.OP_SEL_HI = longfield<59,60>(insn_long) | (longfield<14,14>(insn_long) << 2);
-        layout.SCALE_SRC0 = longfield<32,40>(insn_long);
-        layout.SCALE_SRC1 = longfield<41,49>(insn_long);
-        layout.SRC0 = longfield<32,40>(insn_long2);
-        layout.SRC1 = longfield<41,49>(insn_long2);
-        layout.SRC2 = longfield<50,58>(insn_long2);
-        layout.VDST = longfield<0,7>(insn_long2);
-        layout.X2ENCODING = longfield<16,31>(insn_long);
-        assert(isArrayIndexValid(ENC_VOP3PX2_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_VOP3PX2_insn_table[layout.OP];
-        this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
-        finalizeENC_VOP3PX2Operands();
-        this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
-        this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
-    }
-
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_VOP3P()
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3P()
     {
         insn_size = 8;
         layout_ENC_VOP3P & layout = insn_layout.ENC_VOP3P;
@@ -1263,14 +1199,14 @@ namespace InstructionAPI {
         layout.SRC2 = longfield<50,58>(insn_long);
         layout.VDST = longfield<0,7>(insn_long);
         assert(isArrayIndexValid(ENC_VOP3P_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_VOP3P_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_VOP3P_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOP3POperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_VOP3()
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_VOP3()
     {
         insn_size = 8;
         layout_ENC_VOP3 & layout = insn_layout.ENC_VOP3;
@@ -1286,14 +1222,14 @@ namespace InstructionAPI {
         layout.SRC2 = longfield<50,58>(insn_long);
         layout.VDST = longfield<0,7>(insn_long);
         assert(isArrayIndexValid(ENC_VOP3_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_VOP3_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_VOP3_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOP3Operands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_DS()
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_DS()
     {
         insn_size = 8;
         layout_ENC_DS & layout = insn_layout.ENC_DS;
@@ -1308,67 +1244,95 @@ namespace InstructionAPI {
         layout.OP = longfield<17,24>(insn_long);
         layout.VDST = longfield<56,63>(insn_long);
         assert(isArrayIndexValid(ENC_DS_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_DS_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_DS_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_DSOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_MUBUF()
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_MUBUF()
     {
         insn_size = 8;
         layout_ENC_MUBUF & layout = insn_layout.ENC_MUBUF;
         layout.ACC = longfield<55,55>(insn_long);
         layout.ENCODING = longfield<26,31>(insn_long);
+        layout.GLC = longfield<14,14>(insn_long);
         layout.IDXEN = longfield<13,13>(insn_long);
         layout.LDS = longfield<16,16>(insn_long);
-        layout.NT = longfield<17,17>(insn_long);
         layout.OFFEN = longfield<12,12>(insn_long);
         layout.OFFSET = longfield<0,11>(insn_long);
         layout.OP = longfield<18,24>(insn_long);
-        layout.SC0 = longfield<14,14>(insn_long);
-        layout.SC1 = longfield<15,15>(insn_long);
+        layout.SCC = longfield<15,15>(insn_long);
+        layout.SLC = longfield<17,17>(insn_long);
         layout.SOFFSET = longfield<56,63>(insn_long);
         layout.SRSRC = ((longfield<48,52>(insn_long) << 2) | 0);
         layout.VADDR = longfield<32,39>(insn_long);
         layout.VDATA = longfield<40,47>(insn_long);
         assert(isArrayIndexValid(ENC_MUBUF_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_MUBUF_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_MUBUF_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_MUBUFOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_MTBUF()
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_MTBUF()
     {
         insn_size = 8;
         layout_ENC_MTBUF & layout = insn_layout.ENC_MTBUF;
         layout.ACC = longfield<55,55>(insn_long);
         layout.DFMT = longfield<19,22>(insn_long);
         layout.ENCODING = longfield<26,31>(insn_long);
+        layout.GLC = longfield<14,14>(insn_long);
         layout.IDXEN = longfield<13,13>(insn_long);
         layout.NFMT = longfield<23,25>(insn_long);
-        layout.NT = longfield<54,54>(insn_long);
         layout.OFFEN = longfield<12,12>(insn_long);
         layout.OFFSET = longfield<0,11>(insn_long);
         layout.OP = longfield<15,18>(insn_long);
-        layout.SC0 = longfield<14,14>(insn_long);
-        layout.SC1 = longfield<53,53>(insn_long);
+        layout.SCC = longfield<53,53>(insn_long);
+        layout.SLC = longfield<54,54>(insn_long);
         layout.SOFFSET = longfield<56,63>(insn_long);
         layout.SRSRC = ((longfield<48,52>(insn_long) << 2) | 0);
         layout.VADDR = longfield<32,39>(insn_long);
         layout.VDATA = longfield<40,47>(insn_long);
         assert(isArrayIndexValid(ENC_MTBUF_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_MTBUF_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_MTBUF_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_MTBUFOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_FLAT()
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_MIMG()
+    {
+        insn_size = 8;
+        layout_ENC_MIMG & layout = insn_layout.ENC_MIMG;
+        layout.A16 = longfield<15,15>(insn_long);
+        layout.ACC = longfield<16,16>(insn_long);
+        layout.D16 = longfield<63,63>(insn_long);
+        layout.DA = longfield<14,14>(insn_long);
+        layout.DMASK = longfield<8,11>(insn_long);
+        layout.ENCODING = longfield<26,31>(insn_long);
+        layout.GLC = longfield<13,13>(insn_long);
+        layout.LWE = longfield<17,17>(insn_long);
+        layout.OP = longfield<18,24>(insn_long) | (longfield<0,0>(insn_long) << 7);
+        layout.SCC = longfield<7,7>(insn_long);
+        layout.SLC = longfield<25,25>(insn_long);
+        layout.SRSRC = ((longfield<48,52>(insn_long) << 2) | 0);
+        layout.SSAMP = ((longfield<53,57>(insn_long) << 2) | 0);
+        layout.UNORM = longfield<12,12>(insn_long);
+        layout.VADDR = longfield<32,39>(insn_long);
+        layout.VDATA = longfield<40,47>(insn_long);
+        assert(isArrayIndexValid(ENC_MIMG_insn_table, layout.OP) && "Opcode over or underflow");
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_MIMG_insn_table[layout.OP];
+        this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
+        finalizeENC_MIMGOperands();
+        this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
+        this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
+    }
+
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_FLAT()
     {
         insn_size = 8;
         layout_ENC_FLAT & layout = insn_layout.ENC_FLAT;
@@ -1376,24 +1340,24 @@ namespace InstructionAPI {
         layout.ADDR = longfield<32,39>(insn_long);
         layout.DATA = longfield<40,47>(insn_long);
         layout.ENCODING = longfield<26,31>(insn_long);
-        layout.NT = longfield<17,17>(insn_long);
+        layout.GLC = longfield<16,16>(insn_long);
+        layout.LDS = longfield<13,13>(insn_long);
         layout.OFFSET = longfield<0,11>(insn_long);
         layout.OP = longfield<18,24>(insn_long);
         layout.SADDR = longfield<48,54>(insn_long);
-        layout.SC0 = longfield<16,16>(insn_long);
-        layout.SC1 = longfield<25,25>(insn_long);
+        layout.SCC = longfield<25,25>(insn_long);
         layout.SEG = longfield<14,15>(insn_long);
-        layout.SVE = longfield<13,13>(insn_long);
+        layout.SLC = longfield<17,17>(insn_long);
         layout.VDST = longfield<56,63>(insn_long);
         assert(isArrayIndexValid(ENC_FLAT_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_FLAT_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_FLAT_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_FLATOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_FLAT_GLBL()
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_FLAT_GLBL()
     {
         insn_size = 8;
         layout_ENC_FLAT_GLBL & layout = insn_layout.ENC_FLAT_GLBL;
@@ -1401,24 +1365,24 @@ namespace InstructionAPI {
         layout.ADDR = longfield<32,39>(insn_long);
         layout.DATA = longfield<40,47>(insn_long);
         layout.ENCODING = longfield<26,31>(insn_long);
-        layout.NT = longfield<17,17>(insn_long);
+        layout.GLC = longfield<16,16>(insn_long);
+        layout.LDS = longfield<13,13>(insn_long);
         layout.OFFSET = longfield<0,12>(insn_long);
         layout.OP = longfield<18,24>(insn_long);
         layout.SADDR = longfield<48,54>(insn_long);
-        layout.SC0 = longfield<16,16>(insn_long);
-        layout.SC1 = longfield<25,25>(insn_long);
+        layout.SCC = longfield<25,25>(insn_long);
         layout.SEG = longfield<14,15>(insn_long);
-        layout.SVE = longfield<13,13>(insn_long);
+        layout.SLC = longfield<17,17>(insn_long);
         layout.VDST = longfield<56,63>(insn_long);
         assert(isArrayIndexValid(ENC_FLAT_GLBL_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_FLAT_GLBL_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_FLAT_GLBL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_FLAT_GLBLOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeENC_FLAT_SCRATCH()
+    void InstructionDecoder_amdgpu_gfx90a::decodeENC_FLAT_SCRATCH()
     {
         insn_size = 8;
         layout_ENC_FLAT_SCRATCH & layout = insn_layout.ENC_FLAT_SCRATCH;
@@ -1426,24 +1390,24 @@ namespace InstructionAPI {
         layout.ADDR = longfield<32,39>(insn_long);
         layout.DATA = longfield<40,47>(insn_long);
         layout.ENCODING = longfield<26,31>(insn_long);
-        layout.NT = longfield<17,17>(insn_long);
+        layout.GLC = longfield<16,16>(insn_long);
+        layout.LDS = longfield<13,13>(insn_long);
         layout.OFFSET = longfield<0,12>(insn_long);
         layout.OP = longfield<18,24>(insn_long);
         layout.SADDR = longfield<48,54>(insn_long);
-        layout.SC0 = longfield<16,16>(insn_long);
-        layout.SC1 = longfield<25,25>(insn_long);
+        layout.SCC = longfield<25,25>(insn_long);
         layout.SEG = longfield<14,15>(insn_long);
-        layout.SVE = longfield<13,13>(insn_long);
+        layout.SLC = longfield<17,17>(insn_long);
         layout.VDST = longfield<56,63>(insn_long);
         assert(isArrayIndexValid(ENC_FLAT_SCRATCH_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = ENC_FLAT_SCRATCH_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = ENC_FLAT_SCRATCH_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_FLAT_SCRATCHOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeSOP1_INST_LITERAL()
+    void InstructionDecoder_amdgpu_gfx90a::decodeSOP1_INST_LITERAL()
     {
         insn_size = 8;
         layout_SOP1_INST_LITERAL & layout = insn_layout.SOP1_INST_LITERAL;
@@ -1453,14 +1417,14 @@ namespace InstructionAPI {
         layout.SDST = longfield<16,22>(insn_long);
         layout.SSRC0 = longfield<0,7>(insn_long);
         assert(isArrayIndexValid(SOP1_INST_LITERAL_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = SOP1_INST_LITERAL_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = SOP1_INST_LITERAL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeSOP1_INST_LITERALOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeSOP2_INST_LITERAL()
+    void InstructionDecoder_amdgpu_gfx90a::decodeSOP2_INST_LITERAL()
     {
         insn_size = 8;
         layout_SOP2_INST_LITERAL & layout = insn_layout.SOP2_INST_LITERAL;
@@ -1471,14 +1435,14 @@ namespace InstructionAPI {
         layout.SSRC0 = longfield<0,7>(insn_long);
         layout.SSRC1 = longfield<8,15>(insn_long);
         assert(isArrayIndexValid(SOP2_INST_LITERAL_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = SOP2_INST_LITERAL_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = SOP2_INST_LITERAL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeSOP2_INST_LITERALOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeSOPC_INST_LITERAL()
+    void InstructionDecoder_amdgpu_gfx90a::decodeSOPC_INST_LITERAL()
     {
         insn_size = 8;
         layout_SOPC_INST_LITERAL & layout = insn_layout.SOPC_INST_LITERAL;
@@ -1488,14 +1452,14 @@ namespace InstructionAPI {
         layout.SSRC0 = longfield<0,7>(insn_long);
         layout.SSRC1 = longfield<8,15>(insn_long);
         assert(isArrayIndexValid(SOPC_INST_LITERAL_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = SOPC_INST_LITERAL_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = SOPC_INST_LITERAL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeSOPC_INST_LITERALOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeSOPK_INST_LITERAL()
+    void InstructionDecoder_amdgpu_gfx90a::decodeSOPK_INST_LITERAL()
     {
         insn_size = 8;
         layout_SOPK_INST_LITERAL & layout = insn_layout.SOPK_INST_LITERAL;
@@ -1505,14 +1469,14 @@ namespace InstructionAPI {
         layout.SDST = longfield<16,22>(insn_long);
         layout.SIMM16 = longfield<0,15>(insn_long);
         assert(isArrayIndexValid(SOPK_INST_LITERAL_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = SOPK_INST_LITERAL_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = SOPK_INST_LITERAL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeSOPK_INST_LITERALOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeVOP1_INST_LITERAL()
+    void InstructionDecoder_amdgpu_gfx90a::decodeVOP1_INST_LITERAL()
     {
         insn_size = 8;
         layout_VOP1_INST_LITERAL & layout = insn_layout.VOP1_INST_LITERAL;
@@ -1522,14 +1486,14 @@ namespace InstructionAPI {
         layout.SRC0 = longfield<0,8>(insn_long);
         layout.VDST = longfield<17,24>(insn_long);
         assert(isArrayIndexValid(VOP1_INST_LITERAL_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = VOP1_INST_LITERAL_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = VOP1_INST_LITERAL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP1_INST_LITERALOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeVOP1_VOP_DPP()
+    void InstructionDecoder_amdgpu_gfx90a::decodeVOP1_VOP_DPP()
     {
         insn_size = 8;
         extension = std::string("_DPP");
@@ -1548,14 +1512,14 @@ namespace InstructionAPI {
         layout.VDST = longfield<17,24>(insn_long);
         layout.VSRC0 = longfield<32,39>(insn_long);
         assert(isArrayIndexValid(VOP1_VOP_DPP_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = VOP1_VOP_DPP_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = VOP1_VOP_DPP_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP1_VOP_DPPOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeVOP1_VOP_SDWA()
+    void InstructionDecoder_amdgpu_gfx90a::decodeVOP1_VOP_SDWA()
     {
         insn_size = 8;
         extension = std::string("_SDWA");
@@ -1580,14 +1544,14 @@ namespace InstructionAPI {
         layout.VDST = longfield<17,24>(insn_long);
         layout.VSRC0 = longfield<32,39>(insn_long);
         assert(isArrayIndexValid(VOP1_VOP_SDWA_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = VOP1_VOP_SDWA_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = VOP1_VOP_SDWA_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP1_VOP_SDWAOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeVOP2_INST_LITERAL()
+    void InstructionDecoder_amdgpu_gfx90a::decodeVOP2_INST_LITERAL()
     {
         insn_size = 8;
         layout_VOP2_INST_LITERAL & layout = insn_layout.VOP2_INST_LITERAL;
@@ -1598,14 +1562,14 @@ namespace InstructionAPI {
         layout.VDST = longfield<17,24>(insn_long);
         layout.VSRC1 = longfield<9,16>(insn_long);
         assert(isArrayIndexValid(VOP2_INST_LITERAL_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = VOP2_INST_LITERAL_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = VOP2_INST_LITERAL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP2_INST_LITERALOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeVOP2_VOP_DPP()
+    void InstructionDecoder_amdgpu_gfx90a::decodeVOP2_VOP_DPP()
     {
         insn_size = 8;
         extension = std::string("_DPP");
@@ -1625,14 +1589,14 @@ namespace InstructionAPI {
         layout.VSRC0 = longfield<32,39>(insn_long);
         layout.VSRC1 = longfield<9,16>(insn_long);
         assert(isArrayIndexValid(VOP2_VOP_DPP_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = VOP2_VOP_DPP_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = VOP2_VOP_DPP_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP2_VOP_DPPOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeVOP2_VOP_SDWA()
+    void InstructionDecoder_amdgpu_gfx90a::decodeVOP2_VOP_SDWA()
     {
         insn_size = 8;
         extension = std::string("_SDWA");
@@ -1658,14 +1622,14 @@ namespace InstructionAPI {
         layout.VSRC0 = longfield<32,39>(insn_long);
         layout.VSRC1 = longfield<9,16>(insn_long);
         assert(isArrayIndexValid(VOP2_VOP_SDWA_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = VOP2_VOP_SDWA_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = VOP2_VOP_SDWA_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP2_VOP_SDWAOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeVOP2_VOP_SDWA_SDST_ENC()
+    void InstructionDecoder_amdgpu_gfx90a::decodeVOP2_VOP_SDWA_SDST_ENC()
     {
         insn_size = 8;
         extension = std::string("_SDWA");
@@ -1689,14 +1653,14 @@ namespace InstructionAPI {
         layout.VSRC0 = longfield<32,39>(insn_long);
         layout.VSRC1 = longfield<9,16>(insn_long);
         assert(isArrayIndexValid(VOP2_VOP_SDWA_SDST_ENC_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = VOP2_VOP_SDWA_SDST_ENC_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = VOP2_VOP_SDWA_SDST_ENC_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP2_VOP_SDWA_SDST_ENCOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeVOP3_SDST_ENC()
+    void InstructionDecoder_amdgpu_gfx90a::decodeVOP3_SDST_ENC()
     {
         insn_size = 8;
         layout_VOP3_SDST_ENC & layout = insn_layout.VOP3_SDST_ENC;
@@ -1711,14 +1675,14 @@ namespace InstructionAPI {
         layout.SRC2 = longfield<50,58>(insn_long);
         layout.VDST = longfield<0,7>(insn_long);
         assert(isArrayIndexValid(VOP3_SDST_ENC_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = VOP3_SDST_ENC_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = VOP3_SDST_ENC_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP3_SDST_ENCOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeVOP3P_MFMA()
+    void InstructionDecoder_amdgpu_gfx90a::decodeVOP3P_MFMA()
     {
         insn_size = 8;
         layout_VOP3P_MFMA & layout = insn_layout.VOP3P_MFMA;
@@ -1734,14 +1698,14 @@ namespace InstructionAPI {
         layout.SRC2 = longfield<50,58>(insn_long);
         layout.VDST = longfield<0,7>(insn_long);
         assert(isArrayIndexValid(VOP3P_MFMA_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = VOP3P_MFMA_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = VOP3P_MFMA_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP3P_MFMAOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeVOPC_INST_LITERAL()
+    void InstructionDecoder_amdgpu_gfx90a::decodeVOPC_INST_LITERAL()
     {
         insn_size = 8;
         layout_VOPC_INST_LITERAL & layout = insn_layout.VOPC_INST_LITERAL;
@@ -1751,14 +1715,14 @@ namespace InstructionAPI {
         layout.SRC0 = longfield<0,8>(insn_long);
         layout.VSRC1 = longfield<9,16>(insn_long);
         assert(isArrayIndexValid(VOPC_INST_LITERAL_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = VOPC_INST_LITERAL_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = VOPC_INST_LITERAL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOPC_INST_LITERALOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::decodeVOPC_VOP_SDWA_SDST_ENC()
+    void InstructionDecoder_amdgpu_gfx90a::decodeVOPC_VOP_SDWA_SDST_ENC()
     {
         insn_size = 8;
         extension = std::string("_SDWA");
@@ -1781,14 +1745,14 @@ namespace InstructionAPI {
         layout.VSRC0 = longfield<32,39>(insn_long);
         layout.VSRC1 = longfield<9,16>(insn_long);
         assert(isArrayIndexValid(VOPC_VOP_SDWA_SDST_ENC_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx950_insn_entry &insn_entry = VOPC_VOP_SDWA_SDST_ENC_insn_table[layout.OP];
+        const amdgpu_gfx90a_insn_entry &insn_entry = VOPC_VOP_SDWA_SDST_ENC_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOPC_VOP_SDWA_SDST_ENCOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx950::mainDecode()
+    void InstructionDecoder_amdgpu_gfx90a::mainDecode()
     {
         if (IS_ENC_SOP1(insn_long) && (COND_ENC_SOP1_default(insn_long)))  {
             decodeENC_SOP1();
@@ -1817,9 +1781,6 @@ namespace InstructionAPI {
         else if (IS_ENC_VOP2(insn_long) && (COND_ENC_VOP2_default(insn_long)))  {
             decodeENC_VOP2();
         }
-        else if (IS_ENC_VOP3PX2(insn_long))  {
-            decodeENC_VOP3PX2();
-        }
         else if (IS_ENC_VOP3P(insn_long))  {
             decodeENC_VOP3P();
         }
@@ -1834,6 +1795,9 @@ namespace InstructionAPI {
         }
         else if (IS_ENC_MTBUF(insn_long))  {
             decodeENC_MTBUF();
+        }
+        else if (IS_ENC_MIMG(insn_long))  {
+            decodeENC_MIMG();
         }
         else if (IS_ENC_FLAT(insn_long))  {
             decodeENC_FLAT();
@@ -1893,7 +1857,7 @@ namespace InstructionAPI {
             // no encoding claims this word: emit an INVALID instruction of
             // one encoding-word size so decoding can move past it
             insn_size = 4;
-            this->insn_in_progress = makeInstruction(amdgpu_gfx950_op_INVALID,"INVALID",insn_size,reinterpret_cast<unsigned char *>(&insn));
+            this->insn_in_progress = makeInstruction(amdgpu_gfx90a_op_INVALID,"INVALID",insn_size,reinterpret_cast<unsigned char *>(&insn));
         }
     }
 

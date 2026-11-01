@@ -32,10 +32,10 @@
 #define DYNINST_COMMON_REGISTERS_ROSE_AMDGPU_H
 
 #include "external/rose/amdgpuInstructionEnum.h"
-#include "registers/AMDGPU/amdgpu_gfx908_regs.h"
-#include "registers/AMDGPU/amdgpu_gfx90a_regs.h"
-#include "registers/AMDGPU/amdgpu_gfx940_regs.h"
-#include "registers/AMDGPU/amdgpu_gfx950_regs.h"
+#include "registers/amdgpu/amdgpu_gfx908_regs.h"
+#include "registers/amdgpu/amdgpu_gfx90a_regs.h"
+#include "registers/amdgpu/amdgpu_gfx940_regs.h"
+#include "registers/amdgpu/amdgpu_gfx950_regs.h"
 #include "dataflowAPI/src/debug_dataflow.h"
 
 #include <tuple>

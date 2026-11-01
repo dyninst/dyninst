@@ -4,7 +4,7 @@ include(DyninstLibrary)
 
 add_subdirectory(src/ASTs)
 add_subdirectory(src/decoder/aarch64)
-add_subdirectory(src/decoder/AMDGPU)
+add_subdirectory(src/decoder/amdgpu)
 add_subdirectory(src/decoder/PowerPC)
 add_subdirectory(src/decoder/riscv)
 add_subdirectory(src/decoder/x86)

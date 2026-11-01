@@ -1,5 +1,5 @@
 #include "registers/MachRegister.h"
-#include "registers/AMDGPU/amdgpu_gfx940_regs.h"
+#include "registers/amdgpu/amdgpu_gfx940_regs.h"
 #include "type_query_check.h"
 
 constexpr auto arch = Dyninst::Arch_amdgpu_gfx940;

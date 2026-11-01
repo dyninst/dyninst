@@ -3,7 +3,7 @@
 #include "Location.h"
 #include "bitArray.h"
 #include "liveness.h"
-#include "registers/AMDGPU/amdgpu_gfx908_regs.h"
+#include "registers/amdgpu/amdgpu_gfx908_regs.h"
 
 #include <cstdio>
 #include <cstdlib>
