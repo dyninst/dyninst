@@ -459,7 +459,7 @@ void RoseInsnAMDGPUFactory::massageOperands(const Instruction &insn,
     // Similar concept for SETPC and GETPC
     case amdgpu_gfx908_op_S_SWAPPC_B64:
     case amdgpu_gfx90a_op_S_SWAPPC_B64: 
-    case amdgpu_gfx940_op_S_SWAPPC_B64:
+    case amdgpu_gfx942_op_S_SWAPPC_B64:
     case amdgpu_gfx950_op_S_SWAPPC_B64: {
         assert(operands.size() == 2);
         operands.reserve(4);
@@ -475,7 +475,7 @@ void RoseInsnAMDGPUFactory::massageOperands(const Instruction &insn,
     }
     case amdgpu_gfx908_op_S_SETPC_B64:
     case amdgpu_gfx90a_op_S_SETPC_B64: 
-    case amdgpu_gfx940_op_S_SETPC_B64:
+    case amdgpu_gfx942_op_S_SETPC_B64:
     case amdgpu_gfx950_op_S_SETPC_B64: {
         assert(operands.size() == 1);
         operands.reserve(2);
@@ -490,7 +490,7 @@ void RoseInsnAMDGPUFactory::massageOperands(const Instruction &insn,
     // (3 operands). The semantics handler (IP_s_mov_b64) dispatches on the resulting operand count.
     case amdgpu_gfx908_op_S_MOV_B64:
     case amdgpu_gfx90a_op_S_MOV_B64:
-    case amdgpu_gfx940_op_S_MOV_B64:
+    case amdgpu_gfx942_op_S_MOV_B64:
     case amdgpu_gfx950_op_S_MOV_B64: {
         assert(operands.size() == 2);
         MultiRegisterAST::Ptr dst_regs = boost::dynamic_pointer_cast<MultiRegisterAST>(operands[0].getValue());
@@ -515,7 +515,7 @@ void RoseInsnAMDGPUFactory::massageOperands(const Instruction &insn,
     }
     case amdgpu_gfx908_op_S_GETPC_B64:
     case amdgpu_gfx90a_op_S_GETPC_B64:
-    case amdgpu_gfx940_op_S_GETPC_B64:
+    case amdgpu_gfx942_op_S_GETPC_B64:
     case amdgpu_gfx950_op_S_GETPC_B64: {
         assert(operands.size() == 1);
         operands.reserve(3);

@@ -804,7 +804,7 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
     {
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
-        case Arch_amdgpu_gfx940:
+        case Arch_amdgpu_gfx942:
         case Arch_amdgpu_gfx950:
             return;
         case Arch_none:

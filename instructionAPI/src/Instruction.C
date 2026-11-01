@@ -68,8 +68,8 @@ namespace Dyninst { namespace InstructionAPI {
           return id != amdgpu_gfx908_op_INVALID;
         case Arch_amdgpu_gfx90a:
           return id != amdgpu_gfx90a_op_INVALID;
-        case Arch_amdgpu_gfx940:
-          return id != amdgpu_gfx940_op_INVALID;
+        case Arch_amdgpu_gfx942:
+          return id != amdgpu_gfx942_op_INVALID;
 
         case Arch_amdgpu_gfx950:
           return id != amdgpu_gfx950_op_INVALID;
@@ -351,8 +351,8 @@ namespace Dyninst { namespace InstructionAPI {
       case amdgpu_gfx908_op_S_SWAPPC_B64:
       case amdgpu_gfx90a_op_S_SETPC_B64:
       case amdgpu_gfx90a_op_S_SWAPPC_B64:
-      case amdgpu_gfx940_op_S_SETPC_B64:
-      case amdgpu_gfx940_op_S_SWAPPC_B64:
+      case amdgpu_gfx942_op_S_SETPC_B64:
+      case amdgpu_gfx942_op_S_SWAPPC_B64:
       case amdgpu_gfx950_op_S_SETPC_B64:
       case amdgpu_gfx950_op_S_SWAPPC_B64: return false;
       case e_jae:

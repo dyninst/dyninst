@@ -34,7 +34,7 @@
 #include "external/rose/amdgpuInstructionEnum.h"
 #include "registers/amdgpu/amdgpu_gfx908_regs.h"
 #include "registers/amdgpu/amdgpu_gfx90a_regs.h"
-#include "registers/amdgpu/amdgpu_gfx940_regs.h"
+#include "registers/amdgpu/amdgpu_gfx942_regs.h"
 #include "registers/amdgpu/amdgpu_gfx950_regs.h"
 #include "dataflowAPI/src/debug_dataflow.h"
 
@@ -104,22 +104,22 @@ namespace {
     constexpr auto pos = 0;
 
     switch(category) {
-      case Dyninst::amdgpu_gfx940::SGPR: {
+      case Dyninst::amdgpu_gfx942::SGPR: {
         auto const reg_idx = static_cast<AMDGPUScalarGeneralPurposeRegister>(baseID);
         return std::make_tuple(amdgpu_regclass_sgpr, reg_idx, pos, size);
         break;
       }
 
-      case Dyninst::amdgpu_gfx940::VGPR: {
+      case Dyninst::amdgpu_gfx942::VGPR: {
         auto const reg_idx = static_cast<AMDGPUVectorGeneralPurposeRegister>(baseID);
         return std::make_tuple(amdgpu_regclass_vgpr, reg_idx, pos, size);
       }
 
-      case Dyninst::amdgpu_gfx940::PC: {
+      case Dyninst::amdgpu_gfx942::PC: {
         return std::make_tuple(amdgpu_regclass_pc, amdgpu_pc, pos, size);
       }
 
-      case Dyninst::amdgpu_gfx940::MISC: {
+      case Dyninst::amdgpu_gfx942::MISC: {
         auto const reg_idx = static_cast<AMDGPUMiscRegister>(baseID);
         return std::make_tuple(amdgpu_regclass_misc, reg_idx, pos, size);
       }

@@ -143,7 +143,7 @@ namespace rose {
                 typedef boost::shared_ptr<class RegisterStateASTPPC64> RegisterStateASTPPC64Ptr;
                 typedef boost::shared_ptr<class RegisterStateAST_amdgpu_gfx908> RegisterStateAST_amdgpu_gfx908_Ptr;
                 typedef boost::shared_ptr<class RegisterStateAST_amdgpu_gfx90a> RegisterStateAST_amdgpu_gfx90a_Ptr;
-                typedef boost::shared_ptr<class RegisterStateAST_amdgpu_gfx940> RegisterStateAST_amdgpu_gfx940_Ptr;
+                typedef boost::shared_ptr<class RegisterStateAST_amdgpu_gfx942> RegisterStateAST_amdgpu_gfx942_Ptr;
                 typedef boost::shared_ptr<class RegisterStateAST_amdgpu_gfx950> RegisterStateAST_amdgpu_gfx950_Ptr;
                 class RegisterStateAST : public BaseSemantics::RegisterState {
                 public:
@@ -329,18 +329,18 @@ namespace rose {
                         // Given a register decriptor of roseformat, convert it back to MachRegister and encapsulate it in Dyninst Abstract location
                         virtual Dyninst::Absloc convert(const RegisterDescriptor &reg);
                 };
-                 class RegisterStateAST_amdgpu_gfx940 : public RegisterStateAST {
+                 class RegisterStateAST_amdgpu_gfx942 : public RegisterStateAST {
                     public:
-                        RegisterStateAST_amdgpu_gfx940(const BaseSemantics::SValuePtr &protoval,
+                        RegisterStateAST_amdgpu_gfx942(const BaseSemantics::SValuePtr &protoval,
                                 const RegisterDictionary *regdict_) : RegisterStateAST(protoval, regdict_) { }
 
-                        static RegisterStateAST_amdgpu_gfx940_Ptr instance(const BaseSemantics::SValuePtr &protoval,
+                        static RegisterStateAST_amdgpu_gfx942_Ptr instance(const BaseSemantics::SValuePtr &protoval,
                                 const RegisterDictionary *regdict) {
-                            return RegisterStateAST_amdgpu_gfx940_Ptr(new RegisterStateAST_amdgpu_gfx940(protoval, regdict));
+                            return RegisterStateAST_amdgpu_gfx942_Ptr(new RegisterStateAST_amdgpu_gfx942(protoval, regdict));
                         }
 
-                        static RegisterStateAST_amdgpu_gfx940_Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
-                            RegisterStateAST_amdgpu_gfx940_Ptr retval = boost::dynamic_pointer_cast<RegisterStateAST_amdgpu_gfx940>(from);
+                        static RegisterStateAST_amdgpu_gfx942_Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
+                            RegisterStateAST_amdgpu_gfx942_Ptr retval = boost::dynamic_pointer_cast<RegisterStateAST_amdgpu_gfx942>(from);
                             ASSERT_not_null(retval);
                             return retval;
                         }

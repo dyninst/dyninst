@@ -1,9 +1,9 @@
-#include "registers/amdgpu/amdgpu_gfx940_regs.h"
-#include "InstructionDecoder-amdgpu-gfx940.h"
+#include "registers/amdgpu/amdgpu_gfx942_regs.h"
+#include "InstructionDecoder-amdgpu-gfx942.h"
 
 namespace Dyninst {
 namespace InstructionAPI {
-    bool InstructionDecoder_amdgpu_gfx940::IS_ENC_SOP1(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_ENC_SOP1(uint64_t I)
     {
         switch ( I & 0xff80ff00 )  {
             case 0xbe800000:  case 0xbe800100:  case 0xbe800200:  case 0xbe800300:
@@ -27,7 +27,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_ENC_SOPC(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_ENC_SOPC(uint64_t I)
     {
         switch ( I & 0xffff0000 )  {
             case 0xbf000000:  case 0xbf010000:  case 0xbf020000:  case 0xbf030000:
@@ -42,7 +42,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_ENC_SOPP(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_ENC_SOPP(uint64_t I)
     {
         switch ( I & 0xffff0000 )  {
             case 0xbf800000:  case 0xbf810000:  case 0xbf820000:  case 0xbf830000:
@@ -60,7 +60,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_ENC_SOPK(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_ENC_SOPK(uint64_t I)
     {
         switch ( I & 0xff800000 )  {
             case 0xb0000000:  case 0xb0800000:  case 0xb1000000:  case 0xb1800000:
@@ -75,7 +75,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_ENC_SOP2(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_ENC_SOP2(uint64_t I)
     {
         switch ( I & 0xff800000 )  {
             case 0x80000000:  case 0x80800000:  case 0x81000000:  case 0x81800000:
@@ -99,7 +99,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_ENC_SMEM(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_ENC_SMEM(uint64_t I)
     {
         switch ( I & 0xfffc0000 )  {
             case 0xc0000000:  case 0xc0040000:  case 0xc0080000:  case 0xc00c0000:
@@ -130,7 +130,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_ENC_VOP1(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_ENC_VOP1(uint64_t I)
     {
         switch ( I & 0xfe01fe00 )  {
             case 0x7e000000:  case 0x7e000200:  case 0x7e000400:  case 0x7e000600:
@@ -161,7 +161,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_ENC_VOPC(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_ENC_VOPC(uint64_t I)
     {
         switch ( I & 0xfffe0000 )  {
             case 0x7c200000:  case 0x7c220000:  case 0x7c240000:  case 0x7c260000:
@@ -221,7 +221,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_ENC_VOP2(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_ENC_VOP2(uint64_t I)
     {
         switch ( I & 0xfe000000 )  {
             case 0x0:  case 0x2000000:  case 0x4000000:  case 0x6000000:
@@ -246,7 +246,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_ENC_VOP3P(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_ENC_VOP3P(uint64_t I)
     {
         switch ( I & 0xffff0000 )  {
             case 0xd3800000:  case 0xd3810000:  case 0xd3820000:  case 0xd3830000:
@@ -265,7 +265,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_ENC_VOP3(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_ENC_VOP3(uint64_t I)
     {
         switch ( I & 0xffff0000 )  {
             case 0xd1400000:  case 0xd1410000:  case 0xd1420000:  case 0xd1430000:
@@ -384,7 +384,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_ENC_DS(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_ENC_DS(uint64_t I)
     {
         switch ( I & 0xfdfe0000 )  {
             case 0xd8000000:  case 0xd8020000:  case 0xd8040000:  case 0xd8060000:
@@ -426,7 +426,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_ENC_MUBUF(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_ENC_MUBUF(uint64_t I)
     {
         switch ( I & 0xfdfc0000 )  {
             case 0xe0000000:  case 0xe0040000:  case 0xe0080000:  case 0xe00c0000:
@@ -455,7 +455,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_ENC_MTBUF(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_ENC_MTBUF(uint64_t I)
     {
         switch ( I & 0xfc078000 )  {
             case 0xe8000000:  case 0xe8008000:  case 0xe8010000:  case 0xe8018000:
@@ -469,7 +469,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_ENC_FLAT(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_ENC_FLAT(uint64_t I)
     {
         switch ( I & 0xfdfcc000 )  {
             case 0xdc400000:  case 0xdc440000:  case 0xdc480000:  case 0xdc4c0000:
@@ -493,7 +493,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_ENC_FLAT_GLBL(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_ENC_FLAT_GLBL(uint64_t I)
     {
         switch ( I & 0xfdfcc000 )  {
             case 0xdc408000:  case 0xdc448000:  case 0xdc488000:  case 0xdc4c8000:
@@ -518,7 +518,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_ENC_FLAT_SCRATCH(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_ENC_FLAT_SCRATCH(uint64_t I)
     {
         switch ( I & 0xfdfcc000 )  {
             case 0xdc404000:  case 0xdc444000:  case 0xdc484000:  case 0xdc4c4000:
@@ -535,7 +535,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_SOP1_INST_LITERAL(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_SOP1_INST_LITERAL(uint64_t I)
     {
         switch ( I & 0xff80ff00 )  {
             case 0xbe800000:  case 0xbe800100:  case 0xbe800200:  case 0xbe800300:
@@ -557,7 +557,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_SOP2_INST_LITERAL(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_SOP2_INST_LITERAL(uint64_t I)
     {
         switch ( I & 0xff800000 )  {
             case 0x80000000:  case 0x80800000:  case 0x81000000:  case 0x81800000:
@@ -580,7 +580,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_SOPC_INST_LITERAL(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_SOPC_INST_LITERAL(uint64_t I)
     {
         switch ( I & 0xffff0000 )  {
             case 0xbf000000:  case 0xbf010000:  case 0xbf020000:  case 0xbf030000:
@@ -595,7 +595,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_SOPK_INST_LITERAL(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_SOPK_INST_LITERAL(uint64_t I)
     {
         switch ( I & 0xff800000 )  {
             case 0xba000000:
@@ -606,7 +606,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_VOP1_INST_LITERAL(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_VOP1_INST_LITERAL(uint64_t I)
     {
         switch ( I & 0xfe01fe00 )  {
             case 0x7e000000:  case 0x7e000200:  case 0x7e000600:  case 0x7e000800:
@@ -637,7 +637,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_VOP1_VOP_DPP(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_VOP1_VOP_DPP(uint64_t I)
     {
         switch ( I & 0xfe01fe00 )  {
             case 0x7e000000:  case 0x7e000200:  case 0x7e000600:  case 0x7e000800:
@@ -666,7 +666,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_VOP1_VOP_SDWA(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_VOP1_VOP_SDWA(uint64_t I)
     {
         switch ( I & 0xfe01fe00 )  {
             case 0x7e000000:  case 0x7e000200:  case 0x7e000a00:  case 0x7e000c00:
@@ -693,7 +693,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_VOP2_INST_LITERAL(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_VOP2_INST_LITERAL(uint64_t I)
     {
         switch ( I & 0xfe000000 )  {
             case 0x0:  case 0x2000000:  case 0x4000000:  case 0x6000000:
@@ -719,7 +719,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_VOP2_VOP_DPP(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_VOP2_VOP_DPP(uint64_t I)
     {
         switch ( I & 0xfe000000 )  {
             case 0x0:  case 0x2000000:  case 0x4000000:  case 0x6000000:
@@ -744,7 +744,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_VOP2_VOP_SDWA(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_VOP2_VOP_SDWA(uint64_t I)
     {
         switch ( I & 0xfe000000 )  {
             case 0x0:  case 0x2000000:  case 0x4000000:  case 0x6000000:
@@ -765,7 +765,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_VOP2_VOP_SDWA_SDST_ENC(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_VOP2_VOP_SDWA_SDST_ENC(uint64_t I)
     {
         switch ( I & 0xfe000000 )  {
             case 0x32000000:  case 0x34000000:  case 0x36000000:  case 0x38000000:
@@ -777,7 +777,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_VOP3_SDST_ENC(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_VOP3_SDST_ENC(uint64_t I)
     {
         switch ( I & 0xffff0000 )  {
             case 0xd1190000:  case 0xd11a0000:  case 0xd11b0000:  case 0xd11c0000:
@@ -790,7 +790,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_VOP3P_MFMA(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_VOP3P_MFMA(uint64_t I)
     {
         switch ( I & 0xffff0000 )  {
             case 0xd3be0000:  case 0xd3bf0000:  case 0xd3c00000:  case 0xd3c10000:
@@ -812,7 +812,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_VOPC_INST_LITERAL(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_VOPC_INST_LITERAL(uint64_t I)
     {
         switch ( I & 0xfffe0000 )  {
             case 0x7c200000:  case 0x7c220000:  case 0x7c240000:  case 0x7c260000:
@@ -872,7 +872,7 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::IS_VOPC_VOP_SDWA_SDST_ENC(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::IS_VOPC_VOP_SDWA_SDST_ENC(uint64_t I)
     {
         switch ( I & 0xfffe0000 )  {
             case 0x7c200000:  case 0x7c220000:  case 0x7c280000:  case 0x7c2a0000:
@@ -915,122 +915,122 @@ namespace InstructionAPI {
         }
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_ENC_SOP1_default(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_ENC_SOP1_default(uint64_t I)
     {
         return ((longfield<0,7>(I)) != 255);
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_ENC_SOPC_default(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_ENC_SOPC_default(uint64_t I)
     {
         return (((longfield<0,7>(I)) != 255) && ((longfield<8,15>(I)) != 255));
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_ENC_SOP2_default(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_ENC_SOP2_default(uint64_t I)
     {
         return (((longfield<0,7>(I)) != 255) && ((longfield<8,15>(I)) != 255));
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_ENC_VOP1_default(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_ENC_VOP1_default(uint64_t I)
     {
         return ((longfield<0,8>(I)) != 250 && (longfield<0,8>(I)) != 255 && (longfield<0,8>(I)) != 249);
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_ENC_VOPC_default(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_ENC_VOPC_default(uint64_t I)
     {
         return ((longfield<0,8>(I)) != 250 && (longfield<0,8>(I)) != 255 && (longfield<0,8>(I)) != 249);
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_ENC_VOP2_default(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_ENC_VOP2_default(uint64_t I)
     {
         return ((longfield<0,8>(I)) != 250 && (longfield<0,8>(I)) != 255 && (longfield<0,8>(I)) != 249);
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_SOP1_INST_LITERAL_has_lit_0(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_SOP1_INST_LITERAL_has_lit_0(uint64_t I)
     {
         return ((longfield<0,7>(I)) == 255);
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_SOP2_INST_LITERAL_has_lit_0(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_SOP2_INST_LITERAL_has_lit_0(uint64_t I)
     {
         return (((longfield<0,7>(I)) == 255) && ((longfield<8,15>(I)) != 255));
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_SOP2_INST_LITERAL_has_lit_1(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_SOP2_INST_LITERAL_has_lit_1(uint64_t I)
     {
         return (((longfield<0,7>(I)) != 255) && ((longfield<8,15>(I)) == 255));
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_SOP2_INST_LITERAL_has_lit_0_has_lit_1(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_SOP2_INST_LITERAL_has_lit_0_has_lit_1(uint64_t I)
     {
         return (((longfield<0,7>(I)) == 255) && ((longfield<8,15>(I)) == 255));
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_SOPC_INST_LITERAL_has_lit_0(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_SOPC_INST_LITERAL_has_lit_0(uint64_t I)
     {
         return (((longfield<0,7>(I)) == 255) && ((longfield<8,15>(I)) != 255));
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_SOPC_INST_LITERAL_has_lit_1(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_SOPC_INST_LITERAL_has_lit_1(uint64_t I)
     {
         return (((longfield<0,7>(I)) != 255) && ((longfield<8,15>(I)) == 255));
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_SOPC_INST_LITERAL_has_lit_0_has_lit_1(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_SOPC_INST_LITERAL_has_lit_0_has_lit_1(uint64_t I)
     {
         return (((longfield<0,7>(I)) == 255) && ((longfield<8,15>(I)) == 255));
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_VOP1_INST_LITERAL_has_lit(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_VOP1_INST_LITERAL_has_lit(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 255);
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_VOP1_VOP_DPP_has_dpp(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_VOP1_VOP_DPP_has_dpp(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 250);
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_VOP1_VOP_SDWA_has_sdwa(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_VOP1_VOP_SDWA_has_sdwa(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 249);
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_VOP2_INST_LITERAL_has_lit(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_VOP2_INST_LITERAL_has_lit(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 255);
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_VOP2_INST_LITERAL_default(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_VOP2_INST_LITERAL_default(uint64_t I)
     {
         return ((longfield<0,8>(I)) != 250 && (longfield<0,8>(I)) != 255 && (longfield<0,8>(I)) != 249);
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_VOP2_VOP_DPP_has_dpp(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_VOP2_VOP_DPP_has_dpp(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 250);
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_VOP2_VOP_SDWA_has_sdwa(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_VOP2_VOP_SDWA_has_sdwa(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 249);
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_VOP2_VOP_SDWA_SDST_ENC_has_sdwa(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_VOP2_VOP_SDWA_SDST_ENC_has_sdwa(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 249);
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_VOPC_INST_LITERAL_has_lit(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_VOPC_INST_LITERAL_has_lit(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 255);
     }
 
-    bool InstructionDecoder_amdgpu_gfx940::COND_VOPC_VOP_SDWA_SDST_ENC_has_sdwa(uint64_t I)
+    bool InstructionDecoder_amdgpu_gfx942::COND_VOPC_VOP_SDWA_SDST_ENC_has_sdwa(uint64_t I)
     {
         return ((longfield<0,8>(I)) == 249);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeENC_SOP1()
+    void InstructionDecoder_amdgpu_gfx942::decodeENC_SOP1()
     {
         insn_size = 4;
         layout_ENC_SOP1 & layout = insn_layout.ENC_SOP1;
@@ -1039,14 +1039,14 @@ namespace InstructionAPI {
         layout.SDST = longfield<16,22>(insn_long);
         layout.SSRC0 = longfield<0,7>(insn_long);
         assert(isArrayIndexValid(ENC_SOP1_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = ENC_SOP1_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = ENC_SOP1_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SOP1Operands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeENC_SOPC()
+    void InstructionDecoder_amdgpu_gfx942::decodeENC_SOPC()
     {
         insn_size = 4;
         layout_ENC_SOPC & layout = insn_layout.ENC_SOPC;
@@ -1055,14 +1055,14 @@ namespace InstructionAPI {
         layout.SSRC0 = longfield<0,7>(insn_long);
         layout.SSRC1 = longfield<8,15>(insn_long);
         assert(isArrayIndexValid(ENC_SOPC_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = ENC_SOPC_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = ENC_SOPC_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SOPCOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeENC_SOPP()
+    void InstructionDecoder_amdgpu_gfx942::decodeENC_SOPP()
     {
         insn_size = 4;
         layout_ENC_SOPP & layout = insn_layout.ENC_SOPP;
@@ -1070,14 +1070,14 @@ namespace InstructionAPI {
         layout.OP = longfield<16,22>(insn_long);
         layout.SIMM16 = longfield<0,15>(insn_long);
         assert(isArrayIndexValid(ENC_SOPP_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = ENC_SOPP_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = ENC_SOPP_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SOPPOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeENC_SOPK()
+    void InstructionDecoder_amdgpu_gfx942::decodeENC_SOPK()
     {
         insn_size = 4;
         layout_ENC_SOPK & layout = insn_layout.ENC_SOPK;
@@ -1086,14 +1086,14 @@ namespace InstructionAPI {
         layout.SDST = longfield<16,22>(insn_long);
         layout.SIMM16 = longfield<0,15>(insn_long);
         assert(isArrayIndexValid(ENC_SOPK_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = ENC_SOPK_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = ENC_SOPK_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SOPKOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeENC_SOP2()
+    void InstructionDecoder_amdgpu_gfx942::decodeENC_SOP2()
     {
         insn_size = 4;
         layout_ENC_SOP2 & layout = insn_layout.ENC_SOP2;
@@ -1103,14 +1103,14 @@ namespace InstructionAPI {
         layout.SSRC0 = longfield<0,7>(insn_long);
         layout.SSRC1 = longfield<8,15>(insn_long);
         assert(isArrayIndexValid(ENC_SOP2_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = ENC_SOP2_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = ENC_SOP2_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SOP2Operands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeENC_SMEM()
+    void InstructionDecoder_amdgpu_gfx942::decodeENC_SMEM()
     {
         insn_size = 8;
         layout_ENC_SMEM & layout = insn_layout.ENC_SMEM;
@@ -1125,14 +1125,14 @@ namespace InstructionAPI {
         layout.SOFFSET = longfield<57,63>(insn_long);
         layout.SOFFSET_EN = longfield<14,14>(insn_long);
         assert(isArrayIndexValid(ENC_SMEM_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = ENC_SMEM_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = ENC_SMEM_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_SMEMOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeENC_VOP1()
+    void InstructionDecoder_amdgpu_gfx942::decodeENC_VOP1()
     {
         insn_size = 4;
         layout_ENC_VOP1 & layout = insn_layout.ENC_VOP1;
@@ -1141,14 +1141,14 @@ namespace InstructionAPI {
         layout.SRC0 = longfield<0,8>(insn_long);
         layout.VDST = longfield<17,24>(insn_long);
         assert(isArrayIndexValid(ENC_VOP1_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = ENC_VOP1_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = ENC_VOP1_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOP1Operands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeENC_VOPC()
+    void InstructionDecoder_amdgpu_gfx942::decodeENC_VOPC()
     {
         insn_size = 4;
         layout_ENC_VOPC & layout = insn_layout.ENC_VOPC;
@@ -1157,14 +1157,14 @@ namespace InstructionAPI {
         layout.SRC0 = longfield<0,8>(insn_long);
         layout.VSRC1 = longfield<9,16>(insn_long);
         assert(isArrayIndexValid(ENC_VOPC_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = ENC_VOPC_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = ENC_VOPC_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOPCOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeENC_VOP2()
+    void InstructionDecoder_amdgpu_gfx942::decodeENC_VOP2()
     {
         insn_size = 4;
         layout_ENC_VOP2 & layout = insn_layout.ENC_VOP2;
@@ -1174,14 +1174,14 @@ namespace InstructionAPI {
         layout.VDST = longfield<17,24>(insn_long);
         layout.VSRC1 = longfield<9,16>(insn_long);
         assert(isArrayIndexValid(ENC_VOP2_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = ENC_VOP2_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = ENC_VOP2_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOP2Operands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeENC_VOP3P()
+    void InstructionDecoder_amdgpu_gfx942::decodeENC_VOP3P()
     {
         insn_size = 8;
         layout_ENC_VOP3P & layout = insn_layout.ENC_VOP3P;
@@ -1197,14 +1197,14 @@ namespace InstructionAPI {
         layout.SRC2 = longfield<50,58>(insn_long);
         layout.VDST = longfield<0,7>(insn_long);
         assert(isArrayIndexValid(ENC_VOP3P_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = ENC_VOP3P_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = ENC_VOP3P_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOP3POperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeENC_VOP3()
+    void InstructionDecoder_amdgpu_gfx942::decodeENC_VOP3()
     {
         insn_size = 8;
         layout_ENC_VOP3 & layout = insn_layout.ENC_VOP3;
@@ -1220,14 +1220,14 @@ namespace InstructionAPI {
         layout.SRC2 = longfield<50,58>(insn_long);
         layout.VDST = longfield<0,7>(insn_long);
         assert(isArrayIndexValid(ENC_VOP3_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = ENC_VOP3_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = ENC_VOP3_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_VOP3Operands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeENC_DS()
+    void InstructionDecoder_amdgpu_gfx942::decodeENC_DS()
     {
         insn_size = 8;
         layout_ENC_DS & layout = insn_layout.ENC_DS;
@@ -1242,14 +1242,14 @@ namespace InstructionAPI {
         layout.OP = longfield<17,24>(insn_long);
         layout.VDST = longfield<56,63>(insn_long);
         assert(isArrayIndexValid(ENC_DS_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = ENC_DS_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = ENC_DS_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_DSOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeENC_MUBUF()
+    void InstructionDecoder_amdgpu_gfx942::decodeENC_MUBUF()
     {
         insn_size = 8;
         layout_ENC_MUBUF & layout = insn_layout.ENC_MUBUF;
@@ -1268,14 +1268,14 @@ namespace InstructionAPI {
         layout.VADDR = longfield<32,39>(insn_long);
         layout.VDATA = longfield<40,47>(insn_long);
         assert(isArrayIndexValid(ENC_MUBUF_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = ENC_MUBUF_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = ENC_MUBUF_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_MUBUFOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeENC_MTBUF()
+    void InstructionDecoder_amdgpu_gfx942::decodeENC_MTBUF()
     {
         insn_size = 8;
         layout_ENC_MTBUF & layout = insn_layout.ENC_MTBUF;
@@ -1295,14 +1295,14 @@ namespace InstructionAPI {
         layout.VADDR = longfield<32,39>(insn_long);
         layout.VDATA = longfield<40,47>(insn_long);
         assert(isArrayIndexValid(ENC_MTBUF_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = ENC_MTBUF_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = ENC_MTBUF_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_MTBUFOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeENC_FLAT()
+    void InstructionDecoder_amdgpu_gfx942::decodeENC_FLAT()
     {
         insn_size = 8;
         layout_ENC_FLAT & layout = insn_layout.ENC_FLAT;
@@ -1320,14 +1320,14 @@ namespace InstructionAPI {
         layout.SVE = longfield<13,13>(insn_long);
         layout.VDST = longfield<56,63>(insn_long);
         assert(isArrayIndexValid(ENC_FLAT_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = ENC_FLAT_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = ENC_FLAT_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_FLATOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeENC_FLAT_GLBL()
+    void InstructionDecoder_amdgpu_gfx942::decodeENC_FLAT_GLBL()
     {
         insn_size = 8;
         layout_ENC_FLAT_GLBL & layout = insn_layout.ENC_FLAT_GLBL;
@@ -1345,14 +1345,14 @@ namespace InstructionAPI {
         layout.SVE = longfield<13,13>(insn_long);
         layout.VDST = longfield<56,63>(insn_long);
         assert(isArrayIndexValid(ENC_FLAT_GLBL_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = ENC_FLAT_GLBL_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = ENC_FLAT_GLBL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_FLAT_GLBLOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeENC_FLAT_SCRATCH()
+    void InstructionDecoder_amdgpu_gfx942::decodeENC_FLAT_SCRATCH()
     {
         insn_size = 8;
         layout_ENC_FLAT_SCRATCH & layout = insn_layout.ENC_FLAT_SCRATCH;
@@ -1370,14 +1370,14 @@ namespace InstructionAPI {
         layout.SVE = longfield<13,13>(insn_long);
         layout.VDST = longfield<56,63>(insn_long);
         assert(isArrayIndexValid(ENC_FLAT_SCRATCH_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = ENC_FLAT_SCRATCH_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = ENC_FLAT_SCRATCH_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeENC_FLAT_SCRATCHOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeSOP1_INST_LITERAL()
+    void InstructionDecoder_amdgpu_gfx942::decodeSOP1_INST_LITERAL()
     {
         insn_size = 8;
         layout_SOP1_INST_LITERAL & layout = insn_layout.SOP1_INST_LITERAL;
@@ -1387,14 +1387,14 @@ namespace InstructionAPI {
         layout.SDST = longfield<16,22>(insn_long);
         layout.SSRC0 = longfield<0,7>(insn_long);
         assert(isArrayIndexValid(SOP1_INST_LITERAL_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = SOP1_INST_LITERAL_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = SOP1_INST_LITERAL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeSOP1_INST_LITERALOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeSOP2_INST_LITERAL()
+    void InstructionDecoder_amdgpu_gfx942::decodeSOP2_INST_LITERAL()
     {
         insn_size = 8;
         layout_SOP2_INST_LITERAL & layout = insn_layout.SOP2_INST_LITERAL;
@@ -1405,14 +1405,14 @@ namespace InstructionAPI {
         layout.SSRC0 = longfield<0,7>(insn_long);
         layout.SSRC1 = longfield<8,15>(insn_long);
         assert(isArrayIndexValid(SOP2_INST_LITERAL_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = SOP2_INST_LITERAL_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = SOP2_INST_LITERAL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeSOP2_INST_LITERALOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeSOPC_INST_LITERAL()
+    void InstructionDecoder_amdgpu_gfx942::decodeSOPC_INST_LITERAL()
     {
         insn_size = 8;
         layout_SOPC_INST_LITERAL & layout = insn_layout.SOPC_INST_LITERAL;
@@ -1422,14 +1422,14 @@ namespace InstructionAPI {
         layout.SSRC0 = longfield<0,7>(insn_long);
         layout.SSRC1 = longfield<8,15>(insn_long);
         assert(isArrayIndexValid(SOPC_INST_LITERAL_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = SOPC_INST_LITERAL_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = SOPC_INST_LITERAL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeSOPC_INST_LITERALOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeSOPK_INST_LITERAL()
+    void InstructionDecoder_amdgpu_gfx942::decodeSOPK_INST_LITERAL()
     {
         insn_size = 8;
         layout_SOPK_INST_LITERAL & layout = insn_layout.SOPK_INST_LITERAL;
@@ -1439,14 +1439,14 @@ namespace InstructionAPI {
         layout.SDST = longfield<16,22>(insn_long);
         layout.SIMM16 = longfield<0,15>(insn_long);
         assert(isArrayIndexValid(SOPK_INST_LITERAL_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = SOPK_INST_LITERAL_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = SOPK_INST_LITERAL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeSOPK_INST_LITERALOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeVOP1_INST_LITERAL()
+    void InstructionDecoder_amdgpu_gfx942::decodeVOP1_INST_LITERAL()
     {
         insn_size = 8;
         layout_VOP1_INST_LITERAL & layout = insn_layout.VOP1_INST_LITERAL;
@@ -1456,14 +1456,14 @@ namespace InstructionAPI {
         layout.SRC0 = longfield<0,8>(insn_long);
         layout.VDST = longfield<17,24>(insn_long);
         assert(isArrayIndexValid(VOP1_INST_LITERAL_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = VOP1_INST_LITERAL_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = VOP1_INST_LITERAL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP1_INST_LITERALOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeVOP1_VOP_DPP()
+    void InstructionDecoder_amdgpu_gfx942::decodeVOP1_VOP_DPP()
     {
         insn_size = 8;
         extension = std::string("_DPP");
@@ -1482,14 +1482,14 @@ namespace InstructionAPI {
         layout.VDST = longfield<17,24>(insn_long);
         layout.VSRC0 = longfield<32,39>(insn_long);
         assert(isArrayIndexValid(VOP1_VOP_DPP_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = VOP1_VOP_DPP_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = VOP1_VOP_DPP_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP1_VOP_DPPOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeVOP1_VOP_SDWA()
+    void InstructionDecoder_amdgpu_gfx942::decodeVOP1_VOP_SDWA()
     {
         insn_size = 8;
         extension = std::string("_SDWA");
@@ -1514,14 +1514,14 @@ namespace InstructionAPI {
         layout.VDST = longfield<17,24>(insn_long);
         layout.VSRC0 = longfield<32,39>(insn_long);
         assert(isArrayIndexValid(VOP1_VOP_SDWA_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = VOP1_VOP_SDWA_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = VOP1_VOP_SDWA_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP1_VOP_SDWAOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeVOP2_INST_LITERAL()
+    void InstructionDecoder_amdgpu_gfx942::decodeVOP2_INST_LITERAL()
     {
         insn_size = 8;
         layout_VOP2_INST_LITERAL & layout = insn_layout.VOP2_INST_LITERAL;
@@ -1532,14 +1532,14 @@ namespace InstructionAPI {
         layout.VDST = longfield<17,24>(insn_long);
         layout.VSRC1 = longfield<9,16>(insn_long);
         assert(isArrayIndexValid(VOP2_INST_LITERAL_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = VOP2_INST_LITERAL_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = VOP2_INST_LITERAL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP2_INST_LITERALOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeVOP2_VOP_DPP()
+    void InstructionDecoder_amdgpu_gfx942::decodeVOP2_VOP_DPP()
     {
         insn_size = 8;
         extension = std::string("_DPP");
@@ -1559,14 +1559,14 @@ namespace InstructionAPI {
         layout.VSRC0 = longfield<32,39>(insn_long);
         layout.VSRC1 = longfield<9,16>(insn_long);
         assert(isArrayIndexValid(VOP2_VOP_DPP_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = VOP2_VOP_DPP_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = VOP2_VOP_DPP_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP2_VOP_DPPOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeVOP2_VOP_SDWA()
+    void InstructionDecoder_amdgpu_gfx942::decodeVOP2_VOP_SDWA()
     {
         insn_size = 8;
         extension = std::string("_SDWA");
@@ -1592,14 +1592,14 @@ namespace InstructionAPI {
         layout.VSRC0 = longfield<32,39>(insn_long);
         layout.VSRC1 = longfield<9,16>(insn_long);
         assert(isArrayIndexValid(VOP2_VOP_SDWA_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = VOP2_VOP_SDWA_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = VOP2_VOP_SDWA_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP2_VOP_SDWAOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeVOP2_VOP_SDWA_SDST_ENC()
+    void InstructionDecoder_amdgpu_gfx942::decodeVOP2_VOP_SDWA_SDST_ENC()
     {
         insn_size = 8;
         extension = std::string("_SDWA");
@@ -1623,14 +1623,14 @@ namespace InstructionAPI {
         layout.VSRC0 = longfield<32,39>(insn_long);
         layout.VSRC1 = longfield<9,16>(insn_long);
         assert(isArrayIndexValid(VOP2_VOP_SDWA_SDST_ENC_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = VOP2_VOP_SDWA_SDST_ENC_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = VOP2_VOP_SDWA_SDST_ENC_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP2_VOP_SDWA_SDST_ENCOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeVOP3_SDST_ENC()
+    void InstructionDecoder_amdgpu_gfx942::decodeVOP3_SDST_ENC()
     {
         insn_size = 8;
         layout_VOP3_SDST_ENC & layout = insn_layout.VOP3_SDST_ENC;
@@ -1645,14 +1645,14 @@ namespace InstructionAPI {
         layout.SRC2 = longfield<50,58>(insn_long);
         layout.VDST = longfield<0,7>(insn_long);
         assert(isArrayIndexValid(VOP3_SDST_ENC_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = VOP3_SDST_ENC_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = VOP3_SDST_ENC_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP3_SDST_ENCOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeVOP3P_MFMA()
+    void InstructionDecoder_amdgpu_gfx942::decodeVOP3P_MFMA()
     {
         insn_size = 8;
         layout_VOP3P_MFMA & layout = insn_layout.VOP3P_MFMA;
@@ -1668,14 +1668,14 @@ namespace InstructionAPI {
         layout.SRC2 = longfield<50,58>(insn_long);
         layout.VDST = longfield<0,7>(insn_long);
         assert(isArrayIndexValid(VOP3P_MFMA_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = VOP3P_MFMA_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = VOP3P_MFMA_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOP3P_MFMAOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeVOPC_INST_LITERAL()
+    void InstructionDecoder_amdgpu_gfx942::decodeVOPC_INST_LITERAL()
     {
         insn_size = 8;
         layout_VOPC_INST_LITERAL & layout = insn_layout.VOPC_INST_LITERAL;
@@ -1685,14 +1685,14 @@ namespace InstructionAPI {
         layout.SRC0 = longfield<0,8>(insn_long);
         layout.VSRC1 = longfield<9,16>(insn_long);
         assert(isArrayIndexValid(VOPC_INST_LITERAL_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = VOPC_INST_LITERAL_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = VOPC_INST_LITERAL_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOPC_INST_LITERALOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::decodeVOPC_VOP_SDWA_SDST_ENC()
+    void InstructionDecoder_amdgpu_gfx942::decodeVOPC_VOP_SDWA_SDST_ENC()
     {
         insn_size = 8;
         extension = std::string("_SDWA");
@@ -1715,14 +1715,14 @@ namespace InstructionAPI {
         layout.VSRC0 = longfield<32,39>(insn_long);
         layout.VSRC1 = longfield<9,16>(insn_long);
         assert(isArrayIndexValid(VOPC_VOP_SDWA_SDST_ENC_insn_table, layout.OP) && "Opcode over or underflow");
-        const amdgpu_gfx940_insn_entry &insn_entry = VOPC_VOP_SDWA_SDST_ENC_insn_table[layout.OP];
+        const amdgpu_gfx942_insn_entry &insn_entry = VOPC_VOP_SDWA_SDST_ENC_insn_table[layout.OP];
         this->insn_in_progress = makeInstruction(insn_entry.op,insn_entry.mnemonic,insn_size+immLen,reinterpret_cast<unsigned char *>(&insn));
         finalizeVOPC_VOP_SDWA_SDST_ENCOperands();
         this->insn_in_progress->updateSize(insn_size + immLen,reinterpret_cast<unsigned char*>(&insn));
         this->insn_in_progress->updateMnemonic(std::string(insn_entry.mnemonic) + extension);
     }
 
-    void InstructionDecoder_amdgpu_gfx940::mainDecode()
+    void InstructionDecoder_amdgpu_gfx942::mainDecode()
     {
         if (IS_ENC_SOP1(insn_long) && (COND_ENC_SOP1_default(insn_long)))  {
             decodeENC_SOP1();
@@ -1824,7 +1824,7 @@ namespace InstructionAPI {
             // no encoding claims this word: emit an INVALID instruction of
             // one encoding-word size so decoding can move past it
             insn_size = 4;
-            this->insn_in_progress = makeInstruction(amdgpu_gfx940_op_INVALID,"INVALID",insn_size,reinterpret_cast<unsigned char *>(&insn));
+            this->insn_in_progress = makeInstruction(amdgpu_gfx942_op_INVALID,"INVALID",insn_size,reinterpret_cast<unsigned char *>(&insn));
         }
     }
 

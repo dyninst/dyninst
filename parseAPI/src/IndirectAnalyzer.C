@@ -71,10 +71,10 @@ public:
             case amdgpu_gfx90a_op_S_ADDC_U32:
             case amdgpu_gfx90a_op_S_MOV_B32:
             case amdgpu_gfx90a_op_S_MOV_B64:
-            case amdgpu_gfx940_op_S_ADD_U32:
-            case amdgpu_gfx940_op_S_ADDC_U32:
-            case amdgpu_gfx940_op_S_MOV_B32:
-            case amdgpu_gfx940_op_S_MOV_B64:
+            case amdgpu_gfx942_op_S_ADD_U32:
+            case amdgpu_gfx942_op_S_ADDC_U32:
+            case amdgpu_gfx942_op_S_MOV_B32:
+            case amdgpu_gfx942_op_S_MOV_B64:
             case amdgpu_gfx950_op_S_ADD_U32:
             case amdgpu_gfx950_op_S_ADDC_U32:
             case amdgpu_gfx950_op_S_MOV_B32:

@@ -9,7 +9,7 @@ foreach(
   ppc64
   amdgpu_gfx908
   amdgpu_gfx90a
-  amdgpu_gfx940
+  amdgpu_gfx942
   amdgpu_gfx950
   riscv64
 )

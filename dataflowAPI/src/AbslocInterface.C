@@ -513,7 +513,7 @@ void AssignmentConverter::convert(const Instruction &I,
   switch(I.getOperation().getID()) {
     case amdgpu_gfx908_op_S_GETPC_B64:
     case amdgpu_gfx90a_op_S_GETPC_B64: 
-    case amdgpu_gfx940_op_S_GETPC_B64:
+    case amdgpu_gfx942_op_S_GETPC_B64:
     case amdgpu_gfx950_op_S_GETPC_B64: {
         // SGPR_PAIR[0] = PC & 0xffffffff
         // SGPR_PARI[1] = PC >> 32
@@ -547,7 +547,7 @@ void AssignmentConverter::convert(const Instruction &I,
     }
     case amdgpu_gfx908_op_S_SETPC_B64:
     case amdgpu_gfx90a_op_S_SETPC_B64: 
-    case amdgpu_gfx940_op_S_SETPC_B64:
+    case amdgpu_gfx942_op_S_SETPC_B64:
     case amdgpu_gfx950_op_S_SETPC_B64: {
         // TODO:
         // PC = SRC_SGPR_PAIR
@@ -572,7 +572,7 @@ void AssignmentConverter::convert(const Instruction &I,
     }
     case amdgpu_gfx908_op_S_SWAPPC_B64:
     case amdgpu_gfx90a_op_S_SWAPPC_B64: 
-    case amdgpu_gfx940_op_S_SWAPPC_B64:
+    case amdgpu_gfx942_op_S_SWAPPC_B64:
     case amdgpu_gfx950_op_S_SWAPPC_B64: {
         auto operands = I.getAllOperands();
         assert(operands.size() == 4);
@@ -624,7 +624,7 @@ void AssignmentConverter::convert(const Instruction &I,
     }
     case amdgpu_gfx908_op_S_ADD_U32:
     case amdgpu_gfx90a_op_S_ADD_U32: 
-    case amdgpu_gfx940_op_S_ADD_U32:
+    case amdgpu_gfx942_op_S_ADD_U32:
     case amdgpu_gfx950_op_S_ADD_U32: {
         auto operands = I.getAllOperands();
 
@@ -674,7 +674,7 @@ void AssignmentConverter::convert(const Instruction &I,
 
     case amdgpu_gfx908_op_S_ADDC_U32:
     case amdgpu_gfx90a_op_S_ADDC_U32: 
-    case amdgpu_gfx940_op_S_ADDC_U32:
+    case amdgpu_gfx942_op_S_ADDC_U32:
     case amdgpu_gfx950_op_S_ADDC_U32: {
         auto operands = I.getAllOperands();
         assert(operands.size() == 5);

@@ -1,9 +1,9 @@
-#include "registers/amdgpu/amdgpu_gfx940_regs.h"
-#include "InstructionDecoder-amdgpu-gfx940.h"
+#include "registers/amdgpu/amdgpu_gfx942_regs.h"
+#include "InstructionDecoder-amdgpu-gfx942.h"
 
 namespace Dyninst {
 namespace InstructionAPI {
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_DSOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeENC_DSOperands()
     {
         layout_ENC_DS & layout = insn_layout.ENC_DS;
         switch (layout.OP)  {
@@ -288,7 +288,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_FLATOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeENC_FLATOperands()
     {
         layout_ENC_FLAT & layout = insn_layout.ENC_FLAT;
         switch (layout.OP)  {
@@ -301,8 +301,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 21:   // FLAT_LOAD_DWORDX2,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,2);
@@ -310,8 +310,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 22:   // FLAT_LOAD_DWORDX3,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,3);
@@ -319,8 +319,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,3,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 23:   // FLAT_LOAD_DWORDX4,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,4);
@@ -328,8 +328,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,4,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 24:  case 25:  case 26:   // FLAT_STORE_BYTE,FLAT_STORE_BYTE_D16_HI,FLAT_STORE_SHORT,
             case 27:  case 28:   // FLAT_STORE_SHORT_D16_HI,FLAT_STORE_DWORD,
@@ -338,8 +338,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,1,true);
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 29:   // FLAT_STORE_DWORDX2,
                 appendOPR_VGPR(layout.ADDR,true,false,2);
@@ -347,8 +347,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,2,true);
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 30:   // FLAT_STORE_DWORDX3,
                 appendOPR_VGPR(layout.ADDR,true,false,2);
@@ -356,8 +356,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,3,true);
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 31:   // FLAT_STORE_DWORDX4,
                 appendOPR_VGPR(layout.ADDR,true,false,2);
@@ -365,8 +365,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,4,true);
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 64:  case 66:  case 67:  case 68:   // FLAT_ATOMIC_SWAP,FLAT_ATOMIC_ADD,FLAT_ATOMIC_SUB,FLAT_ATOMIC_SMIN,
             case 69:  case 70:  case 71:  case 72:   // FLAT_ATOMIC_UMIN,FLAT_ATOMIC_SMAX,FLAT_ATOMIC_UMAX,FLAT_ATOMIC_AND,
@@ -379,8 +379,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 65:   // FLAT_ATOMIC_CMPSWAP,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true);
@@ -390,8 +390,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 79:  case 80:  case 81:   // FLAT_ATOMIC_ADD_F64,FLAT_ATOMIC_MIN_F64,FLAT_ATOMIC_MAX_F64,
             case 96:  case 98:  case 99:   // FLAT_ATOMIC_SWAP_X2,FLAT_ATOMIC_ADD_X2,FLAT_ATOMIC_SUB_X2,
@@ -405,8 +405,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 97:   // FLAT_ATOMIC_CMPSWAP_X2,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,2);
@@ -416,13 +416,13 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_FLAT_GLBLOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeENC_FLAT_GLBLOperands()
     {
         layout_ENC_FLAT_GLBL & layout = insn_layout.ENC_FLAT_GLBL;
         switch (layout.OP)  {
@@ -441,8 +441,8 @@ namespace InstructionAPI {
                 }
                 appendOPR_GPUMEM(0,true,false,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 21:   // GLOBAL_LOAD_DWORDX2,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,2);
@@ -456,8 +456,8 @@ namespace InstructionAPI {
                 }
                 appendOPR_GPUMEM(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 22:   // GLOBAL_LOAD_DWORDX3,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,3);
@@ -471,8 +471,8 @@ namespace InstructionAPI {
                 }
                 appendOPR_GPUMEM(0,true,false,3,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 23:   // GLOBAL_LOAD_DWORDX4,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,4);
@@ -486,8 +486,8 @@ namespace InstructionAPI {
                 }
                 appendOPR_GPUMEM(0,true,false,4,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 24:  case 25:  case 26:   // GLOBAL_STORE_BYTE,GLOBAL_STORE_BYTE_D16_HI,GLOBAL_STORE_SHORT,
             case 27:  case 28:   // GLOBAL_STORE_SHORT_D16_HI,GLOBAL_STORE_DWORD,
@@ -502,8 +502,8 @@ namespace InstructionAPI {
                 }
                 appendOPR_GPUMEM(0,false,true,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 29:   // GLOBAL_STORE_DWORDX2,
                 if (layout.SADDR == 0x7f)  {
@@ -517,8 +517,8 @@ namespace InstructionAPI {
                 }
                 appendOPR_GPUMEM(0,false,true,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 30:   // GLOBAL_STORE_DWORDX3,
                 if (layout.SADDR == 0x7f)  {
@@ -532,8 +532,8 @@ namespace InstructionAPI {
                 }
                 appendOPR_GPUMEM(0,false,true,3,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 31:   // GLOBAL_STORE_DWORDX4,
                 if (layout.SADDR == 0x7f)  {
@@ -547,8 +547,8 @@ namespace InstructionAPI {
                 }
                 appendOPR_GPUMEM(0,false,true,4,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 38:  case 39:  case 40:   // GLOBAL_LOAD_LDS_UBYTE,GLOBAL_LOAD_LDS_SBYTE,GLOBAL_LOAD_LDS_USHORT,
             case 41:  case 42:   // GLOBAL_LOAD_LDS_SSHORT,GLOBAL_LOAD_LDS_DWORD,
@@ -562,8 +562,8 @@ namespace InstructionAPI {
                     appendOPR_SREG(layout.SADDR,true,false,2);
                 }
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 64:  case 66:  case 67:  case 68:   // GLOBAL_ATOMIC_SWAP,GLOBAL_ATOMIC_ADD,GLOBAL_ATOMIC_SUB,GLOBAL_ATOMIC_SMIN,
             case 69:  case 70:  case 71:  case 72:   // GLOBAL_ATOMIC_UMIN,GLOBAL_ATOMIC_SMAX,GLOBAL_ATOMIC_UMAX,GLOBAL_ATOMIC_AND,
@@ -582,8 +582,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,1,true);
                 appendOPR_GPUMEM(0,true,false,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 65:   // GLOBAL_ATOMIC_CMPSWAP,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true);
@@ -599,8 +599,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,1,true);
                 appendOPR_GPUMEM(0,true,false,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 79:  case 80:  case 81:   // GLOBAL_ATOMIC_ADD_F64,GLOBAL_ATOMIC_MIN_F64,GLOBAL_ATOMIC_MAX_F64,
             case 96:  case 98:  case 99:   // GLOBAL_ATOMIC_SWAP_X2,GLOBAL_ATOMIC_ADD_X2,GLOBAL_ATOMIC_SUB_X2,
@@ -620,8 +620,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,2,true);
                 appendOPR_GPUMEM(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 97:   // GLOBAL_ATOMIC_CMPSWAP_X2,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,2);
@@ -637,13 +637,13 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,2,true);
                 appendOPR_GPUMEM(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_FLAT_SCRATCHOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeENC_FLAT_SCRATCHOperands()
     {
         layout_ENC_FLAT_SCRATCH & layout = insn_layout.ENC_FLAT_SCRATCH;
         switch (layout.OP)  {
@@ -663,8 +663,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,1,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 21:   // SCRATCH_LOAD_DWORDX2,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,2);
@@ -679,8 +679,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 22:   // SCRATCH_LOAD_DWORDX3,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,3);
@@ -695,8 +695,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,3,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 23:   // SCRATCH_LOAD_DWORDX4,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDST,false,true,4);
@@ -711,8 +711,8 @@ namespace InstructionAPI {
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_GPUMEM(0,true,false,4,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 24:  case 25:  case 26:   // SCRATCH_STORE_BYTE,SCRATCH_STORE_BYTE_D16_HI,SCRATCH_STORE_SHORT,
             case 27:  case 28:   // SCRATCH_STORE_SHORT_D16_HI,SCRATCH_STORE_DWORD,
@@ -728,8 +728,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,1,true);
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 29:   // SCRATCH_STORE_DWORDX2,
                 if (layout.SADDR == 0x7f)  {
@@ -744,8 +744,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,2,true);
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 30:   // SCRATCH_STORE_DWORDX3,
                 if (layout.SADDR == 0x7f)  {
@@ -760,8 +760,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,3,true);
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 31:   // SCRATCH_STORE_DWORDX4,
                 if (layout.SADDR == 0x7f)  {
@@ -776,8 +776,8 @@ namespace InstructionAPI {
                 appendOPR_GPUMEM(0,false,true,4,true);
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 38:  case 39:  case 40:   // SCRATCH_LOAD_LDS_UBYTE,SCRATCH_LOAD_LDS_SBYTE,SCRATCH_LOAD_LDS_USHORT,
             case 41:  case 42:   // SCRATCH_LOAD_LDS_SSHORT,SCRATCH_LOAD_LDS_DWORD,
@@ -792,13 +792,13 @@ namespace InstructionAPI {
                 }
                 appendOPR_FLAT_SCRATCH(0,true,false,2,true);
                 appendOPR_SDST_M0(124,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_MTBUFOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeENC_MTBUFOperands()
     {
         layout_ENC_MTBUF & layout = insn_layout.ENC_MTBUF;
         switch (layout.OP)  {
@@ -808,7 +808,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 break;
             case 1:   // TBUFFER_LOAD_FORMAT_XY,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,false,true,2);
@@ -816,7 +816,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 break;
             case 2:   // TBUFFER_LOAD_FORMAT_XYZ,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,false,true,3);
@@ -824,7 +824,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,3,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 break;
             case 3:   // TBUFFER_LOAD_FORMAT_XYZW,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,false,true,4);
@@ -832,7 +832,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 break;
             case 4:  case 12:   // TBUFFER_STORE_FORMAT_X,TBUFFER_STORE_FORMAT_D16_X,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,true,false);
@@ -840,7 +840,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 break;
             case 5:   // TBUFFER_STORE_FORMAT_XY,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,true,false,2);
@@ -848,7 +848,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 break;
             case 6:   // TBUFFER_STORE_FORMAT_XYZ,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,true,false,3);
@@ -856,7 +856,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,3,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 break;
             case 7:   // TBUFFER_STORE_FORMAT_XYZW,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,true,false,4);
@@ -864,7 +864,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 break;
             case 9:   // TBUFFER_LOAD_FORMAT_D16_XY,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,false,true);
@@ -872,7 +872,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 break;
             case 10:   // TBUFFER_LOAD_FORMAT_D16_XYZ,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,false,true,2);
@@ -880,7 +880,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,3,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 break;
             case 11:   // TBUFFER_LOAD_FORMAT_D16_XYZW,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,false,true,2);
@@ -888,7 +888,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 break;
             case 13:   // TBUFFER_STORE_FORMAT_D16_XY,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,true,false);
@@ -896,7 +896,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 break;
             case 14:   // TBUFFER_STORE_FORMAT_D16_XYZ,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,true,false,2);
@@ -904,7 +904,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,3,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 break;
             case 15:   // TBUFFER_STORE_FORMAT_D16_XYZW,
                 appendOPR_VGPR_OR_ACCVGPR(layout.VDATA,true,false,2);
@@ -912,12 +912,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 break;
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_MUBUFOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeENC_MUBUFOperands()
     {
         layout_ENC_MUBUF & layout = insn_layout.ENC_MUBUF;
         switch (layout.OP)  {
@@ -930,7 +930,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -938,12 +938,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -954,7 +954,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -962,12 +962,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -978,7 +978,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -986,12 +986,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,3,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1002,7 +1002,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1010,12 +1010,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1028,7 +1028,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1036,12 +1036,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1052,7 +1052,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1060,12 +1060,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1076,7 +1076,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1084,12 +1084,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,3,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1100,7 +1100,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1108,12 +1108,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1124,7 +1124,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1132,12 +1132,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1148,7 +1148,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1156,12 +1156,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,3,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1172,7 +1172,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1180,12 +1180,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,true,false,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1196,7 +1196,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1204,12 +1204,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1220,7 +1220,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1228,12 +1228,12 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,3,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1244,7 +1244,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1252,24 +1252,24 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SRSRC,true,false,4);
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
                 }
                 break;
             case 40:  case 41:   // BUFFER_WBL2,BUFFER_INV,
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1283,7 +1283,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1292,12 +1292,12 @@ namespace InstructionAPI {
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,1,true);
                 appendOPR_GPUMEM(0,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1308,7 +1308,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1317,12 +1317,12 @@ namespace InstructionAPI {
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,1,true);
                 appendOPR_GPUMEM(0,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1337,7 +1337,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1346,12 +1346,12 @@ namespace InstructionAPI {
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,2,true);
                 appendOPR_GPUMEM(0,true,false,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1362,7 +1362,7 @@ namespace InstructionAPI {
                 if (layout.IDXEN || layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR,true,false);
                 } else if (layout.OFFSET)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::off,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::off,1),false,false,false);
                 }
                 if (layout.IDXEN && layout.OFFEN)  {
                     appendOPR_VGPR(layout.VADDR+1,true,false);
@@ -1371,12 +1371,12 @@ namespace InstructionAPI {
                 appendOPR_SSRC_NOLIT(layout.SOFFSET,true,false);
                 appendOPR_GPUMEM(0,false,true,2,true);
                 appendOPR_GPUMEM(0,true,false,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,36),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,36),true,true,true);
                 if (layout.IDXEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::idxen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::idxen,1),false,false,false);
                 }
                 if (layout.OFFEN)  {
-                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::offen,1),false,false,false);
+                    insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::offen,1),false,false,false);
                 }
                 if (layout.OFFSET)  {
                     insn_in_progress->appendOperand(NamedImmediate::makeNamedImmediate(std::string("offset"),Result(u16,layout.OFFSET)),true,false,false);
@@ -1385,7 +1385,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_SMEMOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeENC_SMEMOperands()
     {
         layout_ENC_SMEM & layout = insn_layout.ENC_SMEM;
         switch (layout.OP)  {
@@ -1394,136 +1394,136 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 1:  case 6:   // S_LOAD_DWORDX2,S_SCRATCH_LOAD_DWORDX2,
                 appendOPR_SREG(layout.SDATA,false,true,2);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 2:  case 7:   // S_LOAD_DWORDX4,S_SCRATCH_LOAD_DWORDX4,
                 appendOPR_SREG(layout.SDATA,false,true,4);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 3:   // S_LOAD_DWORDX8,
                 appendOPR_SREG(layout.SDATA,false,true,8);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,8,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 4:   // S_LOAD_DWORDX16,
                 appendOPR_SREG(layout.SDATA,false,true,16);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,16,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 8:   // S_BUFFER_LOAD_DWORD,
                 appendOPR_SREG(layout.SDATA,false,true);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 9:   // S_BUFFER_LOAD_DWORDX2,
                 appendOPR_SREG(layout.SDATA,false,true,2);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 10:   // S_BUFFER_LOAD_DWORDX4,
                 appendOPR_SREG(layout.SDATA,false,true,4);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 11:   // S_BUFFER_LOAD_DWORDX8,
                 appendOPR_SREG(layout.SDATA,false,true,8);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,8,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 12:   // S_BUFFER_LOAD_DWORDX16,
                 appendOPR_SREG(layout.SDATA,false,true,16);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,true,false,16,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 16:  case 21:   // S_STORE_DWORD,S_SCRATCH_STORE_DWORD,
                 appendOPR_SREG(layout.SDATA,true,false);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,false,true,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 17:  case 22:   // S_STORE_DWORDX2,S_SCRATCH_STORE_DWORDX2,
                 appendOPR_SREG(layout.SDATA,true,false,2);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,false,true,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 18:  case 23:   // S_STORE_DWORDX4,S_SCRATCH_STORE_DWORDX4,
                 appendOPR_SREG(layout.SDATA,true,false,4);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,false,true,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 24:   // S_BUFFER_STORE_DWORD,
                 appendOPR_SREG(layout.SDATA,true,false);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,false,true,1,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 25:   // S_BUFFER_STORE_DWORDX2,
                 appendOPR_SREG(layout.SDATA,true,false,2);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,false,true,2,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 26:   // S_BUFFER_STORE_DWORDX4,
                 appendOPR_SREG(layout.SDATA,true,false,4);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
                 appendOPR_GPUMEM(0,false,true,4,true);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 32:  case 33:  case 34:  case 35:   // S_DCACHE_INV,S_DCACHE_WB,S_DCACHE_INV_VOL,S_DCACHE_WB_VOL,
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 36:  case 37:   // S_MEMTIME,S_MEMREALTIME,
                 appendOPR_SREG(layout.SDATA,false,true,2);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 38:   // S_ATC_PROBE,
                 appendOPR_SIMM8(layout.SDATA,true,false);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 39:   // S_ATC_PROBE_BUFFER,
                 appendOPR_SIMM8(layout.SDATA,true,false);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 40:  case 41:   // S_DCACHE_DISCARD,S_DCACHE_DISCARD_X2,
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 64:  case 66:  case 67:   // S_BUFFER_ATOMIC_SWAP,S_BUFFER_ATOMIC_ADD,S_BUFFER_ATOMIC_SUB,
             case 68:  case 69:  case 70:   // S_BUFFER_ATOMIC_SMIN,S_BUFFER_ATOMIC_UMIN,S_BUFFER_ATOMIC_SMAX,
@@ -1532,7 +1532,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SDATA,false,true);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 65:  case 96:  case 98:   // S_BUFFER_ATOMIC_CMPSWAP,S_BUFFER_ATOMIC_SWAP_X2,S_BUFFER_ATOMIC_ADD_X2,
             case 99:  case 100:  case 101:   // S_BUFFER_ATOMIC_SUB_X2,S_BUFFER_ATOMIC_SMIN_X2,S_BUFFER_ATOMIC_UMIN_X2,
@@ -1542,13 +1542,13 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SDATA,false,true,2);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 97:   // S_BUFFER_ATOMIC_CMPSWAP_X2,
                 appendOPR_SREG(layout.SDATA,false,true,4);
                 appendOPR_SREG(layout.SBASE,true,false,4);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 128:  case 130:  case 131:  case 132:   // S_ATOMIC_SWAP,S_ATOMIC_ADD,S_ATOMIC_SUB,S_ATOMIC_SMIN,
             case 133:  case 134:  case 135:  case 136:   // S_ATOMIC_UMIN,S_ATOMIC_SMAX,S_ATOMIC_UMAX,S_ATOMIC_AND,
@@ -1556,7 +1556,7 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SDATA,false,true);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 129:  case 160:  case 162:  case 163:   // S_ATOMIC_CMPSWAP,S_ATOMIC_SWAP_X2,S_ATOMIC_ADD_X2,S_ATOMIC_SUB_X2,
             case 164:  case 165:  case 166:  case 167:   // S_ATOMIC_SMIN_X2,S_ATOMIC_UMIN_X2,S_ATOMIC_SMAX_X2,S_ATOMIC_UMAX_X2,
@@ -1565,18 +1565,18 @@ namespace InstructionAPI {
                 appendOPR_SREG(layout.SDATA,false,true,2);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
             case 161:   // S_ATOMIC_CMPSWAP_X2,
                 appendOPR_SREG(layout.SDATA,false,true,4);
                 appendOPR_SREG(layout.SBASE,true,false,2);
                 processOPR_SMEM_OFFSET(layout);
-                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,16),true,true,true);
+                insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,16),true,true,true);
                 break;
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_SOP1Operands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeENC_SOP1Operands()
     {
         layout_ENC_SOP1 & layout = insn_layout.ENC_SOP1;
         switch (layout.OP)  {
@@ -1689,7 +1689,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeSOP1_INST_LITERALOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeSOP1_INST_LITERALOperands()
     {
         layout_SOP1_INST_LITERAL & layout = insn_layout.SOP1_INST_LITERAL;
         switch (layout.OP)  {
@@ -1759,7 +1759,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_SOP2Operands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeENC_SOP2Operands()
     {
         layout_ENC_SOP2 & layout = insn_layout.ENC_SOP2;
         switch (layout.OP)  {
@@ -1830,7 +1830,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeSOP2_INST_LITERALOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeSOP2_INST_LITERALOperands()
     {
         layout_SOP2_INST_LITERAL & layout = insn_layout.SOP2_INST_LITERAL;
         switch (layout.OP)  {
@@ -2018,7 +2018,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_SOPCOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeENC_SOPCOperands()
     {
         layout_ENC_SOPC & layout = insn_layout.ENC_SOPC;
         switch (layout.OP)  {
@@ -2052,7 +2052,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeSOPC_INST_LITERALOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeSOPC_INST_LITERALOperands()
     {
         layout_SOPC_INST_LITERAL & layout = insn_layout.SOPC_INST_LITERAL;
         switch (layout.OP)  {
@@ -2146,7 +2146,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_SOPKOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeENC_SOPKOperands()
     {
         layout_ENC_SOPK & layout = insn_layout.ENC_SOPK;
         switch (layout.OP)  {
@@ -2193,7 +2193,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeSOPK_INST_LITERALOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeSOPK_INST_LITERALOperands()
     {
         layout_SOPK_INST_LITERAL & layout = insn_layout.SOPK_INST_LITERAL;
         switch (layout.OP)  {
@@ -2204,7 +2204,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_SOPPOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeENC_SOPPOperands()
     {
         layout_ENC_SOPP & layout = insn_layout.ENC_SOPP;
         switch (layout.OP)  {
@@ -2244,17 +2244,17 @@ namespace InstructionAPI {
                     uint32_t lgkmcnt = ((layout.SIMM16>>8) & 0xf);
                     if (vmcnt != 0x3f)
                     {
-                        insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::vmcnt,0,32),false,true);
+                        insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::vmcnt,0,32),false,true);
                         insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32,vmcnt)),false,false);
                     }
                     if (expcnt != 0x7)
                     {
-                        insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::expcnt,0,32),false,true);
+                        insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::expcnt,0,32),false,true);
                         insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32,expcnt)),false,false);
                     }
                     if (lgkmcnt != 0xf)
                     {
-                        insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx940::lgkmcnt,0,32),false,true);
+                        insn_in_progress->appendOperand(makeRegisterExpression(amdgpu_gfx942::lgkmcnt,0,32),false,true);
                         insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32,lgkmcnt)),false,false);
                     }
                 }
@@ -2278,7 +2278,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_VOP1Operands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeENC_VOP1Operands()
     {
         layout_ENC_VOP1 & layout = insn_layout.ENC_VOP1;
         switch (layout.OP)  {
@@ -2330,7 +2330,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP1_INST_LITERALOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeVOP1_INST_LITERALOperands()
     {
         layout_VOP1_INST_LITERAL & layout = insn_layout.VOP1_INST_LITERAL;
         switch (layout.OP)  {
@@ -2368,7 +2368,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP1_VOP_DPPOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeVOP1_VOP_DPPOperands()
     {
         layout_VOP1_VOP_DPP & layout = insn_layout.VOP1_VOP_DPP;
         switch (layout.OP)  {
@@ -2411,7 +2411,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP1_VOP_SDWAOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeVOP1_VOP_SDWAOperands()
     {
         layout_VOP1_VOP_SDWA & layout = insn_layout.VOP1_VOP_SDWA;
         switch (layout.OP)  {
@@ -2449,7 +2449,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_VOP3Operands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeENC_VOP3Operands()
     {
         layout_ENC_VOP3 & layout = insn_layout.ENC_VOP3;
         switch (layout.OP)  {
@@ -2685,7 +2685,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_VOP2Operands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeENC_VOP2Operands()
     {
         layout_ENC_VOP2 & layout = insn_layout.ENC_VOP2;
         switch (layout.OP)  {
@@ -2747,7 +2747,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP2_INST_LITERALOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeVOP2_INST_LITERALOperands()
     {
         layout_VOP2_INST_LITERAL & layout = insn_layout.VOP2_INST_LITERAL;
         switch (layout.OP)  {
@@ -2820,7 +2820,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP2_VOP_DPPOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeVOP2_VOP_DPPOperands()
     {
         layout_VOP2_VOP_DPP & layout = insn_layout.VOP2_VOP_DPP;
         switch (layout.OP)  {
@@ -2865,7 +2865,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP2_VOP_SDWAOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeVOP2_VOP_SDWAOperands()
     {
         layout_VOP2_VOP_SDWA & layout = insn_layout.VOP2_VOP_SDWA;
         switch (layout.OP)  {
@@ -2895,7 +2895,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP2_VOP_SDWA_SDST_ENCOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeVOP2_VOP_SDWA_SDST_ENCOperands()
     {
         layout_VOP2_VOP_SDWA_SDST_ENC & layout = insn_layout.VOP2_VOP_SDWA_SDST_ENC;
         switch (layout.OP)  {
@@ -2928,7 +2928,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP3_SDST_ENCOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeVOP3_SDST_ENCOperands()
     {
         layout_VOP3_SDST_ENC & layout = insn_layout.VOP3_SDST_ENC;
         switch (layout.OP)  {
@@ -2982,7 +2982,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_VOP3POperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeENC_VOP3POperands()
     {
         layout_ENC_VOP3P & layout = insn_layout.ENC_VOP3P;
         switch (layout.OP)  {
@@ -3028,7 +3028,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOP3P_MFMAOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeVOP3P_MFMAOperands()
     {
         layout_VOP3P_MFMA & layout = insn_layout.VOP3P_MFMA;
         switch (layout.OP)  {
@@ -3105,7 +3105,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeENC_VOPCOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeENC_VOPCOperands()
     {
         layout_ENC_VOPC & layout = insn_layout.ENC_VOPC;
         switch (layout.OP)  {
@@ -3189,7 +3189,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOPC_INST_LITERALOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeVOPC_INST_LITERALOperands()
     {
         layout_VOPC_INST_LITERAL & layout = insn_layout.VOPC_INST_LITERAL;
         switch (layout.OP)  {
@@ -3262,7 +3262,7 @@ namespace InstructionAPI {
         }
     }
 
-    void InstructionDecoder_amdgpu_gfx940::finalizeVOPC_VOP_SDWA_SDST_ENCOperands()
+    void InstructionDecoder_amdgpu_gfx942::finalizeVOPC_VOP_SDWA_SDST_ENCOperands()
     {
         layout_VOPC_VOP_SDWA_SDST_ENC & layout = insn_layout.VOPC_VOP_SDWA_SDST_ENC;
         switch (layout.OP)  {

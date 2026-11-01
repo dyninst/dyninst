@@ -597,9 +597,9 @@ static bool expandInsn(const Instruction &insn, const uint64_t addr, Result_t &r
 
       break;
     }
-    case Arch_amdgpu_gfx940: {
+    case Arch_amdgpu_gfx942: {
 
-      RoseInsnAMDGPUFactory fac(Arch_amdgpu_gfx940);
+      RoseInsnAMDGPUFactory fac(Arch_amdgpu_gfx942);
       auto roseInsn = std::unique_ptr<SgAsmInstruction>(fac.convert(insn, addr));
       if(!roseInsn) {
         return false;
@@ -610,7 +610,7 @@ static bool expandInsn(const Instruction &insn, const uint64_t addr, Result_t &r
 
       BaseSemantics::SValuePtr protoval = SymEvalSemantics::SValue::instance(1, 0);
       BaseSemantics::RegisterStatePtr registerState =
-          SymEvalSemantics::RegisterStateAST_amdgpu_gfx940::instance(protoval, reg_dict);
+          SymEvalSemantics::RegisterStateAST_amdgpu_gfx942::instance(protoval, reg_dict);
       BaseSemantics::MemoryStatePtr memoryState = SymEvalSemantics::MemoryStateAST::instance(protoval, protoval);
       BaseSemantics::StatePtr state =
           SymEvalSemantics::StateAST::instance(res, addr, insn.getArch(), insn, registerState, memoryState);
@@ -774,7 +774,7 @@ static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *fu
   // in (common/h/Annotatable.h: Dyninst::AnnotatableSparse::getAnnosForObject）
   // The problem seems to be that the annotation hash maps (annos_by_type_t) are
   // not thread safe
-  if(arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940 || arch == Arch_amdgpu_gfx950) {
+  if(arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx942 || arch == Arch_amdgpu_gfx950) {
     return ast;
   }
   // Let's experiment with simplification

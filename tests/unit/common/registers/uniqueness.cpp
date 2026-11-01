@@ -31,7 +31,7 @@ alias_map known_aliases = {
   {Dyninst::Arch_ppc64, {}},
   {Dyninst::Arch_amdgpu_gfx908, {}},
   {Dyninst::Arch_amdgpu_gfx90a, {}},
-  {Dyninst::Arch_amdgpu_gfx940, {}},
+  {Dyninst::Arch_amdgpu_gfx942, {}},
   {Dyninst::Arch_riscv64, { riscv64_aliases() }},
 };
 
@@ -84,7 +84,7 @@ int main() {
   if(!check(Dyninst::Arch_amdgpu_gfx90a)) {
     status = EXIT_FAILURE;
   }
-  if(!check(Dyninst::Arch_amdgpu_gfx940)) {
+  if(!check(Dyninst::Arch_amdgpu_gfx942)) {
     status = EXIT_FAILURE;
   }
   if(!check(Dyninst::Arch_riscv64)) {

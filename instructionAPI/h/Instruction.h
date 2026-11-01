@@ -55,7 +55,7 @@ namespace Dyninst { namespace InstructionAPI {
     friend class InstructionDecoder_aarch64;
     friend class InstructionDecoder_amdgpu_gfx908;
     friend class InstructionDecoder_amdgpu_gfx90a;
-    friend class InstructionDecoder_amdgpu_gfx940;
+    friend class InstructionDecoder_amdgpu_gfx942;
     friend class InstructionDecoder_amdgpu_gfx950;
     friend class InstructionDecoder_riscv64;
 

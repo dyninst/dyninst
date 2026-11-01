@@ -74,7 +74,7 @@ bool IA_amdgpu::isNop() const
     Instruction ci = curInsn();
     auto id = ci.getOperation().getID();
     if(id == amdgpu_gfx908_op_S_NOP || 
-        id == amdgpu_gfx90a_op_S_NOP || id == amdgpu_gfx940_op_S_NOP ||
+        id == amdgpu_gfx90a_op_S_NOP || id == amdgpu_gfx942_op_S_NOP ||
         id == amdgpu_gfx950_op_S_NOP)
         return true;
     return false;
@@ -162,7 +162,7 @@ bool IA_amdgpu::isSoftwareException() const
     auto id = ci.getOperation().getID();
     if(id != amdgpu_gfx908_op_S_TRAP &&
        id != amdgpu_gfx90a_op_S_TRAP &&
-       id != amdgpu_gfx940_op_S_TRAP &&
+       id != amdgpu_gfx942_op_S_TRAP &&
        id != amdgpu_gfx950_op_S_TRAP)
         return IA_IAPI::isSoftwareException();
 

@@ -13,7 +13,7 @@ cmake_host_system_information(RESULT _host_arch QUERY OS_PLATFORM)
 
 set(_32bit_x86_arches "i386" "i686")
 set(_64bit_x86_arches "x86_64" "amd64")
-set(_amdgpu_arches "amdgpu_gfx908" "amdgpu_gfx90a" "amdgpu_gfx940" "amdgpu_gfx950")
+set(_amdgpu_arches "amdgpu_gfx908" "amdgpu_gfx90a" "amdgpu_gfx942" "amdgpu_gfx950")
 set(
   _known_arches
   "ppc64le"
@@ -96,8 +96,8 @@ elseif("${_codegen_arch}" STREQUAL "amdgpu_gfx908")
   set(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908 TRUE)
 elseif("${_codegen_arch}" STREQUAL "amdgpu_gfx90a")
   set(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A TRUE)
-elseif("${_codegen_arch}" STREQUAL "amdgpu_gfx940")
-  set(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940 TRUE)
+elseif("${_codegen_arch}" STREQUAL "amdgpu_gfx942")
+  set(DYNINST_CODEGEN_ARCH_AMDGPU_GFX942 TRUE)
 elseif("${_codegen_arch}" STREQUAL "amdgpu_gfx950")
   set(DYNINST_CODEGEN_ARCH_AMDGPU_GFX950 TRUE)
 else()

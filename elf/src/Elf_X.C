@@ -1858,7 +1858,7 @@ Dyninst::Architecture Elf_X::getArch() const
                     case 0x40:  // gfx940
                     case 0x4b:  // gfx941
                     case 0x4c:  // gfx942
-                        return Dyninst::Arch_amdgpu_gfx940;
+                        return Dyninst::Arch_amdgpu_gfx942;
                     case 0x3f:
                         return Dyninst::Arch_amdgpu_gfx90a;
                     case 0x30:

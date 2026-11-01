@@ -44,7 +44,7 @@
 #include "registers/riscv64_regs.h"
 #include "registers/amdgpu/amdgpu_gfx908_regs.h"
 #include "registers/amdgpu/amdgpu_gfx90a_regs.h"
-#include "registers/amdgpu/amdgpu_gfx940_regs.h"
+#include "registers/amdgpu/amdgpu_gfx942_regs.h"
 #include "registers/amdgpu/amdgpu_gfx950_regs.h"
 #include "registers/cuda_regs.h"
 

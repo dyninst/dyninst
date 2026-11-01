@@ -32,7 +32,7 @@ set(
   h/mnemonics/riscv64_entryIDs.h
   h/mnemonics/amdgpu/amdgpu_gfx908_entryIDs.h
   h/mnemonics/amdgpu/amdgpu_gfx90a_entryIDs.h
-  h/mnemonics/amdgpu/amdgpu_gfx940_entryIDs.h
+  h/mnemonics/amdgpu/amdgpu_gfx942_entryIDs.h
   h/mnemonics/amdgpu/amdgpu_gfx950_entryIDs.h
   h/mnemonics/IntelGPU/generic_entryIDs.h
   h/mnemonics/NVIDIA/generic_entryIDs.h
@@ -43,7 +43,7 @@ set(
   h/registers/abstract_regs.h
   h/registers/amdgpu/amdgpu_gfx908_regs.h
   h/registers/amdgpu/amdgpu_gfx90a_regs.h
-  h/registers/amdgpu/amdgpu_gfx940_regs.h
+  h/registers/amdgpu/amdgpu_gfx942_regs.h
   h/registers/amdgpu/amdgpu_gfx950_regs.h
   h/registers/cuda_regs.h
   h/registers/ppc32_regs.h

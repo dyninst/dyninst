@@ -1936,7 +1936,7 @@ int int_process::getAddressWidth()
          return 8;
       case Arch_amdgpu_gfx908:
       case Arch_amdgpu_gfx90a:
-      case Arch_amdgpu_gfx940:
+      case Arch_amdgpu_gfx942:
       case Arch_amdgpu_gfx950:
          return 8;  
       case Arch_none:

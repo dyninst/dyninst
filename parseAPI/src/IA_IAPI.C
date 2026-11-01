@@ -124,7 +124,7 @@ IA_IAPI* IA_IAPI::makePlatformIA_IAPI(Architecture arch,
             return new IA_riscv64(dec_, where_, o, r, isrc, curBlk_);
         case Arch_amdgpu_gfx908:
         case Arch_amdgpu_gfx90a:
-        case Arch_amdgpu_gfx940:
+        case Arch_amdgpu_gfx942:
         case Arch_amdgpu_gfx950:
 
             return new IA_amdgpu(dec_, where_, o, r, isrc, curBlk_);
@@ -150,7 +150,7 @@ void IA_IAPI::initASTs()
                 framePtr[Arch_riscv64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_riscv64)));
                 framePtr[Arch_amdgpu_gfx908] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_gfx908)));
                 framePtr[Arch_amdgpu_gfx90a] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_gfx90a)));
-                framePtr[Arch_amdgpu_gfx940] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_gfx940)));
+                framePtr[Arch_amdgpu_gfx942] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_gfx942)));
                 framePtr[Arch_amdgpu_gfx950] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_amdgpu_gfx950)));
             }
             if(stackPtr.empty())
@@ -163,7 +163,7 @@ void IA_IAPI::initASTs()
                 stackPtr[Arch_riscv64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_riscv64)));
                 stackPtr[Arch_amdgpu_gfx908] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_gfx908)));
                 stackPtr[Arch_amdgpu_gfx90a] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_gfx90a)));
-                stackPtr[Arch_amdgpu_gfx940] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_gfx940)));
+                stackPtr[Arch_amdgpu_gfx942] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_gfx942)));
                 stackPtr[Arch_amdgpu_gfx950] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_amdgpu_gfx950)));
             }
             if(thePC.empty())
@@ -176,7 +176,7 @@ void IA_IAPI::initASTs()
                 thePC[Arch_riscv64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_riscv64)));
                 thePC[Arch_amdgpu_gfx908] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_gfx908)));
                 thePC[Arch_amdgpu_gfx90a] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_gfx90a)));
-                thePC[Arch_amdgpu_gfx940] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_gfx940)));
+                thePC[Arch_amdgpu_gfx942] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_gfx942)));
                 thePC[Arch_amdgpu_gfx950] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_amdgpu_gfx950)));
             }
             ANNOTATE_HAPPENS_BEFORE(&IA_IAPI::ptrInit);
@@ -730,7 +730,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             {
                 Architecture a = _isrc->getArch();
                 bool isAmdgpu = (a == Arch_amdgpu_gfx908 || a == Arch_amdgpu_gfx90a ||
-                                 a == Arch_amdgpu_gfx940 || a == Arch_amdgpu_gfx950);
+                                 a == Arch_amdgpu_gfx942 || a == Arch_amdgpu_gfx950);
                 if (isAmdgpu) {
                     bool sliceOk = false; Address sliceTgt = 0;
                     boost::tie(sliceOk, sliceTgt) = resolveDynamicCallTarget(context, currBlk);

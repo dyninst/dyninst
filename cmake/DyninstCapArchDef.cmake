@@ -74,8 +74,8 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A)
     -Dcap_registers
     -Dcap_tramp_liveness
   )
-elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
-  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx940 -Darch_64bit)
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX942)
+  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx942 -Darch_64bit)
   set(
     CAP_DEFINES
     -Dcap_fixpoint_gen

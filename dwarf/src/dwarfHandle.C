@@ -213,7 +213,7 @@ bool DwarfHandle::init_dbg()
                 case 0x40:  // gfx940
                 case 0x4b:  // gfx941
                 case 0x4c:  // gfx942
-                    arch = Dyninst::Arch_amdgpu_gfx940;
+                    arch = Dyninst::Arch_amdgpu_gfx942;
                     break;
                 case 0x3f:
                     arch = Dyninst::Arch_amdgpu_gfx90a;

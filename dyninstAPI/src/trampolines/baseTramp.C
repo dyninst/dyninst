@@ -103,7 +103,7 @@ baseTramp *baseTramp::create() {
   return new baseTramp_amdgpu();
 #elif DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A
   return new baseTramp_amdgpu();
-#elif DYNINST_CODEGEN_ARCH_AMDGPU_GFX940
+#elif DYNINST_CODEGEN_ARCH_AMDGPU_GFX942
   return new baseTramp_amdgpu();
 #endif
 }

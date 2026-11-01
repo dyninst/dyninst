@@ -10,7 +10,7 @@ set(
   amdgpu_branchinsn_table.h
   gfx908/InstructionDecoder-amdgpu-gfx908.h
   gfx90a/InstructionDecoder-amdgpu-gfx90a.h
-  gfx940/InstructionDecoder-amdgpu-gfx940.h
+  gfx942/InstructionDecoder-amdgpu-gfx942.h
   gfx950/InstructionDecoder-amdgpu-gfx950.h
 )
 
@@ -26,11 +26,11 @@ set(
   gfx90a/finalizeOperands.C
   gfx90a/amdgpu_gfx90a_decoder_impl.C
   gfx90a/InstructionDecoder-amdgpu-gfx90a.C
-  gfx940/decodeOperands.C
-  gfx940/appendOperands.C
-  gfx940/finalizeOperands.C
-  gfx940/amdgpu_gfx940_decoder_impl.C
-  gfx940/InstructionDecoder-amdgpu-gfx940.C
+  gfx942/decodeOperands.C
+  gfx942/appendOperands.C
+  gfx942/finalizeOperands.C
+  gfx942/amdgpu_gfx942_decoder_impl.C
+  gfx942/InstructionDecoder-amdgpu-gfx942.C
   gfx950/decodeOperands.C
   gfx950/appendOperands.C
   gfx950/finalizeOperands.C

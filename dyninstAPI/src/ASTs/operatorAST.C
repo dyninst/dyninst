@@ -902,7 +902,7 @@ namespace {
       case Dyninst::Arch_cuda:
       case Dyninst::Arch_amdgpu_gfx908:
       case Dyninst::Arch_amdgpu_gfx90a:
-      case Dyninst::Arch_amdgpu_gfx940:
+      case Dyninst::Arch_amdgpu_gfx942:
       case Dyninst::Arch_amdgpu_gfx950:
       case Dyninst::Arch_intelGen9:
         return false;
