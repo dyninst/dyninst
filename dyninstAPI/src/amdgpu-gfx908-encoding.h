@@ -33,7 +33,6 @@
 #ifndef AMDGPU_GFX908_ENCODING_H
 #define AMDGPU_GFX908_ENCODING_H
 
-#include <stddef.h>
 #include <stdint.h>
 
 namespace AmdgpuGfx908 {
@@ -168,47 +167,6 @@ enum Field : uint8_t {
   NO_FIELD = 0xff  // implicit operand, not encoded
 };
 
-enum OprType : uint8_t {
-  OPR_ACCVGPR,
-  OPR_ATTR,
-  OPR_DSMEM,
-  OPR_FLAT_SCRATCH,
-  OPR_GPUMEM,
-  OPR_HWREG,
-  OPR_LABEL,
-  OPR_PARAM,
-  OPR_PC,
-  OPR_SDST,
-  OPR_SDST_EXEC,
-  OPR_SDST_M0,
-  OPR_SENDMSG,
-  OPR_SIMM16,
-  OPR_SIMM32,
-  OPR_SIMM4,
-  OPR_SIMM8,
-  OPR_SMEM_OFFSET,
-  OPR_SRC,
-  OPR_SRC_ACCVGPR,
-  OPR_SRC_ACCVGPR_OR_CONST,
-  OPR_SRC_NOLDS,
-  OPR_SRC_NOLIT,
-  OPR_SRC_SIMPLE,
-  OPR_SRC_VGPR,
-  OPR_SRC_VGPR_OR_ACCVGPR,
-  OPR_SREG,
-  OPR_SREG_NOVCC,
-  OPR_SSRC,
-  OPR_SSRC_LANESEL,
-  OPR_SSRC_NOLIT,
-  OPR_SSRC_SPECIAL_SCC,
-  OPR_TGT,
-  OPR_VCC,
-  OPR_VGPR,
-  OPR_VGPR_OR_LDS,
-  OPR_WAITCNT,
-  NUM_OPR
-};
-
 // Bits [valueLo, valueLo+width) of the field value go to instruction bits
 // [loBit, loBit+width). A field split over several ranges has one entry per
 // range. padBits > 0 means the value's low padBits bits are implied (equal to
@@ -236,50 +194,404 @@ struct FormatSpec {
   uint8_t nfields;
 };
 
-struct OperandSpec {
-  Field field;
-  OprType type;
-  bool isInput;
-  bool isOutput;
-  bool implicit;
+static constexpr FieldSpec fields_ENC_SOP1[] = {
+  {OP, 8, 8, 0, 0, 0},
+  {SDST, 16, 7, 0, 0, 0},
+  {SSRC0, 0, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_SOPC[] = {
+  {OP, 16, 7, 0, 0, 0},
+  {SSRC0, 0, 8, 0, 0, 0},
+  {SSRC1, 8, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_SOPP[] = {
+  {OP, 16, 7, 0, 0, 0},
+  {SIMM16, 0, 16, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_SOPK[] = {
+  {OP, 23, 5, 0, 0, 0},
+  {SDST, 16, 7, 0, 0, 0},
+  {SIMM16, 0, 16, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_SOP2[] = {
+  {OP, 23, 7, 0, 0, 0},
+  {SDST, 16, 7, 0, 0, 0},
+  {SSRC0, 0, 8, 0, 0, 0},
+  {SSRC1, 8, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_SMEM[] = {
+  {GLC, 16, 1, 0, 0, 0},
+  {IMM, 17, 1, 0, 0, 0},
+  {NV, 15, 1, 0, 0, 0},
+  {OFFSET, 32, 21, 0, 0, 0},
+  {OP, 18, 8, 0, 0, 0},
+  {SBASE, 0, 6, 1, 1, 0},
+  {SDATA, 6, 7, 0, 0, 0},
+  {SOFFSET, 57, 7, 0, 0, 0},
+  {SOFFSET_EN, 14, 1, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_VOP1[] = {
+  {OP, 9, 8, 0, 0, 0},
+  {SRC0, 0, 9, 0, 0, 0},
+  {VDST, 17, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_VOPC[] = {
+  {OP, 17, 8, 0, 0, 0},
+  {SRC0, 0, 9, 0, 0, 0},
+  {VSRC1, 9, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_VOP2[] = {
+  {OP, 25, 6, 0, 0, 0},
+  {SRC0, 0, 9, 0, 0, 0},
+  {VDST, 17, 8, 0, 0, 0},
+  {VSRC1, 9, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_VINTRP[] = {
+  {ATTR, 10, 6, 0, 0, 0},
+  {ATTRCHAN, 8, 2, 0, 0, 0},
+  {OP, 16, 2, 0, 0, 0},
+  {VDST, 18, 8, 0, 0, 0},
+  {VSRC, 0, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_VOP3P[] = {
+  {CLAMP, 15, 1, 0, 0, 0},
+  {NEG, 61, 3, 0, 0, 0},
+  {NEG_HI, 8, 3, 0, 0, 0},
+  {OP, 16, 7, 0, 0, 0},
+  {OP_SEL, 11, 3, 0, 0, 0},
+  {OP_SEL_HI, 59, 2, 0, 0, 0},
+  {OP_SEL_HI, 14, 1, 2, 0, 0},
+  {SRC0, 32, 9, 0, 0, 0},
+  {SRC1, 41, 9, 0, 0, 0},
+  {SRC2, 50, 9, 0, 0, 0},
+  {VDST, 0, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_VOP3[] = {
+  {ABS, 8, 3, 0, 0, 0},
+  {CLAMP, 15, 1, 0, 0, 0},
+  {NEG, 61, 3, 0, 0, 0},
+  {OMOD, 59, 2, 0, 0, 0},
+  {OP, 16, 10, 0, 0, 0},
+  {OP_SEL, 11, 4, 0, 0, 0},
+  {SRC0, 32, 9, 0, 0, 0},
+  {SRC1, 41, 9, 0, 0, 0},
+  {SRC2, 50, 9, 0, 0, 0},
+  {VDST, 0, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_DS[] = {
+  {ADDR, 32, 8, 0, 0, 0},
+  {DATA0, 40, 8, 0, 0, 0},
+  {DATA1, 48, 8, 0, 0, 0},
+  {GDS, 16, 1, 0, 0, 0},
+  {OFFSET0, 0, 8, 0, 0, 0},
+  {OFFSET1, 8, 8, 0, 0, 0},
+  {OP, 17, 8, 0, 0, 0},
+  {VDST, 56, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_MUBUF[] = {
+  {GLC, 14, 1, 0, 0, 0},
+  {IDXEN, 13, 1, 0, 0, 0},
+  {LDS, 16, 1, 0, 0, 0},
+  {OFFEN, 12, 1, 0, 0, 0},
+  {OFFSET, 0, 12, 0, 0, 0},
+  {OP, 18, 7, 0, 0, 0},
+  {SLC, 17, 1, 0, 0, 0},
+  {SOFFSET, 56, 8, 0, 0, 0},
+  {SRSRC, 48, 5, 2, 2, 0},
+  {TFE, 55, 1, 0, 0, 0},
+  {VADDR, 32, 8, 0, 0, 0},
+  {VDATA, 40, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_MTBUF[] = {
+  {DFMT, 19, 4, 0, 0, 0},
+  {GLC, 14, 1, 0, 0, 0},
+  {IDXEN, 13, 1, 0, 0, 0},
+  {NFMT, 23, 3, 0, 0, 0},
+  {OFFEN, 12, 1, 0, 0, 0},
+  {OFFSET, 0, 12, 0, 0, 0},
+  {OP, 15, 4, 0, 0, 0},
+  {SLC, 54, 1, 0, 0, 0},
+  {SOFFSET, 56, 8, 0, 0, 0},
+  {SRSRC, 48, 5, 2, 2, 0},
+  {TFE, 55, 1, 0, 0, 0},
+  {VADDR, 32, 8, 0, 0, 0},
+  {VDATA, 40, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_MIMG[] = {
+  {A16, 15, 1, 0, 0, 0},
+  {D16, 63, 1, 0, 0, 0},
+  {DA, 14, 1, 0, 0, 0},
+  {DMASK, 8, 4, 0, 0, 0},
+  {GLC, 13, 1, 0, 0, 0},
+  {LWE, 17, 1, 0, 0, 0},
+  {OP, 18, 7, 0, 0, 0},
+  {OP, 0, 1, 7, 0, 0},
+  {SLC, 25, 1, 0, 0, 0},
+  {SRSRC, 48, 5, 2, 2, 0},
+  {SSAMP, 53, 5, 2, 2, 0},
+  {TFE, 16, 1, 0, 0, 0},
+  {UNORM, 12, 1, 0, 0, 0},
+  {VADDR, 32, 8, 0, 0, 0},
+  {VDATA, 40, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_EXP[] = {
+  {COMPR, 10, 1, 0, 0, 0},
+  {DONE, 11, 1, 0, 0, 0},
+  {EN, 0, 4, 0, 0, 0},
+  {TGT, 4, 6, 0, 0, 0},
+  {VM, 12, 1, 0, 0, 0},
+  {VSRC0, 32, 8, 0, 0, 0},
+  {VSRC1, 40, 8, 0, 0, 0},
+  {VSRC2, 48, 8, 0, 0, 0},
+  {VSRC3, 56, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_FLAT[] = {
+  {ADDR, 32, 8, 0, 0, 0},
+  {DATA, 40, 8, 0, 0, 0},
+  {GLC, 16, 1, 0, 0, 0},
+  {LDS, 13, 1, 0, 0, 0},
+  {NV, 55, 1, 0, 0, 0},
+  {OFFSET, 0, 12, 0, 0, 0},
+  {OP, 18, 7, 0, 0, 0},
+  {SADDR, 48, 7, 0, 0, 0},
+  {SLC, 17, 1, 0, 0, 0},
+  {VDST, 56, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_FLAT_GLBL[] = {
+  {ADDR, 32, 8, 0, 0, 0},
+  {DATA, 40, 8, 0, 0, 0},
+  {GLC, 16, 1, 0, 0, 0},
+  {LDS, 13, 1, 0, 0, 0},
+  {NV, 55, 1, 0, 0, 0},
+  {OFFSET, 0, 13, 0, 0, 0},
+  {OP, 18, 7, 0, 0, 0},
+  {SADDR, 48, 7, 0, 0, 0},
+  {SLC, 17, 1, 0, 0, 0},
+  {VDST, 56, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_ENC_FLAT_SCRATCH[] = {
+  {ADDR, 32, 8, 0, 0, 0},
+  {DATA, 40, 8, 0, 0, 0},
+  {GLC, 16, 1, 0, 0, 0},
+  {LDS, 13, 1, 0, 0, 0},
+  {NV, 55, 1, 0, 0, 0},
+  {OFFSET, 0, 13, 0, 0, 0},
+  {OP, 18, 7, 0, 0, 0},
+  {SADDR, 48, 7, 0, 0, 0},
+  {SLC, 17, 1, 0, 0, 0},
+  {VDST, 56, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_SOP1_INST_LITERAL[] = {
+  {LITERAL, 32, 32, 0, 0, 0},
+  {OP, 8, 8, 0, 0, 0},
+  {SDST, 16, 7, 0, 0, 0},
+  {SSRC0, 0, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_SOP2_INST_LITERAL[] = {
+  {LITERAL, 32, 32, 0, 0, 0},
+  {OP, 23, 7, 0, 0, 0},
+  {SDST, 16, 7, 0, 0, 0},
+  {SSRC0, 0, 8, 0, 0, 0},
+  {SSRC1, 8, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_SOPC_INST_LITERAL[] = {
+  {LITERAL, 32, 32, 0, 0, 0},
+  {OP, 16, 7, 0, 0, 0},
+  {SSRC0, 0, 8, 0, 0, 0},
+  {SSRC1, 8, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_SOPK_INST_LITERAL[] = {
+  {LITERAL, 32, 32, 0, 0, 0},
+  {OP, 23, 5, 0, 0, 0},
+  {SDST, 16, 7, 0, 0, 0},
+  {SIMM16, 0, 16, 0, 0, 0},
+};
+static constexpr FieldSpec fields_VOP1_INST_LITERAL[] = {
+  {LITERAL, 32, 32, 0, 0, 0},
+  {OP, 9, 8, 0, 0, 0},
+  {SRC0, 0, 9, 0, 0, 0},
+  {VDST, 17, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_VOP1_VOP_DPP[] = {
+  {BANK_MASK, 56, 4, 0, 0, 0},
+  {BOUND_CTRL, 51, 1, 0, 0, 0},
+  {DPP_CTRL, 40, 9, 0, 0, 0},
+  {OP, 9, 8, 0, 0, 0},
+  {ROW_MASK, 60, 4, 0, 0, 0},
+  {SRC0, 0, 9, 0, 0, 0},
+  {SRC0_ABS, 53, 1, 0, 0, 0},
+  {SRC0_NEG, 52, 1, 0, 0, 0},
+  {SRC1_ABS, 55, 1, 0, 0, 0},
+  {SRC1_NEG, 54, 1, 0, 0, 0},
+  {VDST, 17, 8, 0, 0, 0},
+  {VSRC0, 32, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_VOP1_VOP_SDWA[] = {
+  {CLAMP, 45, 1, 0, 0, 0},
+  {DST_SEL, 40, 3, 0, 0, 0},
+  {DST_UNUSED, 43, 2, 0, 0, 0},
+  {OMOD, 46, 2, 0, 0, 0},
+  {OP, 9, 8, 0, 0, 0},
+  {S0, 55, 1, 0, 0, 0},
+  {S1, 63, 1, 0, 0, 0},
+  {SRC0, 0, 9, 0, 0, 0},
+  {SRC0_ABS, 53, 1, 0, 0, 0},
+  {SRC0_NEG, 52, 1, 0, 0, 0},
+  {SRC0_SEL, 48, 3, 0, 0, 0},
+  {SRC0_SEXT, 51, 1, 0, 0, 0},
+  {SRC1_ABS, 61, 1, 0, 0, 0},
+  {SRC1_NEG, 60, 1, 0, 0, 0},
+  {SRC1_SEL, 56, 3, 0, 0, 0},
+  {SRC1_SEXT, 59, 1, 0, 0, 0},
+  {VDST, 17, 8, 0, 0, 0},
+  {VSRC0, 32, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_VOP2_INST_LITERAL[] = {
+  {LITERAL, 32, 32, 0, 0, 0},
+  {OP, 25, 6, 0, 0, 0},
+  {SRC0, 0, 9, 0, 0, 0},
+  {VDST, 17, 8, 0, 0, 0},
+  {VSRC1, 9, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_VOP2_VOP_DPP[] = {
+  {BANK_MASK, 56, 4, 0, 0, 0},
+  {BOUND_CTRL, 51, 1, 0, 0, 0},
+  {DPP_CTRL, 40, 9, 0, 0, 0},
+  {OP, 25, 6, 0, 0, 0},
+  {ROW_MASK, 60, 4, 0, 0, 0},
+  {SRC0, 0, 9, 0, 0, 0},
+  {SRC0_ABS, 53, 1, 0, 0, 0},
+  {SRC0_NEG, 52, 1, 0, 0, 0},
+  {SRC1_ABS, 55, 1, 0, 0, 0},
+  {SRC1_NEG, 54, 1, 0, 0, 0},
+  {VDST, 17, 8, 0, 0, 0},
+  {VSRC0, 32, 8, 0, 0, 0},
+  {VSRC1, 9, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_VOP2_VOP_SDWA[] = {
+  {CLAMP, 45, 1, 0, 0, 0},
+  {DST_SEL, 40, 3, 0, 0, 0},
+  {DST_UNUSED, 43, 2, 0, 0, 0},
+  {OMOD, 46, 2, 0, 0, 0},
+  {OP, 25, 6, 0, 0, 0},
+  {S0, 55, 1, 0, 0, 0},
+  {S1, 63, 1, 0, 0, 0},
+  {SRC0, 0, 9, 0, 0, 0},
+  {SRC0_ABS, 53, 1, 0, 0, 0},
+  {SRC0_NEG, 52, 1, 0, 0, 0},
+  {SRC0_SEL, 48, 3, 0, 0, 0},
+  {SRC0_SEXT, 51, 1, 0, 0, 0},
+  {SRC1_ABS, 61, 1, 0, 0, 0},
+  {SRC1_NEG, 60, 1, 0, 0, 0},
+  {SRC1_SEL, 56, 3, 0, 0, 0},
+  {SRC1_SEXT, 59, 1, 0, 0, 0},
+  {VDST, 17, 8, 0, 0, 0},
+  {VSRC0, 32, 8, 0, 0, 0},
+  {VSRC1, 9, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_VOP2_VOP_SDWA_SDST_ENC[] = {
+  {OP, 25, 6, 0, 0, 0},
+  {S0, 55, 1, 0, 0, 0},
+  {S1, 63, 1, 0, 0, 0},
+  {SD, 47, 1, 0, 0, 0},
+  {SDST, 40, 7, 0, 0, 0},
+  {SRC0, 0, 9, 0, 0, 0},
+  {SRC0_ABS, 53, 1, 0, 0, 0},
+  {SRC0_NEG, 52, 1, 0, 0, 0},
+  {SRC0_SEL, 48, 3, 0, 0, 0},
+  {SRC0_SEXT, 51, 1, 0, 0, 0},
+  {SRC1_ABS, 61, 1, 0, 0, 0},
+  {SRC1_NEG, 60, 1, 0, 0, 0},
+  {SRC1_SEL, 56, 3, 0, 0, 0},
+  {SRC1_SEXT, 59, 1, 0, 0, 0},
+  {VDST, 17, 8, 0, 0, 0},
+  {VSRC0, 32, 8, 0, 0, 0},
+  {VSRC1, 9, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_VOP3_SDST_ENC[] = {
+  {CLAMP, 15, 1, 0, 0, 0},
+  {NEG, 61, 3, 0, 0, 0},
+  {OMOD, 59, 2, 0, 0, 0},
+  {OP, 16, 10, 0, 0, 0},
+  {SDST, 8, 7, 0, 0, 0},
+  {SRC0, 32, 9, 0, 0, 0},
+  {SRC1, 41, 9, 0, 0, 0},
+  {SRC2, 50, 9, 0, 0, 0},
+  {VDST, 0, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_VOP3P_MFMA[] = {
+  {ABID, 11, 4, 0, 0, 0},
+  {ACC, 59, 2, 0, 0, 0},
+  {BLGP, 61, 3, 0, 0, 0},
+  {CBSZ, 8, 3, 0, 0, 0},
+  {OP, 16, 7, 0, 0, 0},
+  {SRC0, 32, 9, 0, 0, 0},
+  {SRC1, 41, 9, 0, 0, 0},
+  {SRC2, 50, 9, 0, 0, 0},
+  {VDST, 0, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_VOPC_INST_LITERAL[] = {
+  {LITERAL, 32, 32, 0, 0, 0},
+  {OP, 17, 8, 0, 0, 0},
+  {SRC0, 0, 9, 0, 0, 0},
+  {VSRC1, 9, 8, 0, 0, 0},
+};
+static constexpr FieldSpec fields_VOPC_VOP_SDWA_SDST_ENC[] = {
+  {OP, 17, 8, 0, 0, 0},
+  {S0, 55, 1, 0, 0, 0},
+  {S1, 63, 1, 0, 0, 0},
+  {SD, 47, 1, 0, 0, 0},
+  {SDST, 40, 7, 0, 0, 0},
+  {SRC0, 0, 9, 0, 0, 0},
+  {SRC0_ABS, 53, 1, 0, 0, 0},
+  {SRC0_NEG, 52, 1, 0, 0, 0},
+  {SRC0_SEL, 48, 3, 0, 0, 0},
+  {SRC0_SEXT, 51, 1, 0, 0, 0},
+  {SRC1_ABS, 61, 1, 0, 0, 0},
+  {SRC1_NEG, 60, 1, 0, 0, 0},
+  {SRC1_SEL, 56, 3, 0, 0, 0},
+  {SRC1_SEXT, 59, 1, 0, 0, 0},
+  {VSRC0, 32, 8, 0, 0, 0},
+  {VSRC1, 9, 8, 0, 0, 0},
 };
 
-// A field value the format variant requires, from its EncodingCondition:
-// e.g. SOP2_INST_LITERAL with the literal in SSRC0 needs SSRC0 = 255 and
-// takes the literal operand in the LITERAL field.
-struct FieldValue {
-  Field field;
-  uint32_t value;
+static constexpr FormatSpec formats[NUM_FORMATS] = {
+  {"ENC_SOP1", 32, OP, 0xbe800000ull, 0xff800000ull, fields_ENC_SOP1, sizeof(fields_ENC_SOP1) / sizeof(FieldSpec)},
+  {"ENC_SOPC", 32, OP, 0xbf000000ull, 0xff800000ull, fields_ENC_SOPC, sizeof(fields_ENC_SOPC) / sizeof(FieldSpec)},
+  {"ENC_SOPP", 32, OP, 0xbf800000ull, 0xff800000ull, fields_ENC_SOPP, sizeof(fields_ENC_SOPP) / sizeof(FieldSpec)},
+  {"ENC_SOPK", 32, OP, 0xb0000000ull, 0xf0000000ull, fields_ENC_SOPK, sizeof(fields_ENC_SOPK) / sizeof(FieldSpec)},
+  {"ENC_SOP2", 32, OP, 0x80000000ull, 0xc0000000ull, fields_ENC_SOP2, sizeof(fields_ENC_SOP2) / sizeof(FieldSpec)},
+  {"ENC_SMEM", 64, OP, 0xc0000000ull, 0xfc000000ull, fields_ENC_SMEM, sizeof(fields_ENC_SMEM) / sizeof(FieldSpec)},
+  {"ENC_VOP1", 32, OP, 0x7e000000ull, 0xfe000000ull, fields_ENC_VOP1, sizeof(fields_ENC_VOP1) / sizeof(FieldSpec)},
+  {"ENC_VOPC", 32, OP, 0x7c000000ull, 0xfe000000ull, fields_ENC_VOPC, sizeof(fields_ENC_VOPC) / sizeof(FieldSpec)},
+  {"ENC_VOP2", 32, OP, 0x0ull, 0x80000000ull, fields_ENC_VOP2, sizeof(fields_ENC_VOP2) / sizeof(FieldSpec)},
+  {"ENC_VINTRP", 32, OP, 0xd4000000ull, 0xfc000000ull, fields_ENC_VINTRP, sizeof(fields_ENC_VINTRP) / sizeof(FieldSpec)},
+  {"ENC_VOP3P", 64, OP, 0xd3800000ull, 0xff800000ull, fields_ENC_VOP3P, sizeof(fields_ENC_VOP3P) / sizeof(FieldSpec)},
+  {"ENC_VOP3", 64, OP, 0xd0000000ull, 0xfc000000ull, fields_ENC_VOP3, sizeof(fields_ENC_VOP3) / sizeof(FieldSpec)},
+  {"ENC_DS", 64, OP, 0xd8000000ull, 0xfc000000ull, fields_ENC_DS, sizeof(fields_ENC_DS) / sizeof(FieldSpec)},
+  {"ENC_MUBUF", 64, OP, 0xe0000000ull, 0xfc000000ull, fields_ENC_MUBUF, sizeof(fields_ENC_MUBUF) / sizeof(FieldSpec)},
+  {"ENC_MTBUF", 64, OP, 0xe8000000ull, 0xfc000000ull, fields_ENC_MTBUF, sizeof(fields_ENC_MTBUF) / sizeof(FieldSpec)},
+  {"ENC_MIMG", 64, OP, 0xf0000000ull, 0xfc000000ull, fields_ENC_MIMG, sizeof(fields_ENC_MIMG) / sizeof(FieldSpec)},
+  {"ENC_EXP", 64, NO_FIELD, 0xc4000000ull, 0xfc000000ull, fields_ENC_EXP, sizeof(fields_ENC_EXP) / sizeof(FieldSpec)},
+  {"ENC_FLAT", 64, OP, 0xdc000000ull, 0xfc00c000ull, fields_ENC_FLAT, sizeof(fields_ENC_FLAT) / sizeof(FieldSpec)},
+  {"ENC_FLAT_GLBL", 64, OP, 0xdc008000ull, 0xfc00c000ull, fields_ENC_FLAT_GLBL, sizeof(fields_ENC_FLAT_GLBL) / sizeof(FieldSpec)},
+  {"ENC_FLAT_SCRATCH", 64, OP, 0xdc004000ull, 0xfc00c000ull, fields_ENC_FLAT_SCRATCH, sizeof(fields_ENC_FLAT_SCRATCH) / sizeof(FieldSpec)},
+  {"SOP1_INST_LITERAL", 64, OP, 0xbe800000ull, 0xff800000ull, fields_SOP1_INST_LITERAL, sizeof(fields_SOP1_INST_LITERAL) / sizeof(FieldSpec)},
+  {"SOP2_INST_LITERAL", 64, OP, 0x80000000ull, 0xc0000000ull, fields_SOP2_INST_LITERAL, sizeof(fields_SOP2_INST_LITERAL) / sizeof(FieldSpec)},
+  {"SOPC_INST_LITERAL", 64, OP, 0xbf000000ull, 0xff800000ull, fields_SOPC_INST_LITERAL, sizeof(fields_SOPC_INST_LITERAL) / sizeof(FieldSpec)},
+  {"SOPK_INST_LITERAL", 64, OP, 0xb0000000ull, 0xf0000000ull, fields_SOPK_INST_LITERAL, sizeof(fields_SOPK_INST_LITERAL) / sizeof(FieldSpec)},
+  {"VOP1_INST_LITERAL", 64, OP, 0x7e000000ull, 0xfe000000ull, fields_VOP1_INST_LITERAL, sizeof(fields_VOP1_INST_LITERAL) / sizeof(FieldSpec)},
+  {"VOP1_VOP_DPP", 64, OP, 0x7e000000ull, 0xfe000000ull, fields_VOP1_VOP_DPP, sizeof(fields_VOP1_VOP_DPP) / sizeof(FieldSpec)},
+  {"VOP1_VOP_SDWA", 64, OP, 0x7e000000ull, 0xfe000000ull, fields_VOP1_VOP_SDWA, sizeof(fields_VOP1_VOP_SDWA) / sizeof(FieldSpec)},
+  {"VOP2_INST_LITERAL", 64, OP, 0x0ull, 0x80000000ull, fields_VOP2_INST_LITERAL, sizeof(fields_VOP2_INST_LITERAL) / sizeof(FieldSpec)},
+  {"VOP2_VOP_DPP", 64, OP, 0x0ull, 0x80000000ull, fields_VOP2_VOP_DPP, sizeof(fields_VOP2_VOP_DPP) / sizeof(FieldSpec)},
+  {"VOP2_VOP_SDWA", 64, OP, 0x0ull, 0x80000000ull, fields_VOP2_VOP_SDWA, sizeof(fields_VOP2_VOP_SDWA) / sizeof(FieldSpec)},
+  {"VOP2_VOP_SDWA_SDST_ENC", 64, OP, 0x0ull, 0x80000000ull, fields_VOP2_VOP_SDWA_SDST_ENC, sizeof(fields_VOP2_VOP_SDWA_SDST_ENC) / sizeof(FieldSpec)},
+  {"VOP3_SDST_ENC", 64, OP, 0xd0000000ull, 0xfc000000ull, fields_VOP3_SDST_ENC, sizeof(fields_VOP3_SDST_ENC) / sizeof(FieldSpec)},
+  {"VOP3P_MFMA", 64, OP, 0xd3800000ull, 0xff800000ull, fields_VOP3P_MFMA, sizeof(fields_VOP3P_MFMA) / sizeof(FieldSpec)},
+  {"VOPC_INST_LITERAL", 64, OP, 0x7c000000ull, 0xfe000000ull, fields_VOPC_INST_LITERAL, sizeof(fields_VOPC_INST_LITERAL) / sizeof(FieldSpec)},
+  {"VOPC_VOP_SDWA_SDST_ENC", 64, OP, 0x7c000000ull, 0xfe000000ull, fields_VOPC_VOP_SDWA_SDST_ENC, sizeof(fields_VOPC_VOP_SDWA_SDST_ENC) / sizeof(FieldSpec)},
 };
-
-// One entry per (instruction, format, required field values); sorted by
-// mnemonic, then Format.
-struct OpcodeEntry {
-  const char *mnemonic;
-  Format format;
-  uint16_t opcode;
-  const OperandSpec *ops;
-  uint8_t nops;
-  const FieldValue *required;
-  uint8_t nrequired;
-};
-
-// A register value is the operand type's value, which can exceed the field
-// width: VGPRs are 256+n in 9-bit source fields, AccVGPRs 768+n. Pack the
-// low `width` bits; the AccVGPR select bit is a separate field.
-struct RegVal {
-  const char *name;
-  uint16_t value;
-};
-
-extern const FormatSpec formats[NUM_FORMATS];
-extern const OpcodeEntry opcodes[];
-extern const size_t nopcodes;
-extern const char *const fieldNames[NUM_FIELDS];
-extern const char *const oprTypeNames[NUM_OPR];
-// nullptr / 0 for operand types without named values
-extern const RegVal *const regvals[NUM_OPR];
-extern const uint16_t nregvals[NUM_OPR];
 
 }  // namespace enc
 }  // namespace AmdgpuGfx908
