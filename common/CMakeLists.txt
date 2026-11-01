@@ -30,10 +30,10 @@ set(
   h/mnemonics/ppc_entryIDs.h
   h/mnemonics/x86_entryIDs.h
   h/mnemonics/riscv64_entryIDs.h
-  h/mnemonics/amdgpu/gfx908_entryIDs.h
-  h/mnemonics/amdgpu/gfx90a_entryIDs.h
-  h/mnemonics/amdgpu/gfx940_entryIDs.h
-  h/mnemonics/amdgpu/gfx950_entryIDs.h
+  h/mnemonics/amdgpu/amdgpu_gfx908_entryIDs.h
+  h/mnemonics/amdgpu/amdgpu_gfx90a_entryIDs.h
+  h/mnemonics/amdgpu/amdgpu_gfx940_entryIDs.h
+  h/mnemonics/amdgpu/amdgpu_gfx950_entryIDs.h
   h/mnemonics/IntelGPU/generic_entryIDs.h
   h/mnemonics/NVIDIA/generic_entryIDs.h
   h/Node.h
