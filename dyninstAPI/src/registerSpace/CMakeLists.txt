@@ -16,7 +16,11 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(APPEND _sources RegisterConversion-aarch64.C registerSpace-aarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  list(APPEND _sources RegisterConversion-amdgpu.C registerSpace-amdgpu.C)
+  list(
+    APPEND _sources
+    ../amdgpu/RegisterConversion-amdgpu.C
+    ../amdgpu/registerSpace-amdgpu.C
+  )
 endif()
 
 dyninst_library(

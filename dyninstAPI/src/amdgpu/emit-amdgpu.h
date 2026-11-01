@@ -38,7 +38,7 @@
 #include "ASTs/codeGenAST.h"
 #include <vector>
 
-#include "dyninstAPI/src/amdgpu-gfx908-details.h"
+#include "dyninstAPI/src/amdgpu/amdgpu-gfx908-details.h"
 #include "dyninstAPI/src/emitter.h"
 
 class codeGen;

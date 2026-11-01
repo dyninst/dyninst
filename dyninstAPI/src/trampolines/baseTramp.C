@@ -32,7 +32,7 @@
 
 #include "trampolines/baseTramp.h"
 #include "baseTramp-aarch64.h"
-#include "baseTramp-amdgpu.h"
+#include "amdgpu/baseTramp-amdgpu.h"
 #include "baseTramp-ppc.h"
 #include "baseTramp-riscv64.h"
 #include "baseTramp-x86.h"

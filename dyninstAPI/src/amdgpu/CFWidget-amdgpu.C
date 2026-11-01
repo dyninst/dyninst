@@ -30,9 +30,9 @@
 
 // Control flow patching for AMDGPU
 
-#include "../CFG/RelocTarget.h"
-#include "../CodeBuffer.h"
-#include "CFWidget.h"
+#include "../Relocation/CFG/RelocTarget.h"
+#include "../Relocation/CodeBuffer.h"
+#include "../Relocation/Widgets/CFWidget.h"
 #include "dyninstAPI/src/debug.h"
 
 using namespace Dyninst;

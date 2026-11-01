@@ -28,9 +28,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "../CFG/RelocBlock.h"
-#include "../CodeBuffer.h"
-#include "PCWidget.h"
+#include "../Relocation/CFG/RelocBlock.h"
+#include "../Relocation/CodeBuffer.h"
+#include "../Relocation/Widgets/PCWidget.h"
 
 using namespace Dyninst;
 using namespace Relocation;

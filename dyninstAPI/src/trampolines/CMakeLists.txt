@@ -9,7 +9,7 @@ set(
   _headers
   baseTramp.h
   baseTramp-aarch64.h
-  baseTramp-amdgpu.h
+  ../amdgpu/baseTramp-amdgpu.h
   baseTramp-ppc.h
   baseTramp-riscv64.h
   baseTramp-x86.h

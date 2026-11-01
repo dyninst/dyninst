@@ -35,10 +35,10 @@
 // We use std::shared_ptr for prologue and epilogue asts because codeGenASTPtr is a boost::shared_ptr
 #include "boost/shared_ptr.hpp"
 
-#include "ASTs/AmdgpuEpilogue.h"
-#include "ASTs/AmdgpuPrologue.h"
+#include "amdgpu/AmdgpuEpilogue.h"
+#include "amdgpu/AmdgpuPrologue.h"
 
-#include "AmdgpuKernelDescriptor.h"
+#include "amdgpu/AmdgpuKernelDescriptor.h"
 #include "external/amdgpu/AMDGPUEFlags.h"
 
 #include <string>

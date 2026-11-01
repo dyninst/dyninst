@@ -32,7 +32,7 @@
 #include "patching/block.h"
 #include "patching/function.h"
 #include "codegen/codegen.h"
-#include "dyninstAPI/src/emit-amdgpu.h"
+#include "dyninstAPI/src/amdgpu/emit-amdgpu.h"
 #include "dyninstAPI/src/registerSpace/registerSpace.h"
 #include <cstdint>
 #include <stdlib.h>

@@ -51,7 +51,7 @@ using namespace NS_x86;
 #include "codegen/codegen-aarch64.h"
 using namespace NS_aarch64;
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-#include "codegen/codegen-amdgpu.h"
+#include "amdgpu/codegen-amdgpu.h"
 using namespace NS_amdgpu;
 #else
 #error "unknown architecture"

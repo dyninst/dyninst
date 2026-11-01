@@ -52,8 +52,8 @@ set(
 )
 
 if(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  list(APPEND _headers AmdgpuEpilogue.h AmdgpuPrologue.h)
-  list(APPEND _sources AmdgpuEpilogue.C AmdgpuPrologue.C)
+  list(APPEND _headers ../amdgpu/AmdgpuEpilogue.h ../amdgpu/AmdgpuPrologue.h)
+  list(APPEND _sources ../amdgpu/AmdgpuEpilogue.C ../amdgpu/AmdgpuPrologue.C)
 endif()
 
 dyninst_library(
