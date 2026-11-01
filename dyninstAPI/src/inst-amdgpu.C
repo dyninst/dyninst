@@ -33,7 +33,7 @@
 #include "dynproc/dynProcess.h"
 #include "registerSpace/registerSpace.h"
 #include "arch-amdgpu.h"
-#include "amdgpu/emit-amdgpu.h"
+#include "emit-amdgpu.h"
 #include "dyn_register.h"
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;

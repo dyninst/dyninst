@@ -61,7 +61,7 @@
 #include "codegen/emitters/aarch64/EmitterAarch64.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 #include "arch-amdgpu.h"
-#include "dyninstAPI/src/amdgpu/emit-amdgpu.h"
+#include "dyninstAPI/src/emit-amdgpu.h"
 #endif
 
 registerSpace *registerSpace::globalRegSpace_ = NULL;

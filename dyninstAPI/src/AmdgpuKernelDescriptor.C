@@ -29,7 +29,7 @@
  */
 
 #include "external/amdgpu/AMDGPUEFlags.h"
-#include "amdgpu/AmdgpuKernelDescriptor.h"
+#include "AmdgpuKernelDescriptor.h"
 #include "unaligned_memory_access.h"
 
 #include <cassert>

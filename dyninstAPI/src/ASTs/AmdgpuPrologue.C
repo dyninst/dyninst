@@ -28,18 +28,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "amdgpu/AmdgpuEpilogue.h"
-#include "amdgpu/emit-amdgpu.h"
+#include "AmdgpuPrologue.h"
+#include "emit-amdgpu.h"
 
 namespace Dyninst { namespace DyninstAPI {
 
-// Similar approach to prologue
-bool AmdgpuEpilogue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::Buffer &buffer) {
-  // We need 8 bytes for the epilogue (a s_dcache_wb instruction).
+bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::Buffer &buffer) {
+  // To avoid any code duplication or refactoring right now, we use a 'codeGen'
+  // object to generate the code and copy what we get there into the
+  // 'Dyninst::Buffer' object passed here.
+
+  // We need 12 bytes for the prologue (a s_load_dwordx2, followed by a waitcnt)
   codeGen gen(20);
   EmitterAmdgpuGfx908 emitter;
 
-  emitter.emitScalarDataCacheWriteback(gen);
+  emitter.emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);
 
   buffer.copy(gen.start_ptr(), gen.used());
 

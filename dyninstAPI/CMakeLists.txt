@@ -35,14 +35,14 @@ set(_public_headers ${_BPatch_public_headers})
 set(
   _private_headers
   src/addressSpace.h
-  src/amdgpu/AmdgpuKernelDescriptor.h
-  src/amdgpu/AmdgpuPointHandler.h
+  src/AmdgpuKernelDescriptor.h
+  src/AmdgpuPointHandler.h
   ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDHSAKernelDescriptor.h
   ${PROJECT_SOURCE_DIR}/external/amdgpu/AMDGPUEFlags.h
   src/binaryEdit.h
   src/codeRange.h
   src/debug.h
-  src/amdgpu/emit-amdgpu.h
+  src/emit-amdgpu.h
   src/emitter.h
   src/emit-x86.h
   src/freebsd.h
@@ -65,7 +65,7 @@ set(
   src/regTracker.h
   src/unix.h
   src/util.h
-  src/amdgpu/amdgpu-gfx908-details.h
+  src/amdgpu-gfx908-details.h
 )
 
 set(
@@ -100,12 +100,12 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(
     APPEND _sources
-    src/amdgpu/addressSpace-amdgpu-gfx908.C
-    src/amdgpu/inst-amdgpu.C
-    src/amdgpu/emit-amdgpu.C
-    src/amdgpu/AmdgpuKernelDescriptor.C
-    src/amdgpu/AmdgpuPointHandler.C
-    src/amdgpu/amdgpu-gfx908-details.C
+    src/addressSpace-amdgpu-gfx908.C
+    src/inst-amdgpu.C
+    src/emit-amdgpu.C
+    src/AmdgpuKernelDescriptor.C
+    src/AmdgpuPointHandler.C
+    src/amdgpu-gfx908-details.C
   )
 endif()
 

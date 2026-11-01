@@ -65,7 +65,7 @@
 #include "PointHandler.h"
 
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-#include "amdgpu/AmdgpuPointHandler.h"
+#include "AmdgpuPointHandler.h"
 #endif
 
 using Dyninst::PatchAPI::Patcher;

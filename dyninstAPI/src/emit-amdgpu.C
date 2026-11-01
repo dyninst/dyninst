@@ -33,7 +33,7 @@
  */
 
 #include "codegen/RegControl.h"
-#include "dyninstAPI/src/amdgpu/emit-amdgpu.h"
+#include "dyninstAPI/src/emit-amdgpu.h"
 #include "registerSpace/registerSpace.h"
 #include "arch-amdgpu.h"
 

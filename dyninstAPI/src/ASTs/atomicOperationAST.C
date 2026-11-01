@@ -8,7 +8,7 @@
 #include <sstream>
 
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-#include "amdgpu/emit-amdgpu.h"
+#include "emit-amdgpu.h"
 #endif
 
 namespace Dyninst { namespace DyninstAPI {

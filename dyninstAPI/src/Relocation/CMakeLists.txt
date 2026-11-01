@@ -75,7 +75,7 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(APPEND _sources Widgets/CFWidget-aarch64.C Widgets/PCWidget-aarch64.C)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  list(APPEND _sources ../amdgpu/CFWidget-amdgpu.C ../amdgpu/PCWidget-amdgpu.C)
+  list(APPEND _sources Widgets/CFWidget-amdgpu.C Widgets/PCWidget-amdgpu.C)
 endif()
 
 dyninst_library(

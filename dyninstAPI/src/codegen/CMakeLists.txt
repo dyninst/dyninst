@@ -76,9 +76,9 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
 
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 
-  list(APPEND _headers ../amdgpu/codegen-amdgpu.h)
+  list(APPEND _headers codegen-amdgpu.h)
 
-  list(APPEND _sources ../amdgpu/codegen-amdgpu.C)
+  list(APPEND _sources codegen-amdgpu.C)
 endif()
 
 dyninst_library(
