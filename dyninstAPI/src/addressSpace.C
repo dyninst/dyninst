@@ -1753,6 +1753,16 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
              block = obj->findOneBlockByAddr(curAddr);
              func = tframe.getFunc();
              offset = 0;
+
+             // On ppc64, the relocated copy of a function with a TOC preamble
+             // starts at its local entry (+8); the preamble stays in the original
+             // code and the springboard sits after it. A thread stopped inside
+             // the preamble (e.g. at a breakpoint on the global entry) must run
+             // it in place, or r2 keeps the caller's TOC.
+             if (getArch() == Arch_ppc64 && block && block->_ignorePowerPreamble &&
+                 curAddr >= block->start() && curAddr < block->start() + 8) {
+                continue;
+             }
           }             
 			if (!block || !func) continue;
 
