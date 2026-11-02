@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
     if (*inherited) ld_path += std::string(":") + inherited;
   }
   setenv("LD_LIBRARY_PATH", ld_path.c_str(), 1);
-  std::cout << "LD_LIBRARY_PATH=" << ld_path << "\n";
+  std::cerr << "LD_LIBRARY_PATH=" << ld_path << "\n";
 
   BPatch bpatch;
   bpatch.registerExitCallback(on_exit);
