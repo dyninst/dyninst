@@ -28,18 +28,41 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "ASTs/AmdgpuEpilogue.h"
-#include "codegen/emitters/amdgpu/gfx908/emit-amdgpu-gfx908.h"
+#include "ASTs/amdgpu-prologue-epilogue.h"
+#include "codegen/emitters/amdgpu/emit-amdgpu.h"
+#include "mapped_object.h"
 
 namespace Dyninst { namespace DyninstAPI {
 
+bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer) {
+  // To avoid any code duplication or refactoring right now, we use a 'codeGen'
+  // object to generate the code and copy what we get there into the
+  // 'Dyninst::Buffer' object passed here.
+
+  // We need 12 bytes for the prologue (a s_load_dwordx2, followed by a waitcnt)
+  codeGen gen(20);
+
+  // Use the emitter for the instrumented object's architecture (gfx908/gfx940/...);
+  // emitLoadRelative is on the base.
+  EmitterAmdgpu* emitter = getAmdgpuEmitter(gen, point);
+
+  emitter->emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);
+
+  buffer.copy(gen.start_ptr(), gen.used());
+
+  return true;
+}
+
 // Similar approach to prologue
-bool AmdgpuEpilogue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::Buffer &buffer) {
+bool AmdgpuEpilogue::generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer) {
   // We need 8 bytes for the epilogue (a s_dcache_wb instruction).
   codeGen gen(20);
-  EmitterAmdgpuGfx908 emitter;
 
-  emitter.emitScalarDataCacheWriteback(gen);
+  // Use the emitter for the instrumented object's architecture (gfx908/gfx940/...);
+  // emitScalarDataCacheWriteback is on the base.
+  EmitterAmdgpu* emitter = getAmdgpuEmitter(gen, point);
+
+  emitter->emitScalarDataCacheWriteback(gen);
 
   buffer.copy(gen.start_ptr(), gen.used());
 

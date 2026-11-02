@@ -28,25 +28,28 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "AmdgpuPrologue.h"
-#include "codegen/emitters/amdgpu/gfx908/emit-amdgpu-gfx908.h"
+#ifndef _EMIT_AMDGPU_GFX940_H
+#define _EMIT_AMDGPU_GFX940_H
 
-namespace Dyninst { namespace DyninstAPI {
+#include "codegen/emitters/amdgpu/emit-amdgpu.h"
 
-bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::Buffer &buffer) {
-  // To avoid any code duplication or refactoring right now, we use a 'codeGen'
-  // object to generate the code and copy what we get there into the
-  // 'Dyninst::Buffer' object passed here.
+class codeGen;
 
-  // We need 12 bytes for the prologue (a s_load_dwordx2, followed by a waitcnt)
-  codeGen gen(20);
-  EmitterAmdgpuGfx908 emitter;
+// Thin per-gen concrete emitter: supplies only this gen's MachRegister adapter + its ENC-typed packers,
+// each naming ONLY amdgpu_gfx940. Everything else is inherited from EmitterAmdgpu. A sibling gen
+// (e.g. EmitterAmdgpuGfx940) drops in the same way (sed amdgpu_gfx908 -> amdgpu_gfx940).
+class EmitterAmdgpuGfx940 : public EmitterAmdgpu {
+protected:
+  Dyninst::MachRegister toMachRegister(Dyninst::Register r) const override;
+  void rawSop1(unsigned opcode, Dyninst::Register dest, Dyninst::Register src0, bool hasLiteral,
+               uint32_t literal, codeGen &gen) override;
+  void rawSop2(unsigned opcode, Dyninst::Register dest, Dyninst::Register src1, Dyninst::Register src0,
+               codeGen &gen) override;
+  void rawSop2WithSrc1Literal(unsigned opcode, Dyninst::Register dest, Dyninst::Register src0,
+                              uint32_t literal, codeGen &gen) override;
+  void rawSopK(unsigned opcode, Dyninst::Register dest, int16_t simm16, codeGen &gen) override;
+  void rawSopC(unsigned opcode, Dyninst::Register src0, Dyninst::Register src1, codeGen &gen) override;
+  void rawSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset, codeGen &gen) override;
+};
 
-  emitter.emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);
-
-  buffer.copy(gen.start_ptr(), gen.used());
-
-  return true;
-}
-
-}}
+#endif // _EMIT_AMDGPU_GFX940_H

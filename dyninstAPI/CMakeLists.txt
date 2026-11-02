@@ -98,7 +98,7 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(
     APPEND _sources
-    src/addressSpace-amdgpu-gfx908.C
+    src/addressSpace-amdgpu.C
     src/inst-amdgpu.C
     src/AmdgpuKernelDescriptor.C
     src/AmdgpuPointHandler.C
