@@ -33,11 +33,13 @@ When more than one type of test is enabled (e.g., `VALUE=ALL`), each type can be
 ## Adding a test
 
 Every test is added with `dyninst_add_test`, from
-`cmake/common/ctest/DyninstAddTest.cmake`. It always creates the test: if the
-test cannot be built or run in this configuration, because an option is
-off or a tool is missing, ctest reports it as skipped and says why. Only
-`DYNINST_ENABLE_TESTS` decides which tests exist, so every build of a
-test type has the same tests. Tests are written in C++.
+`cmake/common/ctest/DyninstAddTest.cmake`, which the external tests
+share. [`cmake/common/README.md`](../cmake/common/README.md) describes
+it in full: its keywords, defining a requirement, skipping, and where a
+test's output goes. It always creates the test: if the test cannot be
+built or run in this configuration, ctest reports it as skipped and says
+why. Only `DYNINST_ENABLE_TESTS` decides which tests exist, so every
+build of a test type has the same tests.
 
     dyninst_add_test(parseAPI_parseGaps_test
       TYPE regression
@@ -48,130 +50,11 @@ test type has the same tests. Tests are written in C++.
       REQUIRES test_binaries
     )
 
-This builds an executable named after the test and runs it. A checker
-that several tests run with different arguments is made once with
-`dyninst_add_test_executable` and named in each test's `COMMAND`:
-
-    dyninst_add_test_executable(getSOName
-      SOURCE_FILES getSOName.cpp
-      DEPS symtabAPI
-    )
-    dyninst_add_test(symtab_soname_absent
-      TYPE regression
-      COMMAND getSOName $<TARGET_FILE:soname_absent> ""
-    )
-
-### dyninst_add_test
-
-    dyninst_add_test(<TestName>
-      TYPE unit|integration|regression
-      SOURCE_FILES <file>... | COMMAND <command> [<arg>...]
-      [ARGS <arg>...]
-      [DEPS <target>...]
-      [DEFINES <val>...]
-      [COMPILE_OPTIONS <option>...]
-      [REQUIRES <requirement>...]
-      [PROPERTIES <property> <value>...]
-    )
-
-| Keyword           | Takes                               | Required                |
-| :---------------- | :---------------------------------- | :---------------------- |
-| `<TestName>`      | the test's name                     | yes                     |
-| `TYPE`            | `unit`, `integration`, `regression` | yes                     |
-| `SOURCE_FILES`    | source files                        | this or `COMMAND`       |
-| `COMMAND`         | a command and its arguments         | this or `SOURCE_FILES`  |
-| `ARGS`            | arguments                           | no; `SOURCE_FILES` only |
-| `DEPS`            | targets                             | no; `SOURCE_FILES` only |
-| `DEFINES`         | compile definitions                 | no; `SOURCE_FILES` only |
-| `COMPILE_OPTIONS` | compile options                     | no; `SOURCE_FILES` only |
-| `REQUIRES`        | requirement names                   | no                      |
-| `PROPERTIES`      | property name/value pairs           | no                      |
-
-- `<TestName>`: The name ctest lists. With `SOURCE_FILES` it is also the
-  name of the executable target.
-
-- `TYPE`: The test type, which becomes the test's `LABELS`, so that
-  `ctest -L unit` selects it. Use the type of the directory the test is
-  in: whether a type's directory is added at all is decided by
-  `DYNINST_ENABLE_TESTS`.
-
-- `SOURCE_FILES`: Builds an executable named `<TestName>` from these
-  files and runs it with `ARGS`. Nothing is built if a requirement is
-  not met.
-
-- `COMMAND`: Runs this command instead, with its arguments. It is
-  usually a target made by `dyninst_add_test_executable`, named directly
-  or as `$<TARGET_FILE:...>`; if that target was skipped for an unmet
-  requirement, so is the test, with the same reason. It can also be any
-  other command, such as `${CMAKE_COMMAND} -E compare_files ...` or
-  `${CMAKE_COMMAND} -P <script>`.
-
-- `ARGS`: The arguments for the executable built from `SOURCE_FILES`.
-
-- `DEPS`: Libraries and other targets the executable links, always
-  PRIVATE.
-
-- `DEFINES`: PRIVATE compile definitions, for example
-  `${DYNINST_PLATFORM_CAPABILITIES}` to get the library's platform
-  macros, such as `os_linux`.
-
-- `COMPILE_OPTIONS`: PRIVATE compile options for every source. C++
-  sources are already compiled with `SUPPORTED_CXX_WARNING_FLAGS`, which
-  come first, so an option here, such as `-Wframe-larger-than=50000`,
-  can relax one.
-
-- `REQUIRES`: Requirements the test needs (see Requirements below). If
-  any is not met, nothing is built for the test, and it runs a
-  placeholder that prints `skipped: ` and every unmet reason, joined
-  with `, `, and exits with 77.
-
-- `PROPERTIES`: Test properties, passed to `set_tests_properties`, such
-  as `TIMEOUT 5`, `WILL_FAIL TRUE`, `ENVIRONMENT "A=1;B=2"`,
-  `PASS_REGULAR_EXPRESSION` or `FIXTURES_SETUP`. CMake does not check
-  the names or values: a misspelled property is silently ignored. A
-  skipped test keeps them; exit code 77 takes precedence over
-  `WILL_FAIL` and the pass and fail patterns.
-
-Every test also gets these properties; do not set them yourself:
-
-| Property           | Value                                         |
-| :----------------- | :-------------------------------------------- |
-| `LABELS`           | `TYPE`, and `host` with a `host:` requirement |
-| `SKIP_RETURN_CODE` | `77`                                          |
-
-Arguments in `COMMAND` and `ARGS` are passed as written: an empty
-argument (`""`) is kept, and so is a `;` inside an argument.
-
-It is a configuration error to give a `TYPE` other than the three, a
-requirement that is not defined, both or neither of `SOURCE_FILES` and
-`COMMAND`, `ARGS`, `DEPS`, `DEFINES` or `COMPILE_OPTIONS` with
-`COMMAND`, or an argument that follows no keyword.
-
-### dyninst_add_test_executable
-
-    dyninst_add_test_executable(<TargetName>
-      SOURCE_FILES <file>...
-      [DEPS <target>...]
-      [DEFINES <val>...]
-      [COMPILE_OPTIONS <option>...]
-      [REQUIRES <requirement>...]
-    )
-
-| Keyword           | Takes               | Required |
-| :---------------- | :------------------ | :------- |
-| `<TargetName>`    | the target's name   | yes      |
-| `SOURCE_FILES`    | source files        | yes      |
-| `DEPS`            | targets             | no       |
-| `DEFINES`         | compile definitions | no       |
-| `COMPILE_OPTIONS` | compile options     | no       |
-| `REQUIRES`        | requirement names   | no       |
-
-Makes an executable for one or more tests to run, or one that a test
-examines as its input. The keywords mean what they do for
-`dyninst_add_test`. If a requirement is not met, the target is not
-created, and a test whose `COMMAND` runs it is skipped. Every test
-executable, from either function, links `dyninst_test_support`, which
-puts `cmake/common/ctest/` on the include path for `dyninst_test_skip.h`.
+Every test here names its type in `TYPE`: `unit`, `integration` or
+`regression`, the type of the directory it is in. It becomes the test's
+label, so `ctest -L unit` selects it. `tests/CMakeLists.txt` lists the
+types in `DYNINST_TEST_TYPES`. `DEPS` names Dyninst's libraries by their
+targets in the tree, such as `parseAPI`.
 
 ### Requirements
 
@@ -240,74 +123,6 @@ with the reason a test prints when it is not met:
   of `common_filesystem`, then reports itself as skipped and names that
   setting.
 
-A new requirement is defined with
-
-    dyninst_test_requirement(<name> WHEN <condition>... REASON <text>
-                             [VALUES <value>...])
-
-| Keyword  | Takes                    | Required          |
-| :------- | :----------------------- | :---------------- |
-| `<name>` | the requirement's name   | yes               |
-| `WHEN`   | an `if()` condition      | yes               |
-| `REASON` | the text a test prints   | yes               |
-| `VALUES` | the arguments it accepts | for a family only |
-
-The condition is evaluated where the test is added, so it can use that
-directory's variables. A name of the form `<prefix>:<arg>` defines a
-family: `REQUIRES codegen:x86_64` puts `x86_64` in place of `<arg>`, and
-`X86_64` in place of `<ARG>`, in the condition and the reason. A family
-must list the arguments it accepts in `VALUES`, and any other is a
-configuration error, so a misspelled one cannot make a test that is
-always skipped. A plain name is looked up before a family, so one member
-of a family can have a definition of its own; inside a list, such as
-`codegen:i386,aarch64`, that member still uses its own condition.
-
-To build something a test uses but does not run only when it can be,
-ask for the reasons directly:
-
-    dyninst_test_skip_reason(<out-var> REQUIRES <requirement>...)
-
-This sets `<out-var>` to the unmet reasons, joined with `, `, or to an
-empty string when all are met.
-
-### Skipping
-
-A test that cannot run prints `skipped: <reason>` and exits with 77.
-Every test is registered with `SKIP_RETURN_CODE 77`, so ctest reports
-it as Skipped; the exit code alone decides that. The reason appears in
-`ctest -V` and in `Testing/Temporary/LastTest.log`.
-
-There are two ways to skip:
-
-- **When the configuration decides it:** Name the requirement in `REQUIRES`.
-  If it is not met, nothing is built for the test, and it runs a
-  placeholder that prints the reason and exits with 77.
-
-- **When only the running test can tell:** For example, the CPU or the C
-  library version. The test checks, prints `skipped: <reason>`, and
-  exits with 77. Prefer this when the test can be built anyway, so it
-  keeps being compiled.
-
-A test does both with `skip_message()` from
-`cmake/common/ctest/dyninst_test_skip.h`, which every test can include:
-
-    return skip_message("HOME is not set");
-
-A test that sets up a fixture (`FIXTURES_SETUP`) must not skip itself
-when it runs: ctest counts a skipped setup test as passed and runs the
-tests that require it. Give every test of a fixture the same
-requirements instead, so that they skip together.
-
-### Output
-
-ctest records stdout and stderr together, so the choice does not
-change a result, but it matters when a test is run by hand, and
-stderr is unbuffered: what is written to it survives a crash and
-keeps its place among the other messages.
-
-- **stdout:** The result only: the skip line from `skip_message()`, which
-  flushes it, and at most one final summary line, such as `failed =
-  false`.
-
-- **stderr:** Everything else: what failed and why (what was expected and
-  what was seen), reports of each case, progress, and usage errors.
+A new requirement is defined in that file with
+`dyninst_test_requirement`, described in
+[`cmake/common/README.md`](../cmake/common/README.md).

@@ -2,13 +2,13 @@
 DyninstAddTest
 --------------
 
-Functions for adding Dyninst's tests to ctest. tests/README.md describes
-them in full, with examples.
+Functions for adding a project's tests to ctest. README.md, in the
+directory above this one, describes them in full, with examples.
 
   dyninst_add_test
 
     dyninst_add_test(<TestName>
-      TYPE unit|integration|regression
+      [TYPE <type>]
       SOURCE_FILES <file>... | COMMAND <command> [<arg>...]
       [ARGS <arg>...]
       [DEPS <target>...]
@@ -18,45 +18,33 @@ them in full, with examples.
       [PROPERTIES <property> <value>...]
     )
 
-  Creates a test named <TestName> with CTest's add_test, labeled TYPE,
-  one of the test types DYNINST_ENABLE_TESTS selects.
+  Creates a test named <TestName> with CTest's add_test.
 
   If a test can only be built or run when a configure-time value is set,
-  such as DYNINST_ENABLE_EXTERNAL_BINARY_TESTS, name it in REQUIRES (see
-  dyninst_test_requirement below). When a requirement is not met, nothing
-  is built for the test, and a placeholder with the same name reports
-  that it was skipped and why. A test that can only tell when it runs
-  leaves REQUIRES out and skips itself with skip_message() from
-  dyninst_test_skip.h. A test is skipped when it exits with 77.
+  name it in REQUIRES (see dyninst_test_requirement below). When a
+  requirement is not met, nothing is built for the test, and a
+  placeholder with the same name reports that it was skipped and why. A
+  test that can only tell when it runs leaves REQUIRES out and skips
+  itself with skip_message() from dyninst_test_skip.h. A test is skipped
+  when it exits with 77.
 
   For example,
 
-    set(_flags ${SUPPORTED_CXX_WARNING_FLAGS})
-    list(APPEND _flags "-Wframe-larger-than=50000")
-    add_executable(aarch64_bits_test bits.cpp)
-    target_compile_options(aarch64_bits_test PRIVATE ${_flags})
-    target_link_libraries(
-      aarch64_bits_test
-      PRIVATE instructionAPI register_tests opcode_tests
-    )
-    add_test(NAME instructionAPI_aarch64_bits_test COMMAND aarch64_bits_test)
-    set_tests_properties(instructionAPI_aarch64_bits_test PROPERTIES LABELS "integration")
+    add_executable(parser_test parser.cpp)
+    target_compile_options(parser_test PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+    target_link_libraries(parser_test PRIVATE Dyninst::symtabAPI)
+    add_test(NAME parser_test COMMAND parser_test)
 
   becomes
 
-    dyninst_add_test(
-      instructionAPI_aarch64_bits_test
-      TYPE integration
-      SOURCE_FILES bits.cpp
-      DEPS instructionAPI register_tests opcode_tests
-      COMPILE_OPTIONS -Wframe-larger-than=50000
-    )
+    dyninst_add_test(parser_test SOURCE_FILES parser.cpp DEPS Dyninst::symtabAPI)
 
   dyninst_add_test always adds SUPPORTED_CXX_WARNING_FLAGS.
 
   TYPE
-    unit, integration or regression; becomes the test's LABELS. A test
-    that REQUIRES host:<arch> is also labeled host.
+    One of DYNINST_TEST_TYPES, which becomes the test's LABELS. Required
+    when the project sets DYNINST_TEST_TYPES, and an error when it does
+    not. A test that REQUIRES host:<arch> is also labeled host.
 
   SOURCE_FILES
     The sources of an executable named <TestName>, which the test runs.
@@ -71,8 +59,8 @@ them in full, with examples.
     Command line arguments for the executable built from SOURCE_FILES.
 
   DEPS
-    Link dependencies, as CMake target names: Dyninst libraries, the test
-    helper libraries, and others such as Threads::Threads.
+    Link dependencies, as CMake target names, such as Dyninst::symtabAPI
+    and Threads::Threads.
 
   DEFINES, COMPILE_OPTIONS
     Compiler flags used to build SOURCE_FILES (see
@@ -113,16 +101,16 @@ them in full, with examples.
   skipped with <text> as the reason.
 
   A <name> of the form <prefix>:<arg> defines a family: REQUIRES
-  codegen:x86_64 puts x86_64 in place of <arg>, and X86_64 in place of
-  <ARG>, in <condition> and <text>. VALUES lists the arguments a family
-  accepts; any other is an error.
+  <prefix>:foo puts foo in place of <arg>, and FOO in place of <ARG>, in
+  <condition> and <text>. VALUES lists the arguments a family accepts;
+  any other is an error.
 
   The argument may be a comma-separated list, met when any one of its
-  values is: REQUIRES host:aarch64,ppc64le is met on either host, and is
-  reported as "needs the host to be aarch64 or ppc64le". A requirement
+  values is: <prefix>:foo,bar is met when <prefix>:foo or <prefix>:bar
+  is, and puts "foo or bar" in place of <arg> in <text>. A requirement
   on all of several values is written as separate requirements. A name
-  that is defined on its own, such as codegen:i386, keeps its own
-  condition inside a list.
+  defined on its own, such as <prefix>:foo, keeps its own condition
+  inside a list.
 
   dyninst_test_skip_reason
 
@@ -282,9 +270,17 @@ function(dyninst_add_test _name)
   if(DEFINED _test_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR "${_where}: unexpected arguments '${_test_UNPARSED_ARGUMENTS}'")
   endif()
-  set(_types unit integration regression)
-  if(NOT _test_TYPE IN_LIST _types)
-    message(FATAL_ERROR "${_where}: TYPE must be one of ${_types}")
+  # A project with test types lists them in DYNINST_TEST_TYPES; each test then names one
+  # in TYPE, which becomes its label
+  set(_labels)
+  if(DEFINED DYNINST_TEST_TYPES)
+    if(NOT _test_TYPE IN_LIST DYNINST_TEST_TYPES)
+      string(REPLACE ";" ", " _types "${DYNINST_TEST_TYPES}")
+      message(FATAL_ERROR "${_where}: TYPE must be one of ${_types}")
+    endif()
+    set(_labels ${_test_TYPE})
+  elseif(DEFINED _test_TYPE)
+    message(FATAL_ERROR "${_where}: TYPE needs DYNINST_TEST_TYPES, which is not set")
   endif()
   if(
     (DEFINED _test_SOURCE_FILES AND DEFINED _test_COMMAND)
@@ -351,15 +347,14 @@ function(dyninst_add_test _name)
   endif()
   # A test tied to the host's architecture is also labeled host, so that
   # `ctest -N -L host` lists them
-  set(_labels ${_test_TYPE})
   foreach(_r IN LISTS _test_REQUIRES)
     if(_r MATCHES "^host:")
       list(APPEND _labels host)
       break()
     endif()
   endforeach()
-  set_tests_properties(
-    ${_name}
-    PROPERTIES LABELS "${_labels}" SKIP_RETURN_CODE 77 ${_test_PROPERTIES}
-  )
+  if(_labels)
+    set_tests_properties(${_name} PROPERTIES LABELS "${_labels}")
+  endif()
+  set_tests_properties(${_name} PROPERTIES SKIP_RETURN_CODE 77 ${_test_PROPERTIES})
 endfunction()
