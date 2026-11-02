@@ -1,18 +1,6 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
  *
- * We provide the Paradyn Tools (below described as "Paradyn")
- * on an AS IS basis, and do not warrant its validity or performance.
- * We reserve the right to update, modify, or discontinue this
- * software at any time.  We shall have no obligation to supply such
- * updates or modifications or any other form of support to you.
- *
- * By your use of Paradyn, you understand and agree that we (or any
- * other person or entity with proprietary rights in Paradyn) are
- * under no obligation to provide either maintenance services,
- * update services, notices of latent defects, or correction of
- * defects for Paradyn.
- *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -33,14 +21,19 @@
 
 #include "trampolines/baseTramp.h"
 
+// SCC is live across an `s_cmp ... ; s_cbranch_scc*` pair. A snippet spliced between them can clobber
+// SCC (any s_add/s_and/s_cmp/... it emits sets SCC), silently corrupting the branch. The base trampoline
+// did not preserve SCC. generateSaves/Restores now save/restore SCC around the snippet body -- but ONLY
+// when SCC is live at the point (Dyninst now tracks SCC in liveness), so SCC-dead points pay nothing.
 class baseTramp_amdgpu final : public baseTramp {
 public:
-  bool generateSaves(codeGen &, registerSpace *) override {
-    return true;
-  }
-  bool generateRestores(codeGen &, registerSpace *) override {
-    return true;
-  }
+  bool generateSaves(codeGen &, registerSpace *) override;
+  bool generateRestores(codeGen &, registerSpace *) override;
+
+private:
+  // Scratch SGPR id holding the saved SCC between generateSaves and generateRestores;
+  // 0xFFFFFFFF = SCC was not saved (dead, or no scratch SGPR available).
+  unsigned sccSaveReg_ = 0xFFFFFFFFu;
 };
 
 #endif

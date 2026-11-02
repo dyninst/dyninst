@@ -34,6 +34,12 @@
 #include "codegen/codegen.h"
 #include "dyninstAPI/src/emit-amdgpu.h"
 #include "dyninstAPI/src/registerSpace/registerSpace.h"
+#include "registerSpace/registerSlot.h"
+#include "mapped_object.h"
+#include "AmdgpuKernelDescriptor.h"
+#include "amdgpu-abi-sgpr.h"
+#include "amdgpu-kernel-meta.h"
+#include "external/amdgpu/AMDGPUEFlags.h"
 #include <cstdint>
 #include <stdlib.h>
 
@@ -82,10 +88,81 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
     registerSpace *regSpace = registerSpace::actualRegSpace(blockEntryPoint);
     assert(regSpace);
 
-    // We relax the alignment to pair because we will use the 4 registers as 2 pairs.
-    Dyninst::Register regBlock = regSpace->allocateGprBlock(Dyninst::RegKind::SCALAR, /* numRegs */4, NS_amdgpu::PAIR_ALIGNMENT);
-    emitter->emitLongJump(regBlock, from, to, gen);
-    regSpace->freeGprBlock(regBlock);
+    // The entry springboard's long-jump grabs a 4-SGPR block via s_getpc. Dyninst's
+    // liveness marks the ORIGINAL live inputs (kernarg etc.) live so the allocator
+    // skips them, but when we ENABLE scratch on a kernel that shipped without it
+    // (DYNINST_SPILL_SCRATCH), the flat_scratch_init user-SGPR pair shifts the
+    // SYSTEM SGPRs up (wgid/wave_offset land at s[user_sgpr_count..]). Those hold
+    // live per-wave inputs at kernel entry, but the original liveness doesn't know
+    // they moved, so allocateGprBlock would hand them to the springboard and the
+    // s_getpc would clobber the scratch wave-offset BEFORE the prologue captures it
+    // (→ all waves share one scratch base → multi-wave corruption). Reserve that
+    // live system-SGPR range so the springboard allocates above it. (Scratch is the
+    // default spill backend now; the inner scratchEnabled() check still guards it.)
+    {
+      // Pillar B: read the caller kernel's ABI layout + grant from the canonical
+      // KernelMeta (parsed once, scratch-enabled + maximized in handlePoints) — not a
+      // fresh ELF re-parse. Null => not a kernel.
+      mapped_object *fobj = funcInstance->obj();
+      Dyninst::DyninstAPI::KernelMeta *km =
+          fobj ? fobj->getAmdgpuKernelMeta(funcInstance->symTabName()) : nullptr;
+      if (km) {
+        const Dyninst::DyninstAPI::AbiSgprLayout &L = km->layout();
+        // ARCHITECTED flat scratch (gfx942/CDNA3): there is NO Private Segment Buffer, so
+        // the Kernarg Segment Ptr is the FIRST user SGPRs (s[0:1]) and IS read by the entry
+        // prologue (per-wave base). Also L.scratchEnabled() is false (no flat_scratch_init),
+        // so the reservation below would be skipped entirely. Both facts mean the springboard's
+        // s_getpc veneer would grab s[0:1] and CLOBBER the live kernarg pointer before the
+        // prologue reads it (root-caused on MI300A: garbage per-wave base -> bb_inc SIGBUS).
+        // gfx908 is unaffected: its kernarg sits at s[4:5]+ and s[0:1] (Private Segment Buffer)
+        // is dead at entry, so the existing system-SGPR-only reservation is correct there.
+        const bool architected = km->kd.supportsArchitectedFlatScratch();
+        if (L.scratchEnabled() || architected) {
+          // gfx908: reserve system SGPRs [userSgprCount, liveSgprEnd) (user s[0:3] dead).
+          // gfx942: reserve the FULL ABI live-in range [0, liveSgprEnd) so the kernarg
+          // pointer at s[0:1] survives the s_getpc.
+          const uint32_t liveStart = architected ? 0u : L.userSgprCount;
+          for (uint32_t n = liveStart; n < L.liveSgprEnd; n++) {
+            Dyninst::Register r = Dyninst::Register::makeScalarRegister(
+                Dyninst::OperandRegId(n), Dyninst::BlockSize(1));
+            registerSlot *slot = (*regSpace)[r];
+            if (slot)
+              slot->liveState = registerSlot::live;
+          }
+          // Also reserve the trampoline's SGPR spill block. In scratch mode the
+          // grant is sized tight (maximizeSgprAllocationIfKernel) and emitCall
+          // places EXEC-save + SADDR just BELOW the special regs: reservedBase =
+          // grantTop-10. The wavefront SGPR count INCLUDES the special regs, and
+          // when FLAT_SCRATCH is used that's SIX at the top (VCC + XNACK slot +
+          // FLAT_SCRATCH, per LLVM getNumExtraSGPRs) — even with xnack- the xnack
+          // pair stays a reserved gap, so treat all 6 (grantTop-6..grantTop-1) as
+          // off-limits and put the 4-reg block below them. These must survive the
+          // whole kernel, so the springboard/call-target block this long-jump
+          // allocates must not land on them.
+          const uint32_t grantTop = km->grantedSgprTop();
+          if (grantTop >= 10) {
+            for (uint32_t n = grantTop - 10; n < grantTop - 6; n++) {
+              Dyninst::Register r = Dyninst::Register::makeScalarRegister(
+                  Dyninst::OperandRegId(n), Dyninst::BlockSize(1));
+              registerSlot *slot = (*regSpace)[r];
+              if (slot)
+                slot->liveState = registerSlot::live;
+            }
+          }
+        }
+      }
+    }
+
+    // The long jump needs two independent 64-bit SGPR pairs (the s_getpc/s_setpc PC pair and the
+    // diff-constant pair), so allocate two pairs rather than one contiguous 4-register block: each is
+    // independently even-aligned, and 2+2 non-contiguous SGPRs can be found where 4 contiguous cannot.
+    Dyninst::Register pcPair =
+        regSpace->allocateGprBlock(Dyninst::RegKind::SCALAR, /* numRegs */ 2, 2u);
+    Dyninst::Register diffPair =
+        regSpace->allocateGprBlock(Dyninst::RegKind::SCALAR, /* numRegs */ 2, 2u);
+    emitter->emitLongJump(pcPair, diffPair, from, to, gen);
+    regSpace->freeGprBlock(diffPair);
+    regSpace->freeGprBlock(pcPair);
   }
 }
 
@@ -149,9 +226,11 @@ bool insnCodeGen::modifyJcc(Dyninst::Address target, NS_amdgpu::instruction &ins
   emitter->emitShortJump(1, gen); // GPU does (1)*4 + 4 and computes target = <X+4> + 8 = X+12 i.e C
 
   // Now emit jump A, the original target.
-  // S_BRANCH target = (PC_of_branch + 4) + SIMM16*4, so SIMM16 = disp/4 - 1;
-  // without the -1 the branch lands one instruction past the target (e.g. a loop
-  // back-edge would skip the loop head's first instruction).
+  // S_BRANCH computes its destination as (PC_of_branch + 4) + SIMM16*4, so the
+  // encoded SIMM16 must be (disp/4 - 1), NOT disp/4. Without the -1 the branch
+  // lands ONE instruction (4 bytes) past the target. For a loop back-edge that
+  // skips the loop head's first instruction — e.g. it dropped the induction
+  // variable's decrement out of the loop, giving an infinite loop.
   long from = gen.currAddr();
   long disp = target - from;
   int16_t wordOffset = disp / 4 - 1;
@@ -172,8 +251,42 @@ bool insnCodeGen::modifyCall(Dyninst::Address /* target */, NS_amdgpu::instructi
   return false;
 }
 
+// Relocate a PC-reading instruction (S_GETPC_B64). `target` is the VALUE the getpc must
+// produce at its new location (an absolute address in the rewritten object's space). We
+// re-emit the getpc and add a corrective delta so the destination pair holds exactly
+// `target`, position-independently (delta is a code-offset difference, valid wherever the
+// loader places the object). Mirrors the aarch64 ADR/ADRP relocation (patch the constant to
+// reach the resolved target) and the emitLongJump/emitIndirectCall getpc+add idiom.
+//
+// The caller (RelDataPatch::apply) supplies `target`. For the getpc-as-call case it computes
+// target = predictedAddr(callee) - baked_immediate, so that after this reproduces `target`
+// the UNTOUCHED downstream S_ADD/S_ADDC (baked) lands on the relocated callee. For a
+// self-referential getpc (target unchanged) it passes the original produced value.
+// Relocating a getpc-based PC-relative reference is NOT correct yet -> reject loudly.
+//
+// The emit primitive itself is solved (aarch64-style: reproduce a resolved target `V` via
+// getpc + a corrective add; the untouched downstream add then lands on it). What's missing is
+// resolving the callee's RELOCATED address at transform time. GPU-verified failure (2026-07-21):
+// for `vaddcall` calling a __noinline__ addf, the callee moved 0x1900->0x2900 but cfg->find in
+// the transform returned NO RelocBlock (label=0) -> addf is relocated by the WHOLE-IMAGE
+// mechanism, not the per-function transform RelocGraph, so predictedAddr can't reach it during
+// generation. Its relocated address is only known post-transform (AddressSpace::origToReloc).
+// The widget plumbing to carry a resolved callee label + baked immediate is in place
+// (RelDataWidget/RelDataPatch + Movement-adhoc); it just can't obtain a valid label here.
+// The correct completion is a POST-relocation fixup pass (or image-layout integration) that
+// patches the getpc+add constants using origToReloc once the final layout exists.
+// Relocating a getpc-based PC-relative reference is NOT correct yet -> reject loudly.
+// The emit primitive is solved (reproduce a resolved value V via getpc+corrective; the kept
+// downstream add finishes it). What's unsolved is obtaining the callee's AUTHORITATIVE final
+// address. GPU-tested negatives (2026-07): (a) reproduce original produced value -> lands on
+// stale pre-shift callee; (b) reproduce target_addr + 0x1000 (uniform .text shift) -> lands
+// 0xC00 off (target_addr in the transform is NOT the clean original produced value -- it's a
+// relocated/estimated value, so no fixed offset corrects it). The correct fix must use the
+// callee's final address from the output layout/symtab (only authoritative POST-layout) and
+// patch the getpc+add idiom to reach exactly it -- a write-phase/post-layout pass, not this
+// in-transform hook. Widget/transform plumbing to carry a resolved target is in place but
+// can't get a valid one here.
 bool insnCodeGen::modifyData(Dyninst::Address /* target */, NS_amdgpu::instruction & /* insn */,
                              codeGen & /* gen */) {
-  assert(!"Not implemented for AMDGPU");
-  return false;
+  return false;   // loud failure (aborts the rewrite) -- never silently corrupt the target
 }

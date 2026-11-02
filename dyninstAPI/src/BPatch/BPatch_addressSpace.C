@@ -64,7 +64,7 @@
 
 #include "PointHandler.h"
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
 #include "AmdgpuPointHandler.h"
 #endif
 
@@ -79,7 +79,7 @@ namespace dapi = Dyninst::DyninstAPI;
 BPatch_addressSpace::BPatch_addressSpace() :
    pendingInsertions(NULL), image(NULL)
 {
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
   pointHandler.reset(new Dyninst::DyninstAPI::AmdgpuGfx908PointHandler());
 #else
   pointHandler.reset(new Dyninst::DyninstAPI::PointHandler());
@@ -596,7 +596,7 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
    getAS(as);
    assert(as.size());
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
    if(name.empty()){
       std::stringstream namestr;
       namestr << "dyn_malloc_0x" << std::hex << "_" << &n << "_" << n << "_bytes";
@@ -613,7 +613,7 @@ BPatch_variableExpr *BPatch_addressSpace::malloc(int n, std::string name)
 #endif
    BPatch_type *type = BPatch::bpatch->createScalar(name.c_str(), n);
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
   // FIXME : Can't outline within this file because the constructor is private.
   // This needs to be considered when we have wave and thread-level variables.
   assert(type->getSize() > 0 && type->getSize() % 4 == 0);
@@ -691,6 +691,32 @@ bool BPatch_addressSpace::free(BPatch_variableExpr &ptr)
 
    ptr.getAS()->inferiorFree((Address)ptr.getBaseAddr());
    return true;
+}
+
+// AMDGPU per-wave arena: bump-allocate `bytes` of per-wavefront storage. We apply the
+// SAME allocation sequence to every backing AddressSpace so their arenas stay in lock-
+// step (the emitter reads the stride off whichever AddressSpace it is lowering into),
+// and return the offset (identical across them).
+unsigned BPatch_addressSpace::allocatePerWave(unsigned bytes, unsigned align)
+{
+   std::vector<AddressSpace *> as;
+   getAS(as);
+   unsigned off = 0;
+   for (unsigned i = 0; i < as.size(); i++) {
+      unsigned o = as[i]->allocatePerWaveBytes(bytes, align);
+      if (i == 0) off = o;
+   }
+   // Bridge the finalized stride to the emitter (the entry-capture prologue can't read it
+   // off its codeGen's addrSpace). Uses the primary AddressSpace's rounded stride.
+   if (!as.empty()) AddressSpace::publishPerWaveStrideToEmitter(as[0]->perWaveStride());
+   return off;
+}
+
+unsigned BPatch_addressSpace::perWaveStride()
+{
+   std::vector<AddressSpace *> as;
+   getAS(as);
+   return as.empty() ? 4096u : as[0]->perWaveStride();
 }
 
 BPatch_variableExpr *BPatch_addressSpace::createVariable(std::string name,

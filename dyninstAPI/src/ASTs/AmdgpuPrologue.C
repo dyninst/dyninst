@@ -31,6 +31,9 @@
 #include "AmdgpuPrologue.h"
 #include "emit-amdgpu.h"
 #include "mapped_object.h"
+#include "amdgpu-scratch-abi.h"
+#include "registerSpace/registerSpace.h"
+#include "patching/instPoint.h"
 
 namespace Dyninst { namespace DyninstAPI {
 
@@ -39,18 +42,42 @@ bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &
   // object to generate the code and copy what we get there into the
   // 'Dyninst::Buffer' object passed here.
 
-  // We need 12 bytes for the prologue (a s_load_dwordx2, followed by a waitcnt)
-  codeGen gen(20);
+  // Scratch mode needs room for FLAT_SCRATCH setup, the relocation movs, and the
+  // (2D/3D) block-linear wid math.
+  codeGen gen(scratch_ ? 128 : 20);
 
-  // Use the emitter for the instrumented object's architecture (gfx908/gfx940/...): setAddrSpace installs
-  // the arch-correct emitter via AddressSpace::getEmitter(); emitLoadRelative is on the base.
-  auto *obj = dynamic_cast<mapped_object *>(point->block()->obj());
-  assert(obj && "AMDGPU prologue: expected a mapped_object");
-  gen.setAddrSpace(obj->proc());
-  auto *emitter = dynamic_cast<EmitterAmdgpu *>(gen.emitter());
-  assert(emitter && "AMDGPU prologue: expected an EmitterAmdgpu");
-
-  emitter->emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);
+  if (scratch_) {
+    // Pillar A: give the entry codeGen a POINT-SPECIALIZED registerSpace so the scratch
+    // prologue allocates its temps by LIVENESS (via gen.rs()->allocateGprBlock), exactly
+    // like emitCall's reserved block and the springboard long-jump. At kernel entry only
+    // the ABI-preloaded regs are live; emitScratchEntryPrologue marks those (and v0/v1/v2)
+    // off-limits and allocates the rest. If there is no instPoint / liveness is off, it
+    // falls back to computed placement.
+    if (instPoint *iP = dynamic_cast<instPoint *>(point)) {
+      gen.setPoint(iP);
+      gen.setAddrSpace(iP->proc());
+      if (registerSpace *rs = registerSpace::actualRegSpace(iP))
+        gen.setRegisterSpace(rs);
+    }
+    // Reconstruct the (already-rewritten) KD and emit the arch-specific scratch
+    // entry setup: FLAT_SCRATCH = flat_scratch_init + wave_offset, then relocate
+    // the shifted system SGPRs back where the un-shifted kernel expects them.
+    // TODO(phase2 gfx942 runtime hook): gfx908ScratchAbi() is gfx908-specific; the gfx942
+    // scratch descriptor differs (FLAT_SCRATCH absolute vs gfx908 swizzled). Select the
+    // scratch ABI by the object's arch for a non-leaf gfx942 scratch prologue.
+    AmdgpuKernelDescriptor kd(kdBytes_.data(), kdBytes_.size(), eflag_);
+    gfx908ScratchAbi().emitScratchEntryPrologue(kd, originalKernargSize_, systemSgprShift_,
+                                                originalPrivateSegment_, gen);
+  } else {
+    // Use the emitter for the instrumented object's architecture (gfx908/gfx940/...): setAddrSpace
+    // installs the arch-correct emitter via AddressSpace::getEmitter(); emitLoadRelative is on the base.
+    auto *obj = dynamic_cast<mapped_object *>(point->block()->obj());
+    assert(obj && "AMDGPU prologue: expected a mapped_object");
+    gen.setAddrSpace(obj->proc());
+    auto *emitter = dynamic_cast<EmitterAmdgpu *>(gen.emitter());
+    assert(emitter && "AMDGPU prologue: expected an EmitterAmdgpu");
+    emitter->emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);
+  }
 
   buffer.copy(gen.start_ptr(), gen.used());
 

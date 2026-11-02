@@ -323,6 +323,45 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset,
 
 // === SMEM END ===
 
+// ==== Instrumentation-stack additions (folded from the GPU-instrumentation branch) ====
+// Opcodes used by the instrumentation emitters that are not in the base enums above. These are plain
+// opcode constants (the format is selected at the emit* call site), so they live in one ext enum.
+enum AmdgpuInstrOpcodeExt {
+  S_LSHL_B32   = 28,   // SOP2  0x1c
+  S_LSHR_B32   = 30,   // SOP2  0x1e
+  S_GETREG_B32 = 17,   // SOPK  s_getreg_b32 sdst, hwreg(...)
+  S_TTRACEDATA = 22,   // SOPP  stream M0 into the SQTT/ATT thread-trace stream (NOP when no session)
+  S_DCACHE_INV = 32    // SMEM
+};
+
+// Raw SGPR-number scalar emitters + VOP1-with-literal/reg (used by the instrumentation code paths, which
+// work in raw register numbers rather than codegen Registers).
+void emitSop1Raw(unsigned opcode, uint32_t sdst, uint32_t ssrc0, codeGen &gen);
+void emitSop2Raw(unsigned opcode, uint32_t sdst, uint32_t ssrc0, uint32_t ssrc1, codeGen &gen);
+void emitSop2RawWithLiteral(unsigned opcode, uint32_t sdst, uint32_t ssrc0, uint32_t literal, codeGen &gen);
+void emitVop1Imm(unsigned opcode, uint32_t vdst, uint32_t literal, codeGen &gen);  // src0=0xFF literal
+void emitVop1Reg(unsigned opcode, uint32_t vdst, uint32_t src0, codeGen &gen);
+
+// s_mov_b32 m0, <value|reg> ; s_ttracedata  (SQTT/ATT marker delivery).
+void emitTTraceData(uint32_t m0_value, codeGen &gen);
+void emitTTraceDataReg(uint32_t src_reg, codeGen &gen);
+
+// VOP2 (32-bit): vdst = src0 OP vsrc1. VDST/VSRC1 plain VGPR numbers; SRC0 a 9-bit operand.
+enum VOP2_Opcode { V_LSHLREV_B32 = 0x12, V_ADD_CO_U32 = 0x19, V_ADDC_CO_U32 = 0x1c };
+void emitVop2(unsigned opcode, uint32_t vdst, uint32_t vsrc1, uint32_t src0, codeGen &gen);
+
+// VOP3A (64-bit): VDST plain VGPR number; SRC0/1/2 9-bit operands (V_READLANE/WRITELANE ride VDST).
+enum VOP3A_Opcode {
+  V_LSHL_OR_B32 = 0x200, V_READLANE_B32 = 649, V_WRITELANE_B32 = 650,
+  V_MBCNT_LO_U32_B32 = 652, V_MBCNT_HI_U32_B32 = 653
+};
+void emitVop3a(unsigned opcode, uint32_t vdst, uint32_t src0, uint32_t src1, uint32_t src2, codeGen &gen);
+
+// FLAT/GLOBAL (64-bit): seg 2=global (ENC_FLAT_GLBL), 1=scratch (ENC_FLAT_SCRATCH).
+enum FLAT_Global_Opcode { GLOBAL_LOAD_DWORD = 0x14, GLOBAL_STORE_DWORD = 0x1C };
+void emitFlatGlobal(unsigned opcode, uint32_t vdst, uint32_t addr, uint32_t data,
+                    uint32_t saddr, int32_t offset, codeGen &gen, bool glc = false, uint32_t seg = 2);
+
 } // namespace amdgpu_gfx908
 } // namespace Dyninst
 

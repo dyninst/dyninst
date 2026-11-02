@@ -45,8 +45,9 @@
 class AddressSpace;
 
 namespace NS_amdgpu {
-// AMDGPU GFX908 registers of interest for code generation. We will use liveness on these to
-// allocate them for use in instrumentation.
+// AMDGPU GFX908 registers of interest for code generation. Liveness on these IS wired in
+// (ABI.C dispatches the gfx908 register->bitArray index; actualRegSpace(point) populates
+// liveState) and drives the liveness-reduced trampoline spill in emit-amdgpu.C.
 // Note that this is for Dyninst's abstraction for code generation.
 // The register ids are actual register numbers that are used in instructions. Since SGPRs and VGPRs have
 // the same register numbers, they need to be distinguished.
@@ -55,9 +56,6 @@ namespace NS_amdgpu {
 // For information on architectural registers see MachRegister in dyn_regs.h
 
 using namespace Dyninst;
-
-constexpr Alignment PAIR_ALIGNMENT(2);
-constexpr Alignment QUAD_ALIGNMENT(4);
 
 constexpr uint32_t MIN_SGPR_ID = 0;
 constexpr uint32_t MAX_SGPR_ID = 101;

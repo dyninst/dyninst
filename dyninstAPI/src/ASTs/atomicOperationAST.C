@@ -7,7 +7,7 @@
 #include <iomanip>
 #include <sstream>
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
 #include "emit-amdgpu.h"
 #endif
 
@@ -30,7 +30,7 @@ std::string atomicOperationAST::format(std::string indent) {
   return ret.str();
 }
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
 
 bool atomicOperationAST::generateCode_phase2(codeGen &gen, Address &retAddr,
                                                      Dyninst::Register &) {
@@ -64,7 +64,7 @@ bool atomicOperationAST::generateCode_phase2(codeGen &gen, Address &retAddr,
   registerSpace *regSpace = gen.rs();
 
   Dyninst::Register addrRegPair =
-      regSpace->allocateGprBlock(RegKind::SCALAR, /* numRegs */2, NS_amdgpu::PAIR_ALIGNMENT);
+      regSpace->allocateGprBlock(RegKind::SCALAR, /* numRegs */2, 2u);
 
   assert(addrRegPair != Null_Register &&
          "atomicOperationAST : Failed to allocate register pair");

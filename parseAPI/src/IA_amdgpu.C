@@ -35,6 +35,10 @@
 
 #include "parseAPI/src/IndirectAnalyzer.h"
 #include "parseAPI/src/debug_parse.h"
+#include "CodeSource.h"
+#include "CodeObject.h"
+#include "CFG.h"
+#include "symtabAPI/h/Region.h"
 
 #include <deque>
 #include <iostream>
@@ -73,10 +77,31 @@ bool IA_amdgpu::isNop() const
 {
     Instruction ci = curInsn();
     auto id = ci.getOperation().getID();
-    if(id == amdgpu_gfx908_op_S_NOP || 
+    if(id == amdgpu_gfx908_op_S_NOP ||
         id == amdgpu_gfx90a_op_S_NOP || id == amdgpu_gfx940_op_S_NOP ||
         id == amdgpu_gfx950_op_S_NOP)
         return true;
+    return false;
+}
+
+// SIMT block-split trigger: this instruction changes the EXEC mask, so it should START a new basic
+// block. We detect a WRITE to EXEC by register identity in the write set — this catches every
+// exec-writer regardless of opcode (saveexec, s_or/s_xor/s_and exec, AND `s_mov exec, …`), matching
+// the analysis's isExecSplitPoint. Every mask transition is isolated, including the restore
+// (`s_mov exec, saved`) and the whole-wave expand (`s_mov exec, -1`); a `s_mov sdst, exec` that merely
+// *reads* EXEC does not write it and so does not split. (Was previously an "except mov" exclusion;
+// dropped so restore/expand transitions are their own single-entry blocks — see docs/MASK_ALGEBRA.md.)
+bool IA_amdgpu::isModifyExecMask() const
+{
+    Instruction ci = curInsn();
+    std::set<RegisterAST::Ptr> written;
+    ci.getWriteSet(written);
+    for(const auto &w : written) {
+        std::string n = w->getID().name();
+        for(char &c : n) c = std::tolower((unsigned char)c);
+        if(n.find("exec") != std::string::npos)   // exec_lo / exec_hi (only EXEC contains "exec")
+            return true;
+    }
     return false;
 }
 
@@ -85,9 +110,33 @@ bool IA_amdgpu::isThunk() const
     return false;
 }
 
-bool IA_amdgpu::isTailCall(const Function*, EdgeTypeEnum , unsigned int,
+bool IA_amdgpu::isTailCall(const Function* context, EdgeTypeEnum , unsigned int,
         const std::set<Address>&  ) const
 {
+   // A branch/setpc that was resolved (by slicing, see IA_IAPI::getNewEdges) to a target inside
+   // Dyninst's own ".dyninstInst" instrumentation section is a springboard into relocated+
+   // instrumented code. A function cannot span the original code region and the instrumentation
+   // region, so the parser would otherwise skip the out-of-region target and leave a zero-length
+   // block -- the instrumented body would never be walked. Treat such a jump as a tail call so
+   // ParseAPI parses the instrumented body as its own function in .dyninstInst.
+   // Only the indirect s_setpc springboard qualifies. Static branches (s_branch / s_cbranch_*)
+   // and returns are not slice-resolved, so cachedCFT would be STALE from the last setpc and would
+   // misclassify them as tail calls (carving spurious sub-functions out of the instrumented body).
+   auto id = curInsn().getOperation().getID();
+   bool isSetpc = (id == amdgpu_gfx908_op_S_SETPC_B64 || id == amdgpu_gfx90a_op_S_SETPC_B64 ||
+                   id == amdgpu_gfx940_op_S_SETPC_B64 || id == amdgpu_gfx950_op_S_SETPC_B64);
+   if (!isSetpc) return false;
+   if (validCFT && cachedCFT.first && context) {
+       Address tgt = cachedCFT.second;
+       std::set<CodeRegion*> regs;
+       context->obj()->cs()->findRegions(tgt, regs);
+       for (CodeRegion* r : regs) {
+           SymtabCodeRegion* scr = dynamic_cast<SymtabCodeRegion*>(r);
+           if (scr && scr->symRegion() &&
+               scr->symRegion()->getRegionName() == ".dyninstInst")
+               return true;
+       }
+   }
    return false;
 }
 

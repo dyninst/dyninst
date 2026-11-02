@@ -392,7 +392,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(const char *name,
    std::vector<AddressSpace *> as;
    addSpace->getAS(as);
    assert(as.size());
-
+   fprintf(stderr,"In %s, finding function %s %d\n",__func__,name,incUninstrumentable);
    if (NULL == strpbrk(name, REGEX_CHARSET)) {
       //  usual case, no regex
       std::vector<func_instance *> foundIntFuncs;
@@ -407,6 +407,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(const char *name,
                std::string(name);
             BPatch_reportError(BPatchSerious, 100, msg.c_str());
          }
+         fprintf(stderr,"In %s, didn't find %s\n",__func__,name);
          return NULL;
       }
       // We have a list; if we don't want to include uninstrumentable,
@@ -421,7 +422,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(const char *name,
       if (funcs.size() > 0)
          return &funcs;
       if (showError) {
-         std::string msg = std::string("Image: Unable to find function: ") + 
+         std::string msg = std::string("Image: Unable to find instrumentable function: ") + 
             std::string(name);
          BPatch_reportError(BPatchSerious, 100, msg.c_str());
       }

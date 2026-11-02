@@ -295,5 +295,84 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset, 
 }
 // === SMEM END ===
 
+// ==== Instrumentation-stack emit primitives (folded from the GPU-instrumentation branch) ====
+// These were written against a gfx908-bound packer (amdgpu_pack / amdgpu_gfx908_enc). Here they ride the
+// gen-neutral templated packer (amdgpu_enc) over THIS gen's generated `detail` tables via a tiny local
+// shim, so the bodies are unchanged and a sibling gen is a plain sed of this file (amdgpu_gfx908 ->
+// amdgpu_gfx940). GE/PK name only `detail` (this gen), never a gen literal.
+namespace GE = detail;
+namespace PK {
+  inline uint64_t packWordU64(detail::Format fmt, uint32_t opcode,
+                              std::initializer_list<std::pair<detail::Field, uint32_t>> fieldVals) {
+    return Dyninst::amdgpu_enc::packWordU64(detail::formats, fmt, detail::NO_FIELD, opcode, fieldVals);
+  }
+} // namespace PK
+
+static inline void appendWord32(codeGen &gen, uint32_t w) {
+  auto p = gen.cur_ptr();
+  append_memory_as(p, w);
+  gen.update(p);
+}
+static inline void appendWord64(codeGen &gen, uint64_t w) {
+  auto p = gen.cur_ptr();
+  append_memory_as(p, w);
+  gen.update(p);
+}
+
+void emitSop1Raw(unsigned opcode, uint32_t sdst, uint32_t ssrc0, codeGen &gen) {
+  appendWord32(gen, (uint32_t)PK::packWordU64(GE::ENC_SOP1, opcode, {{GE::SDST, sdst}, {GE::SSRC0, ssrc0}}));
+}
+void emitSop2Raw(unsigned opcode, uint32_t sdst, uint32_t ssrc0, uint32_t ssrc1, codeGen &gen) {
+  appendWord32(gen, (uint32_t)PK::packWordU64(GE::ENC_SOP2, opcode,
+                                              {{GE::SDST, sdst}, {GE::SSRC0, ssrc0}, {GE::SSRC1, ssrc1}}));
+}
+void emitSop2RawWithLiteral(unsigned opcode, uint32_t sdst, uint32_t ssrc0, uint32_t literal, codeGen &gen) {
+  emitSop2Raw(opcode, sdst, ssrc0, /*ssrc1 = literal marker*/ 255, gen);
+  auto p = gen.cur_ptr();
+  append_memory_as(p, literal);
+  gen.update(p);
+}
+
+// VOP1 with a trailing 32-bit literal (src0 = 0xFF selects the literal word): e.g. v_mov_b32 vdst, <lit>.
+void emitVop1Imm(unsigned opcode, uint32_t vdst, uint32_t literal, codeGen &gen) {
+  uint32_t raw = (uint32_t)PK::packWordU64(GE::ENC_VOP1, opcode, {{GE::VDST, vdst}, {GE::SRC0, 0xFF}});
+  auto p = gen.cur_ptr();
+  append_memory_as(p, raw);
+  append_memory_as(p, literal);
+  gen.update(p);
+}
+void emitVop1Reg(unsigned opcode, uint32_t vdst, uint32_t src0, codeGen &gen) {
+  appendWord32(gen, (uint32_t)PK::packWordU64(GE::ENC_VOP1, opcode, {{GE::VDST, vdst}, {GE::SRC0, src0}}));
+}
+
+// s_mov_b32 m0(=124), <value|reg> ; s_ttracedata  (SQTT/ATT marker).
+void emitTTraceData(uint32_t m0_value, codeGen &gen) {
+  emitSop1(S_MOV_B32, /*dest=M0*/ 124, /*src0=literal*/ 255, /*hasLiteral=*/true, m0_value, gen);
+  emitSopP(S_TTRACEDATA, /*simm16=*/0, gen);
+}
+void emitTTraceDataReg(uint32_t src_reg, codeGen &gen) {
+  emitSop1(S_MOV_B32, /*dest=M0*/ 124, /*src0=*/src_reg, /*hasLiteral=*/false, /*literal=*/0, gen);
+  emitSopP(S_TTRACEDATA, /*simm16=*/0, gen);
+}
+
+void emitVop2(unsigned opcode, uint32_t vdst, uint32_t vsrc1, uint32_t src0, codeGen &gen) {
+  appendWord32(gen, (uint32_t)PK::packWordU64(GE::ENC_VOP2, opcode,
+                    {{GE::VDST, vdst}, {GE::VSRC1, vsrc1}, {GE::SRC0, src0}}));
+}
+void emitVop3a(unsigned opcode, uint32_t vdst, uint32_t src0, uint32_t src1, uint32_t src2, codeGen &gen) {
+  // ABS/OPSEL/CLMP/OMOD/NEG default to 0. V_READLANE/WRITELANE ride the 8-bit VDST field.
+  appendWord64(gen, PK::packWordU64(GE::ENC_VOP3, opcode,
+                    {{GE::VDST, vdst}, {GE::SRC0, src0}, {GE::SRC1, src1}, {GE::SRC2, src2}}));
+}
+void emitFlatGlobal(unsigned opcode, uint32_t vdst, uint32_t addr, uint32_t data,
+                    uint32_t saddr, int32_t offset, codeGen &gen, bool glc, uint32_t seg) {
+  // SEG is baked into the format's fixed bits: global (seg=2) -> ENC_FLAT_GLBL, scratch (seg=1) ->
+  // ENC_FLAT_SCRATCH. OFFSET is the 13-bit signed field. LDS/SLC/NV default to 0.
+  GE::Format fmt = (seg == 1) ? GE::ENC_FLAT_SCRATCH : GE::ENC_FLAT_GLBL;
+  appendWord64(gen, PK::packWordU64(fmt, opcode,
+                    {{GE::OFFSET, (uint32_t)((uint32_t)offset & 0x1fff)}, {GE::GLC, glc ? 1u : 0u},
+                     {GE::ADDR, addr}, {GE::DATA, data}, {GE::SADDR, saddr}, {GE::VDST, vdst}}));
+}
+
 } // namespace amdgpu_gfx908
 } // namespace Dyninst

@@ -57,6 +57,12 @@ public:
   static Ptr Constant(void *v) {
     return boost::make_shared<operandAST>(operandType::Constant, v);
   }
+  // A GPU hardware/execution value; the operand's value slot packs the GpuValueKind in the
+  // low 8 bits and a per-wave-variable byte offset (within the wave's slice) in the rest.
+  static Ptr GpuValue(GpuValueKind kind, unsigned offset = 0) {
+    uintptr_t packed = ((uintptr_t)(long)kind & 0xFF) | ((uintptr_t)offset << 8);
+    return boost::make_shared<operandAST>(operandType::GpuValue, (void *)packed);
+  }
 
   static Ptr ConstantString(const char *str) {
     auto val = static_cast<void *>(const_cast<char *>(str));
@@ -174,7 +180,7 @@ public:
 
   bool initRegisters(codeGen &gen) override;
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
   static int lastOffset; // Last ofsfet in our GPU memory buffer.
   static std::map<std::string, int> allocTable;
 

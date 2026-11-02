@@ -45,7 +45,7 @@
 
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "inst-x86.h"
-#elif defined DYNINST_CODEGEN_ARCH_AMDGPU_GFX908
+#elif defined DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN
 #include "arch-amdgpu.h"
 #endif
 
@@ -101,7 +101,7 @@ class registerSpace {
     bool allocateSpecificRegister(codeGen &gen, Dyninst::Register r);
 
     bool canAllocate(Dyninst::Register reg) const;
-    Dyninst::Register allocateGprBlock(Dyninst::RegKind regKind, uint32_t numRegs, Dyninst::Alignment alignment);
+    Dyninst::Register allocateGprBlock(Dyninst::RegKind regKind, uint32_t numRegs, uint32_t alignment);
     void freeGprBlock(Dyninst::Register regBlock);
 
 
@@ -316,7 +316,7 @@ class registerSpace {
     static unsigned FPR(Dyninst::Register x) { return x - fpr0; }
     int framePointer() { return r29; }
 #endif
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
     static unsigned GPR(Dyninst::Register x) { return x; }
     static unsigned FPR(Dyninst::Register x) { return x; }
     static unsigned SPR(Dyninst::Register x) { return x; }

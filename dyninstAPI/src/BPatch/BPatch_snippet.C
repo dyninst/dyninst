@@ -85,7 +85,7 @@ namespace jumpTargetAST = Dyninst::DyninstAPI::jumpTargetAST;
 #include "inst-power.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "inst-aarch64.h"
-#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
 // No inst-amdgpu.h
 #else
 #error "Unknown architecture, expected x86, x86_64, power or aarch64"
@@ -691,6 +691,45 @@ BPatch_constExpr::BPatch_constExpr(long long value)
     assert(type != NULL);
     ast_wrapper->setType(type);
 }
+
+// GPU hardware/execution value snippets — each wraps a GpuValue operand AST carrying
+// the kind; the (AMDGPU) emitter supplies the read recipe at codegen time.
+static void initGpuValueSnippet(Dyninst::BPatch_codeGenASTPtr &ast_wrapper,
+                                GpuValueKind kind, unsigned offset = 0) {
+    assert(BPatch::bpatch != NULL);
+    ast_wrapper = operandAST::GpuValue(kind, offset);
+    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
+    BPatch_type *type = BPatch::bpatch->stdTypes->findType("unsigned int");
+    assert(type != NULL);
+    ast_wrapper->setType(type);
+}
+
+BPatch_gpuExecMaskExpr::BPatch_gpuExecMaskExpr() {
+    initGpuValueSnippet(ast_wrapper, GpuValueKind::ExecMask);
+}
+
+BPatch_gpuHwWaveIdExpr::BPatch_gpuHwWaveIdExpr() {
+    initGpuValueSnippet(ast_wrapper, GpuValueKind::HwWaveId);
+}
+
+// PerWave* carry a per-variable byte offset within the wave's slice (0 for the first /
+// only variable). The emitter adds it to the slice base (address) or folds it into the
+// load/store immediate (value/capture).
+BPatch_gpuPerWaveBufExpr::BPatch_gpuPerWaveBufExpr(unsigned offset) {
+    initGpuValueSnippet(ast_wrapper, GpuValueKind::PerWaveBuf, offset);
+}
+
+BPatch_gpuPerWaveValExpr::BPatch_gpuPerWaveValExpr(unsigned offset) {
+    initGpuValueSnippet(ast_wrapper, GpuValueKind::PerWaveVal, offset);
+}
+
+BPatch_gpuPerWaveCaptureExpr::BPatch_gpuPerWaveCaptureExpr(unsigned offset) {
+    initGpuValueSnippet(ast_wrapper, GpuValueKind::CaptureRet, offset);
+}
+
+// Self-allocating per-wave variable: reserve `bytes` from the arena and take the offset.
+BPatch_perWaveVar::BPatch_perWaveVar(BPatch_addressSpace *as, unsigned bytes, unsigned align)
+    : bytes_(bytes), offset_(as ? as->allocatePerWave(bytes, align) : 0u) {}
 
 /*
  * BPatch_whileExpr::BPatch_whileExpr

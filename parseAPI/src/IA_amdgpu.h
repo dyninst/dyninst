@@ -52,6 +52,8 @@ class IA_amdgpu : public IA_IAPI {
 	virtual IA_amdgpu* clone() const;
     virtual bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction) const;
 	virtual bool isNop() const;
+	// SIMT block-split trigger: writes EXEC (saveexec / or,xor,and exec), excluding a plain mov→exec.
+	virtual bool isModifyExecMask() const;
 	virtual bool isThunk() const;
 	virtual bool isTailCall(const ParseAPI::Function* context, ParseAPI::EdgeTypeEnum type,
 							unsigned int, const set<Address>& knownTargets) const;

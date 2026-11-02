@@ -250,6 +250,79 @@ class DYNINST_EXPORT BPatch_constExpr : public BPatch_snippet {
 
 };
 
+// GPU hardware/execution values, read at the instrumentation site, for use as call
+// arguments (e.g. record EXEC or wave id via an inserted hostcall). These are the
+// GPU analogue of BPatch_tidExpr etc.; each is uniform per-wave and read in place.
+// (AMDGPU/gfx908.)
+class DYNINST_EXPORT BPatch_gpuExecMaskExpr : public BPatch_snippet {
+ public:
+    // EXEC mask (active-lane bitmask) at the site. Low 32 lanes on the 32-bit path.
+    BPatch_gpuExecMaskExpr();
+};
+
+class DYNINST_EXPORT BPatch_gpuHwWaveIdExpr : public BPatch_snippet {
+ public:
+    // HW_ID register: hardware wave-slot / SIMD / CU / SE (for hardware profiling).
+    BPatch_gpuHwWaveIdExpr();
+};
+
+// This wave's slice of a per-wave buffer, as a 64-bit pointer, for use as a call
+// argument. Each wavefront gets a distinct slice, so an inserted user probe can keep
+// per-wave state (e.g. accumulate then flush via gpu_fwrite). Prefer the first-class
+// BPatch_perWaveVar below, which owns the buffer's size; this is its address snippet.
+// (AMDGPU/gfx908.)
+class DYNINST_EXPORT BPatch_gpuPerWaveBufExpr : public BPatch_snippet {
+ public:
+    // offset = this variable's byte offset within the wave's slice (the emitter adds it
+    // to the slice base). 0 for the first / only per-wave variable.
+    explicit BPatch_gpuPerWaveBufExpr(unsigned offset = 0);
+};
+
+// The 64-bit VALUE held in this wave's slice[offset] (e.g. a file handle captured from an
+// inserted call's return), for use as a call argument. Loaded at the site.
+class DYNINST_EXPORT BPatch_gpuPerWaveValExpr : public BPatch_snippet {
+ public:
+    explicit BPatch_gpuPerWaveValExpr(unsigned offset = 0);
+};
+
+// A MARKER operand: append it to an inserted call's argument vector to tell the
+// emitter to store that call's ABI return value (v0:v1) into this wave's slice[offset].
+// It is not itself an argument.
+class DYNINST_EXPORT BPatch_gpuPerWaveCaptureExpr : public BPatch_snippet {
+ public:
+    explicit BPatch_gpuPerWaveCaptureExpr(unsigned offset = 0);
+};
+
+// A first-class per-wave variable: per-wave-distinct storage the framework backs and
+// hands to an inserted call. Allocate one (giving the per-wave byte size). It behaves
+// like a variable: assign it from an inserted call's return value (append
+// captureReturn() to that call's args), read its held value() as an argument to a
+// later call, or pass address() to hand the callee a pointer to the slice. Mirrors CPU
+// Dyninst's BPatch_variableExpr, but per-wavefront. (AMDGPU/gfx908.)
+class DYNINST_EXPORT BPatch_perWaveVar {
+    unsigned bytes_;
+    unsigned offset_;   // byte offset within the wave's slice (from the arena allocator)
+ public:
+    // Recommended: self-allocating. Reserves `bytes` (aligned) from `as`'s per-wave arena
+    // and takes the returned offset, so the variable owns its slot with no separate
+    // allocatePerWave call or offset threading (mirrors CPU Dyninst's malloc). Defined in
+    // BPatch_snippet.C.
+    BPatch_perWaveVar(BPatch_addressSpace *as, unsigned bytes, unsigned align = 8);
+    // Low-level: bind to an explicit byte offset within the slice WITHOUT allocating — for
+    // aliasing an existing slot (e.g. the slice base at offset 0). No arena reservation.
+    explicit BPatch_perWaveVar(unsigned bytesPerWave, unsigned offset = 0)
+        : bytes_(bytesPerWave), offset_(offset) {}
+    unsigned bytesPerWave() const { return bytes_; }
+    unsigned offset() const { return offset_; }
+    // THIS wave's slice base + offset as a 64-bit pointer (pass to a callee wanting a buffer).
+    BPatch_snippet address() const { return BPatch_gpuPerWaveBufExpr(offset_); }
+    // THIS wave's held 64-bit value (slice[offset]) — e.g. pass a captured handle as an arg.
+    BPatch_snippet value() const { return BPatch_gpuPerWaveValExpr(offset_); }
+    // Marker to append to a call's args so its return value is captured into slice[offset]:
+    //   args = { ..., pw.captureReturn() };  ->  pw = call(...).
+    BPatch_snippet captureReturn() const { return BPatch_gpuPerWaveCaptureExpr(offset_); }
+};
+
 class DYNINST_EXPORT BPatch_whileExpr : public BPatch_snippet {
   public:
    // BPatch_whileExpr::BPatch_whileExpr (while loop)

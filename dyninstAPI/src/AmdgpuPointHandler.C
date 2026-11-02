@@ -41,8 +41,17 @@
 
 // Our wrapper around it
 #include "AmdgpuKernelDescriptor.h"
+#include "amdgpu-kernel-meta.h"
+#include "amdgpu-scratch-abi.h"
+#include "mapped_object.h"
+#include "mapped_module.h"
+#include "patching/function.h"
+#include <cstdlib>
 
 #include "ASTs/ast.h"
+#include "ASTs/AmdgpuTTraceData.h"
+#include "BPatch_flowGraph.h"
+#include "BPatch_basicBlock.h"
 #include "debug.h"
 
 #include <cassert>
@@ -79,10 +88,16 @@ BPatch_variableExpr* AmdgpuGfx908PointHandler::getKernelDescriptorVariable(BPatc
   return nullptr;
 }
 
+// Granulated wavefront SGPR count needed to make `sgprCount` numbered SGPRs (s0..)
+// physically allocated. Blocks are 16 SGPRs wide (per the LLVM AMDGPUUsage math:
+// numBlocks = 2 * ((sgprCount / 16) - 1)); round the request up to a 16 multiple.
+uint32_t AmdgpuGfx908PointHandler::granulatedSgprCountFor(uint32_t sgprCount) const {
+  const uint32_t rounded = ((sgprCount + 15) / 16) * 16;   // round up to 16
+  return 2 * ((rounded / 16) - 1);
+}
+
 uint32_t AmdgpuGfx908PointHandler::getMaxGranulatedWavefrontSgprCount() const {
-  // This math comes from LLVM AMDGPUUsage documentation
-  const uint32_t maxSgprCount = 112; // Set SGPRs to 112 (max value)
-  return 2 * ((maxSgprCount / 16) - 1);
+  return granulatedSgprCountFor(112); // 112 = architectural max
 }
 
 // This returns the maximum SGPR ID by looking at the number of SGPR blocks allocated in the
@@ -102,70 +117,110 @@ bool AmdgpuGfx908PointHandler::canInstrument(const AmdgpuKernelDescriptor &kd) c
   return (kd.getCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount() != getMaxGranulatedWavefrontSgprCount());
 }
 
-bool AmdgpuGfx908PointHandler::isScalarRegAvailable(Register reg, const AmdgpuKernelDescriptor &kd) const {
-  // Since we max out register usage, the maximum SPGR is 101. AMDGPU GFX908
-  // aliases the VCC (opcode register ids 106 and 107) to highest allocated
-  // register pair (100 and 101 in this case), so the actual maximum available
-  // is 99.
-
-  assert(reg.isScalar() && "reg must be scalar");
-
-  // We can only use upto s99
-  const uint32_t maxUsableSgprId = 99;
-
-  const uint32_t firstRegId = reg.getId();
-  const uint32_t numRegs = reg.getCount();
-  const uint32_t lastRegId = firstRegId + numRegs - 1;
-
-  const uint32_t maxUsedSgprIdInKernel = getMaxUsedSgprId(kd);
-
-  const bool isPair = numRegs == 2;
-  const bool isEvenAligned = firstRegId % 2 == 0;
-  const bool isNotUsedInKernel = firstRegId > maxUsedSgprIdInKernel && lastRegId <= maxUsableSgprId;
-
-  return isPair && isEvenAligned && isNotUsedInKernel;
-}
 
 void AmdgpuGfx908PointHandler::insertPrologueIfKernel(BPatch_function *function) {
-  // If this function is a kernel, insert a prologue that loads s[94:95] with the address of memory
-  // for instrumentation variables. This address is at address [kernargPtrRegister] + kernargBufferSize.
-  // We get this information from the kernel descriptor. Each kernel has a kernel descriptor.
+  // If this function is a kernel, insert an entry prologue that gives it per-wave HARDWARE
+  // SCRATCH for register spilling: set up FLAT_SCRATCH, relocate the shifted system SGPRs,
+  // and rewrite the KD. (Historically this prologue loaded a per-wave base into s[94:95]
+  // from a kernarg slot; the scratch backend replaced that, so s[94:95] is no longer used.)
 
-  BPatch_variableExpr *kdVariable = getKernelDescriptorVariable(function);
-  if (!kdVariable) {
+  // Pillar B: the canonical per-kernel KD metadata, sourced once from the ".kd"
+  // symbol. Absent => not a kernel; nothing to do.
+  Dyninst::DyninstAPI::KernelMeta *km =
+      function->lowlevel_func()->obj()->getAmdgpuKernelMeta(function->getMangledName());
+  if (!km)
     return;
-  }
 
-  llvm::amdhsa::kernel_descriptor_t rawKd;
-  bool success = kdVariable->readValue(&rawKd, sizeof rawKd);
-  assert(success);
-
-  AmdgpuKernelDescriptor kd(rawKd, this->eflag);
-
-  if (!canInstrument(kd)) {
+  if (!canInstrument(km->kd)) {
     std::cerr << "Can't instrument " << function->getMangledName() << '\n' << "exiting...\n";
-    exit(1);
-  }
-
-  Register regPair = Register::makeScalarRegister(OperandRegId(94), BlockSize(2));
-  if (!isScalarRegAvailable(regPair, kd)) {
-    std::cerr << "Can't instrument " << function->getMangledName()
-              << " as s94 and s95 are not available.\n"
-              << "exiting...\n";
     exit(1);
   }
 
   std::vector<BPatch_point *> entryPoints;
   function->getEntryPoints(entryPoints);
 
-  auto prologuePtr =
-      boost::make_shared<AmdgpuPrologue>(regPair, kd.getKernargPtrRegisterPair(), kd.getKernargSize());
+  boost::shared_ptr<AmdgpuPrologue> prologuePtr;
+  // Give this (possibly non-scratch) kernel a hardware scratch region for register
+  // spilling: rewrite its KD (enable flat_scratch_init + wave_offset, bump
+  // user_sgpr_count, set private_segment_fixed_size); the entry prologue will set up
+  // FLAT_SCRATCH and relocate the shifted SGPRs. The launcher forwards the KD's
+  // private_segment_size to the dispatch packet, so ROCr backs the scratch
+  // automatically. The KD is mutated IN MEMORY on the canonical KernelMeta and
+  // committed once at ELF-emit (BinaryEdit::writeFile) — no eager write-back here.
+  {
+    const uint32_t kScratchSlotBytes = 256;  // per-lane: SGPR pack dword + VGPR spill
+    DyninstAPI::gfx908ScratchAbi().enableScratchInKD(km->kd, kScratchSlotBytes);
+    km->refreshLayout();   // enabling flat_scratch_init shifts the system SGPRs
+    km->dirty = true;
+    // Snapshot the (scratch-enabled) KD into the prologue AST. Taken BEFORE
+    // maximizeSgprAllocationIfKernel grows the grant/kernarg (same as before), so the
+    // prologue carries the original grant/kernarg — the emitter reads the grown values
+    // from the KernelMeta independently.
+    // systemSgprShift = 0 when the compiler already had flat_scratch_init (non-leaf:
+    // enableScratchInKD made no shift), else 2 (leaf: it just enabled it). The prologue
+    // uses this to relocate the shifted system SGPRs (wgid/info) — a hardcoded 2 wrongly
+    // moved them for non-leaf kernels.
+    // Architected/absolute flat scratch (gfx942/CDNA3) appends NO user SGPR, so it never
+    // shifts the system SGPRs — shift is 0 regardless of the compiler's scratch state.
+    const uint32_t sysSgprShift =
+        (km->kd.supportsArchitectedFlatScratch() || km->originalScratchEnabled) ? 0u : 2u;
+    // Seed the prologue with the kernel's REAL machine id (from its parsed KD), NOT the
+    // hardcoded PointHandler::eflag default (GFX908). Otherwise a gfx942 kernel's entry
+    // prologue would think it is gfx908 and emit the manual FLAT_SCRATCH = flat_scratch_init
+    // + wave_offset add — reading SGPRs that don't exist under architected flat scratch,
+    // producing a garbage FLAT_SCRATCH and a scratch aperture violation at every spill.
+    prologuePtr = boost::make_shared<AmdgpuPrologue>(km->kd, km->kd.getAmdgpuMach(),
+                                                     km->originalKernargSize, sysSgprShift,
+                                                     km->originalPrivateSegment);
+  }
 
   DyninstAPI::codeGenASTPtr prologueNodePtr =
         boost::make_shared<AmdgpuPrologueNode>(prologuePtr);
 
   AmdgpuPrologueSnippet prologueSnippet(prologueNodePtr);
   insertPrologueAtPoints(prologueSnippet, entryPoints);
+
+  // PROTOTYPE (SQTT/ATT marker delivery): when DYNINST_TTRACE_MARKER=<u32> is set, also insert a
+  // register-only, NO-CALL `s_mov_b32 m0,<marker>; s_ttracedata` at each entry point. The SQ streams
+  // the marker into the hardware thread trace only while a trace session is active (host-side), so it
+  // is a NOP with zero overhead otherwise. Assumes M0 is dead. Mirrors insertPrologueAtPoints' pushBack.
+  boost::shared_ptr<AmdgpuTTraceData> ttPtr;
+  if (const char *rg = getenv("DYNINST_TTRACE_REG")) {
+    // Read a live ARCH register into the marker. "exec" -> exec_lo (126); otherwise an SSRC encoding
+    // (s0..s101 = 0..101). This is the BPatch_registerExpr-style "read an arch value" form.
+    uint32_t src = (std::string(rg) == "exec") ? 126u : (uint32_t)strtoul(rg, nullptr, 0);
+    ttPtr = boost::make_shared<AmdgpuTTraceData>(AmdgpuTTraceData::FromReg{}, src);
+  } else if (const char *mk = getenv("DYNINST_TTRACE_MARKER")) {
+    ttPtr = boost::make_shared<AmdgpuTTraceData>((uint32_t)strtoul(mk, nullptr, 0));
+  }
+  if (ttPtr) {
+    DyninstAPI::codeGenASTPtr ttNodePtr = boost::make_shared<AmdgpuTTraceDataNode>(ttPtr);
+    AmdgpuTTraceDataSnippet ttSnippet(ttNodePtr);
+    std::vector<BPatch_point *> targets;
+    if (const char *addrStr = getenv("DYNINST_TTRACE_ADDR")) {
+      // Target a specific instruction address (for verification of SCC-live insertion points).
+      unsigned long addr = strtoul(addrStr, nullptr, 0);
+      if (BPatch_point *pt = function->findPoint((Dyninst::Address)addr))
+        targets.push_back(pt);
+    } else if (getenv("DYNINST_TTRACE_ALLBB")) {
+      // Sample EXEC across the whole kernel: a marker at every basic-block entry, so DIVERGENT blocks
+      // (where EXEC != all-ones) are captured too (e.g. an i&1 if-block runs under the odd-lane mask).
+      if (BPatch_flowGraph *cfg = function->getCFG()) {
+        std::set<BPatch_basicBlock *> blocks;
+        cfg->getAllBasicBlocks(blocks);
+        for (BPatch_basicBlock *bb : blocks)
+          if (BPatch_point *pt = function->findPoint(bb->getStartAddress()))
+            targets.push_back(pt);
+      }
+    } else {
+      targets = entryPoints;
+    }
+    for (BPatch_point *point : targets) {
+      auto *iPoint = dynamic_cast<instPoint *>(PatchAPI::convert(point, BPatch_callBefore));
+      if (!iPoint) continue;
+      iPoint->pushBack(ttSnippet.ast_wrapper);
+    }
+  }
 }
 
 void AmdgpuGfx908PointHandler::insertEpilogueIfKernel(BPatch_function *function) {
@@ -192,36 +247,54 @@ static constexpr uint32_t roundUpTo8(uint32_t x) {
 }
 
 void AmdgpuGfx908PointHandler::maximizeSgprAllocationIfKernel(BPatch_function *function) {
-  BPatch_variableExpr *kdVariable = getKernelDescriptorVariable(function);
-  assert(kdVariable);
+  Dyninst::DyninstAPI::KernelMeta *km =
+      function->lowlevel_func()->obj()->getAmdgpuKernelMeta(function->getMangledName());
+  if (!km)
+    return;
+  Dyninst::AmdgpuKernelDescriptor &kd = km->kd;
 
-  llvm::amdhsa::kernel_descriptor_t rawKd;
-  bool success = kdVariable->readValue(&rawKd, sizeof rawKd);
-  if(!success) {
-    inst_printf("Unable to read kernel descriptor for %s\n", kdVariable->getName());
-    assert(0);
-  }
-
-  AmdgpuKernelDescriptor kd(rawKd, this->eflag);
-
-  uint32_t newValue = this->getMaxGranulatedWavefrontSgprCount();
+  // GLOBAL path: max the SGPR grant (the reserved highs s[92:95] are safe only
+  // because nothing is granted that high). SCRATCH path: size to the ACTUAL
+  // requirement — the reserved spill block (EXEC pair + SADDR pair = 4) sits at the
+  // TOP of a tight grant, and emitCall/generateBranch derive reservedBase =
+  // grantTop-4 from it. 48 SGPRs (gran 4) => reservedBase 44, above the kernel's
+  // usage and the callee's transitive footprint (<= 44; our library uses 32). A
+  // kernel that itself uses more gets max(its usage + 8, 48). VCC (s106:107) and
+  // FLAT_SCRATCH (s102:103) are SPECIAL regs, allocated independently of the count.
+  // Scratch spill (the default): size the SGPR grant just above the kernel's own
+  // usage so the trampoline's reserved block sits at the top of a tight grant.
+  // (Was env-gated DYNINST_SPILL_SCRATCH; the else-branch maxed the grant for the
+  // legacy global-buffer path.)
+  const uint32_t kScratchGrant = 48;   // gran 4; reserved block at s44..s47
+  const uint32_t kernelUsed = getMaxUsedSgprId(kd);
+  // Headroom above the kernel's own SGPR usage for the call trampoline. At a
+  // HIGH-PRESSURE mid-block instrumentation point the caller's live registers reach
+  // up to kernelUsed, and ABOVE them the trampoline must simultaneously seat, all
+  // WITHIN the grant (allocateGprBlock/emitIndirectCall steer everything from
+  // grantTop-6 up off-limits, so the usable window is [kernelUsed, grantTop-6)):
+  //   reserved block (EXEC-save pair + SADDR + spare) .... 4 SGPRs   (held to the call)
+  //   inter-module GOT idiom pair-block ................... 4 SGPRs
+  //   forwarded arg destinations + slack ................ ~10 SGPRs
+  // => ~18 above kernelUsed, plus the 6 accounting slots at the top. +8 (entry/exit,
+  // low pressure) was fine but left only a 6-SGPR window at a mid-block call, so the
+  // GOT block could not be allocated within the grant (assert) and, when forced high,
+  // its target pair aliased the spill SADDR. +24 lifts a kernelUsed=48 kernel to
+  // grantTop 80 (22-SGPR window). Capped at the architectural max by the grant field.
+  uint32_t required = kernelUsed + 24; // reserved block + GOT idiom + arg dests + accounting
+  if (required < kScratchGrant) required = kScratchGrant;
+  const uint32_t newValue = granulatedSgprCountFor(required);
   kd.setCOMPUTE_PGM_RSRC1_GranulatedWavefrontSgprCount(newValue);
 
+  // Grow the kernarg segment by 8 (the appended instrumentation pointer slot). This is
+  // the ONLY kernarg mutation, so km->originalKernargSize (captured at parse) stays the
+  // pristine value; kd.getKernargSize() is now the grown value. The two are DISTINCT and
+  // both remembered — removing the original-vs-grown ambiguity behind the 2D offset bug.
   uint32_t kernargSize = kd.getKernargSize();
   uint32_t newKernargSize = roundUpTo8(kernargSize) + 8;
   kd.setKernargSize(newKernargSize);
 
-  // We have modified the kernel descriptor. Now overwrite the original one with it.
-  success = kdVariable->writeValue(kd.getRawPtr(), sizeof(rawKd), false);
-  // false is passed explicitly only so the compiler can do overload resolution between:
-  // writeValue(const void *src, bool saveWorld=false)
-  //      and
-  // writeValue(const void *src, int len,bool saveWorld=false)
-
-  if(!success) {
-    inst_printf("Unable to write kernel descriptor for %s\n", kdVariable->getName());
-    assert(0);
-  }
+  // KD mutated in memory only; committed once at ELF-emit (BinaryEdit::writeFile).
+  km->dirty = true;
 }
 
 void AmdgpuGfx908PointHandler::insertPrologueAtPoints(AmdgpuPrologueSnippet &snippet,
@@ -246,16 +319,11 @@ void AmdgpuGfx908PointHandler::writeInstrumentedKernelNames(const std::string &f
   std::ofstream outFile(filePath);
 
   for (auto *function : instrumentedFunctions) {
-    BPatch_variableExpr *kdVar = getKernelDescriptorVariable(function);
-    if(!kdVar)
+    Dyninst::DyninstAPI::KernelMeta *km =
+        function->lowlevel_func()->obj()->getAmdgpuKernelMeta(function->getMangledName());
+    if (!km)
       continue;
-
-    llvm::amdhsa::kernel_descriptor_t rawKd;
-    bool success = kdVar->readValue(&rawKd, sizeof rawKd);
-    assert(success);
-
-    AmdgpuKernelDescriptor kd(rawKd, this->eflag);
-    outFile << function->getMangledName() << ' ' << kd.getKernargSize() << '\n';
+    outFile << function->getMangledName() << ' ' << km->kd.getKernargSize() << '\n';
   }
 
   outFile.close();

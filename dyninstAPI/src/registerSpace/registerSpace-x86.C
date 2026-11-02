@@ -461,7 +461,7 @@ void registerSpace::initialize()
 #endif
 }
 
-Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind /*regKind*/, uint32_t /*numRegs*/, Dyninst::Alignment /*alignment*/) {
+Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind /*regKind*/, uint32_t /*numRegs*/, uint32_t /*alignment*/) {
   assert("registerSpace::allocateGprBlock not implemented for x86");
   return Dyninst::Null_Register;
 }

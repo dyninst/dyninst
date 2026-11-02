@@ -102,7 +102,7 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(APPEND _sources src/addressSpace-ppc.C src/inst-power.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(APPEND _sources src/addressSpace-aarch64.C)
-elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908 OR DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
   list(
     APPEND _sources
     src/amdgpu/gfx908/addressSpace-amdgpu-gfx908.C
@@ -112,6 +112,7 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     src/AmdgpuKernelDescriptor.C
     src/AmdgpuPointHandler.C
     src/amdgpu/gfx908/amdgpu-gfx908-details.C
+    src/amdgpu-kernel-meta.C
     # Additional codegen gens compiled alongside for runtime emitter selection (getEmitter() by object arch).
     src/amdgpu/gfx940/emit-amdgpu-gfx940.C
     src/amdgpu/gfx940/amdgpu-gfx940-details.C
