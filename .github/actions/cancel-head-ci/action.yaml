@@ -1,0 +1,42 @@
+name: Cancel the rest of this commit's CI
+description: >-
+  Cancel the other workflow runs for the same head commit that are still
+  queued or running, except libabigail. A job uses it as its last step,
+  under `if: failure()`, so that one failure stops the rest of the CI for a
+  pull request instead of letting it run to completion. The job needs
+  `actions: write`. Pull requests from forks get a read-only token; the
+  cancel requests then fail and are only reported as warnings.
+
+runs:
+  using: "composite"
+
+  steps:
+    - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      with:
+        script: |
+          const sha = context.payload.pull_request
+            ? context.payload.pull_request.head.sha
+            : context.sha;
+          const runs = await github.paginate(
+            github.rest.actions.listWorkflowRunsForRepo,
+            { owner: context.repo.owner, repo: context.repo.repo,
+              head_sha: sha, per_page: 100 });
+          for (const run of runs) {
+            // This run's own failed job must keep its "failure" result; the
+            // other legs of its matrix stop through fail-fast.
+            if (run.id === context.runId) continue;
+            if (run.status === 'completed') continue;
+            // An ABI report is wanted even when something else failed.
+            if (run.path.includes('libabigail.yaml')) {
+              core.info(`kept ${run.name} (${run.id})`);
+              continue;
+            }
+            try {
+              await github.rest.actions.cancelWorkflowRun(
+                { owner: context.repo.owner, repo: context.repo.repo,
+                  run_id: run.id });
+              core.info(`cancelled ${run.name} (${run.id})`);
+            } catch (e) {
+              core.warning(`could not cancel ${run.name} (${run.id}): ${e.message}`);
+            }
+          }
