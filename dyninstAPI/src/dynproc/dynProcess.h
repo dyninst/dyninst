@@ -125,18 +125,18 @@ public:
     // Memory access
     bool dumpCore(std::string coreFile); // platform-specific
     bool writeDataSpace(void *inTracedProcess,
-                        u_int amount, const void *inSelf);
+                        uint32_t amount, const void *inSelf);
     bool writeDataWord(void *inTracedProcess,
-                       u_int amount, const void *inSelf);
-    bool readDataSpace(const void *inTracedProcess, u_int amount,
+                       uint32_t amount, const void *inSelf);
+    bool readDataSpace(const void *inTracedProcess, uint32_t amount,
                        void *inSelf, bool displayErrMsg);
-    bool readDataWord(const void *inTracedProcess, u_int amount,
+    bool readDataWord(const void *inTracedProcess, uint32_t amount,
                       void *inSelf, bool displayErrMsg);
-    bool writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
-    bool writeTextWord(void *inTracedProcess, u_int amount, const void *inSelf);
-    bool readTextSpace(const void *inTracedProcess, u_int amount,
+    bool writeTextSpace(void *inTracedProcess, uint32_t amount, const void *inSelf);
+    bool writeTextWord(void *inTracedProcess, uint32_t amount, const void *inSelf);
+    bool readTextSpace(const void *inTracedProcess, uint32_t amount,
                        void *inSelf);
-    bool readTextWord(const void *inTracedProcess, u_int amount,
+    bool readTextWord(const void *inTracedProcess, uint32_t amount,
                       void *inSelf);
 
     unsigned getMemoryPageSize() const;
@@ -542,7 +542,7 @@ protected:
 
     // Debugging
     bool setBreakpoint(Address addr);
-    void writeDebugDataSpace(void *inTracedProcess, u_int amount,
+    void writeDebugDataSpace(void *inTracedProcess, uint32_t amount,
             const void *inSelf);
     bool launchDebugger();
     bool startDebugger(); // platform-specific

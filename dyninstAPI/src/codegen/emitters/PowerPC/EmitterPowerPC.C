@@ -355,7 +355,7 @@ namespace Dyninst { namespace DyninstAPI {
       if(!inInstrumentation) {
         assert(savedRegs.size() == 0);
       }
-      for(u_int ui = 0; ui < savedRegs.size(); ui++) {
+      for(uint32_t ui = 0; ui < savedRegs.size(); ui++) {
         ppc::restoreRegister(gen, savedRegs[ui], FUNC_CALL_SAVE(gen.width()));
       }
 

@@ -1083,7 +1083,7 @@ bool ObjectELF::get_relocationDyn_entries(unsigned rel_scnp_index,
 
         if (sym.isValid() && (rel.isValid() || rela.isValid()) && strs) {
             /* Iterate over the entries. */
-            for (u_int i = 0; i < (reldata.d_size() / rel_entry_size_); ++i) {
+            for (uint32_t i = 0; i < (reldata.d_size() / rel_entry_size_); ++i) {
                 num_rel_entries_found++;
                 long offset;
                 long addend;
@@ -1341,7 +1341,7 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                 Elf_X_Rela _rela = reldata.get_rela();
                 const char *_strs = strdata.get_string();
 
-                for (u_int i = 0; i < (rel_plt_size_ / rel_plt_entry_size_); ++i) {
+                for (uint32_t i = 0; i < (rel_plt_size_ / rel_plt_entry_size_); ++i) {
                     long _offset;
                     long _index;
 
@@ -1452,7 +1452,7 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                 if (fbt_.size() > 0 && !fbt_[0].rel_addr() && fbt_[0].name() != "@plt")
                     fbt_iter = 0;
 
-                for (u_int i = 0; i < (rel_plt_size_ / rel_plt_entry_size_); ++i) {
+                for (uint32_t i = 0; i < (rel_plt_size_ / rel_plt_entry_size_); ++i) {
                     long offset;
                     long addend;
                     long index;

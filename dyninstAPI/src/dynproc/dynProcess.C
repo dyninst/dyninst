@@ -784,7 +784,7 @@ void PCProcess::addInferiorHeap(mapped_object *obj) {
     /* Get a list of inferior heaps in the new image */
     if (obj->getInfHeapList(infHeaps)) {
         /* Add the vector to the inferior heap structure */
-        for (u_int j=0; j < infHeaps.size(); j++) {
+        for (uint32_t j=0; j < infHeaps.size(); j++) {
             infmalloc_printf("%s[%d]: adding heap at 0x%lx to 0x%lx, name %s\n",
                              FILE__, __LINE__,
                              infHeaps[j].addr(),
@@ -1178,7 +1178,7 @@ void PCProcess::markExited() {
     pcProc_.reset();
 }
 
-void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
+void PCProcess::writeDebugDataSpace(void *inTracedProcess, uint32_t amount,
         const void *inSelf)
 {
     static unsigned write_no = 0;
@@ -1214,7 +1214,7 @@ void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
     write_printf("\n};\n");
 }
 
-bool PCProcess::writeDataSpace(void *inTracedProcess, u_int amount,
+bool PCProcess::writeDataSpace(void *inTracedProcess, uint32_t amount,
                                const void *inSelf) {
     if( isTerminated() ) {
        cerr << "Writing to terminated process!" << endl;
@@ -1254,7 +1254,7 @@ bool PCProcess::writeDataSpace(void *inTracedProcess, u_int amount,
 }
 
 bool PCProcess::writeDataWord(void *inTracedProcess,
-                   u_int amount, const void *inSelf) 
+                   uint32_t amount, const void *inSelf) 
 {
     if( isTerminated() ) return false;
 
@@ -1264,7 +1264,7 @@ bool PCProcess::writeDataWord(void *inTracedProcess,
     return result;
 }
 
-bool PCProcess::readDataSpace(const void *inTracedProcess, u_int amount,
+bool PCProcess::readDataSpace(const void *inTracedProcess, uint32_t amount,
                    void *inSelf, bool displayErrMsg)
 {
     if( isTerminated() ) return false;
@@ -1280,7 +1280,7 @@ bool PCProcess::readDataSpace(const void *inTracedProcess, u_int amount,
     return result;
 }
 
-bool PCProcess::readDataWord(const void *inTracedProcess, u_int amount,
+bool PCProcess::readDataWord(const void *inTracedProcess, uint32_t amount,
                   void *inSelf, bool displayErrMsg)
 {
     if( isTerminated() ) return false;
@@ -1298,7 +1298,7 @@ bool PCProcess::readDataWord(const void *inTracedProcess, u_int amount,
     return result;
 }
 
-bool PCProcess::writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf)
+bool PCProcess::writeTextSpace(void *inTracedProcess, uint32_t amount, const void *inSelf)
 {
     if( isTerminated() ) return false;
     bool result = pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
@@ -1308,7 +1308,7 @@ bool PCProcess::writeTextSpace(void *inTracedProcess, u_int amount, const void *
     return result;
 }
 
-bool PCProcess::writeTextWord(void *inTracedProcess, u_int amount, const void *inSelf)
+bool PCProcess::writeTextWord(void *inTracedProcess, uint32_t amount, const void *inSelf)
 {
     if( isTerminated() ) return false;
 
@@ -1320,7 +1320,7 @@ bool PCProcess::writeTextWord(void *inTracedProcess, u_int amount, const void *i
     return result;
 }
 
-bool PCProcess::readTextSpace(const void *inTracedProcess, u_int amount,
+bool PCProcess::readTextSpace(const void *inTracedProcess, uint32_t amount,
                    void *inSelf)
 {
     if( isTerminated() ) return false;
@@ -1328,7 +1328,7 @@ bool PCProcess::readTextSpace(const void *inTracedProcess, u_int amount,
     return pcProc_->readMemory(inSelf, (Address)inTracedProcess, amount);
 }
 
-bool PCProcess::readTextWord(const void *inTracedProcess, u_int amount,
+bool PCProcess::readTextWord(const void *inTracedProcess, uint32_t amount,
                   void *inSelf)
 {
     if( isTerminated() ) return false;
