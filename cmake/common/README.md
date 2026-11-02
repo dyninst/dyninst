@@ -306,6 +306,87 @@ flags, so a `-Wno-` flag among them wins. Settings for particular files
 of its own also stay outside: Dyninst's are in
 `cmake/DyninstWarningOverrides.cmake`, which includes this module.
 
+### Suppressing a warning in code
+
+Two Dyninst headers have macros for code that a warning flag objects to:
+`compiler_diagnostics.h` and `compiler_annotations.h`, in Dyninst's
+`common/h`. They are installed with Dyninst's other headers, so any
+repository built against Dyninst can include them. Each macro expands to
+what the compiler in use needs, or to nothing.
+
+`compiler_diagnostics.h` turns one warning off for a region of code:
+
+```c++
+DYNINST_DIAGNOSTIC_BEGIN_SUPPRESS_VLA
+char buf[n];
+DYNINST_DIAGNOSTIC_END_SUPPRESS_VLA
+```
+
+Each macro goes on a line of its own, without `()` or `;`. The warnings it
+covers:
+
+| Code | Warning |
+| :--- | :--- |
+| `FLEX_ARRAY` | flexible array member |
+| `VLA` | variable-length array |
+| `VLA_EXTENSION` | Clang's VLA extension |
+| `VLA_ALL` | both of the above |
+| `VLA_GCC_PRAGMA_BUG` | `VLA`, older GCC only |
+| `LOGICAL_OP` | GCC 6-8 false positive |
+| `DUPLICATED_BRANCHES` | GCC 7-8 false positive |
+| `UNUSED_VARIABLE` | Clang before 10 |
+| `MAYBE_UNINITIALIZED` | GCC 12-15 false positive |
+
+- `FLEX_ARRAY`, `VLA`: C features that C++ does not have.
+- `VLA_GCC_PRAGMA_BUG`: GCC before 9, and 11.0-11.1, apply the suppression
+  a line late. It expands to the `VLA` suppression on those only.
+- `LOGICAL_OP`: an expression such as `x == a && x == b`, where `a` and `b`
+  are different constants with the same value.
+- `DUPLICATED_BRANCHES`: the same, for the conditions of an `if`/`else if`
+  chain.
+- `UNUSED_VARIABLE`: a variable that exists only for its constructor and
+  destructor, such as a lock guard.
+- `MAYBE_UNINITIALIZED`: `boost::optional::value_or`.
+
+`DYNINST_SUPPRESS_UNUSED_VARIABLE(var)` marks one variable as meant to be
+unused.
+
+`compiler_annotations.h` has attributes that let the compiler check more,
+or stop a warning that is expected:
+
+| Macro | Goes |
+| :--- | :--- |
+| `DYNINST_FALLTHROUGH;` | at the end of a `case` |
+| `DYNINST_DEPRECATED("msg")` | before a declaration |
+| `DYNINST_PRINTF_ANNOTATION(f, a)` | after a declaration |
+| `DYNINST_SCANF_ANNOTATION(f, a)` | after a declaration |
+| `DYNINST_FORMAT_ANNOTATION(t, f, a)` | after a declaration |
+| `DYNINST_MALLOC_ANNOTATION` | after a declaration |
+| `DYNINST_MALLOC_DEALLOC_ANNOTATION(d)` | after a declaration |
+| `DYNINST_MALLOC_DEALLOC_POS_ANNOTATION(d, p)` | after a declaration |
+
+- `DYNINST_FALLTHROUGH`: the `case` falls through to the next one on
+  purpose.
+- `DYNINST_DEPRECATED`: a use of the function, variable or type warns,
+  with the message.
+- `DYNINST_PRINTF_ANNOTATION`, `DYNINST_SCANF_ANNOTATION`: the function
+  takes a `printf` or `scanf` format string, at 1-based argument `f`, and
+  its values from argument `a` on, so the compiler checks them:
+
+  ```c++
+  void log(int level, const char *fmt, ...) DYNINST_PRINTF_ANNOTATION(2, 3);
+  ```
+
+  `DYNINST_FORMAT_ANNOTATION` is the same with the format type `t` given.
+- `DYNINST_MALLOC_*`: the function returns newly allocated memory;
+  `d` names the function that frees it, and `p` that function's argument
+  that takes the pointer.
+
+Each header's comments describe its macros in full. Defining
+`DYNINST_DIAGNOSTIC_NO_SUPPRESSIONS` makes every `compiler_diagnostics.h`
+macro expand to nothing, so the warnings appear. Dyninst's libraries define
+it when `DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS` is on.
+
 ## `gersemi/`
 
 `DyninstCMakeFormat.cmake` adds four targets, none of them part of `all`:
