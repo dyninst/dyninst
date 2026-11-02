@@ -9,11 +9,10 @@
 //   Trace/breakpoint trap
 //
 // Usage: rewrite_early_trap <mutatee> <output directory>
-//        rewrite_early_trap --skip <reason>
 // DYNINSTAPI_RT_LIB names the runtime library; the rewritten mutatee is run
 // with its directory and the output directory in LD_LIBRARY_PATH.
-// Reports a skip (exit status 77) with --skip, or if relocation left no trap
-// at early_trap_target.
+// Reports a skip (exit status 77) if relocation left no trap at
+// early_trap_target.
 
 #include <cerrno>
 #include <cstdlib>
@@ -105,10 +104,6 @@ namespace {
 }
 
 int main(int argc, char **argv) {
-  if (argc == 3 && std::string(argv[1]) == "--skip") {
-    std::cout << "skipping: " << argv[2] << '\n';
-    return 77;
-  }
   if (argc != 3) {
     std::cerr << "Usage " << argv[0] << ": mutatee outdir\n";
     return EXIT_FAILURE;
@@ -154,7 +149,7 @@ int main(int argc, char **argv) {
   }
 
   if (!starts_with_trap(rewritten, "early_trap_target")) {
-    std::cout << "skipping: relocation left no trap at early_trap_target\n";
+    std::cout << "skipped: relocation left no trap at early_trap_target\n";
     return 77;
   }
 
