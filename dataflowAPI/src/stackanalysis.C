@@ -382,8 +382,15 @@ void StackAnalysis::fixpoint(bool verbose) {
 
       blockInputs[block] = input;
 
-      // Step 3: calculate our new outs
-      (*blockEffects)[block].apply(block, input, blockOutputs[block]);
+      // Step 3: calculate our new outs. The effects may be cached and shared
+      // with other analyses of this function, so look them up without
+      // inserting; a block without effects passes its input through.
+      auto effects = blockEffects->find(block);
+      if (effects != blockEffects->end()) {
+         effects->second.apply(block, input, blockOutputs[block]);
+      } else {
+         blockOutputs[block] = input;
+      }
       if (verbose) {
          stackanalysis_printf("\t ... output from block: %s\n",
             format(blockOutputs[block]).c_str());
@@ -541,8 +548,14 @@ void StackAnalysis::summaryFixpoint() {
 
       blockSummaryInputs[block] = input;
 
-      // Step 3: calculate our new outs
-      (*blockEffects)[block].accumulate(input, blockSummaryOutputs[block]);
+      // Step 3: calculate our new outs, without inserting into the shared
+      // effects (see fixpoint)
+      auto effects = blockEffects->find(block);
+      if (effects != blockEffects->end()) {
+         effects->second.accumulate(input, blockSummaryOutputs[block]);
+      } else {
+         blockSummaryOutputs[block] = input;
+      }
 
       // Step 4: push all children on the worklist.
       boost::lock_guard<Block> g(*block);
@@ -568,21 +581,30 @@ void StackAnalysis::summarize() {
    // Map to record definition addresses as they are resolved.
    std::map<Block *, std::map<Absloc, Address> > defAddrs;
 
+   // The effects may be shared with other analyses of this function, so look
+   // them up without inserting; a block without effects has none to replay.
+   static const InstructionEffects::mapped_type noInsnEffects;
+   static const CallEffects::mapped_type noCallEffects;
+
    for (auto bit = blockInputs.begin(); bit != blockInputs.end(); ++bit) {
       Block *block = bit->first;
       AbslocState input = bit->second;
 
-      std::map<Offset, TransferFuncs>::iterator iter;
-      for (iter = (*insnEffects)[block].begin();
-         iter != (*insnEffects)[block].end(); ++iter) {
+      auto insnIter = insnEffects->find(block);
+      const auto &insns =
+         insnIter != insnEffects->end() ? insnIter->second : noInsnEffects;
+      auto callIter = callEffects->find(block);
+      const auto &calls =
+         callIter != callEffects->end() ? callIter->second : noCallEffects;
+      for (auto iter = insns.begin(); iter != insns.end(); ++iter) {
          Offset off = iter->first;
-         TransferFuncs &xferFuncs = iter->second;
+         const TransferFuncs &xferFuncs = iter->second;
 
          // TODO: try to collapse these in some intelligent fashion
          (*intervals_)[block][off] = input;
 
-         for (TransferFuncs::iterator iter2 = xferFuncs.begin();
-            iter2 != xferFuncs.end(); ++iter2) {
+         for (auto iter2 = xferFuncs.begin(); iter2 != xferFuncs.end();
+            ++iter2) {
             input[iter2->target] = iter2->apply(input);
             DefHeightSet &s = input[iter2->target];
             const Definition &def = s.begin()->def;
@@ -598,10 +620,10 @@ void StackAnalysis::summarize() {
             }
          }
 
-         if (callEffects->find(block) != callEffects->end() &&
-            (*callEffects)[block].find(off) != (*callEffects)[block].end()) {
+         auto call = calls.find(off);
+         if (call != calls.end()) {
             // We have a function summary to apply
-            const TransferSet &summary = (*callEffects)[block][off];
+            const TransferSet &summary = call->second;
             AbslocState newInput = input;
             for (auto summaryIter = summary.begin();
                summaryIter != summary.end(); summaryIter++) {
@@ -955,8 +977,13 @@ void StackAnalysis::findDefinedHeights(ParseAPI::Block* b, Address addr,
       if (!analyze()) return;
    }
    STACKANALYSIS_ASSERT(intervals_);
-   for (AbslocState::iterator i = (*intervals_)[b][addr].begin();
-      i != (*intervals_)[b][addr].end(); ++i) {
+   // The intervals may be shared with other analyses of this function, so
+   // look them up without inserting.
+   auto blockIntervals = intervals_->find(b);
+   if (blockIntervals == intervals_->end()) return;
+   auto state = blockIntervals->second.find(addr);
+   if (state == blockIntervals->second.end()) return;
+   for (auto i = state->second.begin(); i != state->second.end(); ++i) {
       if (i->second.isTopSet()) continue;
 
       heights.push_back(std::make_pair(i->first, i->second.getHeightSet()));
@@ -977,8 +1004,12 @@ void StackAnalysis::findDefHeightPairs(Block *b, Address addr,
       if (!analyze()) return;
    }
    STACKANALYSIS_ASSERT(intervals_);
-   for (AbslocState::iterator i = (*intervals_)[b][addr].begin();
-      i != (*intervals_)[b][addr].end(); ++i) {
+   // Look up without inserting (see findDefinedHeights)
+   auto blockIntervals = intervals_->find(b);
+   if (blockIntervals == intervals_->end()) return;
+   auto state = blockIntervals->second.find(addr);
+   if (state == blockIntervals->second.end()) return;
+   for (auto i = state->second.begin(); i != state->second.end(); ++i) {
       if (i->second.isTopSet()) continue;
 
       defHeights.push_back(std::make_pair(i->first, i->second));
@@ -1027,7 +1058,9 @@ StackAnalysis::DefHeightSet StackAnalysis::findDefHeight(Block *b, Address addr,
       return ret;
    }
 
-   ret = i->second[loc];
+   // Look up without inserting (see findDefinedHeights)
+   auto height = i->second.find(loc);
+   ret = height != i->second.end() ? height->second : DefHeightSet();
    return ret;
 }
 
@@ -1067,7 +1100,10 @@ StackAnalysis::Height StackAnalysis::find(Block *b, Address addr, Absloc loc) {
    }
    if (i == sintervals.end()) return Height::bottom;
 
-   ret = i->second[loc].getHeightSet();
+   // Look up without inserting (see findDefinedHeights)
+   auto height = i->second.find(loc);
+   ret = (height != i->second.end() ? height->second : DefHeightSet())
+            .getHeightSet();
    return ret;
 }
 

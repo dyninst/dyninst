@@ -106,16 +106,29 @@ int main() {
   }
 
   // A new StackAnalysis finds the cached results, so this pass reads them
-  // back rather than analyzing again. A function that threw has nothing
-  // cached; it is analyzed again and throws again.
-  size_t mismatches = 0;
-  for (size_t i = 0; i < funcs.size(); ++i) {
-    if (heights(funcs[i]) != first[i]) {
-      if (++mismatches <= 5) {
-        std::fprintf(stderr, "%s: stack heights differ between passes\n",
-                     funcs[i]->name().c_str());
+  // back rather than analyzing again. Every thread reads every function, so
+  // several threads read the same results at once. A function that threw has
+  // nothing cached; it is analyzed again and throws again.
+  std::vector<size_t> thread_mismatches(nthreads);
+  threads.clear();
+  for (unsigned t = 0; t < nthreads; ++t) {
+    threads.emplace_back([&, t] {
+      for (size_t i = 0; i < funcs.size(); ++i) {
+        if (heights(funcs[i]) != first[i]) {
+          if (++thread_mismatches[t] <= 5) {
+            std::fprintf(stderr, "%s: stack heights differ between passes\n",
+                         funcs[i]->name().c_str());
+          }
+        }
       }
-    }
+    });
+  }
+  for (auto &th : threads) {
+    th.join();
+  }
+  size_t mismatches = 0;
+  for (auto m : thread_mismatches) {
+    mismatches += m;
   }
   std::printf("%zu functions, %zu analyzed, %zu mismatches\n", funcs.size(),
               analyzed, mismatches);
