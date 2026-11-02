@@ -399,6 +399,11 @@ void HybridAnalysisOW::owLoop::instrumentOverwriteLoop(Address writeInsn)
     BPatchSnippetHandle *snippetHandle = NULL;
     while (eIter != instEdges.end()) {
         BPatch_point *edgePoint = (*eIter)->getPoint();
+        if (!edgePoint) {
+            mal_printf(" loop exit edge has no instrumentation point\n");
+            eIter++;
+            continue;
+        }
         mal_printf(" instr edge: 0x%lx -> 0x%lx\n", 
             (*eIter)->getSource()->getLastInsnAddress(),
             (*eIter)->getTarget()->getStartAddress());
