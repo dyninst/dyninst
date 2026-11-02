@@ -30,6 +30,7 @@
 #include "BPatch_image.h"
 #include "BPatch_object.h"
 #include "Symtab.h"
+#include "dyninst_test_skip.h"
 
 namespace st = Dyninst::SymtabAPI;
 
@@ -149,8 +150,7 @@ int main(int argc, char **argv) {
   }
 
   if (!starts_with_trap(rewritten, "early_trap_target")) {
-    std::cout << "skipped: relocation left no trap at early_trap_target\n";
-    return 77;
+    return skip_message("relocation left no trap at early_trap_target");
   }
 
   return run(rewritten, outdir + ":" + dirname(rt)) ? EXIT_SUCCESS : EXIT_FAILURE;
