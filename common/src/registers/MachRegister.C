@@ -18,8 +18,6 @@ namespace {
 
 namespace Dyninst {
 
-  MachRegister::MachRegister() : reg(0) {}
-
   unsigned int MachRegister::regClass() const { return reg & 0x00ff0000; }
 
   int32_t MachRegister::getLengthID() const {
