@@ -12,10 +12,8 @@
 // and no empty one, and the program must run.
 //
 // Usage: rewrite_libc <mutatee> <output directory>
-//        rewrite_libc --skip <reason>
 // DYNINSTAPI_RT_LIB names the runtime library; the rewritten mutatee is run
-// with its directory and the output directory in LD_LIBRARY_PATH. With --skip
-// the test reports a skip (exit status 77) with the reason.
+// with its directory and the output directory in LD_LIBRARY_PATH.
 
 #include <cerrno>
 #include <cstdlib>
@@ -80,10 +78,6 @@ namespace {
 }
 
 int main(int argc, char **argv) {
-  if (argc == 3 && std::string(argv[1]) == "--skip") {
-    std::cout << "skipping: " << argv[2] << '\n';
-    return 77;
-  }
   if (argc != 3) {
     std::cerr << "Usage " << argv[0] << ": mutatee outdir\n";
     return EXIT_FAILURE;
