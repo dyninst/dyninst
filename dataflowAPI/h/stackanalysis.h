@@ -502,6 +502,7 @@ public:
       const std::set<Address> &toppable = std::set<Address>());
 
     // Free the results cached on f, so the next analysis of f starts over.
+    // StackAnalysis objects for f made before the call must not be used after it.
     DYNINST_EXPORT static void clearCache(ParseAPI::Function *f);
 
     DYNINST_EXPORT virtual ~StackAnalysis() = default;

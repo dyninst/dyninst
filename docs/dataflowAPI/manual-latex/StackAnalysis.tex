@@ -38,6 +38,13 @@ StackAnalysis(ParseAPI::Function* f,
 }
 
 \begin{apient}
+	static void clearCache(ParseAPI::Function* f);
+\end{apient}
+\apidesc{
+	StackAnalysis caches its results on function \code{f}, and every StackAnalysis object for \code{f} uses them. Frees those results, so that the next StackAnalysis object for \code{f} analyzes it again. StackAnalysis objects for \code{f} created before the call point into the freed results and must not be used after it.
+}
+
+\begin{apient}
 	StackAnalysis::Height find(ParseAPI::Block* b, Address addr, Absloc loc);
 \end{apient}
 \apidesc{
