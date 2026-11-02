@@ -384,8 +384,9 @@ or stop a warning that is expected:
 
 Each header's comments describe its macros in full. Defining
 `DYNINST_DIAGNOSTIC_NO_SUPPRESSIONS` makes every `compiler_diagnostics.h`
-macro expand to nothing, so the warnings appear. Dyninst's libraries define
-it when `DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS` is on.
+macro expand to nothing, so the warnings appear. `DyninstWarnings.cmake`
+defines it for every target when `DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS` is
+on.
 
 ## `gersemi/`
 

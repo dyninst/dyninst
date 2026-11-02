@@ -132,10 +132,6 @@ if(DYNINST_OS_Windows)
   endif()
 endif()
 
-if(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
-  list(APPEND _dyninst_global_defs DYNINST_DIAGNOSTIC_NO_SUPPRESSIONS)
-endif()
-
 if(DYNINST_ENABLE_CAPSTONE)
   list(APPEND _dyninst_global_defs DYNINST_ENABLE_CAPSTONE)
 endif()

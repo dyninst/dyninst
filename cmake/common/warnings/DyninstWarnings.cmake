@@ -25,6 +25,9 @@ if(DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
     STATUS
     "DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS set: disabling all dyninst warning suppressions and frame size overrides"
   )
+  # The macros of Dyninst's compiler_diagnostics.h then expand to nothing, so
+  # the warnings they suppress appear, in every target from here on
+  add_compile_definitions(DYNINST_DIAGNOSTIC_NO_SUPPRESSIONS)
 endif()
 
 # The frame size limit for every build type.  A project can raise it for particular files
