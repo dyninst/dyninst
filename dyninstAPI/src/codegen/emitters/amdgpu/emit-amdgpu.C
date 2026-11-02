@@ -37,6 +37,7 @@
 #include "registerSpace/registerSpace.h"
 #include "arch-amdgpu.h"
 #include "amdgpu-reg-adapter.h"
+#include "mapped_object.h"
 
 #include <cstdlib>
 
@@ -44,11 +45,6 @@ using namespace Dyninst;
 using namespace Dyninst::amdgpu_adapter;
 using namespace Dyninst::amdgpu_gfx908; // opcodes only (S_*, CDNA-invariant); emit helpers are now raw* hooks
 
-// Arch-common helper: adapt a codegen Register to a MachRegister of THIS emitter's gen, via the virtual
-// gpuArch() hook -- so the base names no gen. Each concrete subclass supplies gpuArch().
-Dyninst::MachRegister EmitterAmdgpu::mrOf(Dyninst::Register r) const {
-  return Dyninst::amdgpu_adapter::amdgpuMachRegOf(r, gpuArch());
-}
 
 // ===== EmitterAmdgpu (arch-common) implementation =====
 
@@ -57,13 +53,13 @@ Dyninst::MachRegister EmitterAmdgpu::mrOf(Dyninst::Register r) const {
 // Register's kind/count fields: amdgpuIsSgpr == isScalar, amdgpuRegNum == getId, amdgpuNumDwords ==
 // getCount. See amdgpu-reg-adapter.h.
 bool EmitterAmdgpu::isValidSgpr(Register reg) const {
-  MachRegister mr = mrOf(reg);
+  MachRegister mr = toMachRegister(reg);
   return amdgpuIsSgpr(mr) && amdgpuNumDwords(mr) == 1 &&
          amdgpuRegNum(mr) >= NS_amdgpu::MIN_SGPR_ID && amdgpuRegNum(mr) <= NS_amdgpu::MAX_SGPR_ID;
 }
 
 bool EmitterAmdgpu::isValidSgprBlock(Register regBlock) const {
-  MachRegister mr = mrOf(regBlock);
+  MachRegister mr = toMachRegister(regBlock);
   uint32_t firstRegId = amdgpuRegNum(mr);
   uint32_t numRegs = amdgpuNumDwords(mr);
 
@@ -78,7 +74,7 @@ bool EmitterAmdgpu::isValidSgprBlock(Register regBlock) const {
 
 // Register pairs must be even aligned
 bool EmitterAmdgpu::isValidSgprPair(Register regBlock) const {
-  MachRegister mr = mrOf(regBlock);
+  MachRegister mr = toMachRegister(regBlock);
   return isValidSgprBlock(regBlock) && amdgpuNumDwords(mr) == 2 && amdgpuRegNum(mr) % 2 == 0;
 }
 // ==== Helper functions end
@@ -88,11 +84,11 @@ unsigned EmitterAmdgpu::emitIf(Register expr_reg, Register target, Dyninst::Dyni
   assert(isValidSgprPair(target) && "target must be a valid SGPR pair");
   assert(isValidSgpr(expr_reg) && "expr_reg must be a valid SGPR");
 
-  rawSopK(S_CMPK_EQ_U32, amdgpuOperandCode(mrOf(expr_reg)), 0, gen);
+  rawSopK(S_CMPK_EQ_U32, amdgpuOperandCode(toMachRegister(expr_reg)), 0, gen);
   emitConditionalBranch(/* onConditionTrue = */ false, 0, gen);
 
   size_t setPcInstOffset = gen.getIndex();
-  rawSop1(S_SETPC_B64, /* dest= */ 0, amdgpuOperandCode(mrOf(target)), /* hasLiteral= */ false, 0, gen);
+  rawSop1(S_SETPC_B64, /* dest= */ 0, amdgpuOperandCode(toMachRegister(target)), /* hasLiteral= */ false, 0, gen);
 
   return setPcInstOffset;
 }
@@ -137,8 +133,8 @@ void EmitterAmdgpu::emitOp(unsigned opcode, Register dest, Register src1, Regist
     assert(!"opcode must correspond to a supported SOP2 operation");
   }
 
-  rawSop2(opcodeSop2, amdgpuOperandCode(mrOf(dest)), amdgpuOperandCode(mrOf(src1)),
-           amdgpuOperandCode(mrOf(src2)), gen);
+  rawSop2(opcodeSop2, amdgpuOperandCode(toMachRegister(dest)), amdgpuOperandCode(toMachRegister(src1)),
+           amdgpuOperandCode(toMachRegister(src2)), gen);
 }
 
 void EmitterAmdgpu::emitOpImmSimple(unsigned op, Register dest, Register src1,
@@ -177,7 +173,7 @@ void EmitterAmdgpu::emitOpImmSimple(unsigned op, Register dest, Register src1,
     assert(!"opcode must correspond to a supported SOPK operation");
   }
 
-  rawSopK(opcodeSopK, amdgpuOperandCode(mrOf(src1)), src2imm, gen);
+  rawSopK(opcodeSopK, amdgpuOperandCode(toMachRegister(src1)), src2imm, gen);
 }
 
 void EmitterAmdgpu::emitOpImm(unsigned /* opcode1 */, unsigned /* opcode2 */,
@@ -220,7 +216,7 @@ void EmitterAmdgpu::emitRelOp(unsigned opcode, Register /* dest */, Register src
     assert(!"opcode must correspond to a supported SOPC operation");
   }
 
-  rawSopC(opcodeSopC, amdgpuOperandCode(mrOf(src1)), amdgpuOperandCode(mrOf(src2)), gen);
+  rawSopC(opcodeSopC, amdgpuOperandCode(toMachRegister(src1)), amdgpuOperandCode(toMachRegister(src2)), gen);
 }
 
 void EmitterAmdgpu::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm,
@@ -249,7 +245,7 @@ void EmitterAmdgpu::emitTimesImm(Register dest, Register src1, RegValue src2imm,
   assert(isValidSgpr(dest) && "dest must be a valid SGPR");
   assert(dest == src1 && "SOPK instructions require dest = src1");
 
-  rawSopK(S_MULK_I32, amdgpuOperandCode(mrOf(dest)), src2imm, gen);
+  rawSopK(S_MULK_I32, amdgpuOperandCode(toMachRegister(dest)), src2imm, gen);
 }
 
 void EmitterAmdgpu::emitDivImm(Register /* dest */, Register /* src1 */,
@@ -305,11 +301,11 @@ bool EmitterAmdgpu::emitLoadRelative(Register dest, Address offset, Register bas
     assert(isValidSgpr(dest) && "dest must be a valid SGPR");
   } else {
     assert(isValidSgprBlock(dest) &&
-           amdgpuNumDwords(mrOf(dest)) == static_cast<uint32_t>(size) &&
+           amdgpuNumDwords(toMachRegister(dest)) == static_cast<uint32_t>(size) &&
            "dest must be a register block of size 'size'");
   }
   uint32_t alignment = size >= 4 ? 4 : size;
-  assert(amdgpuRegNum(mrOf(dest)) % alignment == 0 && "dest must be properly aligned");
+  assert(amdgpuRegNum(toMachRegister(dest)) % alignment == 0 && "dest must be properly aligned");
 
   assert(isValidSgprPair(base) && "base must be a valid SGPR pair");
 
@@ -334,8 +330,8 @@ bool EmitterAmdgpu::emitLoadRelative(Register dest, Address offset, Register bas
     assert(!"size can only be 1, 2, 4, 8 or 16");
   }
 
-  rawSmem(loadOpcode, amdgpuOperandCode(mrOf(dest)),
-           (amdgpuOperandCode(mrOf(base)) >> 1), (uint64_t)offset, gen);
+  rawSmem(loadOpcode, amdgpuOperandCode(toMachRegister(dest)),
+           (amdgpuOperandCode(toMachRegister(base)) >> 1), (uint64_t)offset, gen);
 
   // As per page 32 in the manual, 0 is the only legitimate value for scalar
   // memory reads. However, placement of waitcnt can be optimized later. Right
@@ -418,13 +414,13 @@ void EmitterAmdgpu::emitStoreRelative(Register source, Address offset, Register 
     assert(isValidSgpr(source) && "source must be a valid SGPR");
   else
     assert(isValidSgprBlock(source) &&
-           amdgpuNumDwords(mrOf(source)) == static_cast<uint32_t>(size) &&
+           amdgpuNumDwords(toMachRegister(source)) == static_cast<uint32_t>(size) &&
            "source must be a register block of size 'size'");
 
   assert(isValidSgprPair(base) && "base must be a valid SGPR pair");
 
   uint32_t alignment = static_cast<uint32_t>(size);
-  assert(amdgpuRegNum(mrOf(source)) % alignment == 0 && "source must be properly aligned");
+  assert(amdgpuRegNum(toMachRegister(source)) % alignment == 0 && "source must be properly aligned");
 
   unsigned storeOpcode = 0;
   switch (size) {
@@ -441,8 +437,8 @@ void EmitterAmdgpu::emitStoreRelative(Register source, Address offset, Register 
     assert(!"size can only be 1, 2, or 4");
   }
 
-  rawSmem(storeOpcode, amdgpuOperandCode(mrOf(source)),
-           (amdgpuOperandCode(mrOf(base)) >> 1), (uint64_t)offset, gen);
+  rawSmem(storeOpcode, amdgpuOperandCode(toMachRegister(source)),
+           (amdgpuOperandCode(toMachRegister(base)) >> 1), (uint64_t)offset, gen);
 
   emitSopP(S_WAITCNT, /* simm16 = */ 0, gen);
 }
@@ -457,8 +453,8 @@ bool EmitterAmdgpu::emitMoveRegToReg(Register src, Register dest, codeGen &gen) 
   // TODO:
   // Make this work with VGPR-VGPR movs
 
-  MachRegister srcMr = mrOf(src);
-  MachRegister destMr = mrOf(dest);
+  MachRegister srcMr = toMachRegister(src);
+  MachRegister destMr = toMachRegister(dest);
   bool bothSingleSgprs = isValidSgpr(src) && isValidSgpr(dest);
   bool bothSgprBlocks = isValidSgprBlock(src) && isValidSgprBlock(dest);
   bool bothHaveSameCount = amdgpuNumDwords(srcMr) == amdgpuNumDwords(destMr);
@@ -475,8 +471,8 @@ bool EmitterAmdgpu::emitMoveRegToReg(Register src, Register dest, codeGen &gen) 
 
   assert(srcRegisters.size() == destRegisters.size());
   for (size_t i = 0; i < srcRegisters.size(); ++i) {
-    rawSop1(S_MOV_B32, amdgpuOperandCode(mrOf(destRegisters[i])),
-             amdgpuOperandCode(mrOf(srcRegisters[i])),
+    rawSop1(S_MOV_B32, amdgpuOperandCode(toMachRegister(destRegisters[i])),
+             amdgpuOperandCode(toMachRegister(srcRegisters[i])),
              /*hasLiteral*/ false, /*literal*/ 0, gen);
   }
 
@@ -603,7 +599,7 @@ void EmitterAmdgpu::emitMovLiteral(Register reg, uint32_t literal, codeGen &gen)
   // s_mov_b32 reg, < 32-bit constant literal >
   // The literal follows the instruction, so set src0 = 0xFF just like the
   // assembler does.
-  rawSop1(S_MOV_B32, /* dest = */ amdgpuOperandCode(mrOf(reg)), /* src0 = */ 0xFF,
+  rawSop1(S_MOV_B32, /* dest = */ amdgpuOperandCode(toMachRegister(reg)), /* src0 = */ 0xFF,
            /* hasLiteral = */ true, literal, gen);
 }
 
@@ -620,7 +616,7 @@ void EmitterAmdgpu::emitShortJump(int16_t wordOffset, codeGen &gen) {
 // For this we need reg, reg+1, reg+2, reg+3.
 void EmitterAmdgpu::emitLongJump(Register reg, uint64_t fromAddress, uint64_t toAddress,
                                        codeGen &gen) {
-  MachRegister mr = mrOf(reg);
+  MachRegister mr = toMachRegister(reg);
   assert(isValidSgprBlock(reg) && "reg must be a valid SGPR block");
   assert(amdgpuNumDwords(mr) == 4 && "reg must have 4 registers");
 
@@ -657,7 +653,7 @@ void EmitterAmdgpu::emitLongJump(Register reg, uint64_t fromAddress, uint64_t to
 void EmitterAmdgpu::emitAddConstantToRegPair(Register reg, int constant, codeGen &gen) {
   assert(isValidSgprPair(reg) && "reg must be a valid SGPR pair");
 
-  const uint32_t base = amdgpuOperandCode(mrOf(reg));
+  const uint32_t base = amdgpuOperandCode(toMachRegister(reg));
   // reg has lower bits
   rawSop2WithSrc1Literal(S_ADD_U32, base, base, constant, gen);
 
@@ -673,17 +669,28 @@ void EmitterAmdgpu::emitAtomicAdd(Register baseAddrReg, Register src0, codeGen &
   assert(isValidSgprPair(baseAddrReg) && "baseAddrReg must be a valid SGPR pair");
   assert(isValidSgpr(src0) && "src0 must be a valid SGPR");
 
-  rawSmem(S_ATOMIC_ADD, amdgpuOperandCode(mrOf(src0)),
-           (amdgpuOperandCode(mrOf(baseAddrReg)) >> 1), /* offset= */ 0, gen);
+  rawSmem(S_ATOMIC_ADD, amdgpuOperandCode(toMachRegister(src0)),
+           (amdgpuOperandCode(toMachRegister(baseAddrReg)) >> 1), /* offset= */ 0, gen);
 }
 
 void EmitterAmdgpu::emitAtomicSub(Register baseAddrReg, Register src0, codeGen &gen) {
   assert(isValidSgprPair(baseAddrReg) && "baseAddrReg must be a valid SGPR pair");
   assert(isValidSgpr(src0) && "src0 must be a valid SGPR");
 
-  rawSmem(S_ATOMIC_SUB, amdgpuOperandCode(mrOf(src0)),
-           (amdgpuOperandCode(mrOf(baseAddrReg)) >> 1), /* offset = */ 0, gen);
+  rawSmem(S_ATOMIC_SUB, amdgpuOperandCode(toMachRegister(src0)),
+           (amdgpuOperandCode(toMachRegister(baseAddrReg)) >> 1), /* offset = */ 0, gen);
 }
 // ===== end EmitterAmdgpu (arch-common) implementation =====
 // The gfx908 concrete subclass (EmitterAmdgpuGfx908) and its per-gen packers live in
 // amdgpu/gfx908/emit-amdgpu-gfx908.{h,C}.
+
+// Install the instrumented object's arch-correct emitter on `gen` and hand it back. setAddrSpace routes
+// through AddressSpace::getEmitter(), which picks the gen's EmitterAmdgpu subclass at runtime.
+EmitterAmdgpu* getAmdgpuEmitter(codeGen& gen, Dyninst::PatchAPI::Point* point) {
+  auto *obj = dynamic_cast<mapped_object *>(point->block()->obj());
+  assert(obj && "AMDGPU snippet: expected a mapped_object");
+  gen.setAddrSpace(obj->proc());
+  auto *emitter = dynamic_cast<EmitterAmdgpu *>(gen.emitter());
+  assert(emitter && "AMDGPU snippet: expected an EmitterAmdgpu");
+  return emitter;
+}

@@ -4,20 +4,13 @@
 #include "debug.h"
 #include "dyn_register.h"
 #include "amdgpu-reg-adapter.h"
+#include "registers/AMDGPU/amdgpu_gfx908_regs.h"
 #include <vector>
 
 using Register = Dyninst::Register;
 using OperandRegId = Dyninst::OperandRegId;
 using BlockSize = Dyninst::BlockSize;
 using namespace Dyninst::amdgpu_adapter;
-
-namespace {
-// Supplies THIS register space's architecture to the (arch-general) register adapter, in one place.
-// Under runtime codegen-arch dispatch this gfx908 literal becomes the instrumented object's architecture.
-inline Dyninst::MachRegister mrOf(Dyninst::Register r) {
-  return Dyninst::amdgpu_adapter::amdgpuMachRegOf(r, Dyninst::Arch_amdgpu_gfx908);
-}
-} // namespace
 
 void registerSpace::initialize32() {
   static bool done = false;
@@ -129,10 +122,7 @@ Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind regKind, uint
 }
 
 void registerSpace::freeGprBlock(Dyninst::Register regBlock) {
-  Dyninst::MachRegister mr = mrOf(regBlock);
-  bool scalarOrVector = amdgpuIsSgpr(mr) || amdgpuIsVgpr(mr);
-  assert(scalarOrVector && "regBlock must be a scalar or vector block");
-
+  // Blocks returned by allocateGprBlock are SGPR or VGPR by construction.
   for (auto reg : regBlock.getIndividualRegisters()) {
     freeRegister(reg);
   }

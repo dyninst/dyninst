@@ -28,38 +28,45 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AMDGPU_EPILOGUE_H
-#define AMDGPU_EPILOGUE_H
-
-#include "BPatch_snippet.h"
-#include "ASTs/ast.h"
-#include "common/src/dyn_register.h"
-#include "patchAPI/h/Snippet.h"
+#include "ASTs/amdgpu-prologue-epilogue.h"
+#include "codegen/emitters/amdgpu/emit-amdgpu.h"
+#include "mapped_object.h"
 
 namespace Dyninst { namespace DyninstAPI {
 
-// The epilogue writes back the contents of scalar data cache to corresponding global memory.
-// PatchAPI snippet is used to insert the following epilogue:
-//
-//  s_dcache_wb
-//
-class AmdgpuEpilogue : public Dyninst::PatchAPI::Snippet {
-public:
-  bool generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer);
-};
+bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer) {
+  // To avoid any code duplication or refactoring right now, we use a 'codeGen'
+  // object to generate the code and copy what we get there into the
+  // 'Dyninst::Buffer' object passed here.
 
-// The AST node for the above PatchAPI snippet.
-class AmdgpuEpilogueNode : public snippetAST {
-public:
-  AmdgpuEpilogueNode(Dyninst::PatchAPI::SnippetPtr p) : snippetAST(p) {}
-};
+  // We need 12 bytes for the prologue (a s_load_dwordx2, followed by a waitcnt)
+  codeGen gen(20);
 
-// BPatch_snippet that uses the above AST node.
-class AmdgpuEpilogueSnippet : public BPatch_snippet {
-public:
-  AmdgpuEpilogueSnippet(const codeGenASTPtr &p) : BPatch_snippet(p) {}
-};
+  // Use the emitter for the instrumented object's architecture (gfx908/gfx940/...);
+  // emitLoadRelative is on the base.
+  EmitterAmdgpu* emitter = getAmdgpuEmitter(gen, point);
+
+  emitter->emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);
+
+  buffer.copy(gen.start_ptr(), gen.used());
+
+  return true;
+}
+
+// Similar approach to prologue
+bool AmdgpuEpilogue::generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer) {
+  // We need 8 bytes for the epilogue (a s_dcache_wb instruction).
+  codeGen gen(20);
+
+  // Use the emitter for the instrumented object's architecture (gfx908/gfx940/...);
+  // emitScalarDataCacheWriteback is on the base.
+  EmitterAmdgpu* emitter = getAmdgpuEmitter(gen, point);
+
+  emitter->emitScalarDataCacheWriteback(gen);
+
+  buffer.copy(gen.start_ptr(), gen.used());
+
+  return true;
+}
 
 }}
-
-#endif
