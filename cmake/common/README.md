@@ -17,6 +17,35 @@ A repository adds the subdirectories it uses to `CMAKE_MODULE_PATH` and
 includes their modules. Settings that differ between repositories, such as
 which requirements its tests can name, stay outside this directory.
 
+## Copying and checking
+
+A change to these files is made in Dyninst. Once it has merged, each
+repository that has a copy replaces it with Dyninst's, from the top of that
+repository:
+
+    rm -r cmake/common
+    cp -r <dyninst>/cmake/common cmake/common
+
+These repositories have a copy:
+
+- [external-tests](https://github.com/dyninst/external-tests)
+
+Each of them checks its copy in CI, in a job of its own, with
+`DyninstCheckCopy.cmake`. The job checks out Dyninst's master and runs
+
+    cmake -DCOPY=cmake/common -DMASTER=<dyninst>/cmake/common \
+          -P cmake/common/DyninstCheckCopy.cmake
+
+It lists any file that differs from Dyninst's, is missing, or is extra, and
+fails if there is one. So it fails when the copy was edited directly, and
+also after a change in Dyninst until the copy is updated. In that case it
+fails on every pull request in that repository, whatever the pull request
+changes; being a separate job, it is easy to tell apart from the pull
+request's own results.
+
+A new repository copies the directory and adds the job, and is added to the
+list above.
+
 ## `ctest/`
 
 - `DyninstAddTest.cmake`: `dyninst_add_test`, `dyninst_add_test_executable`,
