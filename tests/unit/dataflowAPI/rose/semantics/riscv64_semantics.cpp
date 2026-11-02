@@ -43,6 +43,7 @@
 #include "RoseAST.h"
 #include "SymEval.h"
 #include "VariableAST.h"
+#include "dyninst_test_skip.h"
 #include "registers/riscv64_regs.h"
 
 #include <algorithm>
@@ -55,6 +56,11 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+
+// The evaluation needs a 128-bit integer for the high half of a 64-bit product (mulh,
+// mulhu, mulhsu). __int128 is a GCC extension, which GCC and Clang provide when they
+// define __SIZEOF_INT128__; __extension__ keeps -Wpedantic from rejecting it.
+#ifdef __SIZEOF_INT128__
 
 namespace {
   namespace rv = Dyninst::riscv64;
@@ -402,6 +408,8 @@ namespace {
 
     machine const m{{{rv::a1, c.a1}, {rv::a2, c.a2}, {rv::a5, c.a5}, {rv::pc, insn_addr}},
                     c.memory};
+    // eval throws std::runtime_error when the expression reads a register or memory the
+    // case does not set, divides by zero, or has a node it cannot evaluate.
     try {
       if(c.mem_width) {
         AST::Ptr const address = a->out().generator();
@@ -438,3 +446,9 @@ int main() {
   }
   return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
+
+#else
+
+int main() { return skip_message("needs a 128-bit integer type (__int128)"); }
+
+#endif
