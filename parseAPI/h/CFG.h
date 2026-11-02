@@ -56,8 +56,11 @@
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/atomic.hpp>
 #include <list>
+#include <memory>
 
 namespace Dyninst {
+
+   class StackAnalysis;
 
    namespace InstructionAPI {
       class Instruction;
@@ -378,6 +381,7 @@ class LoopTreeNode;
 class DYNINST_EXPORT Function : public AnnotatableSparse, public boost::lockable_adapter<boost::recursive_mutex> {
    friend class CFGModifier;
    friend class LoopAnalyzer;
+   friend class Dyninst::StackAnalysis;
  protected:
     Address _start;
     CodeObject * _obj;
@@ -390,6 +394,10 @@ class DYNINST_EXPORT Function : public AnnotatableSparse, public boost::lockable
 
     std::string _name;
     Block * _entry;
+
+    // DataflowAPI's StackAnalysis results for this function, freed with it.
+    // parseAPI does not know their type; guarded by this Function's lock.
+    std::shared_ptr<void> stack_analysis_cache_;
  protected:
     Function(); 
  public:
