@@ -17,10 +17,10 @@ foreach(
   # StackAnalysis's entry state is chosen by the build's code-generation
   # architecture: a stack height of 0 in POWER and RISC-V builds, minus the
   # return address in x86 builds, none in native aarch64 builds. aarch64 code
-  # skips StackAnalysis.
+  # skips StackAnalysis. x86 code needs an x86_64 build.
   set(_requires test_binaries)
   if(_arch STREQUAL "i686" OR _arch STREQUAL "x86_64")
-    list(APPEND _requires codegen:i386)
+    list(APPEND _requires codegen:x86_64)
   elseif(NOT _arch STREQUAL "aarch64")
     list(APPEND _requires stackanalysis_any_arch)
   endif()
