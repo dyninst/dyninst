@@ -7,10 +7,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
-#include <sys/ptrace.h>
-#include <sys/wait.h>
 #include <thread>
-#include <unistd.h>
 
 // A mutator that polls (pollForStatusChange, as parseThat does) must get its
 // exit callback when the mutatee crashes. ProcControl processes the crash on
@@ -20,17 +17,6 @@
 // as having exited via a signal.
 
 namespace {
-  // Whether this process may trace a child at all; containers often refuse.
-  bool ptrace_allowed() {
-    pid_t pid = fork();
-    if (pid == 0) {
-      _exit(ptrace(PTRACE_TRACEME, 0, nullptr, nullptr) == 0 ? 0 : 1);
-    }
-    int status = 0;
-    return pid > 0 && waitpid(pid, &status, 0) == pid && WIFEXITED(status)
-        && WEXITSTATUS(status) == 0;
-  }
-
   bool exit_seen = false;
   BPatch_exitType exit_type = NoExit;
 
@@ -54,11 +40,6 @@ int main(int argc, char **argv) {
   }
   setenv("LD_LIBRARY_PATH", ld_path.c_str(), 1);
   std::cout << "LD_LIBRARY_PATH=" << ld_path << "\n";
-
-  if (!ptrace_allowed()) {
-    std::cout << "skipping: ptrace is not permitted here\n";
-    return 77;
-  }
 
   BPatch bpatch;
   bpatch.registerExitCallback(on_exit);
