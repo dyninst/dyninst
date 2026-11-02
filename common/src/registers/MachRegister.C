@@ -1165,4 +1165,5 @@ namespace Dyninst {
   std::vector<MachRegister> const& MachRegister::getAllRegistersForArch(Dyninst::Architecture arch) {
     return registers::all_regs[arch];
   }
+
 }

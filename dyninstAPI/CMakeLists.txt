@@ -65,7 +65,9 @@ set(
   src/regTracker.h
   src/unix.h
   src/util.h
-  src/amdgpu-gfx908-details.h
+  src/amdgpu/gfx908/amdgpu-gfx908-details.h
+  src/amdgpu/gfx908/amdgpu-gfx908-encoding.h
+  src/amdgpu/gfx908/emit-amdgpu-gfx908.h
 )
 
 set(
@@ -100,12 +102,13 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   list(
     APPEND _sources
-    src/addressSpace-amdgpu-gfx908.C
+    src/amdgpu/gfx908/addressSpace-amdgpu-gfx908.C
     src/inst-amdgpu.C
     src/emit-amdgpu.C
+    src/amdgpu/gfx908/emit-amdgpu-gfx908.C
     src/AmdgpuKernelDescriptor.C
     src/AmdgpuPointHandler.C
-    src/amdgpu-gfx908-details.C
+    src/amdgpu/gfx908/amdgpu-gfx908-details.C
   )
 endif()
 

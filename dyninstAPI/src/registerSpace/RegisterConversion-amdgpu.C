@@ -28,805 +28,163 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+// AMDGPU codegen Register <-> MachRegister conversion, dispatched on the register's OWN architecture.
+//
+// Unlike x86/aarch64/ppc (whose register ids are irregular and need a hand-written map), the AMDGPU
+// register space is a regular identity, so we DERIVE the mapping instead of hand-listing it:
+//  - SGPR/VGPR: the codegen id is the register number, which is the MachRegister base number (s33 =
+//    number 33). The SGPR/VGPR category bits are identical across every AMDGPU gen, so this part is
+//    arch-invariant.
+//  - specials (vcc/exec/flat_scratch/xnack/m0/ttmp): the codegen id is the ISA scalar operand code
+//    (vcc_lo = 106, exec_lo = 126, ...), read from the GENERATED PER-ARCH table <arch>::detail::specialRegs[].
+//    That table is the single source for those codes and is per-gen, so a gen that renumbers or drops a
+//    special (the first being gfx1250) is captured by vendoring its table — not by editing this file.
+//
+// We dispatch on the register's own architecture (reg.getArchitecture() / the `arch` argument); we do
+// NOT normalize every gen to one arch. SGPR/VGPR conversion already works for every AMDGPU gen; the
+// special-register table is wired per gen as each gen's encoding header is vendored. Only gfx908's table
+// is vendored today (its header is also what the emitter uses); gfx90a/gfx942/gfx950 are byte-identical
+// to it right now (verified vs llvm-mc) and get wired after the gfx942 rename lands, so the
+// AmdgpuGfx942::enc namespace lines up with Arch_amdgpu_gfx942.
 #include "registerSpace/RegisterConversion.h"
 
-#include <boost/assign/list_of.hpp>
+#include <cstdint>
 #include <map>
+#include <string>
 
 #include "Register.h"
 #include "registerSpace/registerSpace.h"
 #include "registers/MachRegister.h"
 #include "registers/abstract_regs.h"
+#include "amdgpu/gfx908/amdgpu-gfx908-encoding.h"
+// When vendored (post gfx942-rename), add:
+//   #include "amdgpu/gfx90a/amdgpu-gfx90a-encoding.h"
+//   #include "amdgpu/gfx942/amdgpu-gfx942-encoding.h"
+//   #include "amdgpu/gfx950/amdgpu-gfx950-encoding.h"
 #include <iostream>
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using namespace std;
-using namespace boost::assign;
 
-// AMDGPU has 32-bit registers, and we use a pair of registers for 64-bit values.
-// regToMachReg64 is here only to prevent linker error because parts of the x86
-// code generator refer to it. This is a temporary hack until the conditional
-// compilation and legacy cruft goes away.
-multimap<Register, MachRegister> regToMachReg64 = map_list_of(0, 0);
+namespace {
 
-// clang-format off
-multimap<Register, MachRegister> regToMachReg32 = map_list_of
-  (NS_amdgpu::RegisterConstants::s0,  amdgpu_gfx908::s0)
-  (NS_amdgpu::RegisterConstants::s1,  amdgpu_gfx908::s1)
-  (NS_amdgpu::RegisterConstants::s2,  amdgpu_gfx908::s2)
-  (NS_amdgpu::RegisterConstants::s3,  amdgpu_gfx908::s3)
-  (NS_amdgpu::RegisterConstants::s4,  amdgpu_gfx908::s4)
-  (NS_amdgpu::RegisterConstants::s5,  amdgpu_gfx908::s5)
-  (NS_amdgpu::RegisterConstants::s6,  amdgpu_gfx908::s6)
-  (NS_amdgpu::RegisterConstants::s7,  amdgpu_gfx908::s7)
-  (NS_amdgpu::RegisterConstants::s8,  amdgpu_gfx908::s8)
-  (NS_amdgpu::RegisterConstants::s9,  amdgpu_gfx908::s9)
-  (NS_amdgpu::RegisterConstants::s10, amdgpu_gfx908::s10)
-  (NS_amdgpu::RegisterConstants::s11, amdgpu_gfx908::s11)
-  (NS_amdgpu::RegisterConstants::s12, amdgpu_gfx908::s12)
-  (NS_amdgpu::RegisterConstants::s13, amdgpu_gfx908::s13)
-  (NS_amdgpu::RegisterConstants::s14, amdgpu_gfx908::s14)
-  (NS_amdgpu::RegisterConstants::s15, amdgpu_gfx908::s15)
-  (NS_amdgpu::RegisterConstants::s16, amdgpu_gfx908::s16)
-  (NS_amdgpu::RegisterConstants::s17, amdgpu_gfx908::s17)
-  (NS_amdgpu::RegisterConstants::s18, amdgpu_gfx908::s18)
-  (NS_amdgpu::RegisterConstants::s19, amdgpu_gfx908::s19)
-  (NS_amdgpu::RegisterConstants::s20, amdgpu_gfx908::s20)
-  (NS_amdgpu::RegisterConstants::s21, amdgpu_gfx908::s21)
-  (NS_amdgpu::RegisterConstants::s22, amdgpu_gfx908::s22)
-  (NS_amdgpu::RegisterConstants::s23, amdgpu_gfx908::s23)
-  (NS_amdgpu::RegisterConstants::s24, amdgpu_gfx908::s24)
-  (NS_amdgpu::RegisterConstants::s25, amdgpu_gfx908::s25)
-  (NS_amdgpu::RegisterConstants::s26, amdgpu_gfx908::s26)
-  (NS_amdgpu::RegisterConstants::s27, amdgpu_gfx908::s27)
-  (NS_amdgpu::RegisterConstants::s28, amdgpu_gfx908::s28)
-  (NS_amdgpu::RegisterConstants::s29, amdgpu_gfx908::s29)
-  (NS_amdgpu::RegisterConstants::s30, amdgpu_gfx908::s30)
-  (NS_amdgpu::RegisterConstants::s31, amdgpu_gfx908::s31)
-  (NS_amdgpu::RegisterConstants::s32, amdgpu_gfx908::s32)
-  (NS_amdgpu::RegisterConstants::s33, amdgpu_gfx908::s33)
-  (NS_amdgpu::RegisterConstants::s34, amdgpu_gfx908::s34)
-  (NS_amdgpu::RegisterConstants::s35, amdgpu_gfx908::s35)
-  (NS_amdgpu::RegisterConstants::s36, amdgpu_gfx908::s36)
-  (NS_amdgpu::RegisterConstants::s37, amdgpu_gfx908::s37)
-  (NS_amdgpu::RegisterConstants::s38, amdgpu_gfx908::s38)
-  (NS_amdgpu::RegisterConstants::s39, amdgpu_gfx908::s39)
-  (NS_amdgpu::RegisterConstants::s40, amdgpu_gfx908::s40)
-  (NS_amdgpu::RegisterConstants::s41, amdgpu_gfx908::s41)
-  (NS_amdgpu::RegisterConstants::s42, amdgpu_gfx908::s42)
-  (NS_amdgpu::RegisterConstants::s43, amdgpu_gfx908::s43)
-  (NS_amdgpu::RegisterConstants::s44, amdgpu_gfx908::s44)
-  (NS_amdgpu::RegisterConstants::s45, amdgpu_gfx908::s45)
-  (NS_amdgpu::RegisterConstants::s46, amdgpu_gfx908::s46)
-  (NS_amdgpu::RegisterConstants::s47, amdgpu_gfx908::s47)
-  (NS_amdgpu::RegisterConstants::s48, amdgpu_gfx908::s48)
-  (NS_amdgpu::RegisterConstants::s49, amdgpu_gfx908::s49)
-  (NS_amdgpu::RegisterConstants::s50, amdgpu_gfx908::s50)
-  (NS_amdgpu::RegisterConstants::s51, amdgpu_gfx908::s51)
-  (NS_amdgpu::RegisterConstants::s52, amdgpu_gfx908::s52)
-  (NS_amdgpu::RegisterConstants::s53, amdgpu_gfx908::s53)
-  (NS_amdgpu::RegisterConstants::s54, amdgpu_gfx908::s54)
-  (NS_amdgpu::RegisterConstants::s55, amdgpu_gfx908::s55)
-  (NS_amdgpu::RegisterConstants::s56, amdgpu_gfx908::s56)
-  (NS_amdgpu::RegisterConstants::s57, amdgpu_gfx908::s57)
-  (NS_amdgpu::RegisterConstants::s58, amdgpu_gfx908::s58)
-  (NS_amdgpu::RegisterConstants::s59, amdgpu_gfx908::s59)
-  (NS_amdgpu::RegisterConstants::s60, amdgpu_gfx908::s60)
-  (NS_amdgpu::RegisterConstants::s61, amdgpu_gfx908::s61)
-  (NS_amdgpu::RegisterConstants::s62, amdgpu_gfx908::s62)
-  (NS_amdgpu::RegisterConstants::s63, amdgpu_gfx908::s63)
-  (NS_amdgpu::RegisterConstants::s64, amdgpu_gfx908::s64)
-  (NS_amdgpu::RegisterConstants::s65, amdgpu_gfx908::s65)
-  (NS_amdgpu::RegisterConstants::s66, amdgpu_gfx908::s66)
-  (NS_amdgpu::RegisterConstants::s67, amdgpu_gfx908::s67)
-  (NS_amdgpu::RegisterConstants::s68, amdgpu_gfx908::s68)
-  (NS_amdgpu::RegisterConstants::s69, amdgpu_gfx908::s69)
-  (NS_amdgpu::RegisterConstants::s70, amdgpu_gfx908::s70)
-  (NS_amdgpu::RegisterConstants::s71, amdgpu_gfx908::s71)
-  (NS_amdgpu::RegisterConstants::s72, amdgpu_gfx908::s72)
-  (NS_amdgpu::RegisterConstants::s73, amdgpu_gfx908::s73)
-  (NS_amdgpu::RegisterConstants::s74, amdgpu_gfx908::s74)
-  (NS_amdgpu::RegisterConstants::s75, amdgpu_gfx908::s75)
-  (NS_amdgpu::RegisterConstants::s76, amdgpu_gfx908::s76)
-  (NS_amdgpu::RegisterConstants::s77, amdgpu_gfx908::s77)
-  (NS_amdgpu::RegisterConstants::s78, amdgpu_gfx908::s78)
-  (NS_amdgpu::RegisterConstants::s79, amdgpu_gfx908::s79)
-  (NS_amdgpu::RegisterConstants::s80, amdgpu_gfx908::s80)
-  (NS_amdgpu::RegisterConstants::s81, amdgpu_gfx908::s81)
-  (NS_amdgpu::RegisterConstants::s82, amdgpu_gfx908::s82)
-  (NS_amdgpu::RegisterConstants::s83, amdgpu_gfx908::s83)
-  (NS_amdgpu::RegisterConstants::s84, amdgpu_gfx908::s84)
-  (NS_amdgpu::RegisterConstants::s85, amdgpu_gfx908::s85)
-  (NS_amdgpu::RegisterConstants::s86, amdgpu_gfx908::s86)
-  (NS_amdgpu::RegisterConstants::s87, amdgpu_gfx908::s87)
-  (NS_amdgpu::RegisterConstants::s88, amdgpu_gfx908::s88)
-  (NS_amdgpu::RegisterConstants::s89, amdgpu_gfx908::s89)
-  (NS_amdgpu::RegisterConstants::s90, amdgpu_gfx908::s90)
-  (NS_amdgpu::RegisterConstants::s91, amdgpu_gfx908::s91)
-  (NS_amdgpu::RegisterConstants::s92, amdgpu_gfx908::s92)
-  (NS_amdgpu::RegisterConstants::s93, amdgpu_gfx908::s93)
-  (NS_amdgpu::RegisterConstants::s94, amdgpu_gfx908::s94)
-  (NS_amdgpu::RegisterConstants::s95, amdgpu_gfx908::s95)
-  (NS_amdgpu::RegisterConstants::s96, amdgpu_gfx908::s96)
-  (NS_amdgpu::RegisterConstants::s97, amdgpu_gfx908::s97)
-  (NS_amdgpu::RegisterConstants::s98, amdgpu_gfx908::s98)
-  (NS_amdgpu::RegisterConstants::s99, amdgpu_gfx908::s99)
-  (NS_amdgpu::RegisterConstants::s100, amdgpu_gfx908::s100)
-  (NS_amdgpu::RegisterConstants::s101, amdgpu_gfx908::s101)
-  (NS_amdgpu::RegisterConstants::flat_scratch_lo, amdgpu_gfx908::flat_scratch_lo)
-  (NS_amdgpu::RegisterConstants::flat_scratch_hi, amdgpu_gfx908::flat_scratch_hi)
-  (NS_amdgpu::RegisterConstants::xnack_mask_lo, amdgpu_gfx908::xnack_mask_lo)
-  (NS_amdgpu::RegisterConstants::xnack_mask_hi, amdgpu_gfx908::xnack_mask_hi)
-  (NS_amdgpu::RegisterConstants::vcc_lo, amdgpu_gfx908::vcc_lo)
-  (NS_amdgpu::RegisterConstants::vcc_hi, amdgpu_gfx908::vcc_hi)
-  (NS_amdgpu::RegisterConstants::exec_lo, amdgpu_gfx908::exec_lo)
-  (NS_amdgpu::RegisterConstants::exec_hi, amdgpu_gfx908::exec_hi)
+bool isAmdgpuArch(Architecture arch) {
+  return arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940 ||
+         arch == Arch_amdgpu_gfx950;
+}
 
-  // now do vector registers
-  (NS_amdgpu::RegisterConstants::v0,  amdgpu_gfx908::v0)
-  (NS_amdgpu::RegisterConstants::v1,  amdgpu_gfx908::v1)
-  (NS_amdgpu::RegisterConstants::v2,  amdgpu_gfx908::v2)
-  (NS_amdgpu::RegisterConstants::v3,  amdgpu_gfx908::v3)
-  (NS_amdgpu::RegisterConstants::v4,  amdgpu_gfx908::v4)
-  (NS_amdgpu::RegisterConstants::v5,  amdgpu_gfx908::v5)
-  (NS_amdgpu::RegisterConstants::v6,  amdgpu_gfx908::v6)
-  (NS_amdgpu::RegisterConstants::v7,  amdgpu_gfx908::v7)
-  (NS_amdgpu::RegisterConstants::v8,  amdgpu_gfx908::v8)
-  (NS_amdgpu::RegisterConstants::v9,  amdgpu_gfx908::v9)
-  (NS_amdgpu::RegisterConstants::v10, amdgpu_gfx908::v10)
-  (NS_amdgpu::RegisterConstants::v11, amdgpu_gfx908::v11)
-  (NS_amdgpu::RegisterConstants::v12, amdgpu_gfx908::v12)
-  (NS_amdgpu::RegisterConstants::v13, amdgpu_gfx908::v13)
-  (NS_amdgpu::RegisterConstants::v14, amdgpu_gfx908::v14)
-  (NS_amdgpu::RegisterConstants::v15, amdgpu_gfx908::v15)
-  (NS_amdgpu::RegisterConstants::v16, amdgpu_gfx908::v16)
-  (NS_amdgpu::RegisterConstants::v17, amdgpu_gfx908::v17)
-  (NS_amdgpu::RegisterConstants::v18, amdgpu_gfx908::v18)
-  (NS_amdgpu::RegisterConstants::v19, amdgpu_gfx908::v19)
-  (NS_amdgpu::RegisterConstants::v20, amdgpu_gfx908::v20)
-  (NS_amdgpu::RegisterConstants::v21, amdgpu_gfx908::v21)
-  (NS_amdgpu::RegisterConstants::v22, amdgpu_gfx908::v22)
-  (NS_amdgpu::RegisterConstants::v23, amdgpu_gfx908::v23)
-  (NS_amdgpu::RegisterConstants::v24, amdgpu_gfx908::v24)
-  (NS_amdgpu::RegisterConstants::v25, amdgpu_gfx908::v25)
-  (NS_amdgpu::RegisterConstants::v26, amdgpu_gfx908::v26)
-  (NS_amdgpu::RegisterConstants::v27, amdgpu_gfx908::v27)
-  (NS_amdgpu::RegisterConstants::v28, amdgpu_gfx908::v28)
-  (NS_amdgpu::RegisterConstants::v29, amdgpu_gfx908::v29)
-  (NS_amdgpu::RegisterConstants::v30, amdgpu_gfx908::v30)
-  (NS_amdgpu::RegisterConstants::v31, amdgpu_gfx908::v31)
-  (NS_amdgpu::RegisterConstants::v32, amdgpu_gfx908::v32)
-  (NS_amdgpu::RegisterConstants::v33, amdgpu_gfx908::v33)
-  (NS_amdgpu::RegisterConstants::v34, amdgpu_gfx908::v34)
-  (NS_amdgpu::RegisterConstants::v35, amdgpu_gfx908::v35)
-  (NS_amdgpu::RegisterConstants::v36, amdgpu_gfx908::v36)
-  (NS_amdgpu::RegisterConstants::v37, amdgpu_gfx908::v37)
-  (NS_amdgpu::RegisterConstants::v38, amdgpu_gfx908::v38)
-  (NS_amdgpu::RegisterConstants::v39, amdgpu_gfx908::v39)
-  (NS_amdgpu::RegisterConstants::v40, amdgpu_gfx908::v40)
-  (NS_amdgpu::RegisterConstants::v41, amdgpu_gfx908::v41)
-  (NS_amdgpu::RegisterConstants::v42, amdgpu_gfx908::v42)
-  (NS_amdgpu::RegisterConstants::v43, amdgpu_gfx908::v43)
-  (NS_amdgpu::RegisterConstants::v44, amdgpu_gfx908::v44)
-  (NS_amdgpu::RegisterConstants::v45, amdgpu_gfx908::v45)
-  (NS_amdgpu::RegisterConstants::v46, amdgpu_gfx908::v46)
-  (NS_amdgpu::RegisterConstants::v47, amdgpu_gfx908::v47)
-  (NS_amdgpu::RegisterConstants::v48, amdgpu_gfx908::v48)
-  (NS_amdgpu::RegisterConstants::v49, amdgpu_gfx908::v49)
-  (NS_amdgpu::RegisterConstants::v50, amdgpu_gfx908::v50)
-  (NS_amdgpu::RegisterConstants::v51, amdgpu_gfx908::v51)
-  (NS_amdgpu::RegisterConstants::v52, amdgpu_gfx908::v52)
-  (NS_amdgpu::RegisterConstants::v53, amdgpu_gfx908::v53)
-  (NS_amdgpu::RegisterConstants::v54, amdgpu_gfx908::v54)
-  (NS_amdgpu::RegisterConstants::v55, amdgpu_gfx908::v55)
-  (NS_amdgpu::RegisterConstants::v56, amdgpu_gfx908::v56)
-  (NS_amdgpu::RegisterConstants::v57, amdgpu_gfx908::v57)
-  (NS_amdgpu::RegisterConstants::v58, amdgpu_gfx908::v58)
-  (NS_amdgpu::RegisterConstants::v59, amdgpu_gfx908::v59)
-  (NS_amdgpu::RegisterConstants::v60, amdgpu_gfx908::v60)
-  (NS_amdgpu::RegisterConstants::v61, amdgpu_gfx908::v61)
-  (NS_amdgpu::RegisterConstants::v62, amdgpu_gfx908::v62)
-  (NS_amdgpu::RegisterConstants::v63, amdgpu_gfx908::v63)
-  (NS_amdgpu::RegisterConstants::v64, amdgpu_gfx908::v64)
-  (NS_amdgpu::RegisterConstants::v65, amdgpu_gfx908::v65)
-  (NS_amdgpu::RegisterConstants::v66, amdgpu_gfx908::v66)
-  (NS_amdgpu::RegisterConstants::v67, amdgpu_gfx908::v67)
-  (NS_amdgpu::RegisterConstants::v68, amdgpu_gfx908::v68)
-  (NS_amdgpu::RegisterConstants::v69, amdgpu_gfx908::v69)
-  (NS_amdgpu::RegisterConstants::v70, amdgpu_gfx908::v70)
-  (NS_amdgpu::RegisterConstants::v71, amdgpu_gfx908::v71)
-  (NS_amdgpu::RegisterConstants::v72, amdgpu_gfx908::v72)
-  (NS_amdgpu::RegisterConstants::v73, amdgpu_gfx908::v73)
-  (NS_amdgpu::RegisterConstants::v74, amdgpu_gfx908::v74)
-  (NS_amdgpu::RegisterConstants::v75, amdgpu_gfx908::v75)
-  (NS_amdgpu::RegisterConstants::v76, amdgpu_gfx908::v76)
-  (NS_amdgpu::RegisterConstants::v77, amdgpu_gfx908::v77)
-  (NS_amdgpu::RegisterConstants::v78, amdgpu_gfx908::v78)
-  (NS_amdgpu::RegisterConstants::v79, amdgpu_gfx908::v79)
-  (NS_amdgpu::RegisterConstants::v80, amdgpu_gfx908::v80)
-  (NS_amdgpu::RegisterConstants::v81, amdgpu_gfx908::v81)
-  (NS_amdgpu::RegisterConstants::v82, amdgpu_gfx908::v82)
-  (NS_amdgpu::RegisterConstants::v83, amdgpu_gfx908::v83)
-  (NS_amdgpu::RegisterConstants::v84, amdgpu_gfx908::v84)
-  (NS_amdgpu::RegisterConstants::v85, amdgpu_gfx908::v85)
-  (NS_amdgpu::RegisterConstants::v86, amdgpu_gfx908::v86)
-  (NS_amdgpu::RegisterConstants::v87, amdgpu_gfx908::v87)
-  (NS_amdgpu::RegisterConstants::v88, amdgpu_gfx908::v88)
-  (NS_amdgpu::RegisterConstants::v89, amdgpu_gfx908::v89)
-  (NS_amdgpu::RegisterConstants::v90, amdgpu_gfx908::v90)
-  (NS_amdgpu::RegisterConstants::v91, amdgpu_gfx908::v91)
-  (NS_amdgpu::RegisterConstants::v92, amdgpu_gfx908::v92)
-  (NS_amdgpu::RegisterConstants::v93, amdgpu_gfx908::v93)
-  (NS_amdgpu::RegisterConstants::v94, amdgpu_gfx908::v94)
-  (NS_amdgpu::RegisterConstants::v95, amdgpu_gfx908::v95)
-  (NS_amdgpu::RegisterConstants::v96, amdgpu_gfx908::v96)
-  (NS_amdgpu::RegisterConstants::v97, amdgpu_gfx908::v97)
-  (NS_amdgpu::RegisterConstants::v98, amdgpu_gfx908::v98)
-  (NS_amdgpu::RegisterConstants::v99, amdgpu_gfx908::v99)
-  (NS_amdgpu::RegisterConstants::v100, amdgpu_gfx908::v100)
-  (NS_amdgpu::RegisterConstants::v101, amdgpu_gfx908::v101)
-  (NS_amdgpu::RegisterConstants::v102, amdgpu_gfx908::v102)
-  (NS_amdgpu::RegisterConstants::v103, amdgpu_gfx908::v103)
-  (NS_amdgpu::RegisterConstants::v104, amdgpu_gfx908::v104)
-  (NS_amdgpu::RegisterConstants::v105, amdgpu_gfx908::v105)
-  (NS_amdgpu::RegisterConstants::v106, amdgpu_gfx908::v106)
-  (NS_amdgpu::RegisterConstants::v107, amdgpu_gfx908::v107)
-  (NS_amdgpu::RegisterConstants::v108, amdgpu_gfx908::v108)
-  (NS_amdgpu::RegisterConstants::v109, amdgpu_gfx908::v109)
-  (NS_amdgpu::RegisterConstants::v110, amdgpu_gfx908::v110)
-  (NS_amdgpu::RegisterConstants::v111, amdgpu_gfx908::v111)
-  (NS_amdgpu::RegisterConstants::v112, amdgpu_gfx908::v112)
-  (NS_amdgpu::RegisterConstants::v113, amdgpu_gfx908::v113)
-  (NS_amdgpu::RegisterConstants::v114, amdgpu_gfx908::v114)
-  (NS_amdgpu::RegisterConstants::v115, amdgpu_gfx908::v115)
-  (NS_amdgpu::RegisterConstants::v116, amdgpu_gfx908::v116)
-  (NS_amdgpu::RegisterConstants::v117, amdgpu_gfx908::v117)
-  (NS_amdgpu::RegisterConstants::v118, amdgpu_gfx908::v118)
-  (NS_amdgpu::RegisterConstants::v119, amdgpu_gfx908::v119)
-  (NS_amdgpu::RegisterConstants::v120, amdgpu_gfx908::v120)
-  (NS_amdgpu::RegisterConstants::v121, amdgpu_gfx908::v121)
-  (NS_amdgpu::RegisterConstants::v122, amdgpu_gfx908::v122)
-  (NS_amdgpu::RegisterConstants::v123, amdgpu_gfx908::v123)
-  (NS_amdgpu::RegisterConstants::v124, amdgpu_gfx908::v124)
-  (NS_amdgpu::RegisterConstants::v125, amdgpu_gfx908::v125)
-  (NS_amdgpu::RegisterConstants::v126, amdgpu_gfx908::v126)
-  (NS_amdgpu::RegisterConstants::v127, amdgpu_gfx908::v127)
-  (NS_amdgpu::RegisterConstants::v128, amdgpu_gfx908::v128)
-  (NS_amdgpu::RegisterConstants::v129, amdgpu_gfx908::v129)
-  (NS_amdgpu::RegisterConstants::v130, amdgpu_gfx908::v130)
-  (NS_amdgpu::RegisterConstants::v131, amdgpu_gfx908::v131)
-  (NS_amdgpu::RegisterConstants::v132, amdgpu_gfx908::v132)
-  (NS_amdgpu::RegisterConstants::v133, amdgpu_gfx908::v133)
-  (NS_amdgpu::RegisterConstants::v134, amdgpu_gfx908::v134)
-  (NS_amdgpu::RegisterConstants::v135, amdgpu_gfx908::v135)
-  (NS_amdgpu::RegisterConstants::v136, amdgpu_gfx908::v136)
-  (NS_amdgpu::RegisterConstants::v137, amdgpu_gfx908::v137)
-  (NS_amdgpu::RegisterConstants::v138, amdgpu_gfx908::v138)
-  (NS_amdgpu::RegisterConstants::v139, amdgpu_gfx908::v139)
-  (NS_amdgpu::RegisterConstants::v140, amdgpu_gfx908::v140)
-  (NS_amdgpu::RegisterConstants::v141, amdgpu_gfx908::v141)
-  (NS_amdgpu::RegisterConstants::v142, amdgpu_gfx908::v142)
-  (NS_amdgpu::RegisterConstants::v143, amdgpu_gfx908::v143)
-  (NS_amdgpu::RegisterConstants::v144, amdgpu_gfx908::v144)
-  (NS_amdgpu::RegisterConstants::v145, amdgpu_gfx908::v145)
-  (NS_amdgpu::RegisterConstants::v146, amdgpu_gfx908::v146)
-  (NS_amdgpu::RegisterConstants::v147, amdgpu_gfx908::v147)
-  (NS_amdgpu::RegisterConstants::v148, amdgpu_gfx908::v148)
-  (NS_amdgpu::RegisterConstants::v149, amdgpu_gfx908::v149)
-  (NS_amdgpu::RegisterConstants::v150, amdgpu_gfx908::v150)
-  (NS_amdgpu::RegisterConstants::v151, amdgpu_gfx908::v151)
-  (NS_amdgpu::RegisterConstants::v152, amdgpu_gfx908::v152)
-  (NS_amdgpu::RegisterConstants::v153, amdgpu_gfx908::v153)
-  (NS_amdgpu::RegisterConstants::v154, amdgpu_gfx908::v154)
-  (NS_amdgpu::RegisterConstants::v155, amdgpu_gfx908::v155)
-  (NS_amdgpu::RegisterConstants::v156, amdgpu_gfx908::v156)
-  (NS_amdgpu::RegisterConstants::v157, amdgpu_gfx908::v157)
-  (NS_amdgpu::RegisterConstants::v158, amdgpu_gfx908::v158)
-  (NS_amdgpu::RegisterConstants::v159, amdgpu_gfx908::v159)
-  (NS_amdgpu::RegisterConstants::v160, amdgpu_gfx908::v160)
-  (NS_amdgpu::RegisterConstants::v161, amdgpu_gfx908::v161)
-  (NS_amdgpu::RegisterConstants::v162, amdgpu_gfx908::v162)
-  (NS_amdgpu::RegisterConstants::v163, amdgpu_gfx908::v163)
-  (NS_amdgpu::RegisterConstants::v164, amdgpu_gfx908::v164)
-  (NS_amdgpu::RegisterConstants::v165, amdgpu_gfx908::v165)
-  (NS_amdgpu::RegisterConstants::v166, amdgpu_gfx908::v166)
-  (NS_amdgpu::RegisterConstants::v167, amdgpu_gfx908::v167)
-  (NS_amdgpu::RegisterConstants::v168, amdgpu_gfx908::v168)
-  (NS_amdgpu::RegisterConstants::v169, amdgpu_gfx908::v169)
-  (NS_amdgpu::RegisterConstants::v170, amdgpu_gfx908::v170)
-  (NS_amdgpu::RegisterConstants::v171, amdgpu_gfx908::v171)
-  (NS_amdgpu::RegisterConstants::v172, amdgpu_gfx908::v172)
-  (NS_amdgpu::RegisterConstants::v173, amdgpu_gfx908::v173)
-  (NS_amdgpu::RegisterConstants::v174, amdgpu_gfx908::v174)
-  (NS_amdgpu::RegisterConstants::v175, amdgpu_gfx908::v175)
-  (NS_amdgpu::RegisterConstants::v176, amdgpu_gfx908::v176)
-  (NS_amdgpu::RegisterConstants::v177, amdgpu_gfx908::v177)
-  (NS_amdgpu::RegisterConstants::v178, amdgpu_gfx908::v178)
-  (NS_amdgpu::RegisterConstants::v179, amdgpu_gfx908::v179)
-  (NS_amdgpu::RegisterConstants::v180, amdgpu_gfx908::v180)
-  (NS_amdgpu::RegisterConstants::v181, amdgpu_gfx908::v181)
-  (NS_amdgpu::RegisterConstants::v182, amdgpu_gfx908::v182)
-  (NS_amdgpu::RegisterConstants::v183, amdgpu_gfx908::v183)
-  (NS_amdgpu::RegisterConstants::v184, amdgpu_gfx908::v184)
-  (NS_amdgpu::RegisterConstants::v185, amdgpu_gfx908::v185)
-  (NS_amdgpu::RegisterConstants::v186, amdgpu_gfx908::v186)
-  (NS_amdgpu::RegisterConstants::v187, amdgpu_gfx908::v187)
-  (NS_amdgpu::RegisterConstants::v188, amdgpu_gfx908::v188)
-  (NS_amdgpu::RegisterConstants::v189, amdgpu_gfx908::v189)
-  (NS_amdgpu::RegisterConstants::v190, amdgpu_gfx908::v190)
-  (NS_amdgpu::RegisterConstants::v191, amdgpu_gfx908::v191)
-  (NS_amdgpu::RegisterConstants::v192, amdgpu_gfx908::v192)
-  (NS_amdgpu::RegisterConstants::v193, amdgpu_gfx908::v193)
-  (NS_amdgpu::RegisterConstants::v194, amdgpu_gfx908::v194)
-  (NS_amdgpu::RegisterConstants::v195, amdgpu_gfx908::v195)
-  (NS_amdgpu::RegisterConstants::v196, amdgpu_gfx908::v196)
-  (NS_amdgpu::RegisterConstants::v197, amdgpu_gfx908::v197)
-  (NS_amdgpu::RegisterConstants::v198, amdgpu_gfx908::v198)
-  (NS_amdgpu::RegisterConstants::v199, amdgpu_gfx908::v199)
-  (NS_amdgpu::RegisterConstants::v200, amdgpu_gfx908::v200)
-  (NS_amdgpu::RegisterConstants::v201, amdgpu_gfx908::v201)
-  (NS_amdgpu::RegisterConstants::v202, amdgpu_gfx908::v202)
-  (NS_amdgpu::RegisterConstants::v203, amdgpu_gfx908::v203)
-  (NS_amdgpu::RegisterConstants::v204, amdgpu_gfx908::v204)
-  (NS_amdgpu::RegisterConstants::v205, amdgpu_gfx908::v205)
-  (NS_amdgpu::RegisterConstants::v206, amdgpu_gfx908::v206)
-  (NS_amdgpu::RegisterConstants::v207, amdgpu_gfx908::v207)
-  (NS_amdgpu::RegisterConstants::v208, amdgpu_gfx908::v208)
-  (NS_amdgpu::RegisterConstants::v209, amdgpu_gfx908::v209)
-  (NS_amdgpu::RegisterConstants::v210, amdgpu_gfx908::v210)
-  (NS_amdgpu::RegisterConstants::v211, amdgpu_gfx908::v211)
-  (NS_amdgpu::RegisterConstants::v212, amdgpu_gfx908::v212)
-  (NS_amdgpu::RegisterConstants::v213, amdgpu_gfx908::v213)
-  (NS_amdgpu::RegisterConstants::v214, amdgpu_gfx908::v214)
-  (NS_amdgpu::RegisterConstants::v215, amdgpu_gfx908::v215)
-  (NS_amdgpu::RegisterConstants::v216, amdgpu_gfx908::v216)
-  (NS_amdgpu::RegisterConstants::v217, amdgpu_gfx908::v217)
-  (NS_amdgpu::RegisterConstants::v218, amdgpu_gfx908::v218)
-  (NS_amdgpu::RegisterConstants::v219, amdgpu_gfx908::v219)
-  (NS_amdgpu::RegisterConstants::v220, amdgpu_gfx908::v220)
-  (NS_amdgpu::RegisterConstants::v221, amdgpu_gfx908::v221)
-  (NS_amdgpu::RegisterConstants::v222, amdgpu_gfx908::v222)
-  (NS_amdgpu::RegisterConstants::v223, amdgpu_gfx908::v223)
-  (NS_amdgpu::RegisterConstants::v224, amdgpu_gfx908::v224)
-  (NS_amdgpu::RegisterConstants::v225, amdgpu_gfx908::v225)
-  (NS_amdgpu::RegisterConstants::v226, amdgpu_gfx908::v226)
-  (NS_amdgpu::RegisterConstants::v227, amdgpu_gfx908::v227)
-  (NS_amdgpu::RegisterConstants::v228, amdgpu_gfx908::v228)
-  (NS_amdgpu::RegisterConstants::v229, amdgpu_gfx908::v229)
-  (NS_amdgpu::RegisterConstants::v230, amdgpu_gfx908::v230)
-  (NS_amdgpu::RegisterConstants::v231, amdgpu_gfx908::v231)
-  (NS_amdgpu::RegisterConstants::v232, amdgpu_gfx908::v232)
-  (NS_amdgpu::RegisterConstants::v233, amdgpu_gfx908::v233)
-  (NS_amdgpu::RegisterConstants::v234, amdgpu_gfx908::v234)
-  (NS_amdgpu::RegisterConstants::v235, amdgpu_gfx908::v235)
-  (NS_amdgpu::RegisterConstants::v236, amdgpu_gfx908::v236)
-  (NS_amdgpu::RegisterConstants::v237, amdgpu_gfx908::v237)
-  (NS_amdgpu::RegisterConstants::v238, amdgpu_gfx908::v238)
-  (NS_amdgpu::RegisterConstants::v239, amdgpu_gfx908::v239)
-  (NS_amdgpu::RegisterConstants::v240, amdgpu_gfx908::v240)
-  (NS_amdgpu::RegisterConstants::v241, amdgpu_gfx908::v241)
-  (NS_amdgpu::RegisterConstants::v242, amdgpu_gfx908::v242)
-  (NS_amdgpu::RegisterConstants::v243, amdgpu_gfx908::v243)
-  (NS_amdgpu::RegisterConstants::v244, amdgpu_gfx908::v244)
-  (NS_amdgpu::RegisterConstants::v245, amdgpu_gfx908::v245)
-  (NS_amdgpu::RegisterConstants::v246, amdgpu_gfx908::v246)
-  (NS_amdgpu::RegisterConstants::v247, amdgpu_gfx908::v247)
-  (NS_amdgpu::RegisterConstants::v248, amdgpu_gfx908::v248)
-  (NS_amdgpu::RegisterConstants::v249, amdgpu_gfx908::v249)
-  (NS_amdgpu::RegisterConstants::v250, amdgpu_gfx908::v250)
-  (NS_amdgpu::RegisterConstants::v251, amdgpu_gfx908::v251)
-  (NS_amdgpu::RegisterConstants::v252, amdgpu_gfx908::v252)
-  (NS_amdgpu::RegisterConstants::v253, amdgpu_gfx908::v253)
-  (NS_amdgpu::RegisterConstants::v254, amdgpu_gfx908::v254)
-  (NS_amdgpu::RegisterConstants::v255, amdgpu_gfx908::v255)
-  ;
+// The ISA scalar operand code for a special register named `nm` on `arch`, from THAT gen's generated
+// table. Returns false if `nm` is not a listed special (a plain SGPR/VGPR) or if `arch`'s table is not
+// vendored yet. Each arm scans its own gen's table so the codes stay per-gen (see the file header).
+bool amdgpuSpecialCode(Architecture arch, const std::string &nm, uint32_t &codeOut) {
+  switch (arch) {
+    case Arch_amdgpu_gfx908:
+      for (const auto &sr : Dyninst::amdgpu_gfx908::detail::specialRegs)
+        if (nm == sr.name) {
+          codeOut = sr.code;
+          return true;
+        }
+      return false;
+    // case Arch_amdgpu_gfx90a:   // for (const auto &sr : AmdgpuGfx90a::detail::specialRegs) { ... }
+    // case Arch_amdgpu_gfx940:   // for (const auto &sr : AmdgpuGfx942::detail::specialRegs) { ... }  (post-rename)
+    // case Arch_amdgpu_gfx950:   // for (const auto &sr : AmdgpuGfx950::detail::specialRegs) { ... }
+    default:
+      return false;
+  }
+}
 
+// Per-arch reverse data, built once per architecture from that arch's OWN registered MachRegisters:
+// the v0/s0 base encodings (for the SGPR/VGPR identity) and the special operand-code -> MachRegister map
+// (intersecting the arch's registers with its generated specialRegs[] codes). No fixed-arch constants.
+struct AmdgpuArchRegs {
+  int32_t v0Val = 0;
+  int32_t s0Val = 0;
+  bool haveBase = false;
+  std::map<uint32_t, MachRegister> specialByCode;
+};
 
-map<MachRegister, Register> reverseRegisterMap = map_list_of
-  (amdgpu_gfx908::s0,  NS_amdgpu::RegisterConstants::s0)
-  (amdgpu_gfx908::s1,  NS_amdgpu::RegisterConstants::s1)
-  (amdgpu_gfx908::s2,  NS_amdgpu::RegisterConstants::s2)
-  (amdgpu_gfx908::s3,  NS_amdgpu::RegisterConstants::s3)
-  (amdgpu_gfx908::s4,  NS_amdgpu::RegisterConstants::s4)
-  (amdgpu_gfx908::s5,  NS_amdgpu::RegisterConstants::s5)
-  (amdgpu_gfx908::s6,  NS_amdgpu::RegisterConstants::s6)
-  (amdgpu_gfx908::s7,  NS_amdgpu::RegisterConstants::s7)
-  (amdgpu_gfx908::s8,  NS_amdgpu::RegisterConstants::s8)
-  (amdgpu_gfx908::s9,  NS_amdgpu::RegisterConstants::s9)
-  (amdgpu_gfx908::s10, NS_amdgpu::RegisterConstants::s10)
-  (amdgpu_gfx908::s11, NS_amdgpu::RegisterConstants::s11)
-  (amdgpu_gfx908::s12, NS_amdgpu::RegisterConstants::s12)
-  (amdgpu_gfx908::s13, NS_amdgpu::RegisterConstants::s13)
-  (amdgpu_gfx908::s14, NS_amdgpu::RegisterConstants::s14)
-  (amdgpu_gfx908::s15, NS_amdgpu::RegisterConstants::s15)
-  (amdgpu_gfx908::s16, NS_amdgpu::RegisterConstants::s16)
-  (amdgpu_gfx908::s17, NS_amdgpu::RegisterConstants::s17)
-  (amdgpu_gfx908::s18, NS_amdgpu::RegisterConstants::s18)
-  (amdgpu_gfx908::s19, NS_amdgpu::RegisterConstants::s19)
-  (amdgpu_gfx908::s20, NS_amdgpu::RegisterConstants::s20)
-  (amdgpu_gfx908::s21, NS_amdgpu::RegisterConstants::s21)
-  (amdgpu_gfx908::s22, NS_amdgpu::RegisterConstants::s22)
-  (amdgpu_gfx908::s23, NS_amdgpu::RegisterConstants::s23)
-  (amdgpu_gfx908::s24, NS_amdgpu::RegisterConstants::s24)
-  (amdgpu_gfx908::s25, NS_amdgpu::RegisterConstants::s25)
-  (amdgpu_gfx908::s26, NS_amdgpu::RegisterConstants::s26)
-  (amdgpu_gfx908::s27, NS_amdgpu::RegisterConstants::s27)
-  (amdgpu_gfx908::s28, NS_amdgpu::RegisterConstants::s28)
-  (amdgpu_gfx908::s29, NS_amdgpu::RegisterConstants::s29)
-  (amdgpu_gfx908::s30, NS_amdgpu::RegisterConstants::s30)
-  (amdgpu_gfx908::s31, NS_amdgpu::RegisterConstants::s31)
-  (amdgpu_gfx908::s32, NS_amdgpu::RegisterConstants::s32)
-  (amdgpu_gfx908::s33, NS_amdgpu::RegisterConstants::s33)
-  (amdgpu_gfx908::s34, NS_amdgpu::RegisterConstants::s34)
-  (amdgpu_gfx908::s35, NS_amdgpu::RegisterConstants::s35)
-  (amdgpu_gfx908::s36, NS_amdgpu::RegisterConstants::s36)
-  (amdgpu_gfx908::s37, NS_amdgpu::RegisterConstants::s37)
-  (amdgpu_gfx908::s38, NS_amdgpu::RegisterConstants::s38)
-  (amdgpu_gfx908::s39, NS_amdgpu::RegisterConstants::s39)
-  (amdgpu_gfx908::s40, NS_amdgpu::RegisterConstants::s40)
-  (amdgpu_gfx908::s41, NS_amdgpu::RegisterConstants::s41)
-  (amdgpu_gfx908::s42, NS_amdgpu::RegisterConstants::s42)
-  (amdgpu_gfx908::s43, NS_amdgpu::RegisterConstants::s43)
-  (amdgpu_gfx908::s44, NS_amdgpu::RegisterConstants::s44)
-  (amdgpu_gfx908::s45, NS_amdgpu::RegisterConstants::s45)
-  (amdgpu_gfx908::s46, NS_amdgpu::RegisterConstants::s46)
-  (amdgpu_gfx908::s47, NS_amdgpu::RegisterConstants::s47)
-  (amdgpu_gfx908::s48, NS_amdgpu::RegisterConstants::s48)
-  (amdgpu_gfx908::s49, NS_amdgpu::RegisterConstants::s49)
-  (amdgpu_gfx908::s50, NS_amdgpu::RegisterConstants::s50)
-  (amdgpu_gfx908::s51, NS_amdgpu::RegisterConstants::s51)
-  (amdgpu_gfx908::s52, NS_amdgpu::RegisterConstants::s52)
-  (amdgpu_gfx908::s53, NS_amdgpu::RegisterConstants::s53)
-  (amdgpu_gfx908::s54, NS_amdgpu::RegisterConstants::s54)
-  (amdgpu_gfx908::s55, NS_amdgpu::RegisterConstants::s55)
-  (amdgpu_gfx908::s56, NS_amdgpu::RegisterConstants::s56)
-  (amdgpu_gfx908::s57, NS_amdgpu::RegisterConstants::s57)
-  (amdgpu_gfx908::s58, NS_amdgpu::RegisterConstants::s58)
-  (amdgpu_gfx908::s59, NS_amdgpu::RegisterConstants::s59)
-  (amdgpu_gfx908::s60, NS_amdgpu::RegisterConstants::s60)
-  (amdgpu_gfx908::s61, NS_amdgpu::RegisterConstants::s61)
-  (amdgpu_gfx908::s62, NS_amdgpu::RegisterConstants::s62)
-  (amdgpu_gfx908::s63, NS_amdgpu::RegisterConstants::s63)
-  (amdgpu_gfx908::s64, NS_amdgpu::RegisterConstants::s64)
-  (amdgpu_gfx908::s65, NS_amdgpu::RegisterConstants::s65)
-  (amdgpu_gfx908::s66, NS_amdgpu::RegisterConstants::s66)
-  (amdgpu_gfx908::s67, NS_amdgpu::RegisterConstants::s67)
-  (amdgpu_gfx908::s68, NS_amdgpu::RegisterConstants::s68)
-  (amdgpu_gfx908::s69, NS_amdgpu::RegisterConstants::s69)
-  (amdgpu_gfx908::s70, NS_amdgpu::RegisterConstants::s70)
-  (amdgpu_gfx908::s71, NS_amdgpu::RegisterConstants::s71)
-  (amdgpu_gfx908::s72, NS_amdgpu::RegisterConstants::s72)
-  (amdgpu_gfx908::s73, NS_amdgpu::RegisterConstants::s73)
-  (amdgpu_gfx908::s74, NS_amdgpu::RegisterConstants::s74)
-  (amdgpu_gfx908::s75, NS_amdgpu::RegisterConstants::s75)
-  (amdgpu_gfx908::s76, NS_amdgpu::RegisterConstants::s76)
-  (amdgpu_gfx908::s77, NS_amdgpu::RegisterConstants::s77)
-  (amdgpu_gfx908::s78, NS_amdgpu::RegisterConstants::s78)
-  (amdgpu_gfx908::s79, NS_amdgpu::RegisterConstants::s79)
-  (amdgpu_gfx908::s80, NS_amdgpu::RegisterConstants::s80)
-  (amdgpu_gfx908::s81, NS_amdgpu::RegisterConstants::s81)
-  (amdgpu_gfx908::s82, NS_amdgpu::RegisterConstants::s82)
-  (amdgpu_gfx908::s83, NS_amdgpu::RegisterConstants::s83)
-  (amdgpu_gfx908::s84, NS_amdgpu::RegisterConstants::s84)
-  (amdgpu_gfx908::s85, NS_amdgpu::RegisterConstants::s85)
-  (amdgpu_gfx908::s86, NS_amdgpu::RegisterConstants::s86)
-  (amdgpu_gfx908::s87, NS_amdgpu::RegisterConstants::s87)
-  (amdgpu_gfx908::s88, NS_amdgpu::RegisterConstants::s88)
-  (amdgpu_gfx908::s89, NS_amdgpu::RegisterConstants::s89)
-  (amdgpu_gfx908::s90, NS_amdgpu::RegisterConstants::s90)
-  (amdgpu_gfx908::s91, NS_amdgpu::RegisterConstants::s91)
-  (amdgpu_gfx908::s92, NS_amdgpu::RegisterConstants::s92)
-  (amdgpu_gfx908::s93, NS_amdgpu::RegisterConstants::s93)
-  (amdgpu_gfx908::s94, NS_amdgpu::RegisterConstants::s94)
-  (amdgpu_gfx908::s95, NS_amdgpu::RegisterConstants::s95)
-  (amdgpu_gfx908::s96, NS_amdgpu::RegisterConstants::s96)
-  (amdgpu_gfx908::s97, NS_amdgpu::RegisterConstants::s97)
-  (amdgpu_gfx908::s98, NS_amdgpu::RegisterConstants::s98)
-  (amdgpu_gfx908::s99, NS_amdgpu::RegisterConstants::s99)
-  (amdgpu_gfx908::s100, NS_amdgpu::RegisterConstants::s100)
-  (amdgpu_gfx908::s101, NS_amdgpu::RegisterConstants::s101)
-  (amdgpu_gfx908::flat_scratch_lo, NS_amdgpu::RegisterConstants::flat_scratch_lo)
-  (amdgpu_gfx908::flat_scratch_hi, NS_amdgpu::RegisterConstants::flat_scratch_hi)
-  (amdgpu_gfx908::xnack_mask_lo, NS_amdgpu::RegisterConstants::xnack_mask_lo)
-  (amdgpu_gfx908::xnack_mask_hi, NS_amdgpu::RegisterConstants::xnack_mask_hi)
-  (amdgpu_gfx908::vcc_lo, NS_amdgpu::RegisterConstants::vcc_lo)
-  (amdgpu_gfx908::vcc_hi, NS_amdgpu::RegisterConstants::vcc_hi)
-  (amdgpu_gfx908::exec_lo, NS_amdgpu::RegisterConstants::exec_lo)
-  (amdgpu_gfx908::exec_hi, NS_amdgpu::RegisterConstants::exec_hi)
+const AmdgpuArchRegs &amdgpuArchRegs(Architecture arch) {
+  static std::map<Architecture, AmdgpuArchRegs> cache;
+  std::map<Architecture, AmdgpuArchRegs>::iterator it = cache.find(arch);
+  if (it != cache.end())
+    return it->second;
 
-  (amdgpu_gfx908::v0,  NS_amdgpu::RegisterConstants::v0)
-  (amdgpu_gfx908::v1,  NS_amdgpu::RegisterConstants::v1)
-  (amdgpu_gfx908::v2,  NS_amdgpu::RegisterConstants::v2)
-  (amdgpu_gfx908::v3,  NS_amdgpu::RegisterConstants::v3)
-  (amdgpu_gfx908::v4,  NS_amdgpu::RegisterConstants::v4)
-  (amdgpu_gfx908::v5,  NS_amdgpu::RegisterConstants::v5)
-  (amdgpu_gfx908::v6,  NS_amdgpu::RegisterConstants::v6)
-  (amdgpu_gfx908::v7,  NS_amdgpu::RegisterConstants::v7)
-  (amdgpu_gfx908::v8,  NS_amdgpu::RegisterConstants::v8)
-  (amdgpu_gfx908::v9,  NS_amdgpu::RegisterConstants::v9)
-  (amdgpu_gfx908::v10, NS_amdgpu::RegisterConstants::v10)
-  (amdgpu_gfx908::v11, NS_amdgpu::RegisterConstants::v11)
-  (amdgpu_gfx908::v12, NS_amdgpu::RegisterConstants::v12)
-  (amdgpu_gfx908::v13, NS_amdgpu::RegisterConstants::v13)
-  (amdgpu_gfx908::v14, NS_amdgpu::RegisterConstants::v14)
-  (amdgpu_gfx908::v15, NS_amdgpu::RegisterConstants::v15)
-  (amdgpu_gfx908::v16, NS_amdgpu::RegisterConstants::v16)
-  (amdgpu_gfx908::v17, NS_amdgpu::RegisterConstants::v17)
-  (amdgpu_gfx908::v18, NS_amdgpu::RegisterConstants::v18)
-  (amdgpu_gfx908::v19, NS_amdgpu::RegisterConstants::v19)
-  (amdgpu_gfx908::v20, NS_amdgpu::RegisterConstants::v20)
-  (amdgpu_gfx908::v21, NS_amdgpu::RegisterConstants::v21)
-  (amdgpu_gfx908::v22, NS_amdgpu::RegisterConstants::v22)
-  (amdgpu_gfx908::v23, NS_amdgpu::RegisterConstants::v23)
-  (amdgpu_gfx908::v24, NS_amdgpu::RegisterConstants::v24)
-  (amdgpu_gfx908::v25, NS_amdgpu::RegisterConstants::v25)
-  (amdgpu_gfx908::v26, NS_amdgpu::RegisterConstants::v26)
-  (amdgpu_gfx908::v27, NS_amdgpu::RegisterConstants::v27)
-  (amdgpu_gfx908::v28, NS_amdgpu::RegisterConstants::v28)
-  (amdgpu_gfx908::v29, NS_amdgpu::RegisterConstants::v29)
-  (amdgpu_gfx908::v30, NS_amdgpu::RegisterConstants::v30)
-  (amdgpu_gfx908::v31, NS_amdgpu::RegisterConstants::v31)
-  (amdgpu_gfx908::v32, NS_amdgpu::RegisterConstants::v32)
-  (amdgpu_gfx908::v33, NS_amdgpu::RegisterConstants::v33)
-  (amdgpu_gfx908::v34, NS_amdgpu::RegisterConstants::v34)
-  (amdgpu_gfx908::v35, NS_amdgpu::RegisterConstants::v35)
-  (amdgpu_gfx908::v36, NS_amdgpu::RegisterConstants::v36)
-  (amdgpu_gfx908::v37, NS_amdgpu::RegisterConstants::v37)
-  (amdgpu_gfx908::v38, NS_amdgpu::RegisterConstants::v38)
-  (amdgpu_gfx908::v39, NS_amdgpu::RegisterConstants::v39)
-  (amdgpu_gfx908::v40, NS_amdgpu::RegisterConstants::v40)
-  (amdgpu_gfx908::v41, NS_amdgpu::RegisterConstants::v41)
-  (amdgpu_gfx908::v42, NS_amdgpu::RegisterConstants::v42)
-  (amdgpu_gfx908::v43, NS_amdgpu::RegisterConstants::v43)
-  (amdgpu_gfx908::v44, NS_amdgpu::RegisterConstants::v44)
-  (amdgpu_gfx908::v45, NS_amdgpu::RegisterConstants::v45)
-  (amdgpu_gfx908::v46, NS_amdgpu::RegisterConstants::v46)
-  (amdgpu_gfx908::v47, NS_amdgpu::RegisterConstants::v47)
-  (amdgpu_gfx908::v48, NS_amdgpu::RegisterConstants::v48)
-  (amdgpu_gfx908::v49, NS_amdgpu::RegisterConstants::v49)
-  (amdgpu_gfx908::v50, NS_amdgpu::RegisterConstants::v50)
-  (amdgpu_gfx908::v51, NS_amdgpu::RegisterConstants::v51)
-  (amdgpu_gfx908::v52, NS_amdgpu::RegisterConstants::v52)
-  (amdgpu_gfx908::v53, NS_amdgpu::RegisterConstants::v53)
-  (amdgpu_gfx908::v54, NS_amdgpu::RegisterConstants::v54)
-  (amdgpu_gfx908::v55, NS_amdgpu::RegisterConstants::v55)
-  (amdgpu_gfx908::v56, NS_amdgpu::RegisterConstants::v56)
-  (amdgpu_gfx908::v57, NS_amdgpu::RegisterConstants::v57)
-  (amdgpu_gfx908::v58, NS_amdgpu::RegisterConstants::v58)
-  (amdgpu_gfx908::v59, NS_amdgpu::RegisterConstants::v59)
-  (amdgpu_gfx908::v60, NS_amdgpu::RegisterConstants::v60)
-  (amdgpu_gfx908::v61, NS_amdgpu::RegisterConstants::v61)
-  (amdgpu_gfx908::v62, NS_amdgpu::RegisterConstants::v62)
-  (amdgpu_gfx908::v63, NS_amdgpu::RegisterConstants::v63)
-  (amdgpu_gfx908::v64, NS_amdgpu::RegisterConstants::v64)
-  (amdgpu_gfx908::v65, NS_amdgpu::RegisterConstants::v65)
-  (amdgpu_gfx908::v66, NS_amdgpu::RegisterConstants::v66)
-  (amdgpu_gfx908::v67, NS_amdgpu::RegisterConstants::v67)
-  (amdgpu_gfx908::v68, NS_amdgpu::RegisterConstants::v68)
-  (amdgpu_gfx908::v69, NS_amdgpu::RegisterConstants::v69)
-  (amdgpu_gfx908::v70, NS_amdgpu::RegisterConstants::v70)
-  (amdgpu_gfx908::v71, NS_amdgpu::RegisterConstants::v71)
-  (amdgpu_gfx908::v72, NS_amdgpu::RegisterConstants::v72)
-  (amdgpu_gfx908::v73, NS_amdgpu::RegisterConstants::v73)
-  (amdgpu_gfx908::v74, NS_amdgpu::RegisterConstants::v74)
-  (amdgpu_gfx908::v75, NS_amdgpu::RegisterConstants::v75)
-  (amdgpu_gfx908::v76, NS_amdgpu::RegisterConstants::v76)
-  (amdgpu_gfx908::v77, NS_amdgpu::RegisterConstants::v77)
-  (amdgpu_gfx908::v78, NS_amdgpu::RegisterConstants::v78)
-  (amdgpu_gfx908::v79, NS_amdgpu::RegisterConstants::v79)
-  (amdgpu_gfx908::v80, NS_amdgpu::RegisterConstants::v80)
-  (amdgpu_gfx908::v81, NS_amdgpu::RegisterConstants::v81)
-  (amdgpu_gfx908::v82, NS_amdgpu::RegisterConstants::v82)
-  (amdgpu_gfx908::v83, NS_amdgpu::RegisterConstants::v83)
-  (amdgpu_gfx908::v84, NS_amdgpu::RegisterConstants::v84)
-  (amdgpu_gfx908::v85, NS_amdgpu::RegisterConstants::v85)
-  (amdgpu_gfx908::v86, NS_amdgpu::RegisterConstants::v86)
-  (amdgpu_gfx908::v87, NS_amdgpu::RegisterConstants::v87)
-  (amdgpu_gfx908::v88, NS_amdgpu::RegisterConstants::v88)
-  (amdgpu_gfx908::v89, NS_amdgpu::RegisterConstants::v89)
-  (amdgpu_gfx908::v90, NS_amdgpu::RegisterConstants::v90)
-  (amdgpu_gfx908::v91, NS_amdgpu::RegisterConstants::v91)
-  (amdgpu_gfx908::v92, NS_amdgpu::RegisterConstants::v92)
-  (amdgpu_gfx908::v93, NS_amdgpu::RegisterConstants::v93)
-  (amdgpu_gfx908::v94, NS_amdgpu::RegisterConstants::v94)
-  (amdgpu_gfx908::v95, NS_amdgpu::RegisterConstants::v95)
-  (amdgpu_gfx908::v96, NS_amdgpu::RegisterConstants::v96)
-  (amdgpu_gfx908::v97, NS_amdgpu::RegisterConstants::v97)
-  (amdgpu_gfx908::v98, NS_amdgpu::RegisterConstants::v98)
-  (amdgpu_gfx908::v99, NS_amdgpu::RegisterConstants::v99)
-  (amdgpu_gfx908::v100, NS_amdgpu::RegisterConstants::v100)
-  (amdgpu_gfx908::v101, NS_amdgpu::RegisterConstants::v101)
-  (amdgpu_gfx908::v102, NS_amdgpu::RegisterConstants::v102)
-  (amdgpu_gfx908::v103, NS_amdgpu::RegisterConstants::v103)
-  (amdgpu_gfx908::v104, NS_amdgpu::RegisterConstants::v104)
-  (amdgpu_gfx908::v105, NS_amdgpu::RegisterConstants::v105)
-  (amdgpu_gfx908::v106, NS_amdgpu::RegisterConstants::v106)
-  (amdgpu_gfx908::v107, NS_amdgpu::RegisterConstants::v107)
-  (amdgpu_gfx908::v108, NS_amdgpu::RegisterConstants::v108)
-  (amdgpu_gfx908::v109, NS_amdgpu::RegisterConstants::v109)
-  (amdgpu_gfx908::v110, NS_amdgpu::RegisterConstants::v110)
-  (amdgpu_gfx908::v111, NS_amdgpu::RegisterConstants::v111)
-  (amdgpu_gfx908::v112, NS_amdgpu::RegisterConstants::v112)
-  (amdgpu_gfx908::v113, NS_amdgpu::RegisterConstants::v113)
-  (amdgpu_gfx908::v114, NS_amdgpu::RegisterConstants::v114)
-  (amdgpu_gfx908::v115, NS_amdgpu::RegisterConstants::v115)
-  (amdgpu_gfx908::v116, NS_amdgpu::RegisterConstants::v116)
-  (amdgpu_gfx908::v117, NS_amdgpu::RegisterConstants::v117)
-  (amdgpu_gfx908::v118, NS_amdgpu::RegisterConstants::v118)
-  (amdgpu_gfx908::v119, NS_amdgpu::RegisterConstants::v119)
-  (amdgpu_gfx908::v120, NS_amdgpu::RegisterConstants::v120)
-  (amdgpu_gfx908::v121, NS_amdgpu::RegisterConstants::v121)
-  (amdgpu_gfx908::v122, NS_amdgpu::RegisterConstants::v122)
-  (amdgpu_gfx908::v123, NS_amdgpu::RegisterConstants::v123)
-  (amdgpu_gfx908::v124, NS_amdgpu::RegisterConstants::v124)
-  (amdgpu_gfx908::v125, NS_amdgpu::RegisterConstants::v125)
-  (amdgpu_gfx908::v126, NS_amdgpu::RegisterConstants::v126)
-  (amdgpu_gfx908::v127, NS_amdgpu::RegisterConstants::v127)
-  (amdgpu_gfx908::v128, NS_amdgpu::RegisterConstants::v128)
-  (amdgpu_gfx908::v129, NS_amdgpu::RegisterConstants::v129)
-  (amdgpu_gfx908::v130, NS_amdgpu::RegisterConstants::v130)
-  (amdgpu_gfx908::v131, NS_amdgpu::RegisterConstants::v131)
-  (amdgpu_gfx908::v132, NS_amdgpu::RegisterConstants::v132)
-  (amdgpu_gfx908::v133, NS_amdgpu::RegisterConstants::v133)
-  (amdgpu_gfx908::v134, NS_amdgpu::RegisterConstants::v134)
-  (amdgpu_gfx908::v135, NS_amdgpu::RegisterConstants::v135)
-  (amdgpu_gfx908::v136, NS_amdgpu::RegisterConstants::v136)
-  (amdgpu_gfx908::v137, NS_amdgpu::RegisterConstants::v137)
-  (amdgpu_gfx908::v138, NS_amdgpu::RegisterConstants::v138)
-  (amdgpu_gfx908::v139, NS_amdgpu::RegisterConstants::v139)
-  (amdgpu_gfx908::v140, NS_amdgpu::RegisterConstants::v140)
-  (amdgpu_gfx908::v141, NS_amdgpu::RegisterConstants::v141)
-  (amdgpu_gfx908::v142, NS_amdgpu::RegisterConstants::v142)
-  (amdgpu_gfx908::v143, NS_amdgpu::RegisterConstants::v143)
-  (amdgpu_gfx908::v144, NS_amdgpu::RegisterConstants::v144)
-  (amdgpu_gfx908::v145, NS_amdgpu::RegisterConstants::v145)
-  (amdgpu_gfx908::v146, NS_amdgpu::RegisterConstants::v146)
-  (amdgpu_gfx908::v147, NS_amdgpu::RegisterConstants::v147)
-  (amdgpu_gfx908::v148, NS_amdgpu::RegisterConstants::v148)
-  (amdgpu_gfx908::v149, NS_amdgpu::RegisterConstants::v149)
-  (amdgpu_gfx908::v150, NS_amdgpu::RegisterConstants::v150)
-  (amdgpu_gfx908::v151, NS_amdgpu::RegisterConstants::v151)
-  (amdgpu_gfx908::v152, NS_amdgpu::RegisterConstants::v152)
-  (amdgpu_gfx908::v153, NS_amdgpu::RegisterConstants::v153)
-  (amdgpu_gfx908::v154, NS_amdgpu::RegisterConstants::v154)
-  (amdgpu_gfx908::v155, NS_amdgpu::RegisterConstants::v155)
-  (amdgpu_gfx908::v156, NS_amdgpu::RegisterConstants::v156)
-  (amdgpu_gfx908::v157, NS_amdgpu::RegisterConstants::v157)
-  (amdgpu_gfx908::v158, NS_amdgpu::RegisterConstants::v158)
-  (amdgpu_gfx908::v159, NS_amdgpu::RegisterConstants::v159)
-  (amdgpu_gfx908::v160, NS_amdgpu::RegisterConstants::v160)
-  (amdgpu_gfx908::v161, NS_amdgpu::RegisterConstants::v161)
-  (amdgpu_gfx908::v162, NS_amdgpu::RegisterConstants::v162)
-  (amdgpu_gfx908::v163, NS_amdgpu::RegisterConstants::v163)
-  (amdgpu_gfx908::v164, NS_amdgpu::RegisterConstants::v164)
-  (amdgpu_gfx908::v165, NS_amdgpu::RegisterConstants::v165)
-  (amdgpu_gfx908::v166, NS_amdgpu::RegisterConstants::v166)
-  (amdgpu_gfx908::v167, NS_amdgpu::RegisterConstants::v167)
-  (amdgpu_gfx908::v168, NS_amdgpu::RegisterConstants::v168)
-  (amdgpu_gfx908::v169, NS_amdgpu::RegisterConstants::v169)
-  (amdgpu_gfx908::v170, NS_amdgpu::RegisterConstants::v170)
-  (amdgpu_gfx908::v171, NS_amdgpu::RegisterConstants::v171)
-  (amdgpu_gfx908::v172, NS_amdgpu::RegisterConstants::v172)
-  (amdgpu_gfx908::v173, NS_amdgpu::RegisterConstants::v173)
-  (amdgpu_gfx908::v174, NS_amdgpu::RegisterConstants::v174)
-  (amdgpu_gfx908::v175, NS_amdgpu::RegisterConstants::v175)
-  (amdgpu_gfx908::v176, NS_amdgpu::RegisterConstants::v176)
-  (amdgpu_gfx908::v177, NS_amdgpu::RegisterConstants::v177)
-  (amdgpu_gfx908::v178, NS_amdgpu::RegisterConstants::v178)
-  (amdgpu_gfx908::v179, NS_amdgpu::RegisterConstants::v179)
-  (amdgpu_gfx908::v180, NS_amdgpu::RegisterConstants::v180)
-  (amdgpu_gfx908::v181, NS_amdgpu::RegisterConstants::v181)
-  (amdgpu_gfx908::v182, NS_amdgpu::RegisterConstants::v182)
-  (amdgpu_gfx908::v183, NS_amdgpu::RegisterConstants::v183)
-  (amdgpu_gfx908::v184, NS_amdgpu::RegisterConstants::v184)
-  (amdgpu_gfx908::v185, NS_amdgpu::RegisterConstants::v185)
-  (amdgpu_gfx908::v186, NS_amdgpu::RegisterConstants::v186)
-  (amdgpu_gfx908::v187, NS_amdgpu::RegisterConstants::v187)
-  (amdgpu_gfx908::v188, NS_amdgpu::RegisterConstants::v188)
-  (amdgpu_gfx908::v189, NS_amdgpu::RegisterConstants::v189)
-  (amdgpu_gfx908::v190, NS_amdgpu::RegisterConstants::v190)
-  (amdgpu_gfx908::v191, NS_amdgpu::RegisterConstants::v191)
-  (amdgpu_gfx908::v192, NS_amdgpu::RegisterConstants::v192)
-  (amdgpu_gfx908::v193, NS_amdgpu::RegisterConstants::v193)
-  (amdgpu_gfx908::v194, NS_amdgpu::RegisterConstants::v194)
-  (amdgpu_gfx908::v195, NS_amdgpu::RegisterConstants::v195)
-  (amdgpu_gfx908::v196, NS_amdgpu::RegisterConstants::v196)
-  (amdgpu_gfx908::v197, NS_amdgpu::RegisterConstants::v197)
-  (amdgpu_gfx908::v198, NS_amdgpu::RegisterConstants::v198)
-  (amdgpu_gfx908::v199, NS_amdgpu::RegisterConstants::v199)
-  (amdgpu_gfx908::v200, NS_amdgpu::RegisterConstants::v200)
-  (amdgpu_gfx908::v201, NS_amdgpu::RegisterConstants::v201)
-  (amdgpu_gfx908::v202, NS_amdgpu::RegisterConstants::v202)
-  (amdgpu_gfx908::v203, NS_amdgpu::RegisterConstants::v203)
-  (amdgpu_gfx908::v204, NS_amdgpu::RegisterConstants::v204)
-  (amdgpu_gfx908::v205, NS_amdgpu::RegisterConstants::v205)
-  (amdgpu_gfx908::v206, NS_amdgpu::RegisterConstants::v206)
-  (amdgpu_gfx908::v207, NS_amdgpu::RegisterConstants::v207)
-  (amdgpu_gfx908::v208, NS_amdgpu::RegisterConstants::v208)
-  (amdgpu_gfx908::v209, NS_amdgpu::RegisterConstants::v209)
-  (amdgpu_gfx908::v210, NS_amdgpu::RegisterConstants::v210)
-  (amdgpu_gfx908::v211, NS_amdgpu::RegisterConstants::v211)
-  (amdgpu_gfx908::v212, NS_amdgpu::RegisterConstants::v212)
-  (amdgpu_gfx908::v213, NS_amdgpu::RegisterConstants::v213)
-  (amdgpu_gfx908::v214, NS_amdgpu::RegisterConstants::v214)
-  (amdgpu_gfx908::v215, NS_amdgpu::RegisterConstants::v215)
-  (amdgpu_gfx908::v216, NS_amdgpu::RegisterConstants::v216)
-  (amdgpu_gfx908::v217, NS_amdgpu::RegisterConstants::v217)
-  (amdgpu_gfx908::v218, NS_amdgpu::RegisterConstants::v218)
-  (amdgpu_gfx908::v219, NS_amdgpu::RegisterConstants::v219)
-  (amdgpu_gfx908::v220, NS_amdgpu::RegisterConstants::v220)
-  (amdgpu_gfx908::v221, NS_amdgpu::RegisterConstants::v221)
-  (amdgpu_gfx908::v222, NS_amdgpu::RegisterConstants::v222)
-  (amdgpu_gfx908::v223, NS_amdgpu::RegisterConstants::v223)
-  (amdgpu_gfx908::v224, NS_amdgpu::RegisterConstants::v224)
-  (amdgpu_gfx908::v225, NS_amdgpu::RegisterConstants::v225)
-  (amdgpu_gfx908::v226, NS_amdgpu::RegisterConstants::v226)
-  (amdgpu_gfx908::v227, NS_amdgpu::RegisterConstants::v227)
-  (amdgpu_gfx908::v228, NS_amdgpu::RegisterConstants::v228)
-  (amdgpu_gfx908::v229, NS_amdgpu::RegisterConstants::v229)
-  (amdgpu_gfx908::v230, NS_amdgpu::RegisterConstants::v230)
-  (amdgpu_gfx908::v231, NS_amdgpu::RegisterConstants::v231)
-  (amdgpu_gfx908::v232, NS_amdgpu::RegisterConstants::v232)
-  (amdgpu_gfx908::v233, NS_amdgpu::RegisterConstants::v233)
-  (amdgpu_gfx908::v234, NS_amdgpu::RegisterConstants::v234)
-  (amdgpu_gfx908::v235, NS_amdgpu::RegisterConstants::v235)
-  (amdgpu_gfx908::v236, NS_amdgpu::RegisterConstants::v236)
-  (amdgpu_gfx908::v237, NS_amdgpu::RegisterConstants::v237)
-  (amdgpu_gfx908::v238, NS_amdgpu::RegisterConstants::v238)
-  (amdgpu_gfx908::v239, NS_amdgpu::RegisterConstants::v239)
-  (amdgpu_gfx908::v240, NS_amdgpu::RegisterConstants::v240)
-  (amdgpu_gfx908::v241, NS_amdgpu::RegisterConstants::v241)
-  (amdgpu_gfx908::v242, NS_amdgpu::RegisterConstants::v242)
-  (amdgpu_gfx908::v243, NS_amdgpu::RegisterConstants::v243)
-  (amdgpu_gfx908::v244, NS_amdgpu::RegisterConstants::v244)
-  (amdgpu_gfx908::v245, NS_amdgpu::RegisterConstants::v245)
-  (amdgpu_gfx908::v246, NS_amdgpu::RegisterConstants::v246)
-  (amdgpu_gfx908::v247, NS_amdgpu::RegisterConstants::v247)
-  (amdgpu_gfx908::v248, NS_amdgpu::RegisterConstants::v248)
-  (amdgpu_gfx908::v249, NS_amdgpu::RegisterConstants::v249)
-  (amdgpu_gfx908::v250, NS_amdgpu::RegisterConstants::v250)
-  (amdgpu_gfx908::v251, NS_amdgpu::RegisterConstants::v251)
-  (amdgpu_gfx908::v252, NS_amdgpu::RegisterConstants::v252)
-  (amdgpu_gfx908::v253, NS_amdgpu::RegisterConstants::v253)
-  (amdgpu_gfx908::v254, NS_amdgpu::RegisterConstants::v254)
-  (amdgpu_gfx908::v255, NS_amdgpu::RegisterConstants::v255)
-  ;
-// clang-format on
+  AmdgpuArchRegs d;
+  bool haveV0 = false, haveS0 = false;
+  for (const MachRegister &mr : MachRegister::getAllRegistersForArch(arch)) {
+    const std::string nm = mr.name();
+    if (nm == "v0") {
+      d.v0Val = mr.val();
+      haveV0 = true;
+    } else if (nm == "s0") {
+      d.s0Val = mr.val();
+      haveS0 = true;
+    }
+    uint32_t code;
+    if (amdgpuSpecialCode(arch, nm, code))
+      d.specialByCode.emplace(code, mr);
+  }
+  d.haveBase = haveV0 && haveS0;
+  return cache.emplace(arch, std::move(d)).first->second;
+}
+
+} // namespace
 
 Register convertRegID(MachRegister reg) {
-  MachRegister baseReg =
-      MachRegister((reg.getBaseRegister().val() & ~reg.getArchitecture()) | Arch_amdgpu_gfx908);
-  map<MachRegister, Register>::const_iterator found = reverseRegisterMap.find(baseReg);
-  if (found == reverseRegisterMap.end()) {
-    return NS_amdgpu::RegisterConstants::ignored;
-  }
+  const MachRegister baseReg = reg.getBaseRegister();
+  const Architecture arch = baseReg.getArchitecture();
 
-  return found->second;
+  // SGPR/VGPR: arch-invariant category + register-number identity (no normalization to a fixed arch).
+  // The category bits are the same value on every AMDGPU gen, so any gen's v0/s0 is a valid probe.
+  const unsigned category = baseReg.regClass();
+  const uint32_t num = (uint32_t)(baseReg.val() & 0xffu);
+  if (category == amdgpu_gfx908::v0.regClass())
+    return Register(OperandRegId(num), RegKind::VECTOR, BlockSize(1));
+  if (category == amdgpu_gfx908::s0.regClass())
+    return Register(OperandRegId(num), RegKind::SCALAR, BlockSize(1));
+
+  // Specials: codegen id = ISA operand code, from this register's own arch table.
+  uint32_t code;
+  if (amdgpuSpecialCode(arch, baseReg.name(), code))
+    return Register(OperandRegId(code), RegKind::SCALAR, BlockSize(1));
+
+  // Not an encodable register (trash from bad code), or an arch whose special table is not vendored yet.
+  return Register();
 }
 
 Register convertRegID(RegisterAST::Ptr toBeConverted) { return convertRegID(toBeConverted.get()); }
 
 Register convertRegID(RegisterAST *toBeConverted) {
   if (!toBeConverted) {
-    return NS_amdgpu::RegisterConstants::ignored;
+    return Register();
   }
   return convertRegID(toBeConverted->getID());
 }
 
 MachRegister convertRegID(Register r, Dyninst::Architecture arch) {
-  assert(!regToMachReg32.empty());
-
-  if (arch == Arch_amdgpu_gfx908) {
-    multimap<Register, MachRegister>::const_iterator found = regToMachReg32.find(r);
-    if (found == regToMachReg32.end()) {
-      std::cerr << "convertRegID : register not handled";
-      return InvalidReg;
-    }
-    return found->second;
-
-  } else {
-    assert(!"Invalid architecture");
+  if (!isAmdgpuArch(arch)) {
+    assert(!"convertRegID: non-AMDGPU architecture");
     return InvalidReg;
   }
+
+  const AmdgpuArchRegs &d = amdgpuArchRegs(arch);
+  const uint32_t id = r.getId();
+
+  // VGPR / SGPR: the codegen id is the register number, so the MachRegister is this arch's v0/s0 + id.
+  if (r.getKind() == RegKind::VECTOR) {
+    if (d.haveBase)
+      return MachRegister(d.v0Val + (int32_t)id);
+  } else if (id <= NS_amdgpu::MAX_SGPR_ID) {
+    if (d.haveBase)
+      return MachRegister(d.s0Val + (int32_t)id);
+  } else {
+    // Special scalar (operand code >= 102): look the code up in this arch's generated table.
+    std::map<uint32_t, MachRegister>::const_iterator found = d.specialByCode.find(id);
+    if (found != d.specialByCode.end())
+      return found->second;
+  }
+
+  std::cerr << "convertRegID : register not handled\n";
+  return InvalidReg;
 }

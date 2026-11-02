@@ -29,7 +29,7 @@
  */
 
 #include "AmdgpuPrologue.h"
-#include "emit-amdgpu.h"
+#include "amdgpu/gfx908/emit-amdgpu-gfx908.h"
 
 namespace Dyninst { namespace DyninstAPI {
 

@@ -38,7 +38,7 @@
 #include "ASTs/codeGenAST.h"
 #include <vector>
 
-#include "dyninstAPI/src/amdgpu-gfx908-details.h"
+#include "dyninstAPI/src/amdgpu/gfx908/amdgpu-gfx908-details.h"
 #include "dyninstAPI/src/emitter.h"
 
 class codeGen;
@@ -47,7 +47,7 @@ class registerSpace;
 
 class baseTramp;
 
-class EmitterAmdgpuGfx908 : public Emitter {
+class EmitterAmdgpu : public Emitter {
 public:
   // emitIf semantics:
   // if (expr_reg == 0)
@@ -239,6 +239,24 @@ public:
   void emitAtomicAdd(Register baseAddrReg, Register src0, codeGen &gen);
 
   void emitAtomicSub(Register baseAddrReg, Register src0, codeGen &gen);
+protected:
+  // ---- per-gen hooks: the ONLY things a concrete gen subclass supplies ----
+  // The register/codegen ARCHITECTURE of this gen (gfx908, ...). Used everywhere the base needs an arch
+  // (register adapter, MachRegister construction) so the base names no gen.
+  virtual Dyninst::Architecture gpuArch() const = 0;
+  // The gen's ENC-typed instruction packers (pack via that gen's <arch>::enc tables). Thin, sed-able.
+  virtual void rawSop1(unsigned opcode, Dyninst::Register dest, Dyninst::Register src0, bool hasLiteral,
+                       uint32_t literal, codeGen &gen) = 0;
+  virtual void rawSop2(unsigned opcode, Dyninst::Register dest, Dyninst::Register src1,
+                       Dyninst::Register src0, codeGen &gen) = 0;
+  virtual void rawSop2WithSrc1Literal(unsigned opcode, Dyninst::Register dest, Dyninst::Register src0,
+                                      uint32_t literal, codeGen &gen) = 0;
+  virtual void rawSopK(unsigned opcode, Dyninst::Register dest, int16_t simm16, codeGen &gen) = 0;
+  virtual void rawSopC(unsigned opcode, Dyninst::Register src0, Dyninst::Register src1, codeGen &gen) = 0;
+  virtual void rawSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset, codeGen &gen) = 0;
+  // Arch-common helper: adapt a codegen Register to a MachRegister of THIS gen's arch (one place).
+  Dyninst::MachRegister mrOf(Dyninst::Register r) const;
+
 private:
   // Some helper functions
   bool isValidSgpr(Register reg) const;
@@ -248,4 +266,7 @@ private:
   Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) /* override */;
   Address getInterModuleVarAddr(const image_variable *var, codeGen& gen) /* override */;
 };
+
+// The concrete per-gen emitters (EmitterAmdgpuGfx908, ...) subclass EmitterAmdgpu and live under
+// amdgpu/<gen>/ (e.g. amdgpu/gfx908/emit-amdgpu-gfx908.h). Include that header where a gen is constructed.
 #endif

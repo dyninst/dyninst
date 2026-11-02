@@ -35,8 +35,8 @@
 
 #include <stdint.h>
 
-namespace AmdgpuGfx908 {
-namespace enc {
+namespace Dyninst { namespace amdgpu_gfx908 {
+namespace detail {
 
 enum Format : uint8_t {
   ENC_SOP1,
@@ -593,7 +593,40 @@ static constexpr FormatSpec formats[NUM_FORMATS] = {
   {"VOPC_VOP_SDWA_SDST_ENC", 64, OP, 0x7c000000ull, 0xfe000000ull, fields_VOPC_VOP_SDWA_SDST_ENC, sizeof(fields_VOPC_VOP_SDWA_SDST_ENC) / sizeof(FieldSpec)},
 };
 
-}  // namespace enc
-}  // namespace AmdgpuGfx908
+struct NamedReg {
+  const char *name;
+  uint16_t code;
+};
+
+static constexpr NamedReg specialRegs[] = {
+  {"flat_scratch_lo", 102},
+  {"flat_scratch_hi", 103},
+  {"xnack_mask_lo", 104},
+  {"xnack_mask_hi", 105},
+  {"vcc_lo", 106},
+  {"vcc_hi", 107},
+  {"ttmp0", 108},
+  {"ttmp1", 109},
+  {"ttmp2", 110},
+  {"ttmp3", 111},
+  {"ttmp4", 112},
+  {"ttmp5", 113},
+  {"ttmp6", 114},
+  {"ttmp7", 115},
+  {"ttmp8", 116},
+  {"ttmp9", 117},
+  {"ttmp10", 118},
+  {"ttmp11", 119},
+  {"ttmp12", 120},
+  {"ttmp13", 121},
+  {"ttmp14", 122},
+  {"ttmp15", 123},
+  {"m0", 124},
+  {"exec_lo", 126},
+  {"exec_hi", 127},
+};
+
+}  // namespace detail
+}}  // namespace Dyninst::amdgpu_gfx908
 
 #endif  // AMDGPU_GFX908_ENCODING_H

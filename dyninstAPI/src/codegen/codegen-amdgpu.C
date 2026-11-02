@@ -138,7 +138,7 @@ bool insnCodeGen::modifyJcc(Dyninst::Address target, NS_amdgpu::instruction &ins
   uint32_t rawInst = insn.asInt();
 
   // This is a SOPP instruction, so simply set the the SIMM16 field appropriately.
-  AmdgpuGfx908::setSImm16SopP(1, rawInst); // GPU does (1)*4 + 4 and computes target = X+8 i.e B
+  Dyninst::amdgpu_gfx908::setSImm16SopP(1, rawInst); // GPU does (1)*4 + 4 and computes target = X+8 i.e B
 
   // Now copy this at the end of the codegen buffer
   gen.copy((void *)&rawInst, sizeof rawInst);

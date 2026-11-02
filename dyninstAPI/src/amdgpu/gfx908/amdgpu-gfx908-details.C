@@ -28,14 +28,16 @@
 
 #include "amdgpu-gfx908-details.h"
 #include "unaligned_memory_access.h"
+#include "amdgpu-gfx908-encoding.h"
 #include "amdgpu-encode.hpp"
 
-namespace AmdgpuGfx908 {
+namespace Dyninst {
+namespace amdgpu_gfx908 {
 
 using namespace Dyninst;
 
 // The emit* primitives below pack instruction words through a generated, table-driven encoder
-// (packWordU64 over the ISA format tables in amdgpu-gfx908-encoding.h, namespace enc) rather than
+// (packWordU64 over the ISA format tables in amdgpu-gfx908-encoding.h, namespace detail) rather than
 // open-coded bit layouts, so field positions come from the ISA description instead of hand-maintained
 // masks. The packed word is appended with codeGen::copy. The legacy set*/ContentMask bit helpers are
 // retained for reference; the emit* functions no longer use them.
@@ -69,7 +71,7 @@ void setSrc0Sop1(uint32_t value, uint32_t &rawInst) {
 
 void emitSop1(unsigned opcode, Register dest, Register src0, bool hasLiteral, uint32_t literal,
               codeGen &gen) {
-  uint32_t w = (uint32_t)packWordU64(enc::ENC_SOP1, opcode, {{enc::SDST, dest}, {enc::SSRC0, src0}});
+  uint32_t w = (uint32_t)Dyninst::amdgpu_enc::packWordU64(detail::formats, detail::ENC_SOP1, detail::NO_FIELD, opcode, {{detail::SDST, dest}, {detail::SSRC0, src0}});
   gen.copy(&w, sizeof w);
   if (hasLiteral)
     gen.copy(&literal, sizeof literal);
@@ -105,8 +107,8 @@ void emitSop2(unsigned opcode, Register dest, Register src0, Register src1, code
   // AmdgpuGfx908 supports only one literal operand in SOP2.
   // Thus src0 and src1 can't be 255 at the same time.
   assert(!(src0 == 255 && src1 == 255));
-  uint32_t w = (uint32_t)packWordU64(enc::ENC_SOP2, opcode,
-                                     {{enc::SDST, dest}, {enc::SSRC0, src0}, {enc::SSRC1, src1}});
+  uint32_t w = (uint32_t)Dyninst::amdgpu_enc::packWordU64(detail::formats, detail::ENC_SOP2, detail::NO_FIELD, opcode,
+                                     {{detail::SDST, dest}, {detail::SSRC0, src0}, {detail::SSRC1, src1}});
   gen.copy(&w, sizeof w);
 }
 
@@ -144,7 +146,7 @@ void setSrc0SopC(uint32_t value, uint32_t &rawInst) {
 }
 
 void emitSopC(unsigned opcode, Register src0, Register src1, codeGen &gen) {
-  uint32_t w = (uint32_t)packWordU64(enc::ENC_SOPC, opcode, {{enc::SSRC0, src0}, {enc::SSRC1, src1}});
+  uint32_t w = (uint32_t)Dyninst::amdgpu_enc::packWordU64(detail::formats, detail::ENC_SOPC, detail::NO_FIELD, opcode, {{detail::SSRC0, src0}, {detail::SSRC1, src1}});
   gen.copy(&w, sizeof w);
 }
 // === SOPC END ===
@@ -177,8 +179,8 @@ void setSImm16SopK(int16_t value, uint32_t &rawInst) {
 }
 
 void emitSopK(unsigned opcode, Register dest, int16_t simm16, codeGen &gen) {
-  uint32_t w = (uint32_t)packWordU64(enc::ENC_SOPK, opcode,
-                                     {{enc::SDST, dest}, {enc::SIMM16, (uint32_t)(uint16_t)simm16}});
+  uint32_t w = (uint32_t)Dyninst::amdgpu_enc::packWordU64(detail::formats, detail::ENC_SOPK, detail::NO_FIELD, opcode,
+                                     {{detail::SDST, dest}, {detail::SIMM16, (uint32_t)(uint16_t)simm16}});
   gen.copy(&w, sizeof w);
 }
 // === SOPK END ===
@@ -206,7 +208,7 @@ void setSImm16SopP(int16_t value, uint32_t &rawInst) {
 }
 
 void emitSopP(unsigned opcode, int16_t simm16, codeGen &gen) {
-  uint32_t w = (uint32_t)packWordU64(enc::ENC_SOPP, opcode, {{enc::SIMM16, (uint32_t)(uint16_t)simm16}});
+  uint32_t w = (uint32_t)Dyninst::amdgpu_enc::packWordU64(detail::formats, detail::ENC_SOPP, detail::NO_FIELD, opcode, {{detail::SIMM16, (uint32_t)(uint16_t)simm16}});
   gen.copy(&w, sizeof w);
 }
 // === SOPP END ===
@@ -286,11 +288,12 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset, 
   // Callers pass `sbase` already halved (the SGPR-pair index); the generated SBASE field halves
   // internally (valueLo=1), so pass sbase<<1 to round-trip to the same 6-bit value. GLC/NV/SOFFSET_EN
   // default to 0 (unset).
-  uint64_t w = packWordU64(enc::ENC_SMEM, opcode,
-                           {{enc::SDATA, (uint32_t)sdata}, {enc::SBASE, (uint32_t)(sbase << 1)},
-                            {enc::OFFSET, (uint32_t)offset}, {enc::IMM, getSmemImmBit(opcode)}});
+  uint64_t w = Dyninst::amdgpu_enc::packWordU64(detail::formats, detail::ENC_SMEM, detail::NO_FIELD, opcode,
+                           {{detail::SDATA, (uint32_t)sdata}, {detail::SBASE, (uint32_t)(sbase << 1)},
+                            {detail::OFFSET, (uint32_t)offset}, {detail::IMM, getSmemImmBit(opcode)}});
   gen.copy(&w, sizeof w);
 }
 // === SMEM END ===
 
-} // namespace AmdgpuGfx908
+} // namespace amdgpu_gfx908
+} // namespace Dyninst
