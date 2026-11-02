@@ -35,11 +35,29 @@
 
 #include "emit-amdgpu-gfx908.h"
 #include "amdgpu-gfx908-details.h"
+#include "registers/AMDGPU/amdgpu_gfx908_regs.h"
 
 using namespace Dyninst;
 
-// Thin per-gen packers (forward to gfx908's enc-typed helpers).
-// A sibling gen (EmitterAmdgpuGfx942) is a sed of this file: amdgpu_gfx908 -> amdgpu_gfx942.
+// Adapt a codegen Register to a gfx908 MachRegister: number from the id, category from vector-ness, width
+// from the dword count -- all via amdgpu_gfx908's own namespace constants (no macro, no arch switch; the
+// base names no gen). A sibling gen is a sed of this file: amdgpu_gfx908 -> amdgpu_gfx940.
+MachRegister EmitterAmdgpuGfx908::mrOf(Register r) const {
+  const int32_t num = static_cast<int32_t>(r.getId() & 0xffu);
+  const int32_t category = r.isVector() ? amdgpu_gfx908::VGPR : amdgpu_gfx908::SGPR;
+  int32_t sizeBits = amdgpu_gfx908::BITS_32;
+  switch (r.getCount()) {
+  case 2: sizeBits = amdgpu_gfx908::BITS_64; break;
+  case 4: sizeBits = amdgpu_gfx908::BITS_128; break;
+  case 8: sizeBits = amdgpu_gfx908::BITS_256; break;
+  case 16: sizeBits = amdgpu_gfx908::BITS_512; break;
+  default: break; // 1 (and unexpected) -> BITS_32
+  }
+  return MachRegister(static_cast<int32_t>(Arch_amdgpu_gfx908) | category | sizeBits | num);
+}
+
+// Thin per-gen packers (forward to gfx908's detail-typed helpers).
+// A sibling gen (EmitterAmdgpuGfx940) is a sed of this file: amdgpu_gfx908 -> amdgpu_gfx940.
 void EmitterAmdgpuGfx908::rawSop1(unsigned opcode, Register dest, Register src0, bool hasLiteral,
                                   uint32_t literal, codeGen &gen) {
   Dyninst::amdgpu_gfx908::emitSop1(opcode, dest, src0, hasLiteral, literal, gen);

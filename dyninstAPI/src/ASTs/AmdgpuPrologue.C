@@ -29,20 +29,28 @@
  */
 
 #include "AmdgpuPrologue.h"
-#include "amdgpu/gfx908/emit-amdgpu-gfx908.h"
+#include "emit-amdgpu.h"
+#include "mapped_object.h"
 
 namespace Dyninst { namespace DyninstAPI {
 
-bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::Buffer &buffer) {
+bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer) {
   // To avoid any code duplication or refactoring right now, we use a 'codeGen'
   // object to generate the code and copy what we get there into the
   // 'Dyninst::Buffer' object passed here.
 
   // We need 12 bytes for the prologue (a s_load_dwordx2, followed by a waitcnt)
   codeGen gen(20);
-  EmitterAmdgpuGfx908 emitter;
 
-  emitter.emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);
+  // Use the emitter for the instrumented object's architecture (gfx908/gfx940/...): setAddrSpace installs
+  // the arch-correct emitter via AddressSpace::getEmitter(); emitLoadRelative is on the base.
+  auto *obj = dynamic_cast<mapped_object *>(point->block()->obj());
+  assert(obj && "AMDGPU prologue: expected a mapped_object");
+  gen.setAddrSpace(obj->proc());
+  auto *emitter = dynamic_cast<EmitterAmdgpu *>(gen.emitter());
+  assert(emitter && "AMDGPU prologue: expected an EmitterAmdgpu");
+
+  emitter->emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);
 
   buffer.copy(gen.start_ptr(), gen.used());
 

@@ -35,11 +35,12 @@
 
 class codeGen;
 
-// Thin per-gen concrete emitter: supplies only this gen's arch + its ENC-typed packers. Everything else
-// is inherited from EmitterAmdgpu. A sibling gen (e.g. EmitterAmdgpuGfx942) drops in the same way.
+// Thin per-gen concrete emitter: supplies only this gen's MachRegister adapter + its ENC-typed packers,
+// each naming ONLY amdgpu_gfx908. Everything else is inherited from EmitterAmdgpu. A sibling gen
+// (e.g. EmitterAmdgpuGfx940) drops in the same way (sed amdgpu_gfx908 -> amdgpu_gfx940).
 class EmitterAmdgpuGfx908 : public EmitterAmdgpu {
 protected:
-  Dyninst::Architecture gpuArch() const override { return Dyninst::Arch_amdgpu_gfx908; }
+  Dyninst::MachRegister mrOf(Dyninst::Register r) const override;
   void rawSop1(unsigned opcode, Dyninst::Register dest, Dyninst::Register src0, bool hasLiteral,
                uint32_t literal, codeGen &gen) override;
   void rawSop2(unsigned opcode, Dyninst::Register dest, Dyninst::Register src1, Dyninst::Register src0,

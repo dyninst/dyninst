@@ -44,11 +44,6 @@ using namespace Dyninst;
 using namespace Dyninst::amdgpu_adapter;
 using namespace Dyninst::amdgpu_gfx908; // opcodes only (S_*, CDNA-invariant); emit helpers are now raw* hooks
 
-// Arch-common helper: adapt a codegen Register to a MachRegister of THIS emitter's gen, via the virtual
-// gpuArch() hook -- so the base names no gen. Each concrete subclass supplies gpuArch().
-Dyninst::MachRegister EmitterAmdgpu::mrOf(Dyninst::Register r) const {
-  return Dyninst::amdgpu_adapter::amdgpuMachRegOf(r, gpuArch());
-}
 
 // ===== EmitterAmdgpu (arch-common) implementation =====
 

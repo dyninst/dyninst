@@ -22,15 +22,18 @@ int main() {
   auto const size = Dyninst::getArchAddressWidth(arch);
   auto *rs = registerSpace::getRegisterSpace(size);
 
-  BinaryEdit bin_edit{};
-
   constexpr auto buffer_size = 128;
 
   codeGen gen(buffer_size);
-  gen.setAddrSpace(&bin_edit);
+  // This is a byte-golden unit test of the gfx908 emitter: construct it directly rather than via
+  // AddressSpace::getEmitter(), which now selects the concrete per-gen emitter by getArch(). A synthetic
+  // empty BinaryEdit has no architecture (getArch() asserts); production always has the loaded object by
+  // codegen time, so the runtime factory is exercised by the GPU instrumentation tests instead.
+  static EmitterAmdgpuGfx908 gfx908Emitter;
+  gen.setCodeEmitter(&gfx908Emitter);
   gen.setRegisterSpace(rs);
 
-  auto *emitter = static_cast<EmitterAmdgpuGfx908*>(gen.emitter());
+  auto *emitter = &gfx908Emitter;
 
   bool failed = false;
 

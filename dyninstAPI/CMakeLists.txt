@@ -68,6 +68,9 @@ set(
   src/amdgpu/gfx908/amdgpu-gfx908-details.h
   src/amdgpu/gfx908/amdgpu-gfx908-encoding.h
   src/amdgpu/gfx908/emit-amdgpu-gfx908.h
+  src/amdgpu/gfx940/amdgpu-gfx940-details.h
+  src/amdgpu/gfx940/amdgpu-gfx940-encoding.h
+  src/amdgpu/gfx940/emit-amdgpu-gfx940.h
 )
 
 set(
@@ -109,6 +112,9 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     src/AmdgpuKernelDescriptor.C
     src/AmdgpuPointHandler.C
     src/amdgpu/gfx908/amdgpu-gfx908-details.C
+    # Additional codegen gens compiled alongside for runtime emitter selection (getEmitter() by object arch).
+    src/amdgpu/gfx940/emit-amdgpu-gfx940.C
+    src/amdgpu/gfx940/amdgpu-gfx940-details.C
   )
 endif()
 

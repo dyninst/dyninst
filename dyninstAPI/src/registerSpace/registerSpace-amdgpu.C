@@ -4,6 +4,7 @@
 #include "debug.h"
 #include "dyn_register.h"
 #include "amdgpu-reg-adapter.h"
+#include "registers/AMDGPU/amdgpu_gfx908_regs.h"
 #include <vector>
 
 using Register = Dyninst::Register;
@@ -12,10 +13,21 @@ using BlockSize = Dyninst::BlockSize;
 using namespace Dyninst::amdgpu_adapter;
 
 namespace {
-// Supplies THIS register space's architecture to the (arch-general) register adapter, in one place.
-// Under runtime codegen-arch dispatch this gfx908 literal becomes the instrumented object's architecture.
+// Build a gfx908 MachRegister from a codegen Register (number from the id, category from vector-ness, width
+// from the dword count), naming only amdgpu_gfx908 -- this is the gfx908 register space. No macro, no arch
+// switch. Under runtime codegen-arch dispatch this names the instrumented object's gen.
 inline Dyninst::MachRegister mrOf(Dyninst::Register r) {
-  return Dyninst::amdgpu_adapter::amdgpuMachRegOf(r, Dyninst::Arch_amdgpu_gfx908);
+  const int32_t num = static_cast<int32_t>(r.getId() & 0xffu);
+  const int32_t category = r.isVector() ? Dyninst::amdgpu_gfx908::VGPR : Dyninst::amdgpu_gfx908::SGPR;
+  int32_t sizeBits = Dyninst::amdgpu_gfx908::BITS_32;
+  switch (r.getCount()) {
+  case 2: sizeBits = Dyninst::amdgpu_gfx908::BITS_64; break;
+  case 4: sizeBits = Dyninst::amdgpu_gfx908::BITS_128; break;
+  case 8: sizeBits = Dyninst::amdgpu_gfx908::BITS_256; break;
+  case 16: sizeBits = Dyninst::amdgpu_gfx908::BITS_512; break;
+  default: break; // 1 (and unexpected) -> BITS_32
+  }
+  return Dyninst::MachRegister(static_cast<int32_t>(Dyninst::Arch_amdgpu_gfx908) | category | sizeBits | num);
 }
 } // namespace
 

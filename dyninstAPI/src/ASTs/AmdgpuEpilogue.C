@@ -29,17 +29,25 @@
  */
 
 #include "ASTs/AmdgpuEpilogue.h"
-#include "amdgpu/gfx908/emit-amdgpu-gfx908.h"
+#include "emit-amdgpu.h"
+#include "mapped_object.h"
 
 namespace Dyninst { namespace DyninstAPI {
 
 // Similar approach to prologue
-bool AmdgpuEpilogue::generate(Dyninst::PatchAPI::Point * /* point */, Dyninst::Buffer &buffer) {
+bool AmdgpuEpilogue::generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer) {
   // We need 8 bytes for the epilogue (a s_dcache_wb instruction).
   codeGen gen(20);
-  EmitterAmdgpuGfx908 emitter;
 
-  emitter.emitScalarDataCacheWriteback(gen);
+  // Use the emitter for the instrumented object's architecture (gfx908/gfx940/...): setAddrSpace installs
+  // the arch-correct emitter via AddressSpace::getEmitter(); emitScalarDataCacheWriteback is on the base.
+  auto *obj = dynamic_cast<mapped_object *>(point->block()->obj());
+  assert(obj && "AMDGPU epilogue: expected a mapped_object");
+  gen.setAddrSpace(obj->proc());
+  auto *emitter = dynamic_cast<EmitterAmdgpu *>(gen.emitter());
+  assert(emitter && "AMDGPU epilogue: expected an EmitterAmdgpu");
+
+  emitter->emitScalarDataCacheWriteback(gen);
 
   buffer.copy(gen.start_ptr(), gen.used());
 

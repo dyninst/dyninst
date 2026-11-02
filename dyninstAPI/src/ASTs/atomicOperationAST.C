@@ -8,7 +8,7 @@
 #include <sstream>
 
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-#include "amdgpu/gfx908/emit-amdgpu-gfx908.h"
+#include "emit-amdgpu.h"
 #endif
 
 namespace Dyninst { namespace DyninstAPI {
@@ -58,7 +58,7 @@ bool atomicOperationAST::generateCode_phase2(codeGen &gen, Address &retAddr,
       dynamic_cast<operandAST *>((codeGenAST *)variableOperand->operand().get());
   assert(offset);
 
-  EmitterAmdgpuGfx908 *emitter = dynamic_cast<EmitterAmdgpuGfx908 *>(gen.emitter());
+  EmitterAmdgpu *emitter = dynamic_cast<EmitterAmdgpu *>(gen.emitter());
   assert(emitter);
 
   registerSpace *regSpace = gen.rs();
