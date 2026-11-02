@@ -93,6 +93,23 @@ Clang-specific libraries are installed automatically. For example, `compiler: 'c
   Additional libraries to install via `apt`
 
 
+### Cancel the rest of a commit's CI ([actions/cancel-head-ci](actions/cancel-head-ci/action.yaml))
+
+*Cancels the other workflow runs for the same head commit that are still queued or running*
+
+The jobs that take the most runner time (pr-tests, visibility_check, cross-build, binary-tests and
+docs) run it as their last step, under `if: failure()`. Together with `fail-fast: true` on those
+matrices, one failing job stops the rest of a pull request's CI instead of letting it run to the
+end.
+
+- The run of the failing job itself is not cancelled, so that job keeps its `failure` result. The
+  other legs of its matrix stop through `fail-fast`.
+- libabigail is never cancelled, and its failures cancel nothing.
+- The job needs the `actions: write` permission. A pull request from a fork gets a read-only token:
+  the cancel requests then fail, are reported as warnings, and its CI runs to the end as before.
+- A job that fails before it checks out Dyninst cannot run the action, which comes from that
+  checkout.
+
 ### CMake build types ([actions/build-types](actions/build-types/action.yaml))
 
 *Returns the CMake build types used in CI*
