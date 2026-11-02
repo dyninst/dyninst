@@ -11,6 +11,8 @@ namespace Dyninst { namespace DyninstAPI {
   namespace st = Dyninst::SymtabAPI;
   namespace pa = Dyninst::ParseAPI;
 
+  Dyninst::Address find_main(st::Symtab *);
+
   namespace ppc {
     Dyninst::Address find_main(st::Symtab *, pa::Block *, pa::SymtabCodeSource const &,
                                pa::Function *);

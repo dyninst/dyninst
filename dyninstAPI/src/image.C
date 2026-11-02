@@ -158,107 +158,6 @@ int codeBytesSeen = 0;
  */
 int image::findMain()
 {
-  namespace st = Dyninst::SymtabAPI;
-  namespace pa = Dyninst::ParseAPI;
-
-  startup_printf("findMain: looking for 'main' in %s\n", linkedFile->name().c_str());
-
-  // Only look for 'main' in executables, including PIE and executable DSOs.
-  // see ObjectELF::isOnlyExecutable()
-  if(!linkedFile->isExec()) {
-    startup_printf("findMain: not an executable\n");
-    return -1;
-  }
-
-  // It must have at least one code region
-  {
-    std::vector<st::Region*> regions;
-    linkedFile->getCodeRegions(regions);
-    if(regions.size() == 0UL) {
-      startup_printf("findMain: No main found; no code regions\n");
-      return -1;
-    }
-  }
-
-  // Check for a known symbol name
-  for(char const* name : main_function_names()) {
-    std::vector<st::Function*> funcs;
-    if(linkedFile->findFunctionsByName(funcs, name)) {
-      if(dyn_debug_startup) {
-       startup_printf("findMain: found ");
-       for(auto *f : funcs) {
-         startup_printf("{ %s@0x%lx}, ", f->getName().c_str(), f->getOffset());
-       }
-       startup_printf("\n");
-      }
-      this->address_of_main = funcs[0]->getFirstSymbol()->getOffset();
-      return 0;
-    }
-  }
-
-  // Report a non-stripped binary, but don't fail.
-  // This indicates we need to expand our list of possible symbols for 'main'
-  if(!linkedFile->isStripped()) {
-    startup_printf("findMain: no symbol found, but binary isn't stripped\n");
-  }
-
-  // We need to do actual binary analysis from here
-  startup_printf("findMain: no symbol found; attempting manual search\n");
-
-  auto const entry_address = static_cast<Dyninst::Address>(linkedFile->getEntryOffset());
-  st::Region* entry_region = linkedFile->findEnclosingRegion(entry_address);
-
-  bool const parseInAllLoadableRegions = (BPatch_normalMode != this->mode_);
-  pa::SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
-
-  std::set<pa::CodeRegion*> code_regions;
-  scs.findRegions(entry_address, code_regions);
-
-  if(code_regions.empty()) {
-    startup_printf("findMain: no code region contains 0x%lx\n", entry_address);
-    return -1;
-  }
-
-  // We should only get one region
-  if(code_regions.size() > 1UL) {
-    startup_printf("findMain: found %lu possibly-overlapping code regions for 0x%lx\n", code_regions.size(), entry_address);
-    return -1;
-  }
-
-  auto code_object = [&scs]() -> std::unique_ptr<pa::CodeObject> {
-    // To save time, delay the parsing
-    pa::CFGFactory *f{};
-    pa::ParseCallback *cb{};
-    constexpr bool defensive_mode = false;
-    constexpr bool delay_parse = true;
-    return std::unique_ptr<pa::CodeObject>(new pa::CodeObject(&scs, f, cb, defensive_mode, delay_parse));
-  }();
-
-  pa::Function* entry_point = [&]() {
-    constexpr bool recursive = true;
-    auto *reg = *(code_regions.begin());
-    code_object->parse(reg, entry_address, recursive);
-    return code_object->findFuncByEntry(reg, entry_address);
-  }();
-
-  if(!entry_point) {
-    startup_printf("findMain: couldn't find function at entry 0x%lx\n", entry_address);
-    return -1;
-  }
-
-  startup_printf("findMain: found '%s' at entry 0x%lx\n", entry_point->name().c_str(),
-                 entry_address);
-
-  auto const& edges = entry_point->callEdges();
-  if(edges.empty()) {
-    startup_printf("findMain: no call edges\n");
-    return -1;
-  }
-
-  // In libc, the entry point is _start which only calls __libc_start_main, so
-  // assume the first call is the one we want.
-  pa::Block *b = (*edges.begin())->src();
-
 #if defined(ppc64_linux) && defined(DYNINST_CODEGEN_ARCH_POWER)
     using namespace Dyninst::InstructionAPI;
 
@@ -965,15 +864,10 @@ image::image(fileDescriptor &desc,
       return;
    }
 
-   //Now add Main and Dynamic Symbols if they are not present
-   startup_printf("%s[%d]:  before findMain\n", FILE__, __LINE__);
-   if(findMain())
+   // Now add Main and Dynamic Symbols if they are not present
    {
-        startup_printf("%s[%d]: ERROR: findMain analysis has failed!\n",
-                FILE__, __LINE__);
-   } else {
-        startup_printf("%s[%d]: findMain analysis succeeded.\n",
-                FILE__, __LINE__);
+     namespace dd = Dyninst::DyninstAPI;
+     this->address_of_main = dd::find_main(this->linkedFile);
    }
 
    // Initialize ParseAPI 
