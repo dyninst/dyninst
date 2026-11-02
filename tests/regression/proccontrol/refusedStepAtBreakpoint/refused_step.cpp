@@ -6,14 +6,15 @@
  *
  * Passes when the event loop keeps returning, the thread is reported stopped and is still
  * on the breakpoint, and the mutatee runs to a normal exit once the breakpoint and
- * single-step are off.  On any other host, where the code generator does not target the
- * host, with DYNINST_ENABLE_DYNAMIC_TESTS=OFF, or without the test binaries that hold the
- * mutatee (or with a checkout of them that predates it), it reports itself skipped (exit 77).
+ * single-step are off.  The test runs only on ppc64le and aarch64 hosts (see
+ * CMakeLists.txt); with a test_binaries checkout that predates the mutatee it reports itself
+ * skipped (exit 77).
  */
 #include "Event.h"
 #include "PCProcess.h"
 #include "Symbol.h"
 #include "Symtab.h"
+#include "dyninst_test_skip.h"
 
 #include <csignal>
 #include <cstdio>
@@ -73,31 +74,15 @@ void poll_events(bool &flag, int secs) {
 }  // namespace
 
 int main(int argc, char **argv) {
-  if (argc > 2) {
-    std::fprintf(stderr, "Usage: %s [mutatee]\n", argv[0]);
+  if (argc != 2) {
+    std::fprintf(stderr, "Usage: %s mutatee\n", argv[0]);
     return EXIT_FAILURE;
-  }
-  if (!DYNINST_ENABLE_DYNAMIC_TESTS) {
-    std::printf(
-        "skipping: drives a live process, which DYNINST_ENABLE_DYNAMIC_TESTS=OFF turns off\n");
-    return 77;
-  }
-#if !REFUSED_STEP_LLSC_HOST
-  std::printf("skipping: emulated single steps through load-reserve/store-conditional sequences "
-              "exist only on ppc64le and aarch64 hosts whose code generator targets the host\n");
-  return 77;
-#endif
-  if (argc == 1) {
-    std::printf("skipping: needs the test binaries (DYNINST_ENABLE_TESTS=ALL)\n");
-    return 77;
   }
   std::string path = argv[1];
   if (access(path.c_str(), F_OK) != 0) {
     // A test_binaries clone is made once per build directory, so it can predate the mutatee
-    std::printf("skipping: %s is missing; the test_binaries checkout predates "
-                "proccontrol/refusedStepAtBreakpoint\n",
-                path.c_str());
-    return 77;
+    return skip_message(path + " is missing; the test_binaries checkout predates "
+                               "proccontrol/refusedStepAtBreakpoint");
   }
   std::signal(SIGALRM, on_alarm);
   alarm(60);
