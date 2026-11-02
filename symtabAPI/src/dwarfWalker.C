@@ -1457,6 +1457,7 @@ bool DwarfWalker::parseStructUnionClass() {
     curName() = die_name();
     dwarf_printf("(0x%lx) Struct/Union/Class name from dwarf: %s\n", id(), curName().c_str());
 
+    bool declaration{};
     {
         // Skip declarations of types defined somewhere else.
         //
@@ -1481,18 +1482,18 @@ bool DwarfWalker::parseStructUnionClass() {
         // DW_AT_signature is treated as a declaration whether or not it says so.
         //
         // An entry is skipped, with its children (declarations of methods and static
-        // members), when it has neither DW_AT_byte_size nor DW_AT_bit_size (5.7.1
-        // allows either on a structure) and either
-        //  - it has DW_AT_signature. definition_die() leads to the type unit that
-        //    defines the type, and the definition is parsed there; or
-        //  - it has DW_AT_declaration and is inside a type unit. Every type unit is
-        //    parsed into the default module, where an empty declaration would compete
-        //    by name with the definition, and typesByName keeps whichever comes first.
+        // members), when it has DW_AT_signature and neither DW_AT_byte_size nor
+        // DW_AT_bit_size (5.7.1 allows either on a structure). definition_die() leads
+        // to the type unit that defines the type, and the definition is parsed there.
         //
-        // A plain declaration in a compile unit is still parsed into a named type with
-        // no members. Nothing in it leads to a definition, and some types have none in
-        // the program: in `struct Opaque *p;` the declaration is all there is, and
-        // skipping it would leave `p` pointing to an unnamed type.
+        // Any other declaration, in a compile unit or a type unit, is still parsed into
+        // a named type with no members. Nothing in it leads to a definition, and some
+        // types have none in the program: in `struct Opaque *p;` the declaration is all
+        // there is, and skipping it would leave `p` pointing to an unnamed type. Type
+        // units declare such types too, e.g. glibc's _IO_marker inside _IO_FILE's. A
+        // declaration never hides a definition of the same name (typeCollection::
+        // addByName), so one in the default module, where every type unit is parsed,
+        // does not compete with the definition there.
         //
         // A definition with DW_AT_specification, completing an earlier declaration (as
         // for a nested class defined outside its class), is parsed as a type of its own.
@@ -1500,14 +1501,12 @@ bool DwarfWalker::parseStructUnionClass() {
         // handleSpecification); definition_die() follows only DW_AT_signature.
         Dwarf_Die e = entry();
         bool const has_size = dwarf_hasattr(&e, DW_AT_byte_size) || dwarf_hasattr(&e, DW_AT_bit_size);
-        bool const stand_in = dwarf_hasattr(&e, DW_AT_signature);
-        bool const type_unit_decl = dwarf_hasattr(&e, DW_AT_declaration) && DwarfDyninst::is_in_type_unit(e);
-        if(!has_size && (stand_in || type_unit_decl)) {
-            dwarf_printf("(0x%lx) Skipping %s declaration of %s\n", id(),
-                    stand_in ? "DW_AT_signature" : "type unit", curName().c_str());
+        if(!has_size && dwarf_hasattr(&e, DW_AT_signature)) {
+            dwarf_printf("(0x%lx) Skipping DW_AT_signature declaration of %s\n", id(), curName().c_str());
             setParseChild(false);
             return true;
         }
+        declaration = !has_size && dwarf_hasattr(&e, DW_AT_declaration);
     }
 
     if (!nameDefined()) {
@@ -1545,6 +1544,7 @@ bool DwarfWalker::parseStructUnionClass() {
             {
                 auto ts = Type::make_shared<typeStruct>( type_id(), curName());
                 ts->setSize(size);
+                if (declaration) tc()->markDeclaration(type_id());
                 containingType = tc()->addOrUpdateType(ts);
                 dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%lx, size %u, in TC %p, mod:%s\n", id(),
                         (void*)containingType.get(), containingType->getName().c_str(), type_id(),
@@ -1555,6 +1555,7 @@ bool DwarfWalker::parseStructUnionClass() {
             {
                 auto tu = Type::make_shared<typeUnion>( type_id(), curName());
                 tu->setSize(size);
+                if (declaration) tc()->markDeclaration(type_id());
                 containingType = tc()->addOrUpdateType(tu);
                 dwarf_printf("(0x%lx) Created type %p / %s for type_id %d, offset 0x%lx, size %u, in TC %p, mod:%s\n", id(),
                         (void*)containingType.get(), containingType->getName().c_str(), type_id(),
