@@ -333,7 +333,6 @@ void Walker::setSymbolReader(SymbolReaderFactory *srf)
 #define getInitialFrameImpl(frame, thread) \
 { \
   result = true; \
-  Dyninst::MachRegister pc_reg, frm_reg, stk_reg; \
   Dyninst::MachRegisterVal pc, sp, fp; \
   location_t loc; \
   if (thread == NULL_THR_ID) { \

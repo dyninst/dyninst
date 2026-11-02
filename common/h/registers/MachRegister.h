@@ -46,9 +46,8 @@ namespace Dyninst {
     int32_t reg;
 
   public:
-    MachRegister();
-    explicit MachRegister(int32_t r);
-    explicit MachRegister(int32_t r, std::string n);
+    constexpr MachRegister() : reg(0) {}
+    constexpr explicit MachRegister(int32_t r) : reg(r) {}
 
     MachRegister getBaseRegister() const;
     Architecture getArchitecture() const;

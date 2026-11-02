@@ -42,6 +42,10 @@
  *  x86::iEAX
  *
  * The value is mostly useful in the 'case' part switch statements.
+ *
+ * The lists of them are in registers/<arch>_regs.def, one per line and with no
+ * trailing semicolon, so that a list can also be expanded into the elements
+ * of an array; the macros supply the semicolons.
  **/
 #if defined(DYN_DEFINE_REGS)
 // DYN_DEFINE_REGS Should only be defined in libcommon.
@@ -52,22 +56,26 @@
 // linker scope.  Instead they're non-const.  Every accessor function is
 // const anyways, so we'll just close our eyes and pretend they're declared
 // const.
+//
+// Each is built from its value alone by the constexpr constructor, so it
+// is constant-initialized: no code runs at startup to create it.  The names
+// are in tables that common/src/dyn_regs.C builds from the same lists.
 #  define DEF_REGISTER(name, value)                                                                \
     const signed int i##name = (value);                                                            \
-    DYNINST_EXPORT MachRegister name(i##name, #name)
+    DYNINST_EXPORT MachRegister name(i##name);
 
 #  define DEF_REGISTER_ALIAS(name, target)                                                         \
     const signed int i##name = i##target;                                                          \
-    DYNINST_EXPORT MachRegister name(i##name, #name)
+    DYNINST_EXPORT MachRegister name(i##name);
 
 #else
 #  define DEF_REGISTER(name, value)                                                                \
     const signed int i##name = (value);                                                            \
-    DYNINST_EXPORT extern MachRegister name
+    DYNINST_EXPORT extern MachRegister name;
 
 #  define DEF_REGISTER_ALIAS(name, target)                                                         \
     const signed int i##name = i##target;                                                          \
-    DYNINST_EXPORT extern MachRegister name
+    DYNINST_EXPORT extern MachRegister name;
 
 #endif
 

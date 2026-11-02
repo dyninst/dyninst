@@ -40,19 +40,31 @@ set(
   h/ProcReader.h
   h/registers/MachRegister.h
   h/registers/aarch64_regs.h
+  h/registers/aarch64_regs.def
   h/registers/abstract_regs.h
+  h/registers/abstract_regs.def
   h/registers/AMDGPU/amdgpu_gfx908_regs.h
+  h/registers/AMDGPU/amdgpu_gfx908_regs.def
   h/registers/AMDGPU/amdgpu_gfx90a_regs.h
+  h/registers/AMDGPU/amdgpu_gfx90a_regs.def
   h/registers/AMDGPU/amdgpu_gfx940_regs.h
+  h/registers/AMDGPU/amdgpu_gfx940_regs.def
   h/registers/AMDGPU/amdgpu_gfx950_regs.h
+  h/registers/AMDGPU/amdgpu_gfx950_regs.def
   h/registers/cuda_regs.h
+  h/registers/cuda_regs.def
   h/registers/ppc32_regs.h
+  h/registers/ppc32_regs.def
   h/registers/ppc64_regs.h
+  h/registers/ppc64_regs.def
   h/registers/reg_def.h
   h/registers/register_set.h
   h/registers/riscv64_regs.h
+  h/registers/riscv64_regs.def
   h/registers/x86_64_regs.h
+  h/registers/x86_64_regs.def
   h/registers/x86_regs.h
+  h/registers/x86_regs.def
   h/SymReader.h
   h/unaligned_memory_access.h
   h/util.h

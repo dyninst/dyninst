@@ -111,7 +111,7 @@ with open("{0:s}.registers".format(args.arch), "w") as file:
             unique_ids_by_category[base_category] = 0
 
         #                  (   name,  ID |    size |     cat |       arch
-        fmt = "DEF_REGISTER(%{0:d}s, %3d | %{1:d}s | %{2:d}s | Arch_{3:s});\n".format(
+        fmt = "DEF_REGISTER(%{0:d}s, %3d | %{1:d}s | %{2:d}s | Arch_{3:s})\n".format(
             max_name_len + 2, max_size_len, max_cat_len, registers.dyninst_suffix
         )
         file.write(
@@ -137,8 +137,8 @@ with open("{0:s}.aliases".format(args.arch), "w") as file:
     max_alias_len = max([len(r["alias"]) for r in registers.aliases])
     max_primary_len = max([len(r["primary"]) for r in registers.aliases])
 
-    fmt = 'DEF_REGISTER_ALIAS(%{0:d}s, %{1:d}s, "{2:s}");\n'.format(
-        max_alias_len, max_primary_len, registers.dyninst_suffix
+    fmt = "DEF_REGISTER_ALIAS(%{0:d}s, %{1:d}s)\n".format(
+        max_alias_len, max_primary_len
     )
 
     for reg in registers.aliases:
