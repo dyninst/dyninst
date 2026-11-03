@@ -1054,8 +1054,12 @@ bool Symtab::extractInfo(Object *linkedFile)
 
     vector<relocationEntry >fbt;
     linkedFile->get_func_binding_table(fbt);
+    // An entry without a stub address is a .rela.plt relocation that no PLT
+    // stub jumps through; it is kept in the object only so that a rewritten
+    // binary still carries it, and is not a binding.
     for(unsigned i=0; i<fbt.size();i++)
-        relocation_table_.push_back(fbt[i]);
+        if (fbt[i].target_addr() != 0)
+            relocation_table_.push_back(fbt[i]);
     return true;
 }
 

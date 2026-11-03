@@ -1602,16 +1602,22 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                         std::map<Offset, Offset>::const_iterator sit =
                             plt_stub_by_got.find((Offset) offset);
                         if (sit == plt_stub_by_got.end())  {
-                            // Nothing in .plt jumps through this slot, so there
-                            // is no stub to record.  Falling back to a counted
-                            // address would put the name on something that is
-                            // not a stub, which is worse than leaving it out.
+                            // Nothing in .plt jumps through this slot (a
+                            // TLSDESC relocation, for one), so there is no stub
+                            // to record.  A counted address would put the name
+                            // on something that is not a stub, so the entry gets
+                            // none.  It is still kept: the rewriter rebuilds
+                            // .rela.plt from this table, and a relocation left
+                            // out here is missing from the rewritten object.
+                            // Symtab leaves such entries out of the binding
+                            // table it hands to callers.
                             create_printf("%s[%d]: no PLT stub jumps through the "
                                           "slot relocated for %s\n",
                                           FILE__, __LINE__, targ_name.c_str());
-                            continue;
+                            stub_addr = 0;
+                        }  else  {
+                            stub_addr = sit->second;
                         }
-                        stub_addr = sit->second;
                     }
 
                     if (fbt_iter == -1) { // Create new relocation entry.
