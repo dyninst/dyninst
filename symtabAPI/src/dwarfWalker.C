@@ -148,7 +148,7 @@ class DwarfHandlePool {
     std::vector<Dwarf *> alt_handles;
 
 public:
-    DwarfHandlePool(Dwarf *original, unsigned workers) {
+    DwarfHandlePool(Dwarf *original, unsigned num_workers) {
         if(!original) return;
 
         Elf *elf = dwarf_getelf(original);
@@ -160,8 +160,8 @@ public:
             if(!alt_elf) return;
         }
 
-        handles.reserve(workers);
-        for(unsigned i = 0; i < workers; i++) {
+        handles.reserve(num_workers);
+        for(unsigned i = 0; i < num_workers; i++) {
             Dwarf *d = dwarf_begin_elf(elf, DWARF_C_READ, NULL);
             if(!d) break;
             if(alt_elf) {
@@ -185,7 +185,7 @@ public:
     DwarfHandlePool(DwarfHandlePool const &) = delete;
     DwarfHandlePool &operator=(DwarfHandlePool const &) = delete;
 
-    bool holds(unsigned workers) const { return handles.size() == workers; }
+    bool holds(unsigned num_workers) const { return handles.size() == num_workers; }
     Dwarf *operator[](unsigned i) const { return handles[i]; }
 };
 
@@ -286,12 +286,12 @@ bool DwarfWalker::parse() {
     compile_offset = 0;
     dwarf_printf("Modules from dwarf_nextcu: %zu\n", units.size() - total_from_unit);
 
-    unsigned const workers = worker_count(units.size());
-    DwarfHandlePool pool(dbg(), workers > 1 ? workers : 0);
+    unsigned const num_workers = worker_count(units.size());
+    DwarfHandlePool pool(dbg(), num_workers > 1 ? num_workers : 0);
 
-    if (workers < 2 || !pool.holds(workers)) {
+    if (num_workers < 2 || !pool.holds(num_workers)) {
         // One worker, or no private handles: parse on the one shared handle.
-        dwarf_printf("Parsing %zu units serially with %u worker(s)\n", units.size(), workers);
+        dwarf_printf("Parsing %zu units serially with %u worker(s)\n", units.size(), num_workers);
         DwarfWalker w(symtab(), dbg());
         for (unsigned int i = 0; i < units.size(); i++) {
             Dwarf_Die die;
@@ -301,7 +301,7 @@ bool DwarfWalker::parse() {
             w.pop();
         }
     } else {
-#pragma omp parallel num_threads(workers)
+#pragma omp parallel num_threads(num_workers)
     {
     Dwarf *worker_dbg = pool[worker_index()];
     DwarfWalker w(symtab(), worker_dbg, parsedFuncs);
@@ -745,7 +745,10 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
       // Since curFunc is false, we're not going back to reparse this
       // entry with a function object.
       boost::shared_ptr<Type> ftype = NULL;
+      // Parsing the return type can parse another DIE, which clears curName().
+      std::string const name = curName();
       getReturnType(ftype);
+      curName() = name;
       addFuncToContainer(ftype);
       dwarf_printf("(0x%lx) parseSubprogram not parsing member function's children\n", id());
 
@@ -1442,6 +1445,8 @@ bool DwarfWalker::parseInheritance() {
    return true;
 }
 
+static Dwarf_Die definition_die(Dwarf_Die die);
+
 bool DwarfWalker::parseStructUnionClass() {
     if(!tc()) return false;
     dwarf_printf("(0x%lx) parseStructUnionClass entry\n", id());
@@ -1501,7 +1506,9 @@ bool DwarfWalker::parseStructUnionClass() {
         // handleSpecification); definition_die() follows only DW_AT_signature.
         Dwarf_Die e = entry();
         bool const has_size = dwarf_hasattr(&e, DW_AT_byte_size) || dwarf_hasattr(&e, DW_AT_bit_size);
-        if(!has_size && dwarf_hasattr(&e, DW_AT_signature)) {
+        // definition_die() returns the stand-in itself when the signature doesn't
+        // resolve, e.g. when .debug_types was stripped; keep the stand-in then.
+        if(!has_size && dwarf_hasattr(&e, DW_AT_signature) && definition_die(e).addr != e.addr) {
             dwarf_printf("(0x%lx) Skipping DW_AT_signature declaration of %s\n", id(), curName().c_str());
             setParseChild(false);
             return true;
@@ -2675,7 +2682,8 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info, bool is_sup)
   {
     type_map::accessor a;
     type_key tk{offset, is_sup, mod()};
-    type_ids.insert(a, make_pair(tk, val));
+    // Another worker may have inserted this key since the find above; use its ID.
+    if(!type_ids.insert(a, make_pair(tk, val))) val = a->second;
     dwarf_printf("(0x%lx) type_id %u, key created {0x%lx,%s,mod: %s}\n", id(),val,offset,is_sup?"sup":"not sup", mod()->fileName().c_str());
   }
 

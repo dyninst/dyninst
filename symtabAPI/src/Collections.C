@@ -384,9 +384,10 @@ bool typeCollection::isDeclaration(Type *t)
 /*
  * typeCollection::addByName
  *
- * Index `type` by its name. When the name is taken, `replace` says whether
- * the new type takes it over, except that a declaration never hides a
- * definition, and a definition always replaces a declaration. The same holds
+ * Index `type` by its name. When the name is taken by a declaration and
+ * `type` is a definition, `type` takes it over; when it is taken by a
+ * definition and `type` is a declaration, it doesn't. Between two of the
+ * same kind, `replace` decides. The same holds
  * for types built on them: `const Foo` over a declaration of Foo never hides
  * `const Foo` over its definition.
  *
@@ -398,13 +399,17 @@ bool typeCollection::isDeclaration(Type *t)
  */
 void typeCollection::addByName(boost::shared_ptr<Type> const &type, bool replace)
 {
-    dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::accessor a;
+    decltype(typesByName)::accessor a;
     if (typesByName.insert(a, {type->getName(), type}) || a->second == type)
         return;
     bool const old_decl = isDeclaration(a->second.get());
     bool const new_decl = isDeclaration(type.get());
-    if ((old_decl && !new_decl) || (replace && (old_decl || !new_decl)))
+    if (old_decl != new_decl) {
+        // A definition beats a declaration, whatever `replace` says.
+        if (old_decl) a->second = type;
+    } else if (replace) {
         a->second = type;
+    }
 }
 
 /*
