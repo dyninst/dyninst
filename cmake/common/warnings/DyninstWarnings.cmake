@@ -1,7 +1,12 @@
-# The compiler warning flags: the ones in REQUESTED_WARNING_FLAGS below that the C and C++
-# compilers accept become SUPPORTED_C_WARNING_FLAGS and SUPPORTED_CXX_WARNING_FLAGS.  A
-# project can set REQUESTED_WARNING_FLAGS before including this module to add flags of
-# its own; they follow these, so that one such as Wno-unknown-pragmas wins.
+# The compiler warning flags: the flags of the warning levels up to the one chosen, see
+# DyninstWarningLevels.cmake, and any the project adds.  The ones the C and C++
+# compilers accept become SUPPORTED_C_WARNING_FLAGS and SUPPORTED_CXX_WARNING_FLAGS.
+#
+# A project can set, before including this module:
+#
+#   REQUESTED_WARNING_LEVEL  its default level, 0 to the highest or max (the default)
+#   REQUESTED_WARNING_FLAGS  flags of its own; they follow the levels' flags, so that
+#                            one such as Wno-unknown-pragmas wins
 
 option(
   DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS
@@ -17,6 +22,13 @@ set(
 )
 
 option(DYNINST_WARNINGS_AS_ERRORS "Treat compilation warnings as errors" OFF)
+
+set(
+  DYNINST_WARNING_LEVEL
+  ""
+  CACHE STRING
+  "Warning level: 0 for none up to the highest, or max.  Empty for the project's default."
+)
 
 set(_project_warning_flags ${REQUESTED_WARNING_FLAGS})
 
@@ -34,63 +46,36 @@ endif()
 # with larger frames.
 set(defaultMaxFrameSize 20480)
 
-# REQUESTED_WARNING_FLAGS is a list of warning flags for C and C++ programs to enable if
-# supported by the compiler.  The values do not include the the initial '-'
+# The warning levels, in their own file.  The highest is the last one defined there.
+include("${CMAKE_CURRENT_LIST_DIR}/DyninstWarningLevels.cmake")
+set(_max_level 1)
+while(DEFINED _dyninst_warning_level_${_max_level})
+  math(EXPR _max_level "${_max_level} + 1")
+endwhile()
+math(EXPR _max_level "${_max_level} - 1")
 
-set(
-  REQUESTED_WARNING_FLAGS
-  Wall
-  Wextra
-  Wpedantic
-  Walloca
-  Wcast-align
-  Wcast-qual
-  Wcomma-subscript
-  Wctor-dtor-privacy
-  Wdeprecated-copy-dtor
-  Wdouble-promotion
-  Wduplicated-branches
-  Wduplicated-cond
-  Wenum-conversion
-  Wextra-semi
-  Wfloat-equal
-  Wformat-overflow=2
-  Wformat-signedness
-  Wformat=2
-  Wframe-larger-than=${defaultMaxFrameSize}
-  Wjump-misses-init
-  Wlogical-op
-  Wmismatched-tags
-  Wmissing-braces
-  Wmultichar
-  Wnoexcept
-  Wnon-virtual-dtor
-  Woverloaded-virtual
-  Wpointer-arith
-  Wrange-loop-construct
-  Wrestrict
-  Wshadow
-  Wstrict-null-sentinel
-  Wsuggest-attribute=format
-  Wsuggest-attribute=malloc
-  Wuninitialized
-  Wvla
-  Wvolatile
-  Wwrite-strings
-)
+# The level: DYNINST_WARNING_LEVEL when the user sets it, else the repository's
+# REQUESTED_WARNING_LEVEL, else the highest
+if(NOT "${DYNINST_WARNING_LEVEL}" STREQUAL "")
+  set(_level "${DYNINST_WARNING_LEVEL}")
+elseif(DEFINED REQUESTED_WARNING_LEVEL)
+  set(_level "${REQUESTED_WARNING_LEVEL}")
+else()
+  set(_level max)
+endif()
+if("${_level}" STREQUAL "max")
+  set(_level ${_max_level})
+elseif(NOT "${_level}" MATCHES "^[0-9]+$" OR _level GREATER _max_level)
+  message(FATAL_ERROR "Warning level '${_level}' is not 0 to ${_max_level}, or max")
+endif()
+message(STATUS "Warning level ${_level} of ${_max_level}")
 
-#list(APPEND REQUESTED_WARNING_FLAGS Werror)
-#list(APPEND REQUESTED_WARNING_FLAGS Wredundant-tags)
-#list(APPEND REQUESTED_WARNING_FLAGS Wnull-dereference)
-#list(APPEND REQUESTED_WARNING_FLAGS Wconversion)
-#list(APPEND REQUESTED_WARNING_FLAGS Wzero-as-null-pointer-constant)
-#list(APPEND REQUESTED_WARNING_FLAGS Wuseless-cast)
-#list(APPEND REQUESTED_WARNING_FLAGS Wsuggest-override)
-#list(APPEND REQUESTED_WARNING_FLAGS Wsuggest-final-types)
-#list(APPEND REQUESTED_WARNING_FLAGS Wsuggest-final-methods)
-#list(APPEND REQUESTED_WARNING_FLAGS Wsign-promo)
-#list(APPEND REQUESTED_WARNING_FLAGS Wold-style-cast)
-#list(APPEND REQUESTED_WARNING_FLAGS Walloc-zero)
+set(REQUESTED_WARNING_FLAGS "")
+if(_level GREATER 0)
+  foreach(_l RANGE 1 ${_level})
+    list(APPEND REQUESTED_WARNING_FLAGS ${_dyninst_warning_level_${_l}})
+  endforeach()
+endif()
 
 list(APPEND REQUESTED_WARNING_FLAGS ${_project_warning_flags})
 

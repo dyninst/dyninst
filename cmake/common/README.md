@@ -284,15 +284,55 @@ keeps its place among the other messages.
 
 ## `warnings/`
 
-`DyninstWarnings.cmake` checks which of a list of warning flags the C and C++
-compilers accept. It sets `SUPPORTED_C_WARNING_FLAGS` and
-`SUPPORTED_CXX_WARNING_FLAGS` to them, and the configure output shows both
-lists. `dyninst_add_test` compiles every test with the C++ list.
+`DyninstWarnings.cmake` checks which warning flags the C and C++ compilers
+accept. It sets `SUPPORTED_C_WARNING_FLAGS` and `SUPPORTED_CXX_WARNING_FLAGS`
+to them, and the configure output shows both lists.
 
-It declares three options:
+It does not apply them. `dyninst_add_test` compiles every test with the C++
+list; any other target adds them itself:
+
+```cmake
+target_compile_options(mytool PRIVATE ${SUPPORTED_CXX_WARNING_FLAGS})
+```
+
+### Warning levels
+
+The flags come in levels. Each level adds flags to the ones below it:
+
+| Level | Adds |
+| :--- | :--- |
+| 0 | nothing |
+| 1 | `-Wall` |
+| 2 | `-Wextra` |
+| 3 | `-Wpedantic` |
+| 4 | 35 more |
+
+`DyninstWarningLevels.cmake` lists them. The default is `max`, the highest
+level.
+
+Levels never change once added: new warnings go into a new level. A
+repository that sets its level keeps the same flags when Dyninst adds
+warnings, and moves up when it is ready:
+
+```cmake
+set(REQUESTED_WARNING_LEVEL 4)
+include(DyninstWarnings)
+```
+
+A developer can choose another level when configuring, with
+`-DDYNINST_WARNING_LEVEL=<n>`. Left empty, the default, it uses the
+repository's.
+
+To add warnings, add a level. The steps are at the top of
+`DyninstWarningLevels.cmake`.
+
+### Options and other flags
+
+The module declares four options:
 
 | Option | Default | Meaning |
 | :--- | :--- | :--- |
+| `DYNINST_WARNING_LEVEL` | empty | the level, or the repository's |
 | `DYNINST_WARNINGS_AS_ERRORS` | `OFF` | add `-Werror` |
 | `DYNINST_EXTRA_WARNINGS` | empty | more flags to try |
 | `DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS` | `OFF` | drop every suppression |
@@ -301,9 +341,9 @@ It declares three options:
 in `Wnull-dereference;Wuseless-cast`.
 
 A repository adds flags of its own by setting `REQUESTED_WARNING_FLAGS`
-before the include, in the same form. They come after the module's own
-flags, so a `-Wno-` flag among them wins. Settings for particular files
-of its own also stay outside: Dyninst's are in
+before the include, in the same form. They come after the levels' flags, so
+a `-Wno-` flag among them turns off one of those. Settings for particular
+files of its own also stay outside: Dyninst's are in
 `cmake/DyninstWarningOverrides.cmake`, which includes this module.
 
 ### Suppressing a warning in code
