@@ -57,8 +57,46 @@ set(
   Wwrite-strings
 )
 
-# Candidates for a later level, not yet clean in Dyninst:
+set(
+  _dyninst_warning_level_5
+  Wcomma
+  Wdate-time
+  Wdeprecated-enum-enum-conversion
+  Wdeprecated-enum-float-conversion
+  Winconsistent-missing-override
+)
+
+# Candidates for later levels, not yet clean in Dyninst.  Each group is
+# about the work to make it clean; a level gets its number when it is added.
 #
-#   Wredundant-tags Wnull-dereference Wconversion Wzero-as-null-pointer-constant
-#   Wuseless-cast Wsuggest-override Wsuggest-final-types Wsuggest-final-methods
-#   Wsign-promo Wold-style-cast Walloc-zero
+# Small, a few dozen sites:
+#
+# set(_dyninst_warning_level_N
+#   Wundef Wfloat-conversion Wredundant-decls
+#   Wimplicit-fallthrough       # Clang; GCC has it in Wextra
+#   Wunreachable-code Wmissing-noreturn Wshadow-all   # Clang
+# )
+#
+# Medium, a few hundred sites:
+#
+# set(_dyninst_warning_level_N
+#   Wzero-as-null-pointer-constant Wuseless-cast Wsuggest-attribute=noreturn
+#   Wmissing-declarations Wmissing-prototypes
+# )
+#
+# Large, a project each:
+#
+# set(_dyninst_warning_level_N
+#   Wsuggest-override Wold-style-cast Wextra-semi-stmt Wconversion
+#   Wredundant-tags Wsign-promo Wsuggest-final-types Wsuggest-final-methods
+#   Walloc-zero
+# )
+#
+# Not worth pursuing:
+#
+#   Wnull-dereference   false positives that change with optimization
+#   Wswitch-enum        floods on the large enums that have a default:
+#   Weffc++             outdated advice
+#   Wpadded Wweak-vtables Wunused-macros   mostly noise
+#   Wstrict-overflow    changes with optimization level
+#   Weverything         (Clang) changes with each release

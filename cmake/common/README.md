@@ -306,6 +306,7 @@ The flags come in levels. Each level adds flags to the ones below it:
 | 2 | `-Wextra` |
 | 3 | `-Wpedantic` |
 | 4 | 35 more |
+| 5 | 5 more |
 
 `DyninstWarningLevels.cmake` lists them. The default is `max`, the highest
 level.
