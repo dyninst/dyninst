@@ -134,19 +134,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
   endforeach()
 endif()
 
-# If -Wframe-larger-than is available adjust the value to allow for larger frames based on
-# compiler version and build type for the following file:
-#
-# common/src/MachSyscall.C (includes common/src/SyscallInformation.C)
-#
+# If -Wframe-larger-than is available, allow larger frames in the riscv decoder tests
 if(HAS_CPP_FLAG_Wframe_larger_than AND NOT DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
-  # Use worst-case values discovered so far.  For most gcc versions SyscallInformation.C
-  # stack frame size is less than than the default, but for some environments and
-  # compiler configurations the following are needed:
-  #
-  if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    set(debugMaxFrameSizeOverrideSyscallInformation 81920)
-  endif()
   set(maxFrameSizeOverrideRiscvInstructionApiTests 49152)
 endif()
 
