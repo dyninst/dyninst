@@ -33,7 +33,7 @@
 #include "dynproc/dynProcess.h"
 #include "registerSpace/registerSpace.h"
 #include "arch-amdgpu.h"
-#include "emit-amdgpu.h"
+#include "codegen/emitters/amdgpu/emit-amdgpu.h"
 #include "dyn_register.h"
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
@@ -50,46 +50,46 @@ void emitASload(const BPatch_addrSpec_NP * /* as */, Register /* dest */, int /*
 
 void emitStorePreviousStackFrameRegister(Address, Register, codeGen &, int, bool) {}
 
-Address EmitterAmdgpuGfx908::getInterModuleVarAddr(const image_variable * /* var */, codeGen & /* gen */) {
+Address EmitterAmdgpu::getInterModuleVarAddr(const image_variable * /* var */, codeGen & /* gen */) {
   assert(!"Not implemented for AMDGPU");
   return 0;
 }
 
-Address EmitterAmdgpuGfx908::getInterModuleFuncAddr(func_instance * /* func */, codeGen & /* gen */) {
+Address EmitterAmdgpu::getInterModuleFuncAddr(func_instance * /* func */, codeGen & /* gen */) {
   assert(!"Not implemented for AMDGPU");
   return 0;
 }
 
-void EmitterAmdgpuGfx908::emitImm(opCode /* op */, Register /* src1 */, RegValue /* src2imm */, Register /* dest */,
+void EmitterAmdgpu::emitImm(opCode /* op */, Register /* src1 */, RegValue /* src2imm */, Register /* dest */,
              codeGen & /* gen */, bool /* s */) {
   assert(!"Not implemented for AMDGPU");
 }
 
-codeBufIndex_t EmitterAmdgpuGfx908::emitA(opCode /* op */, Register /* src1 */, long /* dest */,
+codeBufIndex_t EmitterAmdgpu::emitA(opCode /* op */, Register /* src1 */, long /* dest */,
                      codeGen & /* gen */, Dyninst::DyninstAPI::RegControl /* rc */) {
   assert(!"Not implemented for AMDGPU");
   return 0;
 }
 
-Register EmitterAmdgpuGfx908::emitR(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /* dest */,
+Register EmitterAmdgpu::emitR(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /* dest */,
                codeGen & /* gen */, const instPoint *) {
   assert(!"Not implemented for AMDGPU");
   return 0;
 }
 
-void EmitterAmdgpuGfx908::emitV(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /* dest */,
+void EmitterAmdgpu::emitV(opCode /* op */, Register /* src1 */, Register /* src2 */, Register /* dest */,
            codeGen & /* gen */, int /* size */,
            AddressSpace * /* proc */, bool /* s */) {
   assert(!"Not imeplemented for AMDGPU");
 }
 
-void EmitterAmdgpuGfx908::emitVload(opCode /* op */, Address /* src1 */, Register /* src2 */, Register /* dest */,
+void EmitterAmdgpu::emitVload(opCode /* op */, Address /* src1 */, Register /* src2 */, Register /* dest */,
                codeGen & /* gen */, int /* size */,
                AddressSpace *) {
   assert(!"Not imeplemented for AMDGPU");
 }
 
-void EmitterAmdgpuGfx908::emitVstore(opCode /* op */, Register /* src1 */, Register /*src2*/, Address /* dest */,
+void EmitterAmdgpu::emitVstore(opCode /* op */, Register /* src1 */, Register /*src2*/, Address /* dest */,
                 codeGen & /* gen */, int /* size */,
                 AddressSpace *) {
   assert(!"Not imeplemented for AMDGPU");

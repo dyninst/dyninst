@@ -32,7 +32,8 @@
 #include "codegen/codegen.h"
 #include <stdint.h>
 
-namespace AmdgpuGfx908 {
+namespace Dyninst {
+namespace amdgpu_gfx908 {
 
 using Register = Dyninst::Register;
 
@@ -322,6 +323,7 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset,
 
 // === SMEM END ===
 
-} // namespace AmdgpuGfx908
+} // namespace amdgpu_gfx908
+} // namespace Dyninst
 
 #endif

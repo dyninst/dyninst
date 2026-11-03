@@ -42,7 +42,6 @@ set(
   src/binaryEdit.h
   src/codeRange.h
   src/debug.h
-  src/emit-amdgpu.h
   src/emitter.h
   src/emit-x86.h
   src/freebsd.h
@@ -65,7 +64,6 @@ set(
   src/regTracker.h
   src/unix.h
   src/util.h
-  src/amdgpu-gfx908-details.h
 )
 
 set(
@@ -102,10 +100,8 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
     APPEND _sources
     src/addressSpace-amdgpu-gfx908.C
     src/inst-amdgpu.C
-    src/emit-amdgpu.C
     src/AmdgpuKernelDescriptor.C
     src/AmdgpuPointHandler.C
-    src/amdgpu-gfx908-details.C
   )
 endif()
 
