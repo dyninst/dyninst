@@ -27,18 +27,25 @@ if(DYNINST_GERSEMI_EXECUTABLE)
   message(STATUS "Found gersemi: ${DYNINST_GERSEMI_EXECUTABLE}")
 endif()
 
-# This file's directory, for the function below: there CMAKE_CURRENT_LIST_DIR
-# is the directory of the file that calls it
-set(_dyninst_gersemi_dir "${CMAKE_CURRENT_LIST_DIR}")
+# This file's directory and the versions file, for the function below.  In
+# the function CMAKE_CURRENT_LIST_DIR is the directory of the file that calls
+# it, and a variable set here is not seen from a parent or sibling directory,
+# so both are kept in global properties.
+set_property(GLOBAL PROPERTY DYNINST_GERSEMI_DIR "${CMAKE_CURRENT_LIST_DIR}")
+set_property(
+  GLOBAL
+  PROPERTY DYNINST_GERSEMI_VERSIONS_FILE "${DYNINST_GERSEMI_VERSIONS_FILE}"
+)
 
 function(dyninst_add_gersemi_target _name _mode _comment)
+  get_property(_dir GLOBAL PROPERTY DYNINST_GERSEMI_DIR)
+  get_property(_versions_file GLOBAL PROPERTY DYNINST_GERSEMI_VERSIONS_FILE)
   add_custom_target(
     ${_name}
     COMMAND
       ${CMAKE_COMMAND} "-DGERSEMI=${DYNINST_GERSEMI_EXECUTABLE}" "-DMODE=${_mode}"
-      "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
-      "-DVERSIONS_FILE=${DYNINST_GERSEMI_VERSIONS_FILE}" -P
-      "${_dyninst_gersemi_dir}/DyninstRunGersemi.cmake"
+      "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}" "-DVERSIONS_FILE=${_versions_file}" -P
+      "${_dir}/DyninstRunGersemi.cmake"
     COMMENT "${_comment}"
     VERBATIM
     USES_TERMINAL
