@@ -4182,6 +4182,7 @@ void int_thread::abortBreakpointStepOver()
                 llproc()->getPid(), getLWP());
    markClearingBreakpoint(NULL);
    setSingleStepMode(false);
+   getBreakpointResumeState().setState(int_thread::stopped);
 
    std::set<response::ptr> resps;
    async_ret_t result = bp->resume(llproc(), resps);
