@@ -1162,23 +1162,6 @@ namespace Dyninst {
     // clang-format: on
   }
 
-  bool MachRegister::isGPUVector() const {
-    // AMDGPU lane-partitioned vector data register (VGPR / accumulator VGPR); see the header.
-    auto const category = regClass();
-    switch(getArchitecture()) {
-      case Arch_amdgpu_gfx908:
-        return category == amdgpu_gfx908::VGPR || category == amdgpu_gfx908::ACC_VGPR;
-      case Arch_amdgpu_gfx90a:
-        return category == amdgpu_gfx90a::VGPR || category == amdgpu_gfx90a::ACC_VGPR;
-      case Arch_amdgpu_gfx940:
-        return category == amdgpu_gfx940::VGPR || category == amdgpu_gfx940::ACC_VGPR;
-      case Arch_amdgpu_gfx950:
-        return category == amdgpu_gfx950::VGPR || category == amdgpu_gfx950::ACC_VGPR;
-      default:
-        return false;
-    }
-  }
-
   std::vector<MachRegister> const& MachRegister::getAllRegistersForArch(Dyninst::Architecture arch) {
     return registers::all_regs[arch];
   }
