@@ -36,9 +36,6 @@
 #include <libgen.h>
 
 #include <boost/crc.hpp>
-#include <boost/assign/list_of.hpp>
-#include <boost/assign/std/set.hpp>
-#include <boost/assign/std/vector.hpp>
 
 #include "unaligned_memory_access.h"
 #include "Elf_X.h"
@@ -56,7 +53,6 @@
 
 using namespace std;
 using boost::crc_32_type;
-using namespace boost::assign;
 
 using namespace Dyninst;
 
@@ -1737,10 +1733,10 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
      char *mfPathNameCopy = strdup(origfilename.c_str());
      string objectFileDirName = dirname(mfPathNameCopy);
 
-     vector<string> fnames = list_of
-       (objectFileDirName + "/" + debugFileFromDebugLink)
-       (objectFileDirName + "/.debug/" + debugFileFromDebugLink)
-       ("/usr/lib/debug/" + objectFileDirName + "/" + debugFileFromDebugLink);
+     vector<string> fnames = {
+       objectFileDirName + "/" + debugFileFromDebugLink,
+       objectFileDirName + "/.debug/" + debugFileFromDebugLink,
+       "/usr/lib/debug/" + objectFileDirName + "/" + debugFileFromDebugLink};
 
      free(mfPathNameCopy);
 

@@ -34,7 +34,6 @@
 #include "unaligned_memory_access.h"
 #include "power_opcode_tables.h"
 
-#include <boost/assign/list_of.hpp>
 #include <mutex>
 
 namespace Dyninst { namespace InstructionAPI {
