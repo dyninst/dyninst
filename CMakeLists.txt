@@ -36,6 +36,8 @@ list(
   "${PROJECT_SOURCE_DIR}/cmake"
   "${PROJECT_SOURCE_DIR}/cmake/tpls"
   "${PROJECT_SOURCE_DIR}/cmake/Modules"
+  "${PROJECT_SOURCE_DIR}/cmake/common/warnings"
+  "${PROJECT_SOURCE_DIR}/cmake/common/gersemi"
 )
 
 # These need to be done before anything else

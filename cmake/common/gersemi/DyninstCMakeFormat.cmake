@@ -23,13 +23,17 @@ if(DYNINST_GERSEMI_EXECUTABLE)
   message(STATUS "Found gersemi: ${DYNINST_GERSEMI_EXECUTABLE}")
 endif()
 
+# This file's directory, for the function below: there CMAKE_CURRENT_LIST_DIR
+# is the directory of the file that calls it
+set(_dyninst_gersemi_dir "${CMAKE_CURRENT_LIST_DIR}")
+
 function(dyninst_add_gersemi_target _name _mode _comment)
   add_custom_target(
     ${_name}
     COMMAND
       ${CMAKE_COMMAND} "-DGERSEMI=${DYNINST_GERSEMI_EXECUTABLE}" "-DMODE=${_mode}"
       "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}" -P
-      "${PROJECT_SOURCE_DIR}/cmake/DyninstRunGersemi.cmake"
+      "${_dyninst_gersemi_dir}/DyninstRunGersemi.cmake"
     COMMENT "${_comment}"
     VERBATIM
     USES_TERMINAL

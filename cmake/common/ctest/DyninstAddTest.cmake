@@ -27,7 +27,7 @@ them in full, with examples.
   is built for the test, and a placeholder with the same name reports
   that it was skipped and why. A test that can only tell when it runs
   leaves REQUIRES out and skips itself with skip_message() from
-  tests/dyninst_test_skip.h. A test is skipped when it exits with 77.
+  dyninst_test_skip.h. A test is skipped when it exits with 77.
 
   For example,
 
@@ -100,8 +100,8 @@ them in full, with examples.
   as its input. DEPS are linked PRIVATE, and DEFINES are PRIVATE compile
   definitions. C++ sources are compiled with SUPPORTED_CXX_WARNING_FLAGS,
   then COMPILE_OPTIONS. If a requirement is not met, the executable is
-  not created. It links dyninst_test_support, which puts tests/ on the
-  include path for dyninst_test_skip.h.
+  not created. It links dyninst_test_support, which puts this directory on
+  the include path for dyninst_test_skip.h.
 
   dyninst_test_requirement
 
@@ -136,10 +136,10 @@ them in full, with examples.
 
 include_guard(GLOBAL)
 
-# The headers beside this directory that every test can include, such as
+# The headers in this directory that every test can include, such as
 # dyninst_test_skip.h
 add_library(dyninst_test_support INTERFACE)
-target_include_directories(dyninst_test_support INTERFACE "${CMAKE_CURRENT_LIST_DIR}/..")
+target_include_directories(dyninst_test_support INTERFACE "${CMAKE_CURRENT_LIST_DIR}")
 
 function(dyninst_test_requirement _name)
   # gersemi: hints { WHEN: command_line }
