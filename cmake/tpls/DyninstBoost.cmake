@@ -75,13 +75,6 @@ if(NOT TARGET Dyninst::Boost)
     Dyninst::Boost_headers
     INTERFACE BOOST_MULTI_INDEX_DISABLE_SERIALIZATION
   )
-
-  if(NOT DYNINST_DISABLE_DIAGNOSTIC_SUPPRESSIONS)
-    target_compile_options(
-      Dyninst::Boost_headers
-      INTERFACE ${clangBoostDeprecatedWarning}
-    )
-  endif()
 endif()
 
 message(STATUS "Found Boost ${Boost_VERSION}")
