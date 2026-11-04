@@ -121,8 +121,7 @@ enum RiscvAttrTag {
 };
 enum class RiscvFloatAbiEnum { SOFT, SINGLE, DOUBLE, QUAD };
 struct RiscvAttributes {
-    // These come from e_flags, which is not read when .riscv.attributes is
-    // missing or cannot be parsed; the defaults are what e_flags of 0 says.
+    // These come from e_flags.
     bool compressed_extension{false};
     bool embedded_abi{false};
     bool total_store_ordering{false};
@@ -552,6 +551,7 @@ private:
           std::function<bool(int, std::string)>);
 
   void get_riscv_extensions();
+  void get_riscv_eflags();
 
   bool usesCompressedInstructionFormat() const override { return riscv_attrs.compressed_extension; }
 

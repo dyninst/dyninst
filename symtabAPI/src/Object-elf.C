@@ -1681,6 +1681,8 @@ void ObjectELF::load_object(bool alloc_syms) {
         }
 
         if (elfHdr->e_machine() == EM_RISCV) {
+            get_riscv_eflags();
+
             // From https://github.com/riscv-non-isa/riscv-elf-psabi-doc/blob/master/riscv-elf.adoc#attributes:
             // Attributes are encoded in a vendor-specific section of type
             // SHT_RISCV_ATTRIBUTES and name .riscv.attributes.
@@ -4536,7 +4538,7 @@ void ObjectELF::get_riscv_extensions() {
     // '_', each with its version: "rv64i2p1_m2p0_zic64b1p0".  A name can
     // contain digits (zic64b, zvl128b) but never ends in one, so a version
     // is the trailing <major>p<minor> of its token.  A token that cannot be
-    // read is reported and skipped, and e_flags below is read either way.
+    // read is reported and skipped.
     const std::string &arch_string = riscv_attrs.riscv_extension_string;
     if (arch_string.empty())  {
         create_printf("%s[%d]:  Tag_RISCV_arch is empty\n", FILE__, __LINE__);
@@ -4583,9 +4585,12 @@ void ObjectELF::get_riscv_extensions() {
             beg = end + 1;
         }
     }
+}
 
-    // Obtain information from e_flags
-
+// The ISA flags in the ELF header's e_flags.  These are read for every riscv64
+// object, whether or not it has a readable .riscv.attributes section.
+void ObjectELF::get_riscv_eflags()
+{
     unsigned long e_flags = elfHdr->e_flags();
     if (e_flags & EF_RISCV_RVC) {
         riscv_attrs.compressed_extension = true;
