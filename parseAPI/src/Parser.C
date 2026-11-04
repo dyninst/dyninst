@@ -365,15 +365,28 @@ Parser::parse_vanilla()
     for (auto it = fvec.begin(); it != fvec.end(); ++it)
         svec.push_back(make_pair(it->first, it->second));
     sort(svec.begin(), svec.end());
-    vector<std::pair<long, ParseFrame*> > size_vec;
+
+    // Parse the hints in order of the distance to the next hint, smallest first, with ties
+    // broken by address.  The order in which equal-sized functions are parsed decides which
+    // jump tables are analyzed first and so which blocks and edges exist when a table is
+    // read; ordering by address keeps the serial parse independent of the heap layout.
+    struct HintOrder {
+        Address gap;
+        Address addr;
+        ParseFrame* frame;
+        bool operator<(const HintOrder& o) const {
+            return gap != o.gap ? gap < o.gap : addr < o.addr;
+        }
+    };
+    vector<HintOrder> size_vec;
 
     for (size_t i = 1; i < svec.size(); ++i)
-        size_vec.push_back(make_pair(svec[i].first - svec[i-1].first, svec[i-1].second));
+        size_vec.push_back(HintOrder{svec[i].first - svec[i-1].first, svec[i-1].first, svec[i-1].second});
     if (svec.size() > 0)
-        size_vec.push_back(make_pair(0, svec[svec.size()-1].second));
+        size_vec.push_back(HintOrder{0, svec.back().first, svec.back().second});
     sort(size_vec.begin(), size_vec.end());
     for (size_t i = 0; i < size_vec.size(); ++i)
-        work.insert(size_vec[i].second);
+        work.insert(size_vec[i].frame);
 
     parse_frames(work,true);
 }
