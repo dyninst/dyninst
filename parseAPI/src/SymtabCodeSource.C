@@ -640,17 +640,17 @@ static Dyninst::Address plt_jump_slot(const InstructionAPI::Instruction &insn,
     if (!slot)  {
         return 0;
     }
-    Expression::Ptr addr = slot->getSubexpressions().front();
+    Expression::Ptr addr{slot->getSubexpressions().front()};
 
-    Dyninst::Architecture arch = insn.getArch();
+    Dyninst::Architecture arch{insn.getArch()};
     // A PC-relative operand counts from the next instruction.
-    RegisterAST ip(Dyninst::MachRegister::getPC(arch));
+    RegisterAST ip{Dyninst::MachRegister::getPC(arch)};
     addr->bind(&ip, Result(s64, pc + insn.size()));
     if (arch == Dyninst::Arch_x86 && got_base != 0)  {
-        RegisterAST ebx(Dyninst::x86::ebx);
+        RegisterAST ebx{Dyninst::x86::ebx};
         addr->bind(&ebx, Result(s64, got_base));
     }
-    Result value = addr->eval();
+    Result value{addr->eval()};
     if (!value.defined)  {
         return 0;
     }
@@ -693,7 +693,7 @@ SymtabCodeSource::init_linkage()
         }
     }
 
-    bool is_x86 = (getArch() == Arch_x86_64 || getArch() == Arch_x86);
+    bool is_x86{getArch() == Arch_x86_64 || getArch() == Arch_x86};
     if (!is_x86)  {
         return;
     }
@@ -702,10 +702,10 @@ SymtabCodeSource::init_linkage()
     // GOT slot it jumps through only relative to that register.  The symbol is
     // what the ABI defines; the sections are what it is in practice, for an
     // object stripped of the symbol.
-    Address got_base = 0;
+    Address got_base{0};
     if (getArch() == Arch_x86)  {
         std::vector<SymtabAPI::Symbol *> gots;
-        SymtabAPI::Region *got = NULL;
+        SymtabAPI::Region *got{nullptr};
         if (_symtab->findSymbol(gots, "_GLOBAL_OFFSET_TABLE_",
                                 SymtabAPI::Symbol::ST_UNKNOWN,
                                 SymtabAPI::anyName) && !gots.empty())  {
@@ -739,10 +739,10 @@ SymtabCodeSource::init_linkage()
 
         // Scan each PLT stub
         for (size_t off = 0; off < plt_sec->getMemSize(); off += plt_entry_size) {
-            Address stub = plt_sec->getMemOffset() + off;
-            InstructionAPI::InstructionDecoder dec(buffer + off, plt_entry_size, getArch());
-            Address rel_addr = 0;
-            Address pc = stub;
+            Address stub{plt_sec->getMemOffset() + off};
+            InstructionAPI::InstructionDecoder dec{buffer + off, plt_entry_size, getArch()};
+            Address rel_addr{0};
+            Address pc{stub};
             for (auto i = dec.decode(); i.isValid() && rel_addr == 0; i = dec.decode())  {
                 rel_addr = plt_jump_slot(i, pc, got_base);
                 pc += i.size();
@@ -752,7 +752,7 @@ SymtabCodeSource::init_linkage()
             }
 
             if (rel_addr_to_name.find(rel_addr) != rel_addr_to_name.end()) {
-                Address tar = stub;
+                Address tar{stub};
                 if (rel_addr_to_name[rel_addr] == "") {
                     // Sometimes PLT is used to call function in the same library.
                     // One such case is to perform a call to a ifunc to use CPU dispatch feature
@@ -783,7 +783,7 @@ SymtabCodeSource::init_linkage()
     unsigned long decoded = 0;
     while (decoded < plt_got->getMemSize()) {
         InstructionAPI::Instruction i = dec.decode();
-        Address rel_addr = plt_jump_slot(i, plt_got->getMemOffset() + decoded, got_base);
+        Address rel_addr{plt_jump_slot(i, plt_got->getMemOffset() + decoded, got_base)};
         if (rel_addr != 0 &&
             rel_addr_to_name.find(rel_addr) != rel_addr_to_name.end())  {
             _linkage[plt_got->getMemOffset() + decoded] = rel_addr_to_name[rel_addr];
