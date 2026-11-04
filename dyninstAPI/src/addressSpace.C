@@ -862,7 +862,7 @@ mapped_module *AddressSpace::findModule(const std::string &mod_name, bool wildca
    // KLUDGE: first search any shared libraries for the module name 
    //  (there is only one module in each shared library, and that 
    //  is the library name)
-   for(u_int j=0; j < mapped_objects.size(); j++){
+   for(uint32_t j=0; j < mapped_objects.size(); j++){
       mapped_module *mod = mapped_objects[j]->findModule(mod_name, wildcard);
       if (mod) {
          return (mod);
@@ -877,7 +877,7 @@ mapped_module *AddressSpace::findModule(const std::string &mod_name, bool wildca
 mapped_object *AddressSpace::findObject(std::string obj_name, bool wildcard) const
 {
    // Update: check by full name first because we may have non-unique fileNames. 
-   for(u_int j=0; j < mapped_objects.size(); j++){
+   for(uint32_t j=0; j < mapped_objects.size(); j++){
       if (mapped_objects[j]->fullName() == obj_name ||
           (wildcard &&
            wildcardEquiv(obj_name, mapped_objects[j]->fullName())))
@@ -897,7 +897,7 @@ mapped_object *AddressSpace::findObject(std::string obj_name, bool wildcard) con
 	   }
    }
 
-   for(u_int j=0; j < mapped_objects.size(); j++){
+   for(uint32_t j=0; j < mapped_objects.size(); j++){
       if (mapped_objects[j]->fileName() == obj_name ||
           (wildcard &&
            wildcardEquiv(obj_name, mapped_objects[j]->fileName())))
@@ -910,7 +910,7 @@ mapped_object *AddressSpace::findObject(std::string obj_name, bool wildcard) con
 // This just iterates over the mapped object vector
 mapped_object *AddressSpace::findObject(fileDescriptor desc) const
 {
-   for(u_int j=0; j < mapped_objects.size(); j++){
+   for(uint32_t j=0; j < mapped_objects.size(); j++){
       if (desc == mapped_objects[j]->getFileDesc()) 
          return mapped_objects[j];
    }

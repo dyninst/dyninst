@@ -803,7 +803,7 @@ bool mapped_object::getInfHeapList(std::vector<heapDescriptor> &infHeaps) {
 
     getInferiorHeaps(foundHeaps);
 
-    for (u_int j = 0; j < foundHeaps.size(); j++) {
+    for (uint32_t j = 0; j < foundHeaps.size(); j++) {
         // The string layout is: DYNINSTstaticHeap_size_type_unique
         // Can't allocate a variable-size array on NT, so malloc
         // that sucker

@@ -145,7 +145,7 @@ bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int 
       size -= len-cnt;
    }
    /* Copy aligned portion */
-   while (size >= (u_int)len) {
+   while (size >= (uint32_t)len) {
       errno = 0;
       w = ptrace(PTRACE_PEEKTEXT, pid, ap, 0);
       if (errno) {
@@ -244,7 +244,7 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
    }
 
    /* Copy aligned portion */
-   while (nbytes >= (u_int)len) {
+   while (nbytes >= (uint32_t)len) {
       assert(0 == ((Dyninst::Address)ap) % len);
       memcpy(&w, dp, len);
       int retval =  ptrace(PTRACE_POKETEXT, pid, ap, w);

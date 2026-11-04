@@ -64,7 +64,7 @@ using namespace Dyninst::SymtabAPI;
 //  3) A section of the binary that was modified
 
 bool BinaryEdit::readTextSpace(const void *inOther,
-                               u_int size,
+                               uint32_t size,
                                void *inSelf) {
     Address addr = (Address) inOther;
     
@@ -84,7 +84,7 @@ bool BinaryEdit::readTextSpace(const void *inOther,
 }
 
 bool BinaryEdit::writeTextSpace(void *inOther,
-                            u_int size,
+                            uint32_t size,
                             const void *inSelf) {
     // This assumes we already have a memory tracker; inefficient, but
     // it works. 
@@ -136,36 +136,36 @@ bool BinaryEdit::writeTextSpace(void *inOther,
 }    
 
 bool BinaryEdit::readDataSpace(const void *inOther,
-                           u_int amount,
+                           uint32_t amount,
                            void *inSelf,
                            bool) {
     return readTextSpace(inOther, amount, inSelf);
 }
 
 bool BinaryEdit::writeDataSpace(void *inOther,
-                            u_int amount,
+                            uint32_t amount,
                             const void *inSelf) {
     return writeTextSpace(inOther, amount, inSelf);
 }
 
 bool BinaryEdit::readTextWord(const void *inOther,
-                              u_int size,
+                              uint32_t size,
                               void *inSelf)
 { return readTextSpace(inOther, size, inSelf); }
 
 bool BinaryEdit::writeTextWord(void *inOther,
-                               u_int size,
+                               uint32_t size,
                                const void *inSelf)
 { return writeTextSpace(inOther, size, inSelf); }
 
 bool BinaryEdit::readDataWord(const void *inOther,
-                              u_int amount,
+                              uint32_t amount,
                               void *inSelf,
                               bool)
 { return readTextSpace(inOther, amount, inSelf); }
 
 bool BinaryEdit::writeDataWord(void *inOther,
-                               u_int amount,
+                               uint32_t amount,
                                const void *inSelf)
 { return writeTextSpace(inOther, amount, inSelf); }
 
