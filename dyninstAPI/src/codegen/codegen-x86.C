@@ -233,7 +233,7 @@ void insnCodeGen::generateBranch(codeGen &gen,
 void insnCodeGen::generatePush64(codeGen &gen, Dyninst::Address val)
 {
   GET_PTR(insn, gen);
-  // NOTE: The size of this generated instruction(+1 for the ret) is stored in CALL_ABS64_SZ
+  // 13 bytes; CALL_ABS64_SZ is this plus a generateBranch64.
   unsigned int high = static_cast<unsigned int>(val >> 32);
   unsigned int low = static_cast<unsigned int>(val);
 
@@ -253,15 +253,15 @@ void insnCodeGen::generatePush64(codeGen &gen, Dyninst::Address val)
 
 void insnCodeGen::generateBranch64(codeGen &gen, Dyninst::Address to)
 {
-    // "long jump" - generates sequence to jump to any 64-bit address
-    // pushes the value on the stack (using 4 16-bit pushes) the uses a 'RET'
-
-  generatePush64(gen, to);
-
+  // jmp *0(%rip) with the 64-bit target right after it: reaches any
+  // address without touching the stack, which may hold a leaf's red zone.
+  // JUMP_ABS64_SZ bytes.
   GET_PTR(insn, gen);
-  append_memory_as_byte(insn, 0xC3); // RET
+  append_memory_as_byte(insn, 0xFF);
+  append_memory_as_byte(insn, 0x25);
+  append_memory_as(insn, int32_t{0});
+  append_memory_as(insn, uint64_t{to});
   SET_PTR(insn, gen);
-
 }
 
 void insnCodeGen::generateBranch32(codeGen &gen, Dyninst::Address to)
