@@ -78,10 +78,58 @@ __asm__(".text\n"
         ".size leaf, . - leaf\n");
 void leaf(void);
 
+int seen_switch[4] = {-1, -1, -1, -1};
+
+/* switch_leaf is a leaf like leaf, but reaches its second half through a
+ * PIC jump table. The table holds offsets to the original code, so after
+ * relocation the jump lands in the original function body, on the
+ * springboard of that block, while the canary is live in the red zone. */
+__asm__(".text\n"
+        ".globl switch_leaf\n"
+        ".type switch_leaf, @function\n"
+        "switch_leaf:\n"
+        "  push %rbp\n"
+        "  mov %rsp, %rbp\n"
+        "  movl $0x11111111, -0x10(%rbp)\n"
+        "  movl $0x22222222, -0xc(%rbp)\n"
+        "  movl $0x33333333, -0x8(%rbp)\n"
+        "  movl $0x44444444, -0x4(%rbp)\n"
+        "  mov %edi, %edi\n"
+        "  cmp $1, %edi\n"
+        "  ja .Lswitch_done\n"
+        "  lea .Lswitch_table(%rip), %rdx\n"
+        "  movslq (%rdx,%rdi,4), %rax\n"
+        "  add %rdx, %rax\n"
+        "  jmp *%rax\n"
+        ".Lswitch_case0:\n"
+        "  movl $0, seen_switch(%rip)\n"
+        "  jmp .Lswitch_done\n"
+        ".Lswitch_case1:\n"
+        "  mov -0x10(%rbp), %eax\n"
+        "  mov %eax, seen_switch(%rip)\n"
+        "  mov -0xc(%rbp), %eax\n"
+        "  mov %eax, seen_switch+4(%rip)\n"
+        "  mov -0x8(%rbp), %eax\n"
+        "  mov %eax, seen_switch+8(%rip)\n"
+        "  mov -0x4(%rbp), %eax\n"
+        "  mov %eax, seen_switch+12(%rip)\n"
+        ".Lswitch_done:\n"
+        "  pop %rbp\n"
+        "  ret\n"
+        ".size switch_leaf, . - switch_leaf\n"
+        ".section .rodata\n"
+        ".p2align 2\n"
+        ".Lswitch_table:\n"
+        "  .long .Lswitch_case0 - .Lswitch_table\n"
+        "  .long .Lswitch_case1 - .Lswitch_table\n"
+        ".text\n");
+void switch_leaf(int);
+
 int main(void) {
   entered = 0;
   leaf();
   long const sum = far_caller();
+  switch_leaf(1);
   int failed = 0;
   for (int i = 0; i < 4; i++) {
     if (seen_canary[i] != CANARY(i)) {
@@ -101,8 +149,15 @@ int main(void) {
             seen_arg7, seen_aligned ? "an aligned" : "a misaligned", sum);
     failed = 1;
   }
-  if (entered != 2) {
-    fprintf(stderr, "the entry snippets of leaf and far_caller ran %d times, not twice\n",
+  for (int i = 0; i < 4; i++) {
+    if (seen_switch[i] != CANARY(i)) {
+      fprintf(stderr, "switch_leaf's canary[%d] was overwritten: %#x, not %#x\n", i,
+              seen_switch[i], CANARY(i));
+      failed = 1;
+    }
+  }
+  if (entered != 3) {
+    fprintf(stderr, "the entry snippets of leaf, far_caller and switch_leaf ran %d times, not 3\n",
             entered);
     failed = 1;
   }

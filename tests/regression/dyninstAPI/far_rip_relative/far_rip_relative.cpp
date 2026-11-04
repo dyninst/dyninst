@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
 
   BPatch_arithExpr increment(BPatch_assign, *entered,
                              BPatch_arithExpr(BPatch_plus, *entered, BPatch_constExpr(1)));
-  for (char const *name : {"leaf", "far_caller"}) {
+  for (char const *name : {"leaf", "far_caller", "switch_leaf"}) {
     std::vector<BPatch_function *> funcs;
     image->findFunction(name, funcs);
     if (funcs.size() != 1) {
