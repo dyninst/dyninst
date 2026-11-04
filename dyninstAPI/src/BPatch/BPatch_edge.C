@@ -81,8 +81,7 @@ BPatch_edge::BPatch_edge(edge_instance *e,
    edge = e;
    fg = FG;
    
-   // point is set when this edge is instrumented. instAddr is set
-   // when either this edge or its conditional buddy is instrumented
+   // getPoint creates the point the first time it is called
    point = NULL;    
 }
 
@@ -115,6 +114,9 @@ BPatch_point *BPatch_edge::getPoint()
       BPatch_flowGraph *cfg = getFlowGraph();
       instPoint *ip = instPoint::edge(cfg->ll_func(),
                                       edge);
+      if (!ip) {
+         return nullptr;
+      }
       AddressSpace *as = cfg->getllAddSpace();
       assert(as);
       

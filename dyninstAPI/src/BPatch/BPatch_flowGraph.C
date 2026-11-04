@@ -244,6 +244,10 @@ BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc,
     for (auto edge : edges) {
       if (DEBUG_LOOP) edge->dump();
       BPatch_point *iP = edge->getPoint();
+      if (!iP) {
+        inst_printf("%s[%d]: loop back edge has no instrumentation point\n", FILE__, __LINE__);
+        continue;
+      }
       iP->overrideType(BPatch_locLoopEndIter);
       iP->setLoop(loop);
       points->push_back(iP);
