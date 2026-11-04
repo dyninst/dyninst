@@ -87,7 +87,18 @@ namespace Dyninst {
             LockFreeQueue<ParseFrame *> frames;
 
             boost::atomic<bool> delayed_frames_changed;
-            dyn_c_hash_map<Function*, std::set<ParseFrame*> > delayed_frames;
+
+            // Frames waiting for a callee's return status, keyed by the callee.  Waiters
+            // are resumed in the order of the set, and the delayed callees are visited in
+            // the order of delayed_funcs_by_addr(); both orders are by function address,
+            // which keeps the serial parse order, and with it the jump table results,
+            // independent of the heap layout.
+            struct FrameByAddr {
+                bool operator()(const ParseFrame* a, const ParseFrame* b) const;
+            };
+            typedef std::set<ParseFrame*, FrameByAddr> DelayedFrames;
+            dyn_c_hash_map<Function*, DelayedFrames> delayed_frames;
+            std::vector<std::pair<Function*, DelayedFrames> > delayed_funcs_by_addr();
 
             // differentiate those provided via hints and
             // those found through RT or speculative parsing

@@ -628,8 +628,8 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
                                                     __FILE__,
                                                     ct->name().c_str());
                                             {
-                                                dyn_c_hash_map<Function*, std::set<ParseFrame*> >::accessor a;
-                                                set<ParseFrame *> waiters;
+                                                dyn_c_hash_map<Function*, DelayedFrames>::accessor a;
+                                                DelayedFrames waiters;
                                                 // This acquires the lock for ct, regardless we get a new set of not
                                                 bool new_set = delayed_frames.insert(a, std::make_pair(ct, waiters));
                                                 if (ct->retstatus() != UNSET) {
@@ -726,6 +726,23 @@ void
 }
 
 
+bool Parser::FrameByAddr::operator()(const ParseFrame* a, const ParseFrame* b) const
+{
+    if (a->func->addr() != b->func->addr())
+        return a->func->addr() < b->func->addr();
+    return a < b;
+}
+
+std::vector<std::pair<Function*, Parser::DelayedFrames> > Parser::delayed_funcs_by_addr()
+{
+    std::vector<std::pair<Function*, DelayedFrames> > delayed(delayed_frames.begin(), delayed_frames.end());
+    std::sort(delayed.begin(), delayed.end(),
+        [](const std::pair<Function*, DelayedFrames>& a, const std::pair<Function*, DelayedFrames>& b) {
+            return a.first->addr() < b.first->addr();
+        });
+    return delayed;
+}
+
     void
 Parser::parse_frames(LockFreeQueue<ParseFrame *> &work, bool recursive)
 {
@@ -735,11 +752,9 @@ Parser::parse_frames(LockFreeQueue<ParseFrame *> &work, bool recursive)
     {
         // Check if we can resume any frames yet
         vector<Function *> updated;
-        for (auto iter = delayed_frames.begin();
-                iter != delayed_frames.end();
-                ++iter) {
-            if (iter->first->retstatus() != UNSET) {
-                updated.push_back(iter->first);
+        for (auto const& entry : delayed_funcs_by_addr()) {
+            if (entry.first->retstatus() != UNSET) {
+                updated.push_back(entry.first);
             }
         }
         if (updated.size()) {
@@ -795,8 +810,8 @@ void Parser::processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive) {//
     // except if we're doing non-recursive parsing.
     // If we're just parsing one function, we want
     // to mark everything RETURN instead.
-    for (auto iter = delayed_frames.begin(); iter != delayed_frames.end(); ++iter) {
-        Function * func = iter->first;
+    for (auto const& entry : delayed_funcs_by_addr()) {
+        Function * func = entry.first;
         if (func->retstatus() == UNSET) {
             if(recursive)
             {
@@ -810,8 +825,7 @@ void Parser::processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive) {//
             updated.push_back(func);
         }
 
-        set<ParseFrame *> vec = iter->second;
-        for (auto vIter = vec.begin(); vIter != vec.end(); ++vIter) {
+        for (auto vIter = entry.second.begin(); vIter != entry.second.end(); ++vIter) {
             Function * delayed = (*vIter)->func;
             if (delayed->retstatus() == UNSET) {
                 delayed->set_retstatus(NORETURN);
@@ -2473,7 +2487,7 @@ void Parser::resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work)
     }
 
     // When a function's return status is set, all waiting frames back into the worklist
-    dyn_c_hash_map<Function*, std::set<ParseFrame*> >::accessor a;
+    dyn_c_hash_map<Function*, DelayedFrames>::accessor a;
     if (!delayed_frames.find(a, func)) {
         // There were no frames waiting, ignore
         parsing_printf("[%s] %s return status %d, no waiters\n",
@@ -2487,9 +2501,8 @@ void Parser::resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work)
                 func->name().c_str(),
                 func->retstatus());
         // Add each waiting frame back to the worklist
-        set<ParseFrame *> vec = a->second;
-        for (set<ParseFrame *>::iterator fIter = vec.begin();
-                fIter != vec.end();
+        for (auto fIter = a->second.begin();
+                fIter != a->second.end();
                 ++fIter) {
             work.insert(*fIter);
             Function *f = (*fIter)->func;
