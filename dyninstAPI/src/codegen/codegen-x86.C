@@ -513,9 +513,12 @@ bool insnCodeGen::modifyData(Dyninst::Address targetAddr, instruction &insn, cod
     {
         // Case C: replace with 64-bit.
         // This preamble must come before any writes to newInsn!
+        // The code around us may be a leaf function that keeps data in the
+        // red zone, so step past it before saving pointer_reg on the stack.
         is_data_abs64 = true;
         pointer_reg = (mod_rm & 0x38) != 0 ? 0 : 3;
         SET_PTR(newInsn, gen);
+        emitLEA64(REGNUM_RSP, Null_Register, 0, -AMD64_RED_ZONE, REGNUM_RSP, gen);
         emitPushReg64(pointer_reg, gen);
         emitMovImmToReg64(pointer_reg, targetAddr, true, gen);
         REGET_PTR(newInsn, gen);
@@ -572,6 +575,7 @@ bool insnCodeGen::modifyData(Dyninst::Address targetAddr, instruction &insn, cod
         // Cleanup on aisle pointer_reg...
         assert(pointer_reg != (Dyninst::Register)-1);
         emitPopReg64(pointer_reg, gen);
+        emitLEA64(REGNUM_RSP, Null_Register, 0, AMD64_RED_ZONE, REGNUM_RSP, gen);
     }
 #endif
 
