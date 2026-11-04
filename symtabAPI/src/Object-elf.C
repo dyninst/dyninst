@@ -4519,8 +4519,8 @@ static bool riscv_version_number(const std::string &s, size_t beg, size_t end, i
     if (end <= beg || end - beg > 9)  {
         return false;
     }
-    int n = 0;
-    for (size_t k = beg; k < end; k++)  {
+    int n{0};
+    for (size_t k{beg}; k < end; k++)  {
         if (!isdigit((unsigned char) s[k]))  {
             return false;
         }
@@ -4548,23 +4548,23 @@ void ObjectELF::get_riscv_extensions() {
                 (arch_string.rfind("rv32e", 0) != 0))  {
         create_printf("%s[%d]:  Corrupted base extension: should be one of rv32i, rv64i, rv128i, rv32e\n", FILE__, __LINE__);
     }  else  {
-        size_t beg = 0;
+        size_t beg{0};
         while (beg <= arch_string.size())  {
-            size_t end = arch_string.find('_', beg);
+            size_t end{arch_string.find('_', beg)};
             if (end == std::string::npos)  {
                 end = arch_string.size();
             }
 
             // The minor version is the digits at the end, the major version
             // the digits before the 'p' ahead of them, and the name the rest.
-            size_t minor_beg = end;
+            size_t minor_beg{end};
             while (minor_beg > beg && isdigit((unsigned char) arch_string[minor_beg - 1]))  {
                 minor_beg--;
             }
-            size_t major_beg = minor_beg;
-            int major_num = 0;
-            int minor_num = 0;
-            bool ok = minor_beg > beg && arch_string[minor_beg - 1] == 'p';
+            size_t major_beg{minor_beg};
+            int major_num{0};
+            int minor_num{0};
+            bool ok{minor_beg > beg && arch_string[minor_beg - 1] == 'p'};
             if (ok)  {
                 major_beg = minor_beg - 1;
                 while (major_beg > beg && isdigit((unsigned char) arch_string[major_beg - 1]))  {
