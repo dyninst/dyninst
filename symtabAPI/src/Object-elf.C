@@ -1688,8 +1688,8 @@ void ObjectELF::load_object(bool alloc_syms) {
             // The attribute data contains a series of <tag, value> pair.
             // The tag is a uleb128 integer indication the attribute tag. The
             // value is the attribute value corresponding to the tag. The RISC-V
-            // ABI defines that if the tag is odd, the attribute value will be
-            // an integer. Otherwise, it will be a string. 
+            // ABI defines that if the tag is even, the attribute value will be
+            // an integer. Otherwise, it will be a string.
 
             // See https://github.com/bminor/binutils-gdb/blob/master/binutils/readelf.c
             size_t elf_len;
