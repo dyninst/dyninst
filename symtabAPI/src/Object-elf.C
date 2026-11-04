@@ -4510,94 +4510,78 @@ bool ObjectELF::parse_attrs(const char *attr_string,
     return true;
 }
 
+// Reads a version number from Tag_RISCV_arch: digits only, and at most
+// nine of them, so that it always fits in an int.
+static bool riscv_version_number(const std::string &s, size_t beg, size_t end, int &out)
+{
+    if (end <= beg || end - beg > 9)  {
+        return false;
+    }
+    int n = 0;
+    for (size_t k = beg; k < end; k++)  {
+        if (!isdigit((unsigned char) s[k]))  {
+            return false;
+        }
+        n = n * 10 + (s[k] - '0');
+    }
+    out = n;
+    return true;
+}
+
 void ObjectELF::get_riscv_extensions() {
 
     // Obtain information from .riscv.attributes
 
-    const std::string arch_string = riscv_attrs.riscv_extension_string;
-    if (arch_string.length() == 0) {
+    // Tag_RISCV_arch is the base ISA and then each extension, separated by
+    // '_', each with its version: "rv64i2p1_m2p0_zic64b1p0".  A name can
+    // contain digits (zic64b, zvl128b) but never ends in one, so a version
+    // is the trailing <major>p<minor> of its token.  A token that cannot be
+    // read is reported and skipped, and e_flags below is read either way.
+    const std::string &arch_string = riscv_attrs.riscv_extension_string;
+    if (arch_string.empty())  {
         create_printf("%s[%d]:  Tag_RISCV_arch is empty\n", FILE__, __LINE__);
-        return;
-    }
-    const size_t len = arch_string.length();
-
-    // Every scan below has to stop at the end of the string.  The last
-    // extension in the string is not followed by an underscore -- no arch
-    // string ends with one -- so a scan looking for the next separator runs
-    // off the end of the buffer, and what it finds there decides whether the
-    // read is merely out of bounds or a crash.
-    auto number = [&arch_string](size_t beg, size_t end, int &out) {
-        if (end <= beg) {
-            return false;
-        }
-        for (size_t k = beg; k < end; k++) {
-            if (!isdigit((unsigned char) arch_string[k])) {
-                return false;
+    }  else if ((arch_string.rfind("rv32i", 0) != 0) &&
+                (arch_string.rfind("rv64i", 0) != 0) &&
+                (arch_string.rfind("rv128i", 0) != 0) &&
+                (arch_string.rfind("rv32e", 0) != 0))  {
+        create_printf("%s[%d]:  Corrupted base extension: should be one of rv32i, rv64i, rv128i, rv32e\n", FILE__, __LINE__);
+    }  else  {
+        size_t beg = 0;
+        while (beg <= arch_string.size())  {
+            size_t end = arch_string.find('_', beg);
+            if (end == std::string::npos)  {
+                end = arch_string.size();
             }
-        }
-        out = std::stoi(arch_string.substr(beg, end - beg));
-        return true;
-    };
 
-    for (size_t i = 0; i < len; i++) {
-        // Get the extension string
-
-        size_t ext_beg = i;
-        // Special case: base extension
-        if (i == 0) {
-            if ((arch_string.rfind("rv32i", 0) != 0) &&
-                    (arch_string.rfind("rv64i", 0) != 0) &&
-                    (arch_string.rfind("rv128i", 0) != 0) &&
-                    (arch_string.rfind("rv32e", 0) != 0)) {
-                create_printf("%s[%d]:  Corrupted base extension: should be one of rv32i, rv64i, rv128i, rv32e\n", FILE__, __LINE__);
-                return;
+            // The minor version is the digits at the end, the major version
+            // the digits before the 'p' ahead of them, and the name the rest.
+            size_t minor_beg = end;
+            while (minor_beg > beg && isdigit((unsigned char) arch_string[minor_beg - 1]))  {
+                minor_beg--;
             }
-            while (i < len && arch_string[i] != 'i' && arch_string[i] != 'e') {
-                i++;
+            size_t major_beg = minor_beg;
+            int major_num = 0;
+            int minor_num = 0;
+            bool ok = minor_beg > beg && arch_string[minor_beg - 1] == 'p';
+            if (ok)  {
+                major_beg = minor_beg - 1;
+                while (major_beg > beg && isdigit((unsigned char) arch_string[major_beg - 1]))  {
+                    major_beg--;
+                }
+                ok = major_beg > beg &&
+                     riscv_version_number(arch_string, major_beg, minor_beg - 1, major_num) &&
+                     riscv_version_number(arch_string, minor_beg, end, minor_num);
             }
-            i++;
-        }
-        else {
-            // Get the extension string
-            while (i < len && !isdigit((unsigned char) arch_string[i])) {
-                i++;
+            if (ok)  {
+                riscv_attrs.riscv_extensions[arch_string.substr(beg, major_beg - beg)] =
+                    std::make_pair(major_num, minor_num);
+            }  else  {
+                create_printf("%s[%d]:  Tag_RISCV_arch has no readable version in '%s': %s\n",
+                              FILE__, __LINE__, arch_string.substr(beg, end - beg).c_str(),
+                              arch_string.c_str());
             }
+            beg = end + 1;
         }
-        if (i >= len) {
-            create_printf("%s[%d]:  Tag_RISCV_arch ends in an extension with no version: %s\n",
-                          FILE__, __LINE__, arch_string.c_str());
-            return;
-        }
-        std::string ext = arch_string.substr(ext_beg, i - ext_beg);
-
-        // Get the major number
-        size_t major_beg = i;
-        while (i < len && arch_string[i] != 'p') {
-            i++;
-        }
-        int major_num = 0;
-        if (i >= len || !number(major_beg, i, major_num)) {
-            create_printf("%s[%d]:  Tag_RISCV_arch has no major version for %s: %s\n",
-                          FILE__, __LINE__, ext.c_str(), arch_string.c_str());
-            return;
-        }
-
-        i++; // ignore 'p'
-
-        // Get the minor number.  The last extension has no trailing '_', so
-        // the end of the string ends it just as a separator would.
-        size_t minor_beg = i;
-        while (i < len && arch_string[i] != '_') {
-            i++;
-        }
-        int minor_num = 0;
-        if (!number(minor_beg, i, minor_num)) {
-            create_printf("%s[%d]:  Tag_RISCV_arch has no minor version for %s: %s\n",
-                          FILE__, __LINE__, ext.c_str(), arch_string.c_str());
-            return;
-        }
-
-        riscv_attrs.riscv_extensions[ext] = std::make_pair(major_num, minor_num);
     }
 
     // Obtain information from e_flags
