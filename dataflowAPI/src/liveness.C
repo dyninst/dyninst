@@ -56,6 +56,17 @@ using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InstructionAPI;
 
+namespace {
+  // An AMDGPU lane-partitioned vector data register (VGPR / accumulator VGPR). On a SIMT GPU a vector write
+  // only updates the EXEC-active lanes, so it preserves the inactive lanes -> a PARTIAL (read-modify-write)
+  // definition, not a full kill, which liveness must model. Computed from the general MachRegister predicates
+  // (no AMDGPU-specific method on MachRegister): an AMDGPU vector register that is NOT a scalar status/mask
+  // register (vcc/exec/scc), i.e. isVector() && !isControlStatus() == the VGPR/ACC_VGPR data registers.
+  inline bool isAmdgpuLaneVector(MachRegister reg) {
+    return isArchitectureAMDGPU(reg.getArchitecture()) && reg.isVector() && !reg.isControlStatus();
+  }
+}
+
 // Code for register liveness detection
 
 LivenessAnalyzer::LivenessAnalyzer(int w): errorno((ErrorType)-1) {
@@ -552,7 +563,10 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction curInsn, Block *blk, Addr
       //assert(index >= 0);
       if(index>=0){
           ret.written[index] = true;
-          if ((cur != base && cur.size() < 4) || isMMX(base)) ret.read[index] = true;
+          // Partial (read-modify-write) def: x86 subreg/MMX keep untouched bits, AMDGPU VGPR/AGPR
+          // writes are EXEC-masked (isAmdgpuLaneVector), so the register stays live across the write.
+          if ((cur != base && cur.size() < 4) || isMMX(base) || isAmdgpuLaneVector(base))
+              ret.read[index] = true;
       }
     }
   }
