@@ -3,11 +3,16 @@
 //
 // The binary rewriter puts relocated code after the end of the mutatee's
 // .bss, which pad makes more than 2 GiB past far_value. Instrumenting leaf
-// relocates its RIP-relative load of far_value there, so the load can no longer
-// use a 32-bit displacement and is rewritten to address far_value through a
-// scratch register saved on the stack. leaf keeps a canary in the red zone,
-// and that save must not overwrite it. The mutatee is linked above 4 GiB so
-// that far_value cannot be addressed with a 32-bit absolute address either.
+// relocates its RIP-relative load of far_value there, and instrumenting
+// far_caller relocates its RIP-relative indirect call through far_fn, which
+// sits next to far_value. Neither can keep its 32-bit displacement:
+//  - the load is rewritten to address far_value through a scratch register
+//    saved on the stack, and leaf keeps a canary in the red zone that the
+//    save must not overwrite;
+//  - the call must reach the callee with the stack the caller set up, so its
+//    seventh argument and 16-byte alignment are intact.
+// The mutatee is linked above 4 GiB so that neither target can be addressed
+// with a 32-bit absolute address either.
 //
 // Usage: far_rip_relative <mutatee> <output directory>
 // DYNINSTAPI_RT_LIB names the runtime library; the rewritten mutatee is run
@@ -129,6 +134,7 @@ int main(int argc, char **argv) {
   }
   uint64_t const bss_end = bss->getMemOffset() + bss->getMemSize();
 
+  // far_fn is next to far_value, so it is out of reach whenever far_value is.
   // Without this, the test passes without exercising the rewritten code.
   if (address_of(far_value) <= max_addr32 || bss_end - address_of(far_value) <= max_disp32) {
     std::cerr << std::hex << "far_value (0x" << address_of(far_value) << ") is below 4 GiB or "
@@ -139,7 +145,7 @@ int main(int argc, char **argv) {
 
   BPatch_arithExpr increment(BPatch_assign, *entered,
                              BPatch_arithExpr(BPatch_plus, *entered, BPatch_constExpr(1)));
-  for (char const *name : {"leaf"}) {
+  for (char const *name : {"leaf", "far_caller"}) {
     std::vector<BPatch_function *> funcs;
     image->findFunction(name, funcs);
     if (funcs.size() != 1) {
