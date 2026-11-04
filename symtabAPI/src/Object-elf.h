@@ -121,10 +121,12 @@ enum RiscvAttrTag {
 };
 enum class RiscvFloatAbiEnum { SOFT, SINGLE, DOUBLE, QUAD };
 struct RiscvAttributes {
-    bool compressed_extension;
-    bool embedded_abi;
-    bool total_store_ordering;
-    RiscvFloatAbiEnum floatABI;
+    // These come from e_flags, which is not read when .riscv.attributes is
+    // missing or cannot be parsed; the defaults are what e_flags of 0 says.
+    bool compressed_extension{false};
+    bool embedded_abi{false};
+    bool total_store_ordering{false};
+    RiscvFloatAbiEnum floatABI{RiscvFloatAbiEnum::SOFT};
     std::map<std::string, std::pair<int, int>> riscv_extensions;
     std::string riscv_extension_string;
     boost::optional<int64_t> stack_align;
