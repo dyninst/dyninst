@@ -582,6 +582,46 @@ bool insnCodeGen::modifyData(Dyninst::Address targetAddr, instruction &insn, cod
     return true;
 }
 
+bool insnCodeGen::modifyIndirectBranchThroughMemory(Dyninst::Address targetAddr,
+                                                     instruction &insn, codeGen &gen)
+{
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
+    signed long const newDisp = targetAddr - gen.currAddr();
+    if (!is_disp32(newDisp + insn.size()) && !is_addr32(targetAddr)) {
+        // modifyData would save a scratch register around the branch, which
+        // moves %rsp for the callee of a call and is never restored after a
+        // jump. Branch through %r11 instead: the ABI passes no arguments in it
+        // and does not preserve it across calls.
+        const unsigned char *origInsn = insn.ptr();
+        ia32_locations loc;
+        ia32_instruction instruct(NULL, NULL, &loc);
+        if (!ia32_decode_prefixes(origInsn, instruct, true))
+            assert(!"Couldn't decode prefix of already known instruction!\n");
+        size_t const pref_count = instruct.getSize();
+        assert(origInsn[pref_count] == 0xff);
+        unsigned char const mod_rm = origInsn[pref_count + 1];
+
+        emitMovImmToReg64(REGNUM_R11, targetAddr, true, gen);
+        GET_PTR(newInsn, gen);
+        // Keep the original prefixes (notrack, for one), with REX.B added.
+        unsigned char rex = 0x40;
+        for (size_t i = 0; i < pref_count; ++i) {
+            if ((origInsn[i] & 0xf0) == 0x40)
+                rex = origInsn[i];
+            else
+                append_memory_as_byte(newInsn, origInsn[i]);
+        }
+        // REX.B with r/m 011 and mod 00 addresses [%r11].
+        append_memory_as_byte(newInsn, rex | 0x01);
+        append_memory_as_byte(newInsn, 0xff);
+        append_memory_as_byte(newInsn, (mod_rm & 0x38) | 0x03);
+        SET_PTR(newInsn, gen);
+        return true;
+    }
+#endif
+    return modifyData(targetAddr, insn, gen);
+}
+
 bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &gen, Dyninst::Architecture arch, Dyninst::Address addr) {
 
     relocation_cerr << "\t\tmodifyDisp "

@@ -94,6 +94,10 @@ class insnCodeGen {
   static bool modifyData(Dyninst::Address target,
                          NS_x86::instruction &insn, 
                          codeGen &gen);
+  // call or jmp through a RIP-relative pointer (FF /2, FF /4)
+  static bool modifyIndirectBranchThroughMemory(Dyninst::Address target,
+                                                NS_x86::instruction &insn,
+                                                codeGen &gen);
   static bool modifyDisp(signed long newDisp,
                          NS_x86::instruction &insn,
                          codeGen &gen, Dyninst::Architecture arch, Dyninst::Address addr);

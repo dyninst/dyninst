@@ -199,7 +199,10 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
             return true;
          }
          case CFPatch::Data: {
-            if (!insnCodeGen::modifyData(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
+            // Only generateIndirectCall makes these: a call or jump through
+            // a RIP-relative pointer.
+            if (!insnCodeGen::modifyIndirectBranchThroughMemory(buf->predictedAddr(targetLabel),
+                                                                *ugly_insn, gen)) {
                cerr << "Failed to modify data" << endl;
                return false;
             }
