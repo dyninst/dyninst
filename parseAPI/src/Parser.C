@@ -1111,21 +1111,49 @@ Parser::finalize_jump_tables()
     map<Block*, Function::JumpTableInstance*> jumpTables;
 
     // Step 1: get all jump tables
-    for (auto fit = hint_funcs.begin(); fit != hint_funcs.end(); ++fit) {
-        Function* f = *fit;
+    //
+    // A JumpTableInstance records the block that ended with the indirect jump
+    // when the table was analyzed.  If that block was split afterwards (for
+    // example by an overrun entry of another jump table landing inside it),
+    // the recorded pointer names the head piece, which no longer carries the
+    // jump or its edges, and the overrun check below would silently find
+    // nothing to trim.  Whether the split happens before or after the
+    // analysis depends on parse order, so look the block up again by the
+    // jump's address, which is the key of the function's jump table map.
+    auto collect = [&](Function* f) {
         for (auto jit = f->getJumpTables().begin(); jit != f->getJumpTables().end(); ++jit) {
+            Address jumpAddr = jit->first;
+            Block* cur = jit->second.block;
+            // The block range index is only filled by finalize_ranges, which runs
+            // after this pass, so walk forward from the recorded block by start
+            // address (blocksByAddr is maintained during parsing): a split leaves
+            // the head piece in place and the jump in a piece that starts where
+            // an earlier piece ends.
+            if (cur == NULL) continue;
+            if (cur->last() != jumpAddr) {
+                Block* recorded = cur;
+                while (cur != NULL && cur->last() != jumpAddr && cur->end() <= jumpAddr) {
+                    Block* next = _parse_data->findBlock(f->region(), cur->end());
+                    // Every piece starts where the previous one ends, so an empty block
+                    // would not advance the walk.
+                    if (next != NULL && next->end() <= cur->end()) next = NULL;
+                    cur = next;
+                }
+                if (cur == NULL || cur->last() != jumpAddr) {
+                    parsing_printf("Jump table at %lx: recorded block [%lx,%lx) no longer ends at the jump and no block does, skipping\n",
+                        jumpAddr, recorded->start(), recorded->end());
+                    continue;
+                }
+                parsing_printf("Jump table at %lx: recorded block [%lx,%lx) was split, now [%lx,%lx)\n",
+                    jumpAddr, recorded->start(), recorded->end(), cur->start(), cur->end());
+                jit->second.block = cur;
+            }
             jumpTableStart.insert(jit->second.tableStart);
-            jumpTables.emplace(jit->second.block, &(jit->second));
+            jumpTables.emplace(cur, &(jit->second));
         }
-    }
-
-    for (auto fit = discover_funcs.begin(); fit != discover_funcs.end(); ++fit) {
-        Function* f = *fit;
-        for (auto jit = f->getJumpTables().begin(); jit != f->getJumpTables().end(); ++jit) {
-            jumpTableStart.insert(jit->second.tableStart);
-            jumpTables.emplace(jit->second.block, &(jit->second));
-        }
-    }
+    };
+    for (auto fit = hint_funcs.begin(); fit != hint_funcs.end(); ++fit) collect(*fit);
+    for (auto fit = discover_funcs.begin(); fit != discover_funcs.end(); ++fit) collect(*fit);
 
     for (auto ait = jumpTableStart.begin(); ait != jumpTableStart.end(); ++ait)
         parsing_printf("Jump table at %lx\n", *ait);
