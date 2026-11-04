@@ -1716,7 +1716,7 @@ void ObjectELF::load_object(bool alloc_syms) {
                         riscv_attrs.atomic_abi = boost::make_optional(value);
                         return false;
                     case RiscvAttrTag::x3_reg_usage:
-                        riscv_attrs.stack_align = boost::make_optional(value);
+                        riscv_attrs.x3_reg_usage = boost::make_optional(value);
                         return false;
                     default:
                         return true;
