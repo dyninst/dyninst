@@ -322,9 +322,9 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
 
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
 // size of instruction seqeunce to get anywhere in address space
-// without touching any registers
+// without touching any registers or the stack: jmp *0(%rip) and the target
 #define JUMP_ABS64_SZ (14)
-// Jump is push/return; call is push/push/return, so subtract a return
+// A call pushes the return address (13 bytes) and then jumps
 #define CALL_ABS64_SZ (JUMP_ABS64_SZ+JUMP_ABS64_SZ-1)
 #endif
 
