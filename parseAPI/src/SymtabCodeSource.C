@@ -44,6 +44,9 @@
 
 #include "InstructionDecoder.h"
 #include "Instruction.h"
+#include "Dereference.h"
+#include "Register.h"
+#include "registers/x86_regs.h"
 
 #include "Object.h"
 
@@ -620,32 +623,40 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
     }
 }
 
-// The GOT slot a PLT stub jumps through, from the indirect jump that does it.
-// Which form that jump takes depends on the architecture and on whether the
-// object is position independent:
-//
-//   ff 25 <disp>   jmp *disp(%rip)   x86-64, relative to the next instruction
-//   ff 25 <addr>   jmp *addr         i386, the slot named outright
-//   ff a3 <disp>   jmp *disp(%ebx)   i386 position independent, relative to
-//                                    the GOT, which the register holds
-//
-// Zero when the slot cannot be worked out, which is the %ebx form in an object
-// whose GOT could not be located.  Guessing instead would name a stub after
-// whatever relocation happened to sit at the address the guess produced.
-static Dyninst::Address plt_jump_slot(Dyninst::Architecture arch,
-                                      unsigned char modrm, int32_t disp,
-                                      Dyninst::Address insn_end,
+// The GOT slot that an indirect jump such as `jmp *disp(%rip)` reads its
+// target from, or 0 when insn is not such a jump.  pc is the address of insn.
+// In 32-bit position independent code the slot is relative to %ebx, which
+// holds the GOT; got_base is 0 when the GOT could not be found, and such a
+// jump then gives 0 rather than a slot named from a guess.
+static Dyninst::Address plt_jump_slot(const InstructionAPI::Instruction &insn,
+                                      Dyninst::Address pc,
                                       Dyninst::Address got_base)
 {
-    if (modrm == 0xa3) {
-        return got_base ? got_base + disp : 0;
+    using namespace InstructionAPI;
+    if (insn.getCategory() != c_BranchInsn)  {
+        return 0;
     }
-    if (arch == Dyninst::Arch_x86_64) {
-        return insn_end + disp;
+    auto slot = boost::dynamic_pointer_cast<Dereference>(insn.getControlFlowTarget());
+    if (!slot)  {
+        return 0;
     }
-    return (Dyninst::Address)(uint32_t)disp;
-}
+    Expression::Ptr addr = slot->getSubexpressions().front();
 
+    Dyninst::Architecture arch = insn.getArch();
+    // A PC-relative operand counts from the next instruction.
+    RegisterAST ip(Dyninst::MachRegister::getPC(arch));
+    addr->bind(&ip, Result(s64, pc + insn.size()));
+    if (arch == Dyninst::Arch_x86 && got_base != 0)  {
+        RegisterAST ebx(Dyninst::x86::ebx);
+        addr->bind(&ebx, Result(s64, got_base));
+    }
+    Result value = addr->eval();
+    if (!value.defined)  {
+        return 0;
+    }
+    auto a = value.convert<Dyninst::Address>();
+    return arch == Dyninst::Arch_x86 ? (a & 0xffffffff) : a;
+}
 
 void
 SymtabCodeSource::init_linkage()
@@ -683,22 +694,24 @@ SymtabCodeSource::init_linkage()
     }
 
     bool is_x86 = (getArch() == Arch_x86_64 || getArch() == Arch_x86);
-    if (!is_x86) return;
+    if (!is_x86)  {
+        return;
+    }
 
     // Where %ebx points in a 32-bit position independent stub, which names the
     // GOT slot it jumps through only relative to that register.  The symbol is
     // what the ABI defines; the sections are what it is in practice, for an
     // object stripped of the symbol.
     Address got_base = 0;
-    if (getArch() == Arch_x86) {
+    if (getArch() == Arch_x86)  {
         std::vector<SymtabAPI::Symbol *> gots;
         SymtabAPI::Region *got = NULL;
         if (_symtab->findSymbol(gots, "_GLOBAL_OFFSET_TABLE_",
                                 SymtabAPI::Symbol::ST_UNKNOWN,
-                                SymtabAPI::anyName) && !gots.empty()) {
+                                SymtabAPI::anyName) && !gots.empty())  {
             got_base = gots[0]->getOffset();
-        } else if (_symtab->findRegion(got, ".got.plt") ||
-                   _symtab->findRegion(got, ".got")) {
+        }  else if (_symtab->findRegion(got, ".got.plt") ||
+                   _symtab->findRegion(got, ".got"))  {
             got_base = got->getMemOffset();
         }
     }
@@ -708,7 +721,9 @@ SymtabCodeSource::init_linkage()
         // Handle 2-PLT style PLT used for Indirect Branch Tracking (IBT) in Intel CET
         SymtabAPI::Region * rela_plt = NULL;
         if (!_symtab->findRegion(rela_plt, ".rela.plt") &&
-            !_symtab->findRegion(rela_plt, ".rel.plt")) return;
+            !_symtab->findRegion(rela_plt, ".rel.plt"))  {
+            return;
+        }
         // Get PLT related relocation entries
         map<Address, string> rel_addr_to_name;
         std::vector<SymtabAPI::relocationEntry> &relocs = rela_plt->getRelocations();
@@ -717,47 +732,27 @@ SymtabCodeSource::init_linkage()
             rel_addr_to_name[r.rel_addr()] = r.name();
         }
 
-
         // Each PLT stub is 16 byte long
         const int plt_entry_size = 16;
-        // A stub begins with ENDBR and jumps through the GOT, but which jump
-        // it is depends on the architecture and on whether the object is
-        // position independent, and a BND prefix may sit in front of it:
-        //
-        //   ff 25 <disp>   jmp *disp(%rip)   x86-64, relative to the next
-        //                                    instruction
-        //   ff 25 <addr>   jmp *addr         i386, the slot named outright
-        //   ff a3 <disp>   jmp *disp(%ebx)   i386 position independent, the
-        //                                    slot relative to the GOT
-        //
-        // So the jump is found rather than assumed to be at a fixed offset:
-        // reading the displacement from the wrong place yields a plausible
-        // address that matches no relocation, and the stub is then left
-        // unnamed with nothing to say so.  Nothing else in a stub holds an
-        // 0xff byte -- ENDBR and the padding nops do not -- so the opcode
-        // identifies it.
+        // A stub is ENDBR, then the jump through the GOT, then padding.
         const unsigned char* buffer = (const unsigned char*)plt_sec->getPtrToRawData();
 
         // Scan each PLT stub
         for (size_t off = 0; off < plt_sec->getMemSize(); off += plt_entry_size) {
-            int jmp = -1;
-            for (int k = 0; k + 6 <= plt_entry_size; k++) {
-                if (buffer[off + k] == 0xff &&
-                    (buffer[off + k + 1] == 0x25 || buffer[off + k + 1] == 0xa3)) {
-                    jmp = k;
-                    break;
-                }
+            Address stub = plt_sec->getMemOffset() + off;
+            InstructionAPI::InstructionDecoder dec(buffer + off, plt_entry_size, getArch());
+            Address rel_addr = 0;
+            Address pc = stub;
+            for (auto i = dec.decode(); i.isValid() && rel_addr == 0; i = dec.decode())  {
+                rel_addr = plt_jump_slot(i, pc, got_base);
+                pc += i.size();
             }
-            if (jmp < 0) continue;
-
-            auto disp = Dyninst::read_memory_as<int32_t>(buffer + off + jmp + 2);
-            Address rel_addr =
-                plt_jump_slot(getArch(), buffer[off + jmp + 1], disp,
-                              plt_sec->getMemOffset() + off + jmp + 6, got_base);
-            if (rel_addr == 0) continue;
+            if (rel_addr == 0)  {
+                continue;
+            }
 
             if (rel_addr_to_name.find(rel_addr) != rel_addr_to_name.end()) {
-                Address tar = plt_sec->getMemOffset() + off;
+                Address tar = stub;
                 if (rel_addr_to_name[rel_addr] == "") {
                     // Sometimes PLT is used to call function in the same library.
                     // One such case is to perform a call to a ifunc to use CPU dispatch feature
@@ -788,17 +783,10 @@ SymtabCodeSource::init_linkage()
     unsigned long decoded = 0;
     while (decoded < plt_got->getMemSize()) {
         InstructionAPI::Instruction i = dec.decode();
-        if (buffer[decoded] == 0xff &&
-            (buffer[decoded+1U] == 0x25 || buffer[decoded+1U] == 0xa3)) {
-            auto disp = Dyninst::read_memory_as<int32_t>(buffer + decoded + 2);
-            Address rel_addr =
-                plt_jump_slot(getArch(), buffer[decoded+1U], disp,
-                              plt_got->getMemOffset() + decoded + i.size(),
-                              got_base);
-            if (rel_addr != 0 &&
-                rel_addr_to_name.find(rel_addr) != rel_addr_to_name.end()) {
-                _linkage[plt_got->getMemOffset() + decoded] = rel_addr_to_name[rel_addr];
-            }
+        Address rel_addr = plt_jump_slot(i, plt_got->getMemOffset() + decoded, got_base);
+        if (rel_addr != 0 &&
+            rel_addr_to_name.find(rel_addr) != rel_addr_to_name.end())  {
+            _linkage[plt_got->getMemOffset() + decoded] = rel_addr_to_name[rel_addr];
         }
         decoded += i.size();
     }
