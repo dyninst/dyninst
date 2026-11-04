@@ -323,25 +323,13 @@ void Block::removeTarget(Edge * e)
 {
     if (e == NULL) return;
     boost::lock_guard<Block> g(*this);
-    auto it = _trglist.begin();
-    while(it != _trglist.end()){
-      auto cur_it = it;
-      ++it;
-      if(**cur_it == *e)
-        _trglist.erase(cur_it);
-    }
+    _trglist.erase(e);
 }
 
 void Block::removeSource(Edge * e) {
     if (e == NULL) return;
     boost::lock_guard<Block> g(*this);
-    auto it = _srclist.begin();
-    while(it != _srclist.end()){
-      auto cur_it = it;
-      ++it;
-      if(**cur_it == *e)
-        _srclist.erase(cur_it);
-    }
+    _srclist.erase(e);
 }
 
 void Block::moveTargetEdges(Block* B) {
