@@ -31,6 +31,8 @@
 #ifndef DWARF_UNIT_INFO_H
 #define DWARF_UNIT_INFO_H
 
+#include <boost/optional.hpp>
+#include <cstdint>
 #include <dwarf.h>
 #include <elfutils/libdw.h>
 
@@ -60,6 +62,33 @@ namespace Dyninst { namespace DwarfDyninst {
       return true; // Unknown; .debug_info is by far the common case.
     }
     return !(version < 5 && unit_type == DW_UT_type);
+  }
+
+  /*
+   * Is `die` inside a type unit, in either .debug_types (DWARF4) or .debug_info (DWARF5)?
+   */
+  inline bool is_in_type_unit(Dwarf_Die die) {
+    uint8_t unit_type{};
+    if(!die.cu || dwarf_cu_info(die.cu, NULL, &unit_type, NULL, NULL, NULL, NULL, NULL) != 0) {
+      return false;
+    }
+    return unit_type == DW_UT_type;
+  }
+
+  /*
+   * The 8-byte type signature of the type unit headed by `die`, as DW_FORM_ref_sig8
+   * spells it, or none if `die` does not head a type unit.
+   */
+  inline boost::optional<uint64_t> type_unit_signature(Dwarf_Die die) {
+    uint8_t unit_type{};
+    uint64_t unit_id{};
+    if(!die.cu || dwarf_cu_info(die.cu, NULL, &unit_type, NULL, NULL, &unit_id, NULL, NULL) != 0) {
+      return boost::none;
+    }
+    if(unit_type != DW_UT_type) {
+      return boost::none;
+    }
+    return unit_id;
   }
 }}
 
