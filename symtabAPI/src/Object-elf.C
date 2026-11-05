@@ -1537,7 +1537,7 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                     for (unsigned r = 0; r < regions_.size(); ++r)  {
                         if (regions_[r]->getRegionName() != PLT_NAME)  continue;
                         const unsigned char *plt =
-                            (const unsigned char *) regions_[r]->getPtrToRawData();
+                            reinterpret_cast<const unsigned char *>(regions_[r]->getPtrToRawData());
                         if (plt != NULL)  {
                             aarch64_plt_stubs_by_got(plt,
                                                      regions_[r]->getMemOffset(),
@@ -1599,9 +1599,9 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                     // aarch64 that is the next entry in a fixed-size table.
                     Offset stub_addr = next_plt_entry_addr;
                     if (getArch() == Dyninst::Arch_aarch64)  {
-                        std::map<Offset, Offset>::const_iterator sit =
+                        auto sit =
                             plt_stub_by_got.find((Offset) offset);
-                        if (sit == plt_stub_by_got.end())  {
+                        if (sit == plt_stub_by_got.cend())  {
                             // Nothing in .plt jumps through this slot (a
                             // TLSDESC relocation, for one), so there is no stub
                             // to record.  A counted address would put the name
