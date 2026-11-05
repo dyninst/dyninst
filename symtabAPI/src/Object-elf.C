@@ -1187,7 +1187,7 @@ static void aarch64_plt_stubs_by_got(const unsigned char *plt, Offset pltAddr,
         if (imm & ((int64_t)1 << 20))  imm -= ((int64_t)1 << 21);
 
         Offset pc = pltAddr + off;
-        Offset slot = ((pc & ~(Offset)0xfff) + (Offset)(imm << 12))
+        Offset slot = ((pc & ~(Offset)0xfff) + ((Offset)imm << 12))
                       + (Offset)(((ldr >> 10) & 0xfffu) * 8);
 
         Offset entry = pc;
