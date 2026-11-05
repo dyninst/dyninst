@@ -7,6 +7,10 @@ list(
   "${PROJECT_SOURCE_DIR}/cmake/common/ctest"
 )
 
+# The test types, which DYNINST_ENABLE_TESTS selects: each test names its type in
+# dyninst_add_test's TYPE, which becomes its label
+set(DYNINST_TEST_TYPES unit integration regression)
+
 include(DyninstTestRequirements)
 
 string(TOUPPER ${DYNINST_ENABLE_TESTS} _test_flag)

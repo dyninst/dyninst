@@ -66,8 +66,8 @@
 //      UNUSED_VARIABLE
 //              clang <10 warns about variables defined solely for RIAA (locks)
 //      MAYBE_UNINITIALIZED
-//              gcc 12-14 warns that boost::optional::value_or may use an
-//              unitialized value when value_or checks if it is initialized.
+//              gcc 12-15 warns that boost::optional::value_or may use an
+//              uninitialized value when value_or checks if it is initialized.
 //
 // Macros to silence unused variable warnings
 //

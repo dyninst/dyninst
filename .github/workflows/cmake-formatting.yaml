@@ -64,6 +64,7 @@ jobs:
           cmake -DGERSEMI="$(command -v gersemi)" \
                 -DMODE="$1" \
                 -DSOURCE_DIR="${GITHUB_WORKSPACE}" \
+                -DVERSIONS_FILE=docker/dependencies.versions \
                 -P "${GITHUB_WORKSPACE}/cmake/common/gersemi/DyninstRunGersemi.cmake"
         }
 

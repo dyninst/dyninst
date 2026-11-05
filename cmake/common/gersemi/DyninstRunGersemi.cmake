@@ -4,9 +4,12 @@
 #
 # Run with 'cmake -P', expecting:
 #
-#   GERSEMI     path to gersemi, or empty if it was not found
-#   MODE        check | check-raw | diff | in-place
-#   SOURCE_DIR  top of the source tree
+#   GERSEMI        path to gersemi, or empty if it was not found
+#   MODE           check | check-raw | diff | in-place
+#   SOURCE_DIR     top of the source tree
+#   VERSIONS_FILE  optional: a file with a line 'gersemi:<version>', the
+#                  version the project is formatted with; a relative path is
+#                  taken from SOURCE_DIR
 #
 # It exits 0 when gersemi succeeds, 2 when check mode finds unformatted files
 # (on CMake 3.29 or later, which can choose its exit status), and 1 for any
@@ -43,20 +46,33 @@ macro(dyninst_gersemi_section _title)
   set(_section_printed TRUE)
 endmacro()
 
-# One copy of the version: docker/dependencies.versions, beside the other
-# pinned dependencies.  The CI job installs what that file says, every
-# install line below names the same version, and the check further down
-# holds the gersemi on PATH to it -- releases format differently, so running
-# cmake-reformat with another one rewrites files this tree is already correct
-# for, and the job then rejects them.
-set(_versions_file "${SOURCE_DIR}/docker/dependencies.versions")
+# One copy of the version, in VERSIONS_FILE (Dyninst's is
+# docker/dependencies.versions, beside its other pinned dependencies).  The CI
+# job installs what that file says, every install line below names the same
+# version, and the check further down holds the gersemi on PATH to it --
+# releases format differently, so running cmake-reformat with another one
+# rewrites files this tree is already correct for, and the job then rejects
+# them.
 set(_want "")
-if(EXISTS "${_versions_file}")
-  file(STRINGS "${_versions_file}" _want REGEX "^gersemi:")
-  string(REGEX REPLACE "^gersemi:" "" _want "${_want}")
+if(VERSIONS_FILE)
+  get_filename_component(
+    _versions_file
+    "${VERSIONS_FILE}"
+    ABSOLUTE
+    BASE_DIR "${SOURCE_DIR}"
+  )
+  # Named from the top of the tree when it is in it
+  file(RELATIVE_PATH _versions_name "${SOURCE_DIR}" "${_versions_file}")
+  if(_versions_name MATCHES "^\\.\\./")
+    set(_versions_name "${_versions_file}")
+  endif()
+  if(EXISTS "${_versions_file}")
+    file(STRINGS "${_versions_file}" _want REGEX "^gersemi:")
+    string(REGEX REPLACE "^gersemi:" "" _want "${_want}")
+  endif()
 endif()
 
-# Unversioned only when that file could not be read, where naming no version
+# Unversioned only when there is no version to read, where naming no version
 # beats naming a wrong one.
 if(_want)
   set(_install_spec "gersemi==${_want}")
@@ -66,8 +82,9 @@ endif()
 
 # The oldest Python the pinned release installs on (requires_python on PyPI),
 # named in every install hint below.  It is a floor for this formatting
-# tooling only, not for building Dyninst.  Check it when bumping the pin,
-# along with the same figure in .github/workflows/README.md.
+# tooling only, not for building the project.  Check it when bumping the pin,
+# along with any copy of the figure in the project's documentation (Dyninst's
+# .github/workflows/README.md).
 set(_python_floor "3.8")
 
 # How to install it, shared by every section that asks for it.  Debian 12,
@@ -248,7 +265,7 @@ if(_want AND _have AND NOT _have STREQUAL _want)
     "\n"
     "${_install_hint}"
     "\n"
-    "The version is recorded in docker/dependencies.versions.  On a python3\n"
+    "The version is recorded in ${_versions_name}.  On a python3\n"
     "older than ${_python_floor}, pip reports no matching distribution for gersemi\n"
     "${_want}, and an unversioned install quietly picks an older gersemi\n"
     "instead.\n"
