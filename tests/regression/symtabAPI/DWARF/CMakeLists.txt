@@ -76,11 +76,12 @@ dyninst_add_test(
 # forever instead of crashing, hence the timeout.
 #
 # shared_types_dwz*.so keep their shared types in partial units of their own
-# (single-file dwz). Those with a 5 are DWARF 5, the others DWARF 4.
+# (single-file dwz); shared_types_alt*_a.so in a supplementary file
+# (multi-file dwz, #914). Those with a 5 are DWARF 5, the others DWARF 4.
 set(_targ parallel_parse)
 dyninst_add_test_executable(${_targ} SOURCE_FILES parallel_parse.cpp DEPS symtabAPI)
 set(_bin_dir "${DYNINST_TEST_BINARIES_DIR}/symtabAPI/DWARF/parallel_parse")
-foreach(_bin shared_types_dwz shared_types_dwz5)
+foreach(_bin shared_types_dwz shared_types_dwz5 shared_types_alt_a shared_types_alt5_a)
   dyninst_add_test(
     symtabAPI_${_targ}_${_bin}_test
     TYPE regression
