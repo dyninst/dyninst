@@ -745,7 +745,10 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
       // Since curFunc is false, we're not going back to reparse this
       // entry with a function object.
       boost::shared_ptr<Type> ftype = NULL;
+      // Parsing the return type can parse another DIE, which clears curName().
+      std::string const name = curName();
       getReturnType(ftype);
+      curName() = name;
       addFuncToContainer(ftype);
       dwarf_printf("(0x%lx) parseSubprogram not parsing member function's children\n", id());
 
