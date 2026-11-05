@@ -29,14 +29,21 @@ foreach(kind IN ITEMS pcrel omit invalid oversized)
   )
 endforeach()
 
-# An aarch64 library with a TLSDESC relocation in .rela.plt. It is read and
-# rewritten, never run, so the test runs on any host.
+# A library with a TLSDESC relocation among its PLT relocations, for each
+# architecture whose TLSDESC relocations go there, with the address of its one
+# stub. It is read and rewritten, never run, so the test runs on any host.
 dyninst_add_test_executable(plt_tlsdesc SOURCE_FILES plt_tlsdesc.cpp DEPS symtabAPI)
-dyninst_add_test(
-  symtabAPI_plt_tlsdesc_aarch64
-  TYPE regression
-  COMMAND
-    plt_tlsdesc "${DYNINST_TEST_BINARIES_DIR}/symtabAPI/plt_stubs/aarch64/libtlsdesc.so"
-    ext_func 0x2a0 ext_tls "${CMAKE_CURRENT_BINARY_DIR}/libtlsdesc.rewritten.so"
-  REQUIRES test_binaries
-)
+foreach(_case IN ITEMS aarch64:0x2a0 x86_64:0x1010 i686:0x1010)
+  string(REPLACE ":" ";" _case "${_case}")
+  list(GET _case 0 _arch)
+  list(GET _case 1 _stub)
+  dyninst_add_test(
+    symtabAPI_plt_tlsdesc_${_arch}
+    TYPE regression
+    COMMAND
+      plt_tlsdesc
+      "${DYNINST_TEST_BINARIES_DIR}/symtabAPI/plt_stubs/${_arch}/libtlsdesc.so" ext_func
+      ${_stub} ext_tls "${CMAKE_CURRENT_BINARY_DIR}/libtlsdesc.${_arch}.rewritten.so"
+    REQUIRES test_binaries
+  )
+endforeach()

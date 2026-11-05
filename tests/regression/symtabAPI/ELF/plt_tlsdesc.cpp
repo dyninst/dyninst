@@ -1,10 +1,11 @@
-// Checks an aarch64 library whose .rela.plt holds a TLSDESC relocation beside
-// an ordinary JUMP_SLOT (test_binaries/symtabAPI/plt_stubs/aarch64/
-// libtlsdesc.so).
+// Checks a library whose PLT relocations hold a TLSDESC relocation beside an
+// ordinary JUMP_SLOT (test_binaries/symtabAPI/plt_stubs/<arch>/libtlsdesc.so,
+// for aarch64, x86_64 and i686).
 //
 // The TLSDESC relocation has no PLT stub.  SymtabAPI must leave it out of the
 // function binding table, but the rewriter must still write it back: a
-// rewritten library that lost it failed to load (test1_22 on aarch64).
+// rewritten library that lost it failed to load (test1_22 on aarch64).  On
+// x86 a counted stub address named the TLSDESC trampoline after the variable.
 //
 //   plt_tlsdesc <library> <stub name> <stub address> <no-stub name> <output>
 //
@@ -22,15 +23,16 @@ namespace st = Dyninst::SymtabAPI;
 
 namespace {
 
-// The bytes of .rela.plt.  Summed over every region of that name, since the
-// rewriter may write the relocations in more than one section.
+// The bytes of .rela.plt, or .rel.plt on i686.  Summed over every region of
+// that name, since the rewriter may write the relocations in more than one
+// section.
 unsigned long rela_plt_size(st::Symtab *symtab)
 {
   std::vector<st::Region *> regions;
   symtab->getAllRegions(regions);
   unsigned long size{0};
   for (auto *r : regions) {
-    if (r->getRegionName() == ".rela.plt") {
+    if (r->getRegionName() == ".rela.plt" || r->getRegionName() == ".rel.plt") {
       size += r->getDiskSize();
     }
   }
@@ -104,7 +106,7 @@ int main(int argc, char **argv)
 
   unsigned long const in_size{rela_plt_size(in)};
   if (in_size == 0) {
-    std::cerr << argv[1] << ": no .rela.plt\n";
+    std::cerr << argv[1] << ": no .rela.plt or .rel.plt\n";
     return EXIT_FAILURE;
   }
 
@@ -121,7 +123,7 @@ int main(int argc, char **argv)
   // Every relocation must survive the rewrite, the one without a stub too.
   unsigned long const out_size{rela_plt_size(out)};
   if (out_size != in_size) {
-    std::cerr << argv[5] << ": .rela.plt is " << out_size
+    std::cerr << argv[5] << ": the PLT relocations are " << out_size
               << " bytes, the original's " << in_size << '\n';
     failures++;
   }
