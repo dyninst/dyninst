@@ -2592,7 +2592,8 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info, bool is_sup)
   {
     type_map::accessor a;
     type_key tk{offset, is_sup, mod()};
-    type_ids.insert(a, make_pair(tk, val));
+    // Another worker may have inserted this key since the find above; use its ID.
+    if(!type_ids.insert(a, make_pair(tk, val))) val = a->second;
     dwarf_printf("(0x%lx) type_id %u, key created {0x%lx,%s,mod: %s}\n", id(),val,offset,is_sup?"sup":"not sup", mod()->fileName().c_str());
   }
 
