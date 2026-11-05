@@ -90,6 +90,14 @@ class DYNINST_EXPORT typeCollection
     dyn_c_hash_map<std::string, boost::shared_ptr<Type>> globalVarsByName;
     dyn_c_hash_map<int, boost::shared_ptr<Type>> typesByID;
 
+    // IDs of the structures, unions and classes made from declarations. Used
+    // as a set: only whether an ID is present matters, the bool means nothing.
+    dyn_c_hash_map<int, bool> declarationIDs;
+
+    void markDeclaration(typeId_t ID);
+    bool isDeclaration(Type *t);
+    void addByName(boost::shared_ptr<Type> const &type, bool replace);
+
 
     // DWARF:
     /* Cache type collections on a per-image basis.  (Since
