@@ -20,20 +20,6 @@ namespace {
   namespace di = Dyninst::InstructionAPI;
   namespace pa = Dyninst::ParseAPI;
 
-  bool is_branch(entryID id) {
-    switch(id) {
-      case riscv64_op_beq:
-      case riscv64_op_bne:
-      case riscv64_op_blt:
-      case riscv64_op_bge:
-      case riscv64_op_bltu:
-      case riscv64_op_bgeu:
-        return true;
-      default:
-        return false;
-    }
-  }
-
   Dyninst::AbsRegion reg(di::Operand const &o) {
     auto r = boost::dynamic_pointer_cast<di::RegisterAST>(o.getValue());
     return r ? Dyninst::AbsRegion(r->getID()) : Dyninst::AbsRegion();
@@ -64,7 +50,8 @@ namespace {
         for(auto const &e : insns) {
           auto const id = e.second.getOperation().getID();
           bool const jalr = id == riscv64_op_jalr;
-          if(!jalr && !is_branch(id)) {
+          // Not isBranch(): it also selects jal and c.j, which read no source register.
+          if(!jalr && !e.second.isConditional()) {
             continue;
           }
           auto const ops = e.second.getExplicitOperands();
