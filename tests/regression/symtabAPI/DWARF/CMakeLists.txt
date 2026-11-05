@@ -69,3 +69,23 @@ dyninst_add_test(
     "_QMshapesPassumed_size:v=1:?" "_QMshapesPfixed:w=3:7" "_QMshapesPfixed:u=1:10"
   REQUIRES test_binaries
 )
+
+# 32 threads catches a shared libdw handle even on a two-core machine. Each
+# run is a fresh process; the serial parse and eight parallel ones take about
+# a second, even on two cores. A walk that corrupts libdw's trees can loop
+# forever instead of crashing, hence the timeout.
+#
+# shared_types_dwz*.so keep their shared types in partial units of their own
+# (single-file dwz). Those with a 5 are DWARF 5, the others DWARF 4.
+set(_targ parallel_parse)
+dyninst_add_test_executable(${_targ} SOURCE_FILES parallel_parse.cpp DEPS symtabAPI)
+set(_bin_dir "${DYNINST_TEST_BINARIES_DIR}/symtabAPI/DWARF/parallel_parse")
+foreach(_bin shared_types_dwz shared_types_dwz5)
+  dyninst_add_test(
+    symtabAPI_${_targ}_${_bin}_test
+    TYPE regression
+    COMMAND ${_targ} "${_bin_dir}/${_bin}.so" 32 8
+    REQUIRES test_binaries
+    PROPERTIES TIMEOUT 60
+  )
+endforeach()
