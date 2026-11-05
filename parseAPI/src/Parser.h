@@ -98,7 +98,7 @@ namespace Dyninst {
             };
             typedef std::set<ParseFrame*, FrameByAddr> DelayedFrames;
             dyn_c_hash_map<Function*, DelayedFrames> delayed_frames;
-            std::vector<std::pair<Function*, DelayedFrames> > delayed_funcs_by_addr();
+            std::vector<Function*> delayed_funcs_by_addr();
 
             // differentiate those provided via hints and
             // those found through RT or speculative parsing

@@ -733,13 +733,14 @@ bool Parser::FrameByAddr::operator()(const ParseFrame* a, const ParseFrame* b) c
     return a < b;
 }
 
-std::vector<std::pair<Function*, Parser::DelayedFrames> > Parser::delayed_funcs_by_addr()
+std::vector<Function*> Parser::delayed_funcs_by_addr()
 {
-    std::vector<std::pair<Function*, DelayedFrames> > delayed(delayed_frames.begin(), delayed_frames.end());
+    std::vector<Function*> delayed;
+    delayed.reserve(delayed_frames.size());
+    for (auto const& entry : delayed_frames)
+        delayed.push_back(entry.first);
     std::sort(delayed.begin(), delayed.end(),
-        [](const std::pair<Function*, DelayedFrames>& a, const std::pair<Function*, DelayedFrames>& b) {
-            return a.first->addr() < b.first->addr();
-        });
+        [](const Function* a, const Function* b) { return a->addr() < b->addr(); });
     return delayed;
 }
 
@@ -752,9 +753,9 @@ Parser::parse_frames(LockFreeQueue<ParseFrame *> &work, bool recursive)
     {
         // Check if we can resume any frames yet
         vector<Function *> updated;
-        for (auto const& entry : delayed_funcs_by_addr()) {
-            if (entry.first->retstatus() != UNSET) {
-                updated.push_back(entry.first);
+        for (Function* func : delayed_funcs_by_addr()) {
+            if (func->retstatus() != UNSET) {
+                updated.push_back(func);
             }
         }
         if (updated.size()) {
@@ -810,8 +811,7 @@ void Parser::processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive) {//
     // except if we're doing non-recursive parsing.
     // If we're just parsing one function, we want
     // to mark everything RETURN instead.
-    for (auto const& entry : delayed_funcs_by_addr()) {
-        Function * func = entry.first;
+    for (Function* func : delayed_funcs_by_addr()) {
         if (func->retstatus() == UNSET) {
             if(recursive)
             {
@@ -825,7 +825,9 @@ void Parser::processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive) {//
             updated.push_back(func);
         }
 
-        for (auto vIter = entry.second.begin(); vIter != entry.second.end(); ++vIter) {
+        dyn_c_hash_map<Function*, DelayedFrames>::const_accessor waiters;
+        if (!delayed_frames.find(waiters, func)) continue;
+        for (auto vIter = waiters->second.begin(); vIter != waiters->second.end(); ++vIter) {
             Function * delayed = (*vIter)->func;
             if (delayed->retstatus() == UNSET) {
                 delayed->set_retstatus(NORETURN);
