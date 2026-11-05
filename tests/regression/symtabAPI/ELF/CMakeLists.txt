@@ -1,5 +1,23 @@
 include_guard(GLOBAL)
 
+# A riscv64 executable whose DT_RELA and DT_JMPREL name the same section,
+# rewritten with one added relocation (2 is R_RISCV_64). The files are read and
+# written, never run, so the test runs on any host.
+dyninst_add_test_executable(
+  rela_jmprel_shared
+  SOURCE_FILES rela_jmprel_shared.cpp
+  DEPS symtabAPI Dyninst::ElfUtils
+)
+set(_plt_stubs "${DYNINST_TEST_BINARIES_DIR}/symtabAPI/plt_stubs")
+dyninst_add_test(
+  symtabAPI_rela_jmprel_shared_riscv64
+  TYPE regression
+  COMMAND
+    rela_jmprel_shared "${_plt_stubs}/riscv64/dyn" "${_plt_stubs}/riscv64/libzicfilp.so"
+    foo 2 "${CMAKE_CURRENT_BINARY_DIR}/rela_jmprel_shared.riscv64"
+  REQUIRES test_binaries
+)
+
 dyninst_add_test_executable(
   lsda_encoding_check
   SOURCE_FILES lsda_encoding.cpp
