@@ -90,3 +90,38 @@ foreach(_bin shared_types_dwz shared_types_dwz5 shared_types_alt_a shared_types_
     PROPERTIES TIMEOUT 60
   )
 endforeach()
+
+# Variables whose types are defined in type units (-fdebug-types-section),
+# each with the size and field count the same program gets without type
+# units (cxx_plain4, c_plain4). The C program defines two different structs
+# tagged Shape, one in each unit. glibc's _IO_marker is only declared, in
+# _IO_FILE's type unit; _IO_FILE's _markers must still point to it.
+set(_targ type_units)
+dyninst_add_test_executable(${_targ} SOURCE_FILES type_units.cpp DEPS symtabAPI)
+set(_bin_dir "${DYNINST_TEST_BINARIES_DIR}/symtabAPI/DWARF/type_units")
+set(
+  _cxx_expected
+  "gshape=120/8"
+  "gmap=48"
+  "gptr=16"
+  "gfun=32"
+  "gnode=32/8"
+  "_IO_FILE._markers->_IO_marker"
+)
+set(_c_expected "ga=4/1" "gb=24/3")
+foreach(_bin cxx_tu4 cxx_tu5 cxx_plain4)
+  dyninst_add_test(
+    symtabAPI_${_targ}_${_bin}_test
+    TYPE regression
+    COMMAND ${_targ} "${_bin_dir}/${_bin}" ${_cxx_expected}
+    REQUIRES test_binaries
+  )
+endforeach()
+foreach(_bin c_tu4 c_tu5 c_plain4)
+  dyninst_add_test(
+    symtabAPI_${_targ}_${_bin}_test
+    TYPE regression
+    COMMAND ${_targ} "${_bin_dir}/${_bin}" ${_c_expected}
+    REQUIRES test_binaries
+  )
+endforeach()
