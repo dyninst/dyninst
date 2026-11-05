@@ -328,8 +328,7 @@ private:
     bool addFuncToContainer(boost::shared_ptr<Type> returnType);
     bool isStaticStructMember(std::vector<VariableLocation> &locs, bool &isStatic);
     virtual bool findType(boost::shared_ptr<Type>&, bool defaultToVoid);
-    bool findAnyType(Dwarf_Attribute typeAttribute,
-            bool is_info, boost::shared_ptr<Type>&type);
+    bool findAnyType(Dwarf_Attribute typeAttribute, boost::shared_ptr<Type>&type);
     bool findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset);
     bool getLineInformation(Dwarf_Word &variableLineNo,
             bool &hasLineNumber,
