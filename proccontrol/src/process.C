@@ -2988,8 +2988,8 @@ bool int_thread::intCont()
       // the threads stopped (see abandonContinue).
       if (llproc()->plat_processGroupContinues()) {
          int_threadPool *pool = llproc()->threadPool();
-         for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++)
-            (*i)->abandonContinue();
+         for (int_thread *thr : *pool)
+            thr->abandonContinue();
       }
       else {
          abandonContinue();
