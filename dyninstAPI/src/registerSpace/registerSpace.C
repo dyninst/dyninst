@@ -61,7 +61,7 @@
 #include "codegen/emitters/aarch64/EmitterAarch64.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 #include "arch-amdgpu.h"
-#include "dyninstAPI/src/emit-amdgpu.h"
+#include "codegen/emitters/amdgpu/emit-amdgpu.h"
 #endif
 
 registerSpace *registerSpace::globalRegSpace_ = NULL;
@@ -1310,6 +1310,8 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 #if defined(DYNINST_CODEGEN_ARCH_AARCH64)
 	assert(0);
 	//#error "aarch64 should not be 32bit long"
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+	assert(0 && "AMDGPU is 64-bit; addr_width==4 is unreachable");
 #else
 		range = regToMachReg32.equal_range(reg);
 		live = &live1;
@@ -1317,9 +1319,12 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 	}
 	else {
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-    assert(addr_width == 8 && "AMDGPU has 64-bit (8-byte) address space, but has 32 bit registers");
-	  range = regToMachReg32.equal_range(reg);
-		live = &live2;
+		// AMDGPU: the codegen Register <-> MachRegister mapping is a 1:1 derivation (convertRegID),
+		// so there is no regToMachReg* multimap to range over. The build is single codegen-arch,
+		// so the ids are this arch's; #2532 generalizes this to the instrumented object's arch.
+		assert(addr_width == 8 && "AMDGPU has 64-bit (8-byte) address space, but has 32 bit registers");
+		MachRegister mr = convertRegID(reg, Arch_amdgpu_gfx908);
+		return liveRegs[live2.getIndex(mr)];
 #else
 		range = regToMachReg64.equal_range(reg);
 		live = &live2;

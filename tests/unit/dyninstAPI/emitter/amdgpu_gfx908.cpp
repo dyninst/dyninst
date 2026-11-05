@@ -1,13 +1,22 @@
 #include "Architecture.h"
 #include "dyninstAPI/src/binaryEdit.h"
-#include "dyninstAPI/src/emit-amdgpu.h"
+#include "dyninstAPI/src/codegen/emitters/amdgpu/gfx908/emit-amdgpu-gfx908.h"
 #include "registerSpace/registerSpace.h"
+#include "registerSpace/RegisterConversion.h"
+#include "registers/MachRegister.h"
+#include "registers/abstract_regs.h"
 #include "emitter_test.h"
 
 int main() {
   using Dyninst::verify_emitter;
   using Dyninst::emitter_buffer_t;
   using namespace NS_amdgpu;
+
+  // Source the codegen register from its MachRegister identity (codegen-on-MachRegister direction),
+  // not a hand-built richer Register: convertRegID(sN) yields the scalar codegen register for s<n>.
+  auto sreg = [](uint32_t n) {
+    return convertRegID(Dyninst::MachRegister(Dyninst::amdgpu_gfx908::s0.val() + static_cast<int32_t>(n)));
+  };
 
   constexpr auto arch = Dyninst::Arch_amdgpu_gfx908;
   auto const size = Dyninst::getArchAddressWidth(arch);
@@ -26,7 +35,7 @@ int main() {
   bool failed = false;
 
   // Move value from s0 to s1
-  emitter->emitMoveRegToReg(RegisterConstants::s0, RegisterConstants::s1, gen);
+  emitter->emitMoveRegToReg(sreg(0), sreg(1), gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<4>{{
     0x00,0x00,0x81,0xbe                      // s_mov_b32 s1, s0
   }});
@@ -51,14 +60,14 @@ int main() {
   }});
 
   // Load a dword from s[2:3] into s4
-  emitter->emitLoadIndir(RegisterConstants::s4, regBlock2To3, 1, gen);
+  emitter->emitLoadIndir(sreg(4), regBlock2To3, 1, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<12>{{
     0x01,0x01,0x02,0xc0,0x00,0x00,0x00,0x00, // s_load_dword s4, s[2:3], 0x0
     0x00,0x00,0x8c,0xbf                      // s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
   }});
 
   // Load a dword from s[2:3] + 1234 into s4
-  emitter->emitLoadRelative(RegisterConstants::s4, 0x1234, regBlock2To3, 1, gen);
+  emitter->emitLoadRelative(sreg(4), 0x1234, regBlock2To3, 1, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<12>{{
     0x01,0x01,0x02,0xc0,0x34,0x12,0x00,0x00, // s_load_dword s4, s[2:3], 0x1234
     0x00,0x00,0x8c,0xbf                      // s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
@@ -96,14 +105,14 @@ int main() {
   }});
 
   // Store a dword from s4 to s[2:3]
-  emitter->emitStoreIndir(regBlock2To3, RegisterConstants::s4, 1, gen);
+  emitter->emitStoreIndir(regBlock2To3, sreg(4), 1, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<12>{{
     0x01,0x01,0x42,0xc0,0x00,0x00,0x00,0x00, // s_store_dword s4, s[2:3], 0x0
     0x00,0x00,0x8c,0xbf                      // s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
   }});
 
   // Store a dword from s4 to s[2:3] + 1234
-  emitter->emitStoreRelative(RegisterConstants::s4, 0x1234, regBlock2To3, 1, gen);
+  emitter->emitStoreRelative(sreg(4), 0x1234, regBlock2To3, 1, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<12>{{
     0x01,0x01,0x42,0xc0,0x34,0x12,0x00,0x00, // s_store_dword s4, s[2:3], 0x1234
     0x00,0x00,0x8c,0xbf                      // s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
@@ -124,73 +133,73 @@ int main() {
   }});
 
   // scc = s1 < s2
-  emitter->emitRelOp(lessOp, /*SCC_DUMMY=*/0, RegisterConstants::s1, RegisterConstants::s2, gen, 0);
+  emitter->emitRelOp(lessOp, /*SCC_DUMMY=*/0, sreg(1), sreg(2), gen, 0);
   failed |= !verify_emitter(gen, emitter_buffer_t<4>{{
     0x01,0x02,0x04,0xbf                      // s_cmp_lt_i32 s1, s2
   }});
 
   // scc = s1 <= s2
-  emitter->emitRelOp(leOp, /*SCC_DUMMY=*/0, RegisterConstants::s1, RegisterConstants::s2, gen, 0);
+  emitter->emitRelOp(leOp, /*SCC_DUMMY=*/0, sreg(1), sreg(2), gen, 0);
   failed |= !verify_emitter(gen, emitter_buffer_t<4>{{
     0x01,0x02,0x05,0xbf                      // s_cmp_le_i32 s1, s2
   }});
 
   // scc = s1 > 2
-  emitter->emitRelOp(greaterOp, /*SCC_DUMMY=*/0, RegisterConstants::s1, RegisterConstants::s2, gen, 0);
+  emitter->emitRelOp(greaterOp, /*SCC_DUMMY=*/0, sreg(1), sreg(2), gen, 0);
   failed |= !verify_emitter(gen, emitter_buffer_t<4>{{
     0x01,0x02,0x02,0xbf                      // s_cmp_gt_i32 s1, s2
   }});
 
   // scc = s1 >= s2
-  emitter->emitRelOp(geOp, /*SCC_DUMMY=*/0, RegisterConstants::s1, RegisterConstants::s2, gen, 0);
+  emitter->emitRelOp(geOp, /*SCC_DUMMY=*/0, sreg(1), sreg(2), gen, 0);
   failed |= !verify_emitter(gen, emitter_buffer_t<4>{{
     0x01,0x02,03,0xbf                        // s_cmp_ge_i32 s1, s2
   }});
 
   // scc = s1 == s2
-  emitter->emitRelOp(eqOp, /*SCC_DUMMY=*/0, RegisterConstants::s1, RegisterConstants::s2, gen, 0);
+  emitter->emitRelOp(eqOp, /*SCC_DUMMY=*/0, sreg(1), sreg(2), gen, 0);
   failed |= !verify_emitter(gen, emitter_buffer_t<4>{{
     0x01,0x02,0x00,0xbf                      // s_cmp_eq_i32 s1, s2
   }});
 
   // scc = s1 != s2
-  emitter->emitRelOp(neOp, /*SCC_DUMMY=*/0, RegisterConstants::s1, RegisterConstants::s2, gen, 0);
+  emitter->emitRelOp(neOp, /*SCC_DUMMY=*/0, sreg(1), sreg(2), gen, 0);
   failed |= !verify_emitter(gen, emitter_buffer_t<4>{{
     0x01,0x02,0x01,0xbf                      // s_cmp_lg_i32 s1, s2
   }});
 
   // s3 = s1 + s2
-  emitter->emitOp(plusOp, RegisterConstants::s3, RegisterConstants::s1, RegisterConstants::s2, gen);
+  emitter->emitOp(plusOp, sreg(3), sreg(1), sreg(2), gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<4>{{
     0x01,0x02,0x03,0x81                      // s_add_i32 s3, s1, s2
   }});
 
   // s3 = s1 - s2
-  emitter->emitOp(minusOp, RegisterConstants::s3, RegisterConstants::s1, RegisterConstants::s2, gen);
+  emitter->emitOp(minusOp, sreg(3), sreg(1), sreg(2), gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<4>{{
     0x01,0x02,0x83,0x81                      // s_sub_i32 s3, s1, s2
   }});
 
   // s3 = s1 * s2
-  emitter->emitOp(timesOp, RegisterConstants::s3, RegisterConstants::s1, RegisterConstants::s2, gen);
+  emitter->emitOp(timesOp, sreg(3), sreg(1), sreg(2), gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<4>{{
     0x01,0x02,0x03,0x92                      // s_mul_i32 s3, s1, s2
   }});
 
   // s3 = s1 | s2
-  emitter->emitOp(orOp, RegisterConstants::s3, RegisterConstants::s1, RegisterConstants::s2, gen);
+  emitter->emitOp(orOp, sreg(3), sreg(1), sreg(2), gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<4>{{
     0x01,0x02,0x03,0x87                      // s_or_b32 s3, s1, s2
   }});
 
   // s3 = s1 & s2
-  emitter->emitOp(andOp, RegisterConstants::s3, RegisterConstants::s1, RegisterConstants::s2, gen);
+  emitter->emitOp(andOp, sreg(3), sreg(1), sreg(2), gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<4>{{
     0x01,0x02,0x03,0x86                      // s_and_b32 s3, s1, s2
   }});
 
   // s3 = s1 ^ s2
-  emitter->emitOp(xorOp, RegisterConstants::s3, RegisterConstants::s1, RegisterConstants::s2, gen);
+  emitter->emitOp(xorOp, sreg(3), sreg(1), sreg(2), gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<4>{{
     0x01,0x02,0x03,0x88                      // s_xor_b32 s3, s1, s2
   }});
@@ -225,7 +234,7 @@ int main() {
   }});
 
   // s0 = 0x1234
-  emitter->emitMovLiteral(RegisterConstants::s0, 0x1234, gen);
+  emitter->emitMovLiteral(sreg(0), 0x1234, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<8>{{
     0xff,0x00,0x80,0xbe,0x34,0x12,0x00,0x00  // s_mov_b32 s0, 0x1234
   }});
@@ -236,13 +245,13 @@ int main() {
   }});
 
   // Atomically add s0 to the 4-byte variable at address held in s[2:3]
-  emitter->emitAtomicAdd(regBlock2To3, RegisterConstants::s0, gen);
+  emitter->emitAtomicAdd(regBlock2To3, sreg(0), gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<8>{{
     0x01,0x00,0x0a,0xc2,0x00,0x00,0x00,0x00  // s_atomic_add s0, s[2:3], 0x0
   }});
 
   // Atomically subtract s0 from the 4-byte variable at address held in s[2:3]
-  emitter->emitAtomicSub(regBlock2To3, RegisterConstants::s0, gen);
+  emitter->emitAtomicSub(regBlock2To3, sreg(0), gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<8>{{
     0x01,0x00,0x0e,0xc2,0x00,0x00,0x00,0x00  // s_atomic_sub s8, s[2:3], 0x0
   }});

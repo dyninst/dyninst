@@ -1155,4 +1155,5 @@ namespace Dyninst {
     auto it = all_regs.find(arch);
     return it == all_regs.end() ? none : it->second;
   }
+
 }

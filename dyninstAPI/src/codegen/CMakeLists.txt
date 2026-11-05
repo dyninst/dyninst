@@ -75,10 +75,26 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   )
 
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+  list(
+    APPEND _headers
+    codegen-amdgpu.h
+    emitters/amdgpu/emit-amdgpu.h
+    emitters/amdgpu/amdgpu-encode.hpp
+    emitters/amdgpu/gfx908/emit-amdgpu-gfx908.h
+    emitters/amdgpu/gfx908/amdgpu-gfx908-details.h
+    emitters/amdgpu/gfx908/amdgpu-gfx908-encoding.h
+    emitters/amdgpu/gfx90a/amdgpu-gfx90a-encoding.h
+    emitters/amdgpu/gfx940/amdgpu-gfx940-encoding.h
+    emitters/amdgpu/gfx950/amdgpu-gfx950-encoding.h
+  )
 
-  list(APPEND _headers codegen-amdgpu.h)
-
-  list(APPEND _sources codegen-amdgpu.C)
+  list(
+    APPEND _sources
+    codegen-amdgpu.C
+    emitters/amdgpu/emit-amdgpu.C
+    emitters/amdgpu/gfx908/emit-amdgpu-gfx908.C
+    emitters/amdgpu/gfx908/amdgpu-gfx908-details.C
+  )
 endif()
 
 dyninst_library(

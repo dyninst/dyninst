@@ -139,7 +139,6 @@ set(
   src/arch-x86.C
   src/arch-power.C
   src/arch-aarch64.C
-  src/arch-amdgpu.C
   src/debug_common.C
   src/VariableLocation.C
   src/Buffer.C

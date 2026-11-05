@@ -1,7 +1,7 @@
 #include "ASTs/codeGenAST.h"
 #include "Instruction.h"
 #include "addressSpace.h"
-#include "emit-amdgpu.h"
+#include "codegen/emitters/amdgpu/gfx908/emit-amdgpu-gfx908.h"
 
 #include <vector>
 
