@@ -248,7 +248,8 @@ enum SOPP_Opcode {
   S_CBRANCH_VCCNZ = 7,
   S_CBRANCH_EXECZ = 8,
   S_CBRANCH_EXECNZ = 9,
-  S_WAITCNT = 12
+  S_WAITCNT = 12,
+  S_TTRACEDATA = 22
 };
 
 void setEncodingSopP(uint32_t &rawInst);
@@ -257,6 +258,10 @@ void setOpcodeSopP(uint32_t value, uint32_t &rawInst);
 void setSImm16SopP(int16_t value, uint32_t &rawInst);
 
 void emitSopP(unsigned opcode, int16_t simm16, codeGen &gen);
+
+// s_ttracedata: while a thread trace (SQTT) is being collected, writes the value in M0
+// to the trace; otherwise does nothing.
+void emitTTraceData(codeGen &gen);
 // === SOPP END ===
 
 // === SMEM BEGIN ===

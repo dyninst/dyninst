@@ -86,7 +86,7 @@ namespace jumpTargetAST = Dyninst::DyninstAPI::jumpTargetAST;
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "inst-aarch64.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-// No inst-amdgpu.h
+#include "ASTs/AmdgpuTraceData.h"
 #else
 #error "Unknown architecture, expected x86, x86_64, power or aarch64"
 #endif
@@ -877,6 +877,44 @@ BPatch_registerExpr::BPatch_registerExpr(Dyninst::MachRegister mach) {
 
     // Registers can hold a lot of different types...
     ast_wrapper->setTypeChecking(false);
+}
+
+/*
+ * BPatch_amdgpuTraceDataExpr::BPatch_amdgpuTraceDataExpr
+ *
+ * Construct a snippet that writes a value to the AMDGPU thread trace.
+ */
+BPatch_amdgpuTraceDataExpr::BPatch_amdgpuTraceDataExpr(unsigned int value)
+{
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    ast_wrapper = Dyninst::DyninstAPI::AmdgpuTraceDataAST::createConstant(value);
+#else
+    (void)value;
+    BPatch_reportError(BPatchSerious, 109, "BPatch_amdgpuTraceDataExpr needs an AMDGPU build");
+    ast_wrapper = nullAST::create();
+#endif
+    assert(BPatch::bpatch != NULL);
+    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
+}
+
+BPatch_amdgpuTraceDataExpr::BPatch_amdgpuTraceDataExpr(Dyninst::MachRegister mach)
+{
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+    Register reg = convertRegID(mach);
+    if ((reg.isScalar() || reg.isScalarPredicate()) && reg.getCount() == 1) {
+        ast_wrapper = Dyninst::DyninstAPI::AmdgpuTraceDataAST::createRegister(reg);
+    } else {
+        BPatch_reportError(BPatchSerious, 109,
+                           "BPatch_amdgpuTraceDataExpr: register must be a 32-bit scalar register");
+        ast_wrapper = nullAST::create();
+    }
+#else
+    (void)mach;
+    BPatch_reportError(BPatchSerious, 109, "BPatch_amdgpuTraceDataExpr needs an AMDGPU build");
+    ast_wrapper = nullAST::create();
+#endif
+    assert(BPatch::bpatch != NULL);
+    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
 /*
