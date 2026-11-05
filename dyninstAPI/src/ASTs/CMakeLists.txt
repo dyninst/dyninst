@@ -51,7 +51,12 @@ set(
   variableAST.C
 )
 
-if(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+if(
+  DYNINST_CODEGEN_ARCH_AMDGPU_GFX908
+  OR DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A
+  OR DYNINST_CODEGEN_ARCH_AMDGPU_GFX940
+  OR DYNINST_CODEGEN_ARCH_AMDGPU_GFX950
+)
   list(APPEND _headers amdgpu-prologue-epilogue.h)
   list(APPEND _sources amdgpu-prologue-epilogue.C)
 endif()

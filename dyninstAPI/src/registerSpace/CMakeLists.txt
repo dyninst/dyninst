@@ -15,7 +15,12 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(APPEND _sources RegisterConversion-ppc.C registerSpace-ppc.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(APPEND _sources RegisterConversion-aarch64.C registerSpace-aarch64.C)
-elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+elseif(
+  DYNINST_CODEGEN_ARCH_AMDGPU_GFX908
+  OR DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A
+  OR DYNINST_CODEGEN_ARCH_AMDGPU_GFX940
+  OR DYNINST_CODEGEN_ARCH_AMDGPU_GFX950
+)
   list(APPEND _sources RegisterConversion-amdgpu.C registerSpace-amdgpu.C)
 endif()
 
