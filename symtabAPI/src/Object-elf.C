@@ -1612,6 +1612,18 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                         }
                     }
 
+                    // On x86 a TLSDESC relocation has no stub either.  The
+                    // lazy TLSDESC trampoline after the stubs serves all of
+                    // them, so a counted address would name it after the
+                    // variable.  Like the aarch64 case above, the entry gets
+                    // no stub address, and it takes no place in the count.
+                    bool const x86_tlsdesc{
+                        (getArch() == Dyninst::Arch_x86_64 && type == R_X86_64_TLSDESC) ||
+                        (getArch() == Dyninst::Arch_x86 && type == R_386_TLS_DESC)};
+                    if (x86_tlsdesc)  {
+                        stub_addr = 0;
+                    }
+
                     if (fbt_iter == -1) { // Create new relocation entry.
                         relocationEntry re(stub_addr, offset, targ_name,
                                            NULL, type);
@@ -1653,7 +1665,9 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                         }
                     }
 
-                    next_plt_entry_addr += plt_entry_size_;
+                    if (!x86_tlsdesc)  {
+                        next_plt_entry_addr += plt_entry_size_;
+                    }
                 }
                 return true;
             }
