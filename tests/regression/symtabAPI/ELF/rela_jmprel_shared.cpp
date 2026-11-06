@@ -1,15 +1,15 @@
-// Rewrites an executable whose DT_RELA and DT_JMPREL name the same section and
+// Rewrites an object whose DT_RELA and DT_JMPREL name the same section and
 // checks the relocation ranges of the result (#2585).
 //
-// A riscv64 executable linked -no-pie whose only dynamic relocations are its
-// PLT ones has this layout.  The rewrite follows BinaryEdit::writeFile: a new
+// A riscv64 executable, shared library or PIE linked by GNU ld whose only
+// dynamic relocations are its PLT ones has this layout.  The rewrite follows BinaryEdit::writeFile: a new
 // .dyninstInst section holding one reference to a function in another
 // library, then Symtab::emit.  The new relocation goes in a new dynamic
 // relocation section, which must not take the PLT section's name, and whose
 // DT_RELASZ must be its own size.  DT_JMPREL and DT_PLTRELSZ must still cover
 // the PLT relocations.
 //
-//   rela_jmprel_shared <executable> <library> <function> <reloc type> <output>
+//   rela_jmprel_shared <object> <library> <function> <reloc type> <output>
 //
 // The files are read and written, never run, so any host can check them.  The
 // result is read with libelf rather than SymtabAPI.
@@ -37,9 +37,11 @@ struct RelaSection {
   std::vector<GElf_Addr> offsets;  // r_offset of each relocation
 };
 
-// The dynamic tags and the SHT_RELA sections, keyed by address, of an ELF file.
+// The dynamic tags, the SHT_RELA sections keyed by address, and the address of
+// each section by name, of an ELF file.
 bool read_elf(char const *path, std::map<GElf_Sxword, GElf_Xword> &tags,
-              std::map<GElf_Addr, RelaSection> &relas)
+              std::map<GElf_Addr, RelaSection> &relas,
+              std::map<std::string, GElf_Addr> &addrs)
 {
   int fd{open(path, O_RDONLY)};
   if (fd < 0)  {
@@ -58,6 +60,7 @@ bool read_elf(char const *path, std::map<GElf_Sxword, GElf_Xword> &tags,
     GElf_Shdr shdr{};
     gelf_getshdr(scn, &shdr);
     Elf_Data *data{elf_getdata(scn, nullptr)};
+    addrs[elf_strptr(elf, shstrndx, shdr.sh_name)] = shdr.sh_addr;
     if (shdr.sh_type == SHT_DYNAMIC && data)  {
       size_t n{shdr.sh_size / shdr.sh_entsize};
       for (size_t i = 0; i < n; i++)  {
@@ -109,7 +112,7 @@ int main(int argc, char **argv)
 {
   if (argc != 6)  {
     std::cerr << "Usage: " << argv[0]
-              << " <executable> <library> <function> <reloc type> <output>\n";
+              << " <object> <library> <function> <reloc type> <output>\n";
     return EXIT_FAILURE;
   }
   char const *const out_path{argv[5]};
@@ -117,7 +120,8 @@ int main(int argc, char **argv)
   // The layout this is about.
   std::map<GElf_Sxword, GElf_Xword> in_tags;
   std::map<GElf_Addr, RelaSection> in_relas;
-  if (!read_elf(argv[1], in_tags, in_relas))  {
+  std::map<std::string, GElf_Addr> in_addrs;
+  if (!read_elf(argv[1], in_tags, in_relas, in_addrs))  {
     return EXIT_FAILURE;
   }
   if (!in_tags.count(DT_RELA) || in_tags[DT_RELA] != in_tags[DT_JMPREL])  {
@@ -146,23 +150,33 @@ int main(int argc, char **argv)
     std::cerr << "The new section was not added\n";
     return EXIT_FAILURE;
   }
-  Dyninst::Offset const ref_addr{inst->getMemOffset()};
   unsigned long const rel_type{std::strtoul(argv[4], nullptr, 0)};
-  st::relocationEntry rel(ref_addr, syms[0]->getMangledName(), syms[0], rel_type);
+  st::relocationEntry rel(inst->getMemOffset(), syms[0]->getMangledName(), syms[0], rel_type);
   if (!exe->addExternalSymbolReference(syms[0], inst, rel))  {
     std::cerr << "addExternalSymbolReference failed\n";
     return EXIT_FAILURE;
   }
-  if (!exe->emit(out_path))  {
+  bool const emitted{exe->emit(out_path)};
+  st::Symtab::closeSymtab(exe);
+  st::Symtab::closeSymtab(lib);
+  if (!emitted)  {
     std::cerr << "Unable to write '" << out_path << "'\n";
     return EXIT_FAILURE;
   }
 
   std::map<GElf_Sxword, GElf_Xword> tags;
   std::map<GElf_Addr, RelaSection> relas;
-  if (!read_elf(out_path, tags, relas))  {
+  std::map<std::string, GElf_Addr> addrs;
+  if (!read_elf(out_path, tags, relas, addrs))  {
     return EXIT_FAILURE;
   }
+  // Where the reference is in the output.  emitElf moves a shared library or
+  // PIE up by a page or more, so it is not the address it had before emit.
+  if (!addrs.count(".dyninstInst"))  {
+    std::cerr << "the output has no .dyninstInst section\n";
+    return EXIT_FAILURE;
+  }
+  GElf_Addr const ref_addr{addrs[".dyninstInst"]};
 
   int failures{0};
   RelaSection const *dyn{tagged_section(tags, relas, DT_RELA, "DT_RELA")};
