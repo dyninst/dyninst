@@ -59,13 +59,45 @@
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "codegen/emitters/aarch64/EmitterAarch64.h"
-#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A) || \
+    defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX950)
 #include "arch-amdgpu.h"
 #include "codegen/emitters/amdgpu/emit-amdgpu.h"
 #endif
 
 registerSpace *registerSpace::globalRegSpace_ = NULL;
 registerSpace *registerSpace::globalRegSpace64_ = NULL;
+
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A) || \
+    defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX950)
+
+std::map<Dyninst::Architecture, registerSpace *> registerSpace::regSpaceByArch_;
+
+// Look up (or build and cache) the register space for a specific AMDGPU
+// generation. The per-gen build lives in registerSpace-amdgpu.C; caching lives
+// here so every entry point shares one cache.
+registerSpace *registerSpace::getRegisterSpaceForArch(Dyninst::Architecture arch) {
+    auto it = regSpaceByArch_.find(arch);
+    if (it != regSpaceByArch_.end()) return it->second;
+    registerSpace *rs = buildAmdgpuRegisterSpace(arch);
+    assert(rs);
+    regSpaceByArch_[arch] = rs;
+    return rs;
+}
+
+registerSpace *registerSpace::getRegisterSpace(unsigned /*width*/) {
+    // AMDGPU has no width-only register space: the generation (not just the
+    // address width) selects the special registers. Width-only callers cannot
+    // name a generation, so they get the baseline (gfx908); callers that hold an
+    // AddressSpace resolve the real generation through the overload below.
+    return getRegisterSpaceForArch(Dyninst::Arch_amdgpu_gfx908);
+}
+
+registerSpace *registerSpace::getRegisterSpace(AddressSpace *as) {
+    return getRegisterSpaceForArch(as->getArch());
+}
+
+#else
 
 registerSpace *registerSpace::getRegisterSpace(unsigned width) {
     if (globalRegSpace_ == NULL) initialize();
@@ -77,6 +109,8 @@ registerSpace *registerSpace::getRegisterSpace(unsigned width) {
 registerSpace *registerSpace::getRegisterSpace(AddressSpace *as) {
     return getRegisterSpace(as->getAddressWidth());
 }
+
+#endif
 
 registerSpace *registerSpace::conservativeRegSpace(AddressSpace *proc) {
     registerSpace *ret = getRegisterSpace(proc);

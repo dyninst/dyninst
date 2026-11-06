@@ -506,7 +506,7 @@ int baseTramp::numDefinedRegs()
    int count = 0;
    if (!optimizationInfo_)
       return -1;
-   registerSpace *rs = registerSpace::getRegisterSpace(proc()->getAddressWidth());
+   registerSpace *rs = registerSpace::getRegisterSpace(proc());
    std::vector<registerSlot *> &regs = rs->trampRegs();
    for (unsigned i=0; i<regs.size(); i++) {
       registerSlot *reg = regs[i];
