@@ -31,6 +31,11 @@
 #ifndef DWARF_UNIT_INFO_H
 #define DWARF_UNIT_INFO_H
 
+#include <boost/optional.hpp>
+#include <cstdint>
+#include <dwarf.h>
+#include <elfutils/libdw.h>
+
 namespace Dyninst { namespace DwarfDyninst {
   // We purposefully don't include DW_TAG_skeleton_unit here as
   // libdw should merge those into a single CU for us.
@@ -38,6 +43,53 @@ namespace Dyninst { namespace DwarfDyninst {
   inline bool is_partial_unit(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_partial_unit; }
   inline bool is_type_unit(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_type_unit; }
   inline bool is_imported_unit(Dwarf_Die die) { return dwarf_tag(&die) == DW_TAG_imported_unit; }
+
+  /*
+   * Is `die` in .debug_info rather than .debug_types?
+   *
+   * DIE offsets are relative to the section holding them, so an offset alone does not
+   * identify a DIE: a .debug_info DIE and a .debug_types DIE in the same file routinely
+   * share one. Anything keying DIEs by offset has to key by this as well.
+   *
+   * Note that this is not the same question as "is `die` in a type unit". Only DWARF4 has
+   * a separate .debug_types section; DWARF5 moved type units into .debug_info, so a DWARF5
+   * type unit is in .debug_info.
+   */
+  inline bool is_in_debug_info(Dwarf_Die die) {
+    Dwarf_Half version{};
+    uint8_t unit_type{};
+    if(!die.cu || dwarf_cu_info(die.cu, &version, &unit_type, NULL, NULL, NULL, NULL, NULL) != 0) {
+      return true; // Unknown; .debug_info is by far the common case.
+    }
+    return !(version < 5 && unit_type == DW_UT_type);
+  }
+
+  /*
+   * Is `die` inside a type unit, in either .debug_types (DWARF4) or .debug_info (DWARF5)?
+   */
+  inline bool is_in_type_unit(Dwarf_Die die) {
+    uint8_t unit_type{};
+    if(!die.cu || dwarf_cu_info(die.cu, NULL, &unit_type, NULL, NULL, NULL, NULL, NULL) != 0) {
+      return false;
+    }
+    return unit_type == DW_UT_type;
+  }
+
+  /*
+   * The 8-byte type signature of the type unit headed by `die`, as DW_FORM_ref_sig8
+   * spells it, or none if `die` does not head a type unit.
+   */
+  inline boost::optional<uint64_t> type_unit_signature(Dwarf_Die die) {
+    uint8_t unit_type{};
+    uint64_t unit_id{};
+    if(!die.cu || dwarf_cu_info(die.cu, NULL, &unit_type, NULL, NULL, &unit_id, NULL, NULL) != 0) {
+      return boost::none;
+    }
+    if(unit_type != DW_UT_type) {
+      return boost::none;
+    }
+    return unit_id;
+  }
 }}
 
 #endif

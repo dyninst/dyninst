@@ -348,6 +348,71 @@ boost::shared_ptr<Type> typeCollection::findVariableType(std::string const& name
 }
 
 /*
+ * typeCollection::markDeclaration
+ *
+ * Record that the structure, union or class with this ID was made from a
+ * declaration such as `struct Foo;`. Its size and fields can't tell: the
+ * methods a declaration lists become fields, and the size is then computed
+ * from them.
+ */
+void typeCollection::markDeclaration(typeId_t ID)
+{
+    declarationIDs.insert({ID, true});
+}
+
+/*
+ * typeCollection::isDeclaration
+ *
+ * Whether `t` is a declared structure, union or class, or a typedef, const,
+ * pointer or reference that leads to one, such as `const Foo`.
+ */
+bool typeCollection::isDeclaration(Type *t)
+{
+    for (int depth = 0; t && depth < 16; depth++) {
+        auto const c = t->getDataClass();
+        if (c == dataStructure || c == dataUnion) {
+            dyn_c_hash_map<int, bool>::const_accessor a;
+            return declarationIDs.find(a, t->getID());
+        }
+        if (c != dataTypedef && c != dataPointer && c != dataReference)
+            return false;
+        t = t->asDerivedType().getConstituentType();
+    }
+    return false;
+}
+
+/*
+ * typeCollection::addByName
+ *
+ * Index `type` by its name. When the name is taken by a declaration and
+ * `type` is a definition, `type` takes it over; when it is taken by a
+ * definition and `type` is a declaration, it doesn't. Between two of the
+ * same kind, `replace` decides. The same holds
+ * for types built on them: `const Foo` over a declaration of Foo never hides
+ * `const Foo` over its definition.
+ *
+ * A type that is only declared, such as glibc's _IO_marker, keeps its name
+ * that way, and pointers to it keep their target, while a definition of the
+ * same name, in a type unit for instance, is the one findType() returns.
+ * Types are added in no fixed order by the parallel DWARF parse, so the
+ * order cannot decide it.
+ */
+void typeCollection::addByName(boost::shared_ptr<Type> const &type, bool replace)
+{
+    decltype(typesByName)::accessor a;
+    if (typesByName.insert(a, {type->getName(), type}) || a->second == type)
+        return;
+    bool const old_decl = isDeclaration(a->second.get());
+    bool const new_decl = isDeclaration(type.get());
+    if (old_decl != new_decl) {
+        // A definition beats a declaration, whatever `replace` says.
+        if (old_decl) a->second = type;
+    } else if (replace) {
+        a->second = type;
+    }
+}
+
+/*
  * typeCollection::addType
  *
  * Add a new type to the type collection.  Note that when a type is added to
@@ -361,7 +426,7 @@ void typeCollection::addType(boost::shared_ptr<Type> type)
     if(!typesByID.insert({type->getID(), type}))
       return;  // Type is already present
     if(type->getName() != "") { //Type could have no name.
-        typesByName.insert({type->getName(), type});
+        addByName(type, false);
     }
 }
 
