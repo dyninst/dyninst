@@ -233,7 +233,7 @@ void insnCodeGen::generateBranch(codeGen &gen,
 void insnCodeGen::generatePush64(codeGen &gen, Dyninst::Address val)
 {
   GET_PTR(insn, gen);
-  // NOTE: The size of this generated instruction(+1 for the ret) is stored in CALL_ABS64_SZ
+  // 13 bytes; CALL_ABS64_SZ is this plus a generateBranch64.
   unsigned int high = static_cast<unsigned int>(val >> 32);
   unsigned int low = static_cast<unsigned int>(val);
 
@@ -253,15 +253,15 @@ void insnCodeGen::generatePush64(codeGen &gen, Dyninst::Address val)
 
 void insnCodeGen::generateBranch64(codeGen &gen, Dyninst::Address to)
 {
-    // "long jump" - generates sequence to jump to any 64-bit address
-    // pushes the value on the stack (using 4 16-bit pushes) the uses a 'RET'
-
-  generatePush64(gen, to);
-
+  // jmp *0(%rip) with the 64-bit target right after it: reaches any
+  // address without touching the stack, which may hold a leaf's red zone.
+  // JUMP_ABS64_SZ bytes.
   GET_PTR(insn, gen);
-  append_memory_as_byte(insn, 0xC3); // RET
+  append_memory_as_byte(insn, 0xFF);
+  append_memory_as_byte(insn, 0x25);
+  append_memory_as(insn, int32_t{0});
+  append_memory_as(insn, uint64_t{to});
   SET_PTR(insn, gen);
-
 }
 
 void insnCodeGen::generateBranch32(codeGen &gen, Dyninst::Address to)
@@ -513,9 +513,12 @@ bool insnCodeGen::modifyData(Dyninst::Address targetAddr, instruction &insn, cod
     {
         // Case C: replace with 64-bit.
         // This preamble must come before any writes to newInsn!
+        // The code around us may be a leaf function that keeps data in the
+        // red zone, so step past it before saving pointer_reg on the stack.
         is_data_abs64 = true;
         pointer_reg = (mod_rm & 0x38) != 0 ? 0 : 3;
         SET_PTR(newInsn, gen);
+        emitLEA64(REGNUM_RSP, Null_Register, 0, -AMD64_RED_ZONE, REGNUM_RSP, gen);
         emitPushReg64(pointer_reg, gen);
         emitMovImmToReg64(pointer_reg, targetAddr, true, gen);
         REGET_PTR(newInsn, gen);
@@ -572,10 +575,51 @@ bool insnCodeGen::modifyData(Dyninst::Address targetAddr, instruction &insn, cod
         // Cleanup on aisle pointer_reg...
         assert(pointer_reg != (Dyninst::Register)-1);
         emitPopReg64(pointer_reg, gen);
+        emitLEA64(REGNUM_RSP, Null_Register, 0, AMD64_RED_ZONE, REGNUM_RSP, gen);
     }
 #endif
 
     return true;
+}
+
+bool insnCodeGen::modifyIndirectBranchThroughMemory(Dyninst::Address targetAddr,
+                                                     instruction &insn, codeGen &gen)
+{
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
+    signed long const newDisp = targetAddr - gen.currAddr();
+    if (!is_disp32(newDisp + insn.size()) && !is_addr32(targetAddr)) {
+        // modifyData would save a scratch register around the branch, which
+        // moves %rsp for the callee of a call and is never restored after a
+        // jump. Branch through %r11 instead: the ABI passes no arguments in it
+        // and does not preserve it across calls.
+        const unsigned char *origInsn = insn.ptr();
+        ia32_locations loc;
+        ia32_instruction instruct(NULL, NULL, &loc);
+        if (!ia32_decode_prefixes(origInsn, instruct, true))
+            assert(!"Couldn't decode prefix of already known instruction!\n");
+        size_t const pref_count = instruct.getSize();
+        assert(origInsn[pref_count] == 0xff);
+        unsigned char const mod_rm = origInsn[pref_count + 1];
+
+        emitMovImmToReg64(REGNUM_R11, targetAddr, true, gen);
+        GET_PTR(newInsn, gen);
+        // Keep the original prefixes (notrack, for one), with REX.B added.
+        unsigned char rex = 0x40;
+        for (size_t i = 0; i < pref_count; ++i) {
+            if ((origInsn[i] & 0xf0) == 0x40)
+                rex = origInsn[i];
+            else
+                append_memory_as_byte(newInsn, origInsn[i]);
+        }
+        // REX.B with r/m 011 and mod 00 addresses [%r11].
+        append_memory_as_byte(newInsn, rex | 0x01);
+        append_memory_as_byte(newInsn, 0xff);
+        append_memory_as_byte(newInsn, (mod_rm & 0x38) | 0x03);
+        SET_PTR(newInsn, gen);
+        return true;
+    }
+#endif
+    return modifyData(targetAddr, insn, gen);
 }
 
 bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &gen, Dyninst::Architecture arch, Dyninst::Address addr) {
