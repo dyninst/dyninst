@@ -2198,18 +2198,16 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
 
     // Keep the name of the section the tag pointed at, unless that section
     // holds the PLT relocations.  When the only dynamic relocations are the
-    // PLT ones, as in a riscv64 executable linked -no-pie, DT_RELA and
+    // PLT ones, as in a riscv64 object linked by GNU ld, DT_RELA and
     // DT_JMPREL name the same section, and the new dynamic relocations would
-    // otherwise get the PLT section's name.
+    // otherwise get the PLT section's name.  Both addresses are the input's:
+    // the DT_JMPREL being written is already shifted by address_adjust.
     string name{new_name};
     auto tagged = secTagRegionMapping.find(dtype);
     if (tagged != secTagRegionMapping.end())  {
         Region *old_sec{tagged->second};
-        bool is_plt_sec{false};
-        auto jmprel = dynamicSecData.find(DT_JMPREL);
-        if (isDynRelocs && jmprel != dynamicSecData.end() && !jmprel->second.empty())  {
-            is_plt_sec = jmprel->second[0]->d_un.d_ptr == old_sec->getMemOffset();
-        }
+        Offset plt_addr{object->getRelPLTAddr()};
+        bool is_plt_sec{isDynRelocs && plt_addr != 0 && old_sec->getMemOffset() == plt_addr};
         if (!is_plt_sec)  {
             name = old_sec->getRegionName();
         }
