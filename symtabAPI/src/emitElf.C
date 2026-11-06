@@ -2126,9 +2126,7 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
             numRelas++;
          }
     }
-    // relocations for the new sections; these grow DT_RELSZ/DT_RELASZ
-    const unsigned numOldRels{numRels};
-    const unsigned numOldRelas{numRelas};
+    // relocations for the new sections
     for (const auto &newRel : newRels) {
         if (object->getRelType() != newRel.regionType())
             continue;
@@ -2148,7 +2146,6 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
     }
 
     dyn_hash_map<int, Region *> secTagRegionMapping = object->getTagRegionMapping();
-    int old_reloc_size;
     const char *new_name;
     Region::RegionType rtype;
     int dtype;
@@ -2199,19 +2196,31 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
         return;
     }
 
-    if (dynamicSecData.find(dsize_type) != dynamicSecData.end())
-        old_reloc_size = dynamicSecData[dsize_type][0]->d_un.d_val;
-    else
-        old_reloc_size = 0;
-    unsigned long dynamic_reloc_size{old_reloc_size + (numRels - numOldRels) * sizeof(Elf_Rel)
-                                               + (numRelas - numOldRelas) * sizeof(Elf_Rela)};
-    string name;
-    if (secTagRegionMapping.find(dtype) != secTagRegionMapping.end())
-        name = secTagRegionMapping[dtype]->getRegionName();
-    else
-        name = new_name;
+    // Keep the name of the section the tag pointed at, unless that section
+    // holds the PLT relocations.  When the only dynamic relocations are the
+    // PLT ones, as in a riscv64 object linked by GNU ld, DT_RELA and
+    // DT_JMPREL name the same section, and the new dynamic relocations would
+    // otherwise get the PLT section's name.  Both addresses are the input's:
+    // the DT_JMPREL being written is already shifted by address_adjust.
+    string name{new_name};
+    auto tagged = secTagRegionMapping.find(dtype);
+    if (tagged != secTagRegionMapping.end())  {
+        Region *old_sec{tagged->second};
+        Offset plt_addr{object->getRelPLTAddr()};
+        bool is_plt_sec{isDynRelocs && plt_addr != 0 && old_sec->getMemOffset() == plt_addr};
+        if (!is_plt_sec)  {
+            name = old_sec->getRegionName();
+        }
+    }
     obj->addRegion(0, buffer, reloc_size, name, rtype, true);
-    updateDynamic(dsize_type, dynamic_reloc_size);
+
+    // The size is what this section holds.  The old value can't be reused:
+    // where the linker made DT_RELASZ cover the PLT relocations as well
+    // (riscv64 does), it counts relocations that are written to the other
+    // section, and the range would only be right if that section happened to
+    // be placed right after this one.  The PLT relocations are still applied,
+    // through DT_JMPREL.
+    updateDynamic(dsize_type, reloc_size);
 }
 
 template<class ElfTypes>
