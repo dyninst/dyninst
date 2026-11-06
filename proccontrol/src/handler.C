@@ -2178,6 +2178,19 @@ Handler::handler_ret_t HandleCallbacks::handleEvent(Event::ptr ev)
       return ret_success;
    }
 
+   // A thread can get a second Post destroy event (a ghost-thread event racing the
+   // decoded exit, see plat_handle_ghost_thread). HandleThreadDestroy suppresses the
+   // callback when the thread was already cleaned up, but it runs before callbacks
+   // are deferred to the user thread (ret_cbdelay), so the first event's cleanup
+   // can still happen between that check and this delivery. Check again here.
+   if (ev->getThread() && !thr && evtype.time() == EventType::Post &&
+       (evtype.code() == EventType::LWPDestroy || evtype.code() == EventType::UserThreadDestroy))
+   {
+      pthrd_printf("Suppressing callbacks for event %s on an already-destroyed thread\n",
+                   ev->name().c_str());
+      return ret_success;
+   }
+
    if (proc->isRunningSilent()) {
       pthrd_printf("Suppressing callback for event %s due to process being in silent mode\n",
                    ev->name().c_str());
