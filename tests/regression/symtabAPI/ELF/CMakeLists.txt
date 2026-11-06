@@ -28,3 +28,15 @@ foreach(kind IN ITEMS pcrel omit invalid oversized)
     PROPERTIES TIMEOUT 5
   )
 endforeach()
+
+# An aarch64 library with a TLSDESC relocation in .rela.plt. It is read and
+# rewritten, never run, so the test runs on any host.
+dyninst_add_test_executable(plt_tlsdesc SOURCE_FILES plt_tlsdesc.cpp DEPS symtabAPI)
+dyninst_add_test(
+  symtabAPI_plt_tlsdesc_aarch64
+  TYPE regression
+  COMMAND
+    plt_tlsdesc "${DYNINST_TEST_BINARIES_DIR}/symtabAPI/plt_stubs/aarch64/libtlsdesc.so"
+    ext_func 0x2a0 ext_tls "${CMAKE_CURRENT_BINARY_DIR}/libtlsdesc.rewritten.so"
+  REQUIRES test_binaries
+)

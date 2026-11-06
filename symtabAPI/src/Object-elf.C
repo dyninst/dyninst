@@ -51,6 +51,7 @@
 #include "dwarfFrameParser.h"
 
 #include "Object-elf.h"
+#include "plt_stubs.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -426,6 +427,7 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
     plt_entry_size_ = 0;
     rel_plt_entry_size_ = 0;
     rel_plt_addr_ = 0;
+    jmprel_addr_ = 0;
     rel_plt_size_ = 0;
     rel_addr_ = 0;
     rel_size_ = 0;
@@ -521,6 +523,7 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
                         break;
                     case DT_JMPREL:
                         secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+                        jmprel_addr_ = dynsecData.d_ptr(j);
                         break;
                     case DT_SYMTAB:
                     case DT_STRTAB:
@@ -779,8 +782,7 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
                 strscnp = scnp;
                 strtab_addr_ = scn.sh_addr();
             }
-        } else if ((secAddrTagMapping.find(scn.sh_addr()) != secAddrTagMapping.end()) &&
-                 secAddrTagMapping[scn.sh_addr()] == DT_JMPREL) {
+        } else if (jmprel_addr_ != 0 && scn.sh_addr() == jmprel_addr_) {
             rel_plt_scnp = scnp;
             rel_plt_addr_ = scn.sh_addr();
             rel_plt_size_ = scn.sh_size();
@@ -844,7 +846,13 @@ bool ObjectELF::loaded_elf(Offset &txtaddr, Offset &dataddr,
                     }
                 }
                 else if (getArch() == Dyninst::Arch_riscv64) {
-                    plt_entry_size_ = 16;
+                    // ld writes the real size here -- elfnn-riscv.c sets
+                    // sh_entsize from htab->plt_entry_size -- so the value read
+                    // above is the one to use.  Sixteen is what the ordinary
+                    // PLT uses, kept for anything that leaves the field empty.
+                    if (!plt_entry_size_)  {
+                        plt_entry_size_ = 16;
+                    }
                 }
             }
         } else if (strcmp(name, COMMENT_NAME) == 0) {
@@ -1134,6 +1142,56 @@ bool ObjectELF::get_relocationDyn_entries(unsigned rel_scnp_index,
     }
     return true;
 }
+
+// The aarch64 PLT stubs of this object, keyed by the GOT slot each one jumps
+// through.
+//
+// Striding over .plt the way the other architectures do cannot work here.  GNU
+// ld sets sh_entsize to zero on aarch64 deliberately -- see binutils PR
+// ld/26312 -- because .plt is not a table of fixed-size entries: a stub is 16
+// bytes, or 24 built with BTI or with PAC-PLT, and the section also holds the
+// header and may hold a TLSDESC stub.  Taking the size from the section header
+// yields zero, and every relocation then lands on the address of the header.
+//
+// So read the stubs instead.  Whatever the variant, each one begins by loading
+// the address it jumps to out of the GOT,
+//
+//     (bti c)
+//     adrp x16, page of the slot
+//     ldr  x17, [x16, #offset of the slot in that page]
+//     ...
+//
+// and the slot it names is what a .rela.plt entry relocates, which is how a
+// stub is matched to the symbol it stands for.  The header and the TLSDESC
+// stub load through the GOT as well, but no .rela.plt entry names the slots
+// they use, so they are left unmatched rather than having to be recognised.
+static void aarch64_plt_stubs_by_got(const unsigned char *plt, Offset pltAddr,
+                                     Offset pltSize,
+                                     std::map<Offset, Offset> &stubByGot)
+{
+    // BTI C, the instruction a stub built for branch target identification
+    // starts with, and where a call to such a stub lands.
+    const uint32_t bti_c{0xd503245fu};
+
+    for (Offset off = 0; off + 8 <= pltSize; off += 4)  {
+        Offset pc{pltAddr + off};
+        Offset slot{plt_stub_got_slot(plt + off, pltSize - off, pc, Dyninst::Arch_aarch64)};
+        if (slot == Dyninst::ADDRESS_INVALID)  {
+            continue;
+        }
+
+        Offset entry{pc};
+        if (off >= 4)  {
+            uint32_t prev{};
+            Dyninst::read_memory_as(prev, plt + off - 4);
+            if (prev == bti_c)  {
+                entry = pc - 4;
+            }
+        }
+        stubByGot[slot] = entry;
+    }
+}
+
 
 bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                                     Elf_X_Shdr *&dynsym_scnp,
@@ -1433,7 +1491,20 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
             } else if (getArch() == Dyninst::Arch_aarch64) {
                 next_plt_entry_addr += 2 * plt_entry_size_;
             } else if (getArch() == Dyninst::Arch_riscv64) {
-                next_plt_entry_addr += 2 * plt_entry_size_;
+                // The header is two entries in the ordinary PLT and three in
+                // the Zicfilp one, and nothing in the section header says
+                // which.  But .plt holds nothing else -- elfnn-riscv.c sizes it
+                // as the header followed by one entry per relocation -- so
+                // whatever is left once the entries are accounted for is the
+                // header.
+                Offset entries = 0;
+                if (rel_plt_entry_size_)  {
+                    entries = (Offset) plt_entry_size_ *
+                              (rel_plt_size_ / rel_plt_entry_size_);
+                }
+                next_plt_entry_addr += (entries != 0 && plt_size_ > entries)
+                                           ? plt_size_ - entries
+                                           : 2 * plt_entry_size_;
             } else {
                 next_plt_entry_addr += 4 * (plt_entry_size_); //1st 4 entries are special
             }
@@ -1449,6 +1520,25 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                 // Sometimes, PPC32 Linux may use this loop to update fbt entries.
                 // Should stay -1 for all other platforms.  See notes above.
                 int fbt_iter = -1;
+
+                // On aarch64 a stub's address is read out of .plt rather than
+                // counted off from the start of it.  See the comment on
+                // aarch64_plt_stubs_by_got.
+                std::map<Offset, Offset> plt_stub_by_got;
+                if (getArch() == Dyninst::Arch_aarch64)  {
+                    for (unsigned r = 0; r < regions_.size(); ++r)  {
+                        if (regions_[r]->getRegionName() != PLT_NAME)  continue;
+                        const unsigned char *plt =
+                            reinterpret_cast<const unsigned char *>(regions_[r]->getPtrToRawData());
+                        if (plt != NULL)  {
+                            aarch64_plt_stubs_by_got(plt,
+                                                     regions_[r]->getMemOffset(),
+                                                     regions_[r]->getDiskSize(),
+                                                     plt_stub_by_got);
+                        }
+                        break;
+                    }
+                }
                 if (fbt_.size() > 0 && !fbt_[0].rel_addr() && fbt_[0].name() != "@plt")
                     fbt_iter = 0;
 
@@ -1497,8 +1587,33 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                     }
                     }
 
+                    // Where the stub for this relocation is.  Everywhere but
+                    // aarch64 that is the next entry in a fixed-size table.
+                    Offset stub_addr = next_plt_entry_addr;
+                    if (getArch() == Dyninst::Arch_aarch64)  {
+                        auto sit =
+                            plt_stub_by_got.find((Offset) offset);
+                        if (sit == plt_stub_by_got.cend())  {
+                            // Nothing in .plt jumps through this slot (a
+                            // TLSDESC relocation, for one), so there is no stub
+                            // to record.  A counted address would put the name
+                            // on something that is not a stub, so the entry gets
+                            // none.  It is still kept: the rewriter rebuilds
+                            // .rela.plt from this table, and a relocation left
+                            // out here is missing from the rewritten object.
+                            // Symtab leaves such entries out of the binding
+                            // table it hands to callers.
+                            create_printf("%s[%d]: no PLT stub jumps through the "
+                                          "slot relocated for %s\n",
+                                          FILE__, __LINE__, targ_name.c_str());
+                            stub_addr = 0;
+                        }  else  {
+                            stub_addr = sit->second;
+                        }
+                    }
+
                     if (fbt_iter == -1) { // Create new relocation entry.
-                        relocationEntry re(next_plt_entry_addr, offset, targ_name,
+                        relocationEntry re(stub_addr, offset, targ_name,
                                            NULL, type);
                         if (type == R_X86_64_IRELATIVE) {
                             vector<Symbol *> funcs;
