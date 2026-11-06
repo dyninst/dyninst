@@ -204,6 +204,8 @@ class BinaryEdit : public AddressSpace {
     bool initialize();
 
     void makeInitAndFiniIfNeeded();
+    // Install the RT's trap handler from the executable's DT_PREINIT_ARRAY
+    void addPreinitTrapHandler();
 
     bool archSpecificMultithreadCapable();
 

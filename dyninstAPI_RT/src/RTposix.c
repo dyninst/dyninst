@@ -122,11 +122,27 @@ int unmap_region(void *addr, int len) {
 #if defined(cap_mutatee_traps)
 extern void dyninstTrapHandler(int sig, siginfo_t *info, void *context);
 
-int DYNINSTinitializeTrapHandler(void)
+int DYNINSTinstallTrapHandler(int signo)
 {
    int result;
    struct sigaction new_handler;
+
+   new_handler.sa_sigaction = dyninstTrapHandler;
+   //new_handler.sa_restorer = NULL; obsolete
+   sigemptyset(&new_handler.sa_mask);
+   new_handler.sa_flags = SA_SIGINFO | SA_NODEFER;
+   
+   result = sigaction(signo, &new_handler, NULL);
+   return (result == 0) ? 1 /*Success*/ : 0 /*Fail*/ ;
+}
+
+int DYNINSTinitializeTrapHandler(void)
+{
    int signo = SIGTRAP;
+
+   // A rewritten executable already installed the handler from DYNINSTpreinit.
+   // Install it again anyway: a library constructor that ran in between may
+   // have replaced it with its own.
 
    // If environment variable DYNINST_SIGNAL_TRAMPOLINE_SIGILL is set,
    // we use SIGILL as the signal for signal trampoline.
@@ -136,13 +152,7 @@ int DYNINSTinitializeTrapHandler(void)
       signo = SIGILL;
    }
 
-   new_handler.sa_sigaction = dyninstTrapHandler;
-   //new_handler.sa_restorer = NULL; obsolete
-   sigemptyset(&new_handler.sa_mask);
-   new_handler.sa_flags = SA_SIGINFO | SA_NODEFER;
-   
-   result = sigaction(signo, &new_handler, NULL);
-   return (result == 0) ? 1 /*Success*/ : 0 /*Fail*/ ;
+   return DYNINSTinstallTrapHandler(signo);
 }
 
 #endif
