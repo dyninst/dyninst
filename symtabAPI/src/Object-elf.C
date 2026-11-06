@@ -1681,6 +1681,8 @@ void ObjectELF::load_object(bool alloc_syms) {
         }
 
         if (elfHdr->e_machine() == EM_RISCV) {
+            get_riscv_eflags();
+
             // From https://github.com/riscv-non-isa/riscv-elf-psabi-doc/blob/master/riscv-elf.adoc#attributes:
             // Attributes are encoded in a vendor-specific section of type
             // SHT_RISCV_ATTRIBUTES and name .riscv.attributes.
@@ -4510,63 +4512,85 @@ bool ObjectELF::parse_attrs(const char *attr_string,
     return true;
 }
 
+// Reads a version number from Tag_RISCV_arch: digits only, and at most
+// nine of them, so that it always fits in an int.
+static bool riscv_version_number(const std::string &s, size_t beg, size_t end, int &out)
+{
+    if (end <= beg || end - beg > 9)  {
+        return false;
+    }
+    int n{0};
+    for (size_t k{beg}; k < end; k++)  {
+        if (!isdigit((unsigned char) s[k]))  {
+            return false;
+        }
+        n = n * 10 + (s[k] - '0');
+    }
+    out = n;
+    return true;
+}
+
 void ObjectELF::get_riscv_extensions() {
 
     // Obtain information from .riscv.attributes
 
-    std::string arch_string = riscv_attrs.riscv_extension_string;
-    if (arch_string.length() == 0) {
+    // Tag_RISCV_arch is the base ISA and then each extension, separated by
+    // '_', each with its version: "rv64i2p1_m2p0_zic64b1p0".  A name can
+    // contain digits (zic64b, zvl128b) but never ends in one, so a version
+    // is the trailing <major>p<minor> of its token.  A token that cannot be
+    // read is reported and skipped.
+    const std::string &arch_string = riscv_attrs.riscv_extension_string;
+    if (arch_string.empty())  {
         create_printf("%s[%d]:  Tag_RISCV_arch is empty\n", FILE__, __LINE__);
-        return;
+    }  else if ((arch_string.rfind("rv32i", 0) != 0) &&
+                (arch_string.rfind("rv64i", 0) != 0) &&
+                (arch_string.rfind("rv128i", 0) != 0) &&
+                (arch_string.rfind("rv32e", 0) != 0))  {
+        create_printf("%s[%d]:  Corrupted base extension: should be one of rv32i, rv64i, rv128i, rv32e\n", FILE__, __LINE__);
+    }  else  {
+        size_t beg{0};
+        while (beg <= arch_string.size())  {
+            size_t end{arch_string.find('_', beg)};
+            if (end == std::string::npos)  {
+                end = arch_string.size();
+            }
+
+            // The minor version is the digits at the end, the major version
+            // the digits before the 'p' ahead of them, and the name the rest.
+            size_t minor_beg{end};
+            while (minor_beg > beg && isdigit((unsigned char) arch_string[minor_beg - 1]))  {
+                minor_beg--;
+            }
+            size_t major_beg{minor_beg};
+            int major_num{0};
+            int minor_num{0};
+            bool ok{minor_beg > beg && arch_string[minor_beg - 1] == 'p'};
+            if (ok)  {
+                major_beg = minor_beg - 1;
+                while (major_beg > beg && isdigit((unsigned char) arch_string[major_beg - 1]))  {
+                    major_beg--;
+                }
+                ok = major_beg > beg &&
+                     riscv_version_number(arch_string, major_beg, minor_beg - 1, major_num) &&
+                     riscv_version_number(arch_string, minor_beg, end, minor_num);
+            }
+            if (ok)  {
+                riscv_attrs.riscv_extensions[arch_string.substr(beg, major_beg - beg)] =
+                    std::make_pair(major_num, minor_num);
+            }  else  {
+                create_printf("%s[%d]:  Tag_RISCV_arch has no readable version in '%s': %s\n",
+                              FILE__, __LINE__, arch_string.substr(beg, end - beg).c_str(),
+                              arch_string.c_str());
+            }
+            beg = end + 1;
+        }
     }
+}
 
-    for (size_t i = 0; i < arch_string.length(); i++) {
-        // Get the extension string
-
-        int ext_beg = i;
-        // Special case: base extension
-        if (i == 0) {
-            if ((arch_string.rfind("rv32i", 0) != 0) &&
-                    (arch_string.rfind("rv64i", 0) != 0) &&
-                    (arch_string.rfind("rv128i", 0) != 0) &&
-                    (arch_string.rfind("rv32e", 0) != 0)) {
-                create_printf("%s[%d]:  Corrupted base extension: should be one of rv32i, rv64i, rv128i, rv32e\n", FILE__, __LINE__);
-                return;
-            }
-            while (arch_string[i] != 'i' && arch_string[i] != 'e') {
-                i++;
-            }
-            i++;
-        }
-        else {
-            // Get the extension string
-            while (!isdigit(arch_string[i])) {
-                i++;
-            }
-        }
-        std::string ext = arch_string.substr(ext_beg, i - ext_beg);
-
-        // Get the major number
-        int major_beg = i;
-        while (arch_string[i] != 'p') {
-            i++;
-        }
-        int major_num = std::stoi(arch_string.substr(major_beg, i - major_beg));
-
-        i++; // ignore 'p'
-
-        // Get the minor number
-        int minor_beg = i;
-        while (arch_string[i] != '_') {
-            i++;
-        }
-        int minor_num = std::stoi(arch_string.substr(minor_beg, i - minor_beg));
-
-        riscv_attrs.riscv_extensions[ext] = std::make_pair(major_num, minor_num);
-    }
-
-    // Obtain information from e_flags
-
+// The ISA flags in the ELF header's e_flags.  These are read for every riscv64
+// object, whether or not it has a readable .riscv.attributes section.
+void ObjectELF::get_riscv_eflags()
+{
     unsigned long e_flags = elfHdr->e_flags();
     if (e_flags & EF_RISCV_RVC) {
         riscv_attrs.compressed_extension = true;

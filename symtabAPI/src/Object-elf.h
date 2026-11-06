@@ -121,10 +121,11 @@ enum RiscvAttrTag {
 };
 enum class RiscvFloatAbiEnum { SOFT, SINGLE, DOUBLE, QUAD };
 struct RiscvAttributes {
-    bool compressed_extension;
-    bool embedded_abi;
-    bool total_store_ordering;
-    RiscvFloatAbiEnum floatABI;
+    // These come from e_flags.
+    bool compressed_extension{false};
+    bool embedded_abi{false};
+    bool total_store_ordering{false};
+    RiscvFloatAbiEnum floatABI{RiscvFloatAbiEnum::SOFT};
     std::map<std::string, std::pair<int, int>> riscv_extensions;
     std::string riscv_extension_string;
     boost::optional<int64_t> stack_align;
@@ -550,6 +551,7 @@ private:
           std::function<bool(int, std::string)>);
 
   void get_riscv_extensions();
+  void get_riscv_eflags();
 
   bool usesCompressedInstructionFormat() const override { return riscv_attrs.compressed_extension; }
 
