@@ -68,13 +68,9 @@ namespace Dyninst { namespace DyninstAPI {
     // PLT stub
     if (found != obj->cs()->linkage().end()) {
       name = found->second;
-      std::vector<SymtabAPI::relocationEntry> relocs;
-      st->getFuncBindingTable(relocs);
-      for (auto i = relocs.begin(); i != relocs.end(); i++) {
-        if (i->target_addr() == found->first) {
-          stf = new PLTFunction(*i);
-          break;
-        }
+      SymtabAPI::relocationEntry reloc;
+      if (st->findPltEntryByTarget(found->first, reloc)) {
+        stf = new PLTFunction(reloc);
       }
       if (stf && stf->getFirstSymbol()) {
         auto *ret = parse_func::plt_func(stf, pdmod, _img, obj, reg, isrc, src);
