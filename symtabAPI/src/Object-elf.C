@@ -51,6 +51,7 @@
 #include "dwarfFrameParser.h"
 
 #include "Object-elf.h"
+#include "plt_stubs.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -1170,31 +1171,22 @@ static void aarch64_plt_stubs_by_got(const unsigned char *plt, Offset pltAddr,
 {
     // BTI C, the instruction a stub built for branch target identification
     // starts with, and where a call to such a stub lands.
-    const uint32_t bti_c = 0xd503245fu;
+    const uint32_t bti_c{0xd503245fu};
 
     for (Offset off = 0; off + 8 <= pltSize; off += 4)  {
-        uint32_t adrp{}, ldr{};
-        Dyninst::read_memory_as(adrp, plt + off);
-        Dyninst::read_memory_as(ldr, plt + off + 4);
+        Offset pc{pltAddr + off};
+        Offset slot{plt_stub_got_slot(plt + off, pltSize - off, pc, Dyninst::Arch_aarch64)};
+        if (slot == Dyninst::ADDRESS_INVALID)  {
+            continue;
+        }
 
-        // adrp x16, #imm  followed by  ldr x17, [x16, #imm12]
-        if ((adrp & 0x9f00001fu) != 0x90000010u)  continue;
-        if ((ldr & 0xffc003ffu) != 0xf9400211u)  continue;
-
-        // imm21 is split: the low two bits at 30:29, the high nineteen at 23:5.
-        int64_t imm = (int64_t)((((adrp >> 5) & 0x7ffffu) << 2)
-                                | ((adrp >> 29) & 0x3u));
-        if (imm & ((int64_t)1 << 20))  imm -= ((int64_t)1 << 21);
-
-        Offset pc = pltAddr + off;
-        Offset slot = ((pc & ~(Offset)0xfff) + ((Offset)imm << 12))
-                      + (Offset)(((ldr >> 10) & 0xfffu) * 8);
-
-        Offset entry = pc;
+        Offset entry{pc};
         if (off >= 4)  {
             uint32_t prev{};
             Dyninst::read_memory_as(prev, plt + off - 4);
-            if (prev == bti_c)  entry = pc - 4;
+            if (prev == bti_c)  {
+                entry = pc - 4;
+            }
         }
         stubByGot[slot] = entry;
     }

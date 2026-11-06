@@ -38,6 +38,7 @@ set(
   src/Object-pe.h
   src/Object.h
   src/Object-nt.h
+  src/plt_stubs.h
   src/Type-mem.h
   src/indexed_symbols.hpp
   src/symtab_impl.hpp
@@ -56,6 +57,7 @@ set(
   src/LineInformation.C
   src/Module.C
   src/Object.C
+  src/plt_stubs.C
   src/Region.C
   src/relocationEntry.C
   src/Statement.C
