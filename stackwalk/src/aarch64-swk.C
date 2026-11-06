@@ -336,10 +336,16 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
   // in dyninstAPI/src/inst-aarch64.C. This function may need to
   // be changed accordingly.
   in_fp = in.getFP();
-  out.setSP(in_fp);
-  
+
   // stack_height is the offset to the saved FP and RA
   out_fp_loc = in_fp + stack_height; 
+
+  // The saved FP and RA are the last registers in the frame, which is
+  // rounded up to 16 bytes (TRAMP_FRAME_SIZE in dyninstAPI/src/inst-aarch64.h);
+  // the caller's SP is just above it.  Unwinding the caller from DWARF CFI
+  // computes its frame from this SP.
+  const Address frame_align = 16;
+  out.setSP((out_fp_loc + 2 * addrWidth + frame_align - 1) & ~(frame_align - 1));
 
   raLocation.location = loc_address;
   raLocation.val.addr = out_fp_loc + addrWidth;
