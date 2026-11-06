@@ -132,4 +132,10 @@ typedef pthread_cond_t EventCond_t;
 #define PAGE_EXECUTE_READ (PAGE_READ | PAGE_EXECUTE)
 #define PAGE_EXECUTE_READWRITE (PAGE_READ | PAGE_EXECUTE | PAGE_WRITE)
 
+namespace Dyninst { namespace SymtabAPI { class Symtab; } }
+
+// Whether a C library also implements POSIX threads, as glibc does from 2.34
+// on, so that a program can create threads without loading libpthread.
+bool implementsPthreads(Dyninst::SymtabAPI::Symtab *libc);
+
 #endif

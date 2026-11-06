@@ -125,8 +125,22 @@ bool PCProcess::multithread_capable(bool ignoreIfMtNotSet) {
         return true;
     }
 
+    mapped_object *libc = findObject("libc.so*", true);
+    if (libc && implementsPthreads(libc->parse_img()->getObject())) {
+        mt_cache_result_ = cached_mt_true;
+        return true;
+    }
+
     mt_cache_result_ = cached_mt_false;
     return false;
+}
+
+bool implementsPthreads(SymtabAPI::Symtab *libc) {
+    // Only a C library that contains the thread implementation defines
+    // pthread_create; before glibc 2.34 it lived in libpthread alone.
+    std::vector<SymtabAPI::Symbol *> syms;
+    return libc->findSymbol(syms, "pthread_create", SymtabAPI::Symbol::ST_FUNCTION,
+                            SymtabAPI::prettyName);
 }
 
 /**
