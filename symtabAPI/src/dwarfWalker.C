@@ -31,6 +31,9 @@
 #include "common/src/vgannotations.h"
 #include "compiler_diagnostics.h"
 #include "dwarfWalker.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include "Module.h"
 #include "Symtab.h"
 #include "Collections.h"
@@ -47,6 +50,7 @@
 #include <dwarf/src/dwarf_subrange.h>
 #include <dwarf_names.h>
 #include <dwarf_cu_info.h>
+#include <algorithm>
 #include <stack>
 #include "symbolDemangleWithCache.h"
 
@@ -118,6 +122,116 @@ static inline void ompc_leftmost(Module* &out, Module* &in) {
     reduction(leftmost : Module* : ompc_leftmost(omp_out, omp_in)) \
     initializer(omp_priv = NULL)
 
+namespace {
+/*
+ * One libdw handle per worker, over the Elf the walk's original handle was built on.
+ *
+ * libdw is not safe for concurrent use of a single Dwarf handle: it interns CU and
+ * abbrev state lazily as the walk reaches it. Sharing one handle across the parse
+ * below makes dwarf_child() intermittently fail with "invalid DWARF" on DIEs that
+ * are perfectly valid, and parse_int() treats that as fatal, so a whole module's
+ * types disappear.
+ *
+ * A supplementary file (dwz -m, named by .gnu_debugaltlink) is shared state too: its
+ * units are interned lazily as references reach them (#914), and like any unit they
+ * hold a dwarf_getlocations() cache (#2410). So each worker also gets its own handle
+ * for the supplementary file, over the original's, attached with dwarf_setalt().
+ *
+ * The handles are minted here, serially, because dwarf_begin_elf() reads the section
+ * table through the shared Elf. Afterwards each handle touches only its own state and
+ * the Elf's section data, which is read-only from this point on.
+ *
+ * A handle owns none of the Elf, so dwarf_end() on it leaves the original untouched.
+ * dwarf_end() does not end a handle attached with dwarf_setalt(), so the pool ends the
+ * supplementary handles itself.
+ */
+class DwarfHandlePool {
+    std::vector<Dwarf *> handles;
+    std::vector<Dwarf *> alt_handles;
+
+public:
+    DwarfHandlePool(Dwarf *original, unsigned num_workers) {
+        if(!original) return;
+
+        Elf *elf = dwarf_getelf(original);
+        if(!elf) return;
+
+        Elf *alt_elf = nullptr;
+        if(Dwarf *alt = dwarf_getalt(original)) {
+            alt_elf = dwarf_getelf(alt);
+            if(!alt_elf) return;
+        }
+
+        handles.reserve(num_workers);
+        for(unsigned i = 0; i < num_workers; i++) {
+            Dwarf *d = dwarf_begin_elf(elf, DWARF_C_READ, NULL);
+            if(!d) break;
+            if(alt_elf) {
+                Dwarf *a = dwarf_begin_elf(alt_elf, DWARF_C_READ, NULL);
+                if(!a) {
+                    dwarf_end(d);
+                    break;
+                }
+                dwarf_setalt(d, a);
+                alt_handles.push_back(a);
+            }
+            handles.push_back(d);
+        }
+    }
+
+    ~DwarfHandlePool() {
+        for(auto *d : handles) dwarf_end(d);
+        for(auto *a : alt_handles) dwarf_end(a);
+    }
+
+    DwarfHandlePool(DwarfHandlePool const &) = delete;
+    DwarfHandlePool &operator=(DwarfHandlePool const &) = delete;
+
+    bool holds(unsigned num_workers) const { return handles.size() == num_workers; }
+    Dwarf *operator[](unsigned i) const { return handles[i]; }
+};
+
+/*
+ * Every worker re-reads into its own handle the unit and abbreviation data the others
+ * have already read, so past a point more workers make the parse slower and larger.
+ * The parse was fastest with 8 to 16 workers on every file measured, and at 96 took
+ * 1.3 to 3.3 times as long as at 16.
+ */
+constexpr unsigned max_workers = 16;
+
+unsigned worker_count(size_t units) {
+#ifdef _OPENMP
+    size_t n = std::min<size_t>(omp_get_max_threads(), max_workers);
+    return (unsigned) std::max<size_t>(1, std::min(n, units));
+#else
+    (void) units;
+    return 1u;
+#endif
+}
+
+unsigned worker_index() {
+#ifdef _OPENMP
+    return (unsigned) omp_get_thread_num();
+#else
+    return 0u;
+#endif
+}
+
+/*
+ * A Dwarf_Die is only meaningful to the handle that produced it, so the units are
+ * carried across to the workers as section offsets and re-resolved there.
+ */
+struct UnitRef {
+    Dwarf_Off die_offset;
+    bool in_types;
+};
+
+bool resolve_unit(Dwarf *dbg, UnitRef const &u, Dwarf_Die &die) {
+    if(u.in_types) return dwarf_offdie_types(dbg, u.die_offset, &die) != NULL;
+    return dwarf_offdie(dbg, u.die_offset, &die) != NULL;
+}
+}
+
 bool DwarfWalker::parse() {
     dwarf_printf("In DwarfWalker::parse() Parsing DWARF for %s, dgb():0x%p\n",filename().c_str(), (void*)dbg());
 
@@ -143,19 +257,21 @@ bool DwarfWalker::parse() {
 
     /* Iterate over the compilation-unit headers for .debug_types. */
     uint64_t type_signaturep;
-    std::vector<Dwarf_Die> module_dies;
+    std::vector<UnitRef> units;
+    Dwarf_Die cu_die;
     for(Dwarf_Off cu_off = 0;
             dwarf_next_unit(dbg(), cu_off, &next_cu_header, &cu_header_length,
                 NULL, &abbrev_offset, &addr_size, &offset_size,
                 &type_signaturep, NULL) == 0;
             cu_off = next_cu_header)
     {
-        if(!dwarf_offdie_types(dbg(), cu_off + cu_header_length, &current_cu_die))
+        Dwarf_Off die_off = cu_off + cu_header_length;
+        if(!dwarf_offdie_types(dbg(), die_off, &cu_die))
             continue;
-        module_dies.push_back(current_cu_die);
+        units.push_back({die_off, true});
         compile_offset = next_cu_header;
     }
-    size_t total_from_unit = module_dies.size();
+    size_t total_from_unit = units.size();
     dwarf_printf("Modules from dwarf_next_unit: %zu\n", total_from_unit);
 
     /* Iterate over the compilation-unit headers for .debug_info. */
@@ -164,30 +280,41 @@ bool DwarfWalker::parse() {
                 &abbrev_offset, &addr_size, &offset_size) == 0;
             cu_off = next_cu_header)
     {
-        if(!dwarf_offdie(dbg(), cu_off + cu_header_length, &current_cu_die))
+        Dwarf_Off die_off = cu_off + cu_header_length;
+        if(!dwarf_offdie(dbg(), die_off, &cu_die))
             continue;
-        module_dies.push_back(current_cu_die);
+        units.push_back({die_off, false});
         compile_offset = next_cu_header;
     }
     compile_offset = 0;
-    dwarf_printf("Modules from dwarf_nextcu: %zu\n", module_dies.size() - total_from_unit);
+    dwarf_printf("Modules from dwarf_nextcu: %zu\n", units.size() - total_from_unit);
 
-    if (dwarf_getalt(dbg()) != NULL) {
+    unsigned const num_workers = worker_count(units.size());
+    DwarfHandlePool pool(dbg(), num_workers > 1 ? num_workers : 0);
+
+    if (num_workers < 2 || !pool.holds(num_workers)) {
+        // One worker, or no private handles: parse on the one shared handle.
+        dwarf_printf("Parsing %zu units serially with %u worker(s)\n", units.size(), num_workers);
         DwarfWalker w(symtab(), dbg());
-        for (unsigned int i = 0; i < module_dies.size(); i++) {
+        for (unsigned int i = 0; i < units.size(); i++) {
+            Dwarf_Die die;
+            if (!resolve_unit(dbg(), units[i], die)) continue;
             w.push();
-            w.parseModule(module_dies[i],fixUnknownMod);
+            w.parseModule(die, fixUnknownMod);
             w.pop();
         }
     } else {
-#pragma omp parallel
+#pragma omp parallel num_threads(num_workers)
     {
-    DwarfWalker w(symtab(), dbg(), parsedFuncs);
+    Dwarf *worker_dbg = pool[worker_index()];
+    DwarfWalker w(symtab(), worker_dbg, parsedFuncs);
 #pragma omp for reduction(leftmost:fixUnknownMod) \
         schedule(dynamic) nowait
-    for (unsigned int i = 0; i < module_dies.size(); i++) {
+    for (unsigned int i = 0; i < units.size(); i++) {
+        Dwarf_Die die;
+        if (!resolve_unit(worker_dbg, units[i], die)) continue;
         w.push();
-        w.parseModule(module_dies[i],fixUnknownMod);
+        w.parseModule(die, fixUnknownMod);
         w.pop();
     }
     }
@@ -2498,7 +2625,8 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info, bool is_sup)
   {
     type_map::accessor a;
     type_key tk{offset, is_sup, mod()};
-    type_ids.insert(a, make_pair(tk, val));
+    // Another worker may have inserted this key since the find above; use its ID.
+    if(!type_ids.insert(a, make_pair(tk, val))) val = a->second;
     dwarf_printf("(0x%lx) type_id %u, key created {0x%lx,%s,mod: %s}\n", id(),val,offset,is_sup?"sup":"not sup", mod()->fileName().c_str());
   }
 
