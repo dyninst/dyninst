@@ -397,7 +397,8 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(const char *name,
       //  usual case, no regex
       std::vector<func_instance *> foundIntFuncs;
       for (unsigned i=0; i<as.size(); i++) {
-         as[i]->findFuncsByAll(std::string(name), foundIntFuncs);
+         as[i]->findFuncsByAll(std::string(name), foundIntFuncs, "",
+                               incUninstrumentable);
       }
       if (!foundIntFuncs.size())
       {
