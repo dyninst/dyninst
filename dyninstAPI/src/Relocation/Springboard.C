@@ -35,6 +35,7 @@
 
 #include "dyninstAPI/src/addressSpace.h"
 #include "patching/function.h"
+#include "patching/instPoint.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -241,7 +242,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    codeGen tmpGen;
 
    // Arbitrarily select the first function containing this springboard, since only one can win. 
-   generateBranch(r.from, r.destinations.begin()->second, tmpGen);
+   generateBranch(r, tmpGen);
    unsigned size = tmpGen.used();
 
    // Check if the size of the branch will fit   
@@ -260,7 +261,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    } else {
       // regenerate the branch into gen 
       // ideally we would like to do gen = tmpGen but there is a problem with codeGen's copy constructor
-      generateBranch(r.from, r.destinations.begin()->second, gen);
+      generateBranch(r, gen);
       springboard_cerr << "\t Using a branch for springboard at addr: 0x" << std::hex << r.from 
                        << " with byte size = " << std::dec << gen.used() << std::endl;
    }
@@ -506,7 +507,10 @@ void InstalledSpringboards::debugRanges() {
   if (false) cerr << "-------------" << endl;
 }
 
-void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) {
+void SpringboardBuilder::generateBranch(const SpringboardReq &r, codeGen &gen) {
+  Address from = r.from;
+  Address to = r.destinations.begin()->second;
+
   gen.invalidate();
   // On ppc, the spring board can be a long branch,
   // which can takes more than 5 instructions
@@ -514,6 +518,13 @@ void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) 
 
   gen.setAddrSpace(addrSpace_);
   gen.setAddr(from);
+
+  // A branch that cannot reach its target in one instruction needs a scratch
+  // register, and the code generator only looks for one when it knows the
+  // point: give it the start of the block the springboard overwrites, where
+  // the relocated copy begins with the same registers live.
+  if (r.block && r.func && !r.fromRelocatedCode && r.block->start() == from)
+    gen.setPoint(instPoint::blockEntry(r.func, r.block));
 
   insnCodeGen::generateBranch(gen, from, to);
 
