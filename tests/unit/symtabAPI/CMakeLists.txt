@@ -29,3 +29,10 @@ dyninst_add_test(
   SOURCE_FILES add_region.cpp
   DEPS symtabAPI
 )
+
+dyninst_add_test(
+  symtabAPI_plt_stub_got_slot
+  TYPE unit
+  SOURCE_FILES plt_stub_got_slot.cpp
+  DEPS symtabAPI
+)
