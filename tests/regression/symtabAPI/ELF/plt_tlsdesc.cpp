@@ -92,7 +92,7 @@ int main(int argc, char **argv)
     return EXIT_FAILURE;
   }
   std::string const stub{argv[2]};
-  Dyninst::Offset const stub_addr{std::strtoull(argv[3], nullptr, 0)};
+  Dyninst::Offset const stub_addr{std::strtoul(argv[3], nullptr, 0)};
   std::string const no_stub{argv[4]};
 
   st::Symtab *in{};
