@@ -729,6 +729,7 @@ void
 
 std::vector<Function*> Parser::delayed_funcs_by_addr() const
 {
+    assert(!omp_in_parallel());
     std::vector<Function*> delayed;
     delayed.reserve(delayed_frames.size());
     for (auto const& entry : delayed_frames)

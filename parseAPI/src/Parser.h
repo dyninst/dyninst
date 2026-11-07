@@ -104,6 +104,10 @@ namespace Dyninst {
             };
             using DelayedFrames = std::set<ParseFrame*, FrameByAddr>;
             dyn_c_hash_map<Function*, DelayedFrames> delayed_frames;
+            // Iterating a dyn_c_hash_map is undefined while any other thread calls a member
+            // of it.  delayed_frames is only modified concurrently by the tasks of the
+            // parallel region in ProcessFrames, so call this only outside that region (it
+            // asserts that no OpenMP parallel region is active).
             std::vector<Function*> delayed_funcs_by_addr() const;
 
             // differentiate those provided via hints and
