@@ -112,9 +112,10 @@ with the reason a test prints when it is not met:
   whose mutatee is x86_64 assembly needs `host:x86_64 native`.
 
 - `stackanalysis_any_arch`: StackAnalysis takes its entry state from the
-  build's code-generation architecture, and a native aarch64 build has none
-  for the code of another architecture. An aarch64 build on an x86_64 host
-  uses x86's entry state.
+  build's code-generation architecture, not from the code it analyzes. A
+  native aarch64 build has none, so StackAnalysis throws there for code of
+  every architecture. An aarch64 build on an x86_64 host uses x86's entry
+  state.
 
 - `dynamic` and `userns`: The test drives a live process with ptrace
   (`dynamic`), or creates unprivileged user namespaces with `unshare()`
