@@ -50,7 +50,7 @@ using namespace NS_x86;
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "codegen/codegen-aarch64.h"
 using namespace NS_aarch64;
-#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
 #include "codegen/codegen-amdgpu.h"
 using namespace NS_amdgpu;
 #else

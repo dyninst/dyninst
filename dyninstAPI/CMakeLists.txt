@@ -95,10 +95,9 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(APPEND _sources src/addressSpace-ppc.C src/inst-power.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(APPEND _sources src/addressSpace-aarch64.C)
-elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  # gfx908 is the only AMDGPU codegen build: the C++ codegen guards are gfx908-only. This one
-  # build compiles the gfx90a/gfx940 emitters too and selects among them per object at runtime
-  # (getEmitter), so no separate codegen arch is needed for those generations.
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9)
+  # One gfx9-family AMDGPU codegen build (guarded by the neutral DYNINST_CODEGEN_ARCH_AMDGPU_GFX9):
+  # all per-gen emitters (gfx908/gfx90a/gfx940) compile in and are selected per object at runtime.
   list(
     APPEND _sources
     src/addressSpace-amdgpu.C
