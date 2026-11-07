@@ -1153,6 +1153,9 @@ Parser::finalize_jump_tables()
         for (auto jit = f->getJumpTables().begin(); jit != f->getJumpTables().end(); ++jit) {
             Address jumpAddr = jit->first;
             Block* cur = jit->second.block;
+            // The table occupies memory even when its jump block is not found below,
+            // so its start still bounds the overrun of the table before it.
+            jumpTableStart.insert(jit->second.tableStart);
             // The block range index is only filled by finalize_ranges, which runs
             // after this pass, so walk forward from the recorded block by start
             // address (blocksByAddr is maintained during parsing): a split leaves
@@ -1177,7 +1180,6 @@ Parser::finalize_jump_tables()
                     jumpAddr, recorded->start(), recorded->end(), cur->start(), cur->end());
                 jit->second.block = cur;
             }
-            jumpTableStart.insert(jit->second.tableStart);
             jumpTables.emplace(cur, &(jit->second));
         }
     };
