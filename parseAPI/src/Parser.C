@@ -826,7 +826,8 @@ void Parser::processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive) {//
         }
 
         dyn_c_hash_map<Function*, DelayedFrames>::const_accessor waiters;
-        if (!delayed_frames.find(waiters, func)) continue;
+        if (!delayed_frames.find(waiters, func))
+            continue;
         for (auto vIter = waiters->second.begin(); vIter != waiters->second.end(); ++vIter) {
             Function * delayed = (*vIter)->func;
             if (delayed->retstatus() == UNSET) {
@@ -1151,8 +1152,8 @@ Parser::finalize_jump_tables()
     // jump's address, which is the key of the function's jump table map.
     auto collect = [&](Function* f) {
         for (auto jit = f->getJumpTables().begin(); jit != f->getJumpTables().end(); ++jit) {
-            Address jumpAddr = jit->first;
-            Block* cur = jit->second.block;
+            Address jumpAddr{jit->first};
+            Block* cur{jit->second.block};
             // The table occupies memory even when its jump block is not found below,
             // so its start still bounds the overrun of the table before it.
             jumpTableStart.insert(jit->second.tableStart);
@@ -1161,14 +1162,16 @@ Parser::finalize_jump_tables()
             // address (blocksByAddr is maintained during parsing): a split leaves
             // the head piece in place and the jump in a piece that starts where
             // an earlier piece ends.
-            if (cur == NULL) continue;
+            if (cur == NULL)
+                continue;
             if (cur->last() != jumpAddr) {
-                Block* recorded = cur;
+                Block* recorded{cur};
                 while (cur != NULL && cur->last() != jumpAddr && cur->end() <= jumpAddr) {
-                    Block* next = _parse_data->findBlock(f->region(), cur->end());
+                    Block* next{_parse_data->findBlock(f->region(), cur->end())};
                     // Every piece starts where the previous one ends, so an empty block
                     // would not advance the walk.
-                    if (next != NULL && next->end() <= cur->end()) next = NULL;
+                    if (next != NULL && next->end() <= cur->end())
+                        next = NULL;
                     cur = next;
                 }
                 if (cur == NULL || cur->last() != jumpAddr) {
@@ -1183,8 +1186,10 @@ Parser::finalize_jump_tables()
             jumpTables.emplace(cur, &(jit->second));
         }
     };
-    for (auto fit = hint_funcs.begin(); fit != hint_funcs.end(); ++fit) collect(*fit);
-    for (auto fit = discover_funcs.begin(); fit != discover_funcs.end(); ++fit) collect(*fit);
+    for (auto fit = hint_funcs.begin(); fit != hint_funcs.end(); ++fit)
+        collect(*fit);
+    for (auto fit = discover_funcs.begin(); fit != discover_funcs.end(); ++fit)
+        collect(*fit);
 
     for (auto ait = jumpTableStart.begin(); ait != jumpTableStart.end(); ++ait)
         parsing_printf("Jump table at %lx\n", *ait);
