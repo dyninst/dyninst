@@ -687,7 +687,10 @@ void EmitterAmdgpu::emitAtomicSub(Register baseAddrReg, Register src0, codeGen &
 // Install the instrumented object's arch-correct emitter on `gen` and hand it back. setAddrSpace routes
 // through AddressSpace::getEmitter(), which picks the gen's EmitterAmdgpu subclass at runtime.
 EmitterAmdgpu* getAmdgpuEmitter(codeGen& gen, Dyninst::PatchAPI::Point* point) {
-  auto *obj = dynamic_cast<mapped_object *>(point->block()->obj());
+  // Use point->obj(), which resolves the object for function, block and edge points alike.
+  // A FuncEntry point (where the prologue is inserted) is built function-only, so its block()
+  // is null and point->block()->obj() would dereference null at every kernel entry.
+  auto *obj = dynamic_cast<mapped_object *>(point->obj());
   assert(obj && "AMDGPU snippet: expected a mapped_object");
   gen.setAddrSpace(obj->proc());
   auto *emitter = dynamic_cast<EmitterAmdgpu *>(gen.emitter());
