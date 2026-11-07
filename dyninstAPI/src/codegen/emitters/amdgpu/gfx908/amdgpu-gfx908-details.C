@@ -295,5 +295,47 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset, 
 }
 // === SMEM END ===
 
+// === VOP1 / VOP2 / FLAT(global/scratch) BEGIN ===
+// Vector + flat packers (table-driven, same generated encoder as the SOP*/SMEM helpers). Needed by the
+// perWaveVar counter path (v_mov/v_add + GLOBAL_STORE) and emitCall. The opcode values come from the
+// generated op:: constants via the base emitter's toOpCode(AmdgpuOp::...).
+void emitVop1Reg(unsigned opcode, uint32_t vdst, uint32_t src0, codeGen &gen) {
+  uint32_t w = (uint32_t)Dyninst::amdgpu_enc::packWordU64(detail::formats, detail::ENC_VOP1,
+                           detail::NO_FIELD, opcode, {{detail::VDST, vdst}, {detail::SRC0, src0}});
+  gen.copy(&w, sizeof w);
+}
+void emitVop1Imm(unsigned opcode, uint32_t vdst, uint32_t literal, codeGen &gen) {
+  // src0 = 0xFF selects a trailing 32-bit literal word.
+  uint32_t w = (uint32_t)Dyninst::amdgpu_enc::packWordU64(detail::formats, detail::ENC_VOP1,
+                           detail::NO_FIELD, opcode, {{detail::VDST, vdst}, {detail::SRC0, 0xFFu}});
+  gen.copy(&w, sizeof w);
+  gen.copy(&literal, sizeof literal);
+}
+void emitVop2(unsigned opcode, uint32_t vdst, uint32_t vsrc1, uint32_t src0, codeGen &gen) {
+  uint32_t w = (uint32_t)Dyninst::amdgpu_enc::packWordU64(detail::formats, detail::ENC_VOP2,
+                           detail::NO_FIELD, opcode,
+                           {{detail::VDST, vdst}, {detail::VSRC1, vsrc1}, {detail::SRC0, src0}});
+  gen.copy(&w, sizeof w);
+}
+void emitVop3a(unsigned opcode, uint32_t vdst, uint32_t src0, uint32_t src1, uint32_t src2, codeGen &gen) {
+  // VOP3a is a 64-bit encoding (three sources, 9-bit operand codes).
+  uint64_t w = Dyninst::amdgpu_enc::packWordU64(detail::formats, detail::ENC_VOP3,
+                           detail::NO_FIELD, opcode,
+                           {{detail::VDST, vdst}, {detail::SRC0, src0}, {detail::SRC1, src1}, {detail::SRC2, src2}});
+  gen.copy(&w, sizeof w);
+}
+void emitFlatGlobal(unsigned opcode, uint32_t vdst, uint32_t addr, uint32_t data, uint32_t saddr,
+                    int32_t offset, codeGen &gen, bool glc, uint32_t seg) {
+  // SEG picks the format's fixed bits: global (seg=2) -> ENC_FLAT_GLBL, scratch (seg=1) ->
+  // ENC_FLAT_SCRATCH. OFFSET is the 13-bit signed field; LDS/SLC/NV default to 0.
+  detail::Format fmt = (seg == 1) ? detail::ENC_FLAT_SCRATCH : detail::ENC_FLAT_GLBL;
+  uint64_t w = Dyninst::amdgpu_enc::packWordU64(detail::formats, fmt, detail::NO_FIELD, opcode,
+                           {{detail::OFFSET, (uint32_t)((uint32_t)offset & 0x1fffu)},
+                            {detail::GLC, glc ? 1u : 0u}, {detail::ADDR, addr}, {detail::DATA, data},
+                            {detail::SADDR, saddr}, {detail::VDST, vdst}});
+  gen.copy(&w, sizeof w);
+}
+// === VOP1 / VOP2 / FLAT END ===
+
 } // namespace amdgpu_gfx908
 } // namespace Dyninst
