@@ -727,14 +727,7 @@ void
 }
 
 
-bool Parser::FrameByAddr::operator()(const ParseFrame* a, const ParseFrame* b) const
-{
-    if (a->func->addr() != b->func->addr())
-        return a->func->addr() < b->func->addr();
-    return a < b;
-}
-
-std::vector<Function*> Parser::delayed_funcs_by_addr()
+std::vector<Function*> Parser::delayed_funcs_by_addr() const
 {
     std::vector<Function*> delayed;
     delayed.reserve(delayed_frames.size());

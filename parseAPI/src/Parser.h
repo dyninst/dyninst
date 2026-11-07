@@ -96,11 +96,15 @@ namespace Dyninst {
             // in a relocatable object or an archive the regions overlap, functions in
             // different regions can share an address, and their relative order is not fixed.
             struct FrameByAddr {
-                bool operator()(const ParseFrame* a, const ParseFrame* b) const;
+                bool operator()(const ParseFrame* a, const ParseFrame* b) const {
+                    if (a->func->addr() != b->func->addr())
+                        return a->func->addr() < b->func->addr();
+                    return a < b;
+                }
             };
             using DelayedFrames = std::set<ParseFrame*, FrameByAddr>;
             dyn_c_hash_map<Function*, DelayedFrames> delayed_frames;
-            std::vector<Function*> delayed_funcs_by_addr();
+            std::vector<Function*> delayed_funcs_by_addr() const;
 
             // differentiate those provided via hints and
             // those found through RT or speculative parsing
