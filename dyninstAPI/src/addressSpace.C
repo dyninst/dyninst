@@ -643,6 +643,7 @@ bool AddressSpace::findFuncsByAll(const std::string &funcname,
       if (libname == "" ||
           mapped_objects[i]->fileName() == libname.c_str() ||
           mapped_objects[i]->fullName() == libname.c_str()) {
+         fprintf(stderr,"In %s, in object %s library %s, finding function %s\n",__func__,mapped_objects[i]->fileName().c_str(),libname.c_str(),funcname.c_str());
          const std::vector<func_instance *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
          if (pretty) {
             // We stop at first match...

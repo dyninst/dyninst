@@ -31,6 +31,10 @@
 #include "ASTs/amdgpu-prologue-epilogue.h"
 #include "codegen/emitters/amdgpu/emit-amdgpu.h"
 #include "mapped_object.h"
+#include "AmdgpuKernelDescriptor.h"
+#include "amdgpu-scratch-abi.h"
+#include "registerSpace/registerSpace.h"
+#include "patching/instPoint.h"
 
 namespace Dyninst { namespace DyninstAPI {
 
@@ -39,29 +43,49 @@ bool AmdgpuPrologue::generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &
   // object to generate the code and copy what we get there into the
   // 'Dyninst::Buffer' object passed here.
 
-  // We need 12 bytes for the prologue (a s_load_dwordx2, followed by a waitcnt)
-  codeGen gen(20);
+  // Scratch mode needs room for FLAT_SCRATCH setup, the relocation movs, and the
+  // (2D/3D) block-linear wid math; simple mode just loads the per-wave buffer base.
+  codeGen gen(scratch_ ? 128 : 20);
 
-  // Use the emitter for the instrumented object's architecture (gfx908/gfx940/...);
-  // emitLoadRelative is on the base.
-  EmitterAmdgpu* emitter = getAmdgpuEmitter(gen, point);
-
-  emitter->emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);
+  if (scratch_) {
+    // Pillar A: give the entry codeGen a POINT-SPECIALIZED registerSpace so the scratch
+    // prologue allocates its temps by LIVENESS (via gen.rs()->allocateGprBlock), exactly
+    // like emitCall's reserved block and the springboard long-jump. At kernel entry only
+    // the ABI-preloaded regs are live; emitScratchEntryPrologue marks those (and v0/v1/v2)
+    // off-limits and allocates the rest. If there is no instPoint / liveness is off, it
+    // falls back to computed placement.
+    if (instPoint *iP = dynamic_cast<instPoint *>(point)) {
+      gen.setPoint(iP);
+      gen.setAddrSpace(iP->proc());
+      if (registerSpace *rs = registerSpace::actualRegSpace(iP))
+        gen.setRegisterSpace(rs);
+    }
+    // Reconstruct the (already-rewritten) KD and emit the arch-specific scratch
+    // entry setup: FLAT_SCRATCH = flat_scratch_init + wave_offset, then relocate
+    // the shifted system SGPRs back where the un-shifted kernel expects them.
+    AmdgpuKernelDescriptor kd(kdBytes_.data(), kdBytes_.size(), eflag_);
+    gfx908ScratchAbi().emitScratchEntryPrologue(kd, originalKernargSize_, systemSgprShift_,
+                                                originalPrivateSegment_, gen);
+  } else {
+    // Use the per-object arch-correct emitter (gfx908/gfx90a/gfx940) selected at runtime;
+    // emitLoadRelative is on the base. getAmdgpuEmitter resolves it from the point's object.
+    EmitterAmdgpu *emitter = getAmdgpuEmitter(gen, point);
+    emitter->emitLoadRelative(dest_, offset_, base_, /* size= */ 2, gen);
+  }
 
   buffer.copy(gen.start_ptr(), gen.used());
 
   return true;
 }
 
-// Similar approach to prologue
+// Similar approach to prologue.
 bool AmdgpuEpilogue::generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer) {
   // We need 8 bytes for the epilogue (a s_dcache_wb instruction).
   codeGen gen(20);
 
   // Use the emitter for the instrumented object's architecture (gfx908/gfx940/...);
   // emitScalarDataCacheWriteback is on the base.
-  EmitterAmdgpu* emitter = getAmdgpuEmitter(gen, point);
-
+  EmitterAmdgpu *emitter = getAmdgpuEmitter(gen, point);
   emitter->emitScalarDataCacheWriteback(gen);
 
   buffer.copy(gen.start_ptr(), gen.used());

@@ -49,6 +49,11 @@ class block_instance;
 class func_instance;
 class edge_instance;
 
+// AMDGPU: canonical per-kernel descriptor metadata cached on the mapped_object
+// (see amdgpu-kernel-meta.h). Forward-declared so this widely-included header stays
+// free of the AMDGPU KD headers.
+namespace Dyninst { namespace DyninstAPI { struct KernelMeta; } }
+
 using namespace std;
 using namespace Dyninst;
 using Dyninst::PatchAPI::DynCFGMaker;
@@ -278,6 +283,14 @@ public:
 
     bool  getSymbolInfo(const std::string &n, int_symbol &sym);
 
+    // AMDGPU (pillar B): the single canonical per-kernel KD metadata, sourced ONCE
+    // from the "<kernelName>.kd" symbol and cached here. Returns nullptr if this
+    // object has no such kernel (ordinary device function). flushAmdgpuKernelMeta()
+    // commits every dirty KD back to the data space and is called at ELF-emit
+    // (BinaryEdit::writeFile). Defined in amdgpu-kernel-meta.C (AMDGPU builds only).
+    Dyninst::DyninstAPI::KernelMeta *getAmdgpuKernelMeta(const std::string &kernelName);
+    void flushAmdgpuKernelMeta();
+
     // All name lookup functions are vectorized, because you can have
     // multiple overlapping names for all sorts of reasons.
     // Demangled/"pretty": easy overlap (overloaded funcs, etc.).
@@ -395,6 +408,10 @@ public:
 
     std::map<block_instance *, std::string> calleeNames_;
     std::map<const block_instance *, func_instance *> callees_;
+
+    // AMDGPU (pillar B): per-kernel KD metadata, keyed by mangled kernel name. A null
+    // value negative-caches "not a kernel". Owned here; freed at flushAmdgpuKernelMeta().
+    std::map<std::string, Dyninst::DyninstAPI::KernelMeta *> amdgpuKernelMeta_;
 
 };
 

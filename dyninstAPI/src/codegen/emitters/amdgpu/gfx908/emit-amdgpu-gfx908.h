@@ -32,12 +32,25 @@
 #define _EMIT_AMDGPU_GFX908_H
 
 #include "codegen/emitters/amdgpu/emit-amdgpu.h"
+#include "function_cache.h"
 
 class codeGen;
 
-// Thin per-gen concrete emitter: supplies only this gen's ENC-typed packers. Everything else
-// is inherited from EmitterAmdgpu. A sibling gen (e.g. EmitterAmdgpuGfx942) drops in the same way.
+// Thin per-gen concrete emitter: supplies only this gen's MachRegister adapter + its ENC-typed packers,
+// each naming ONLY amdgpu_gfx908. Everything else is inherited from EmitterAmdgpu. A sibling gen
+// (e.g. EmitterAmdgpuGfx940) drops in the same way (sed amdgpu_gfx908 -> amdgpu_gfx940).
+//
+// gfx908 also provides the inter-module CALL path (emitCall + its emitIndirectCall helper and
+// clobberAllFuncCall) -- an open-coded emitter defined in amdgpu-emitcall-gfx908.C that routes through
+// this emitter's raw*/toOpCode surface and the gfx908 ScratchAbi. These are gfx908-specific (they use
+// gfx908ScratchAbi and the gfx908 ABI), so they override the base stubs here rather than in #2591.
 class EmitterAmdgpuGfx908 : public EmitterAmdgpu {
+public:
+  Dyninst::Register emitCall(opCode op, codeGen &gen,
+                             const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands,
+                             func_instance *callee) override;
+  bool clobberAllFuncCall(registerSpace *rs, func_instance *callee) override;
+
 protected:
   void rawSop1(unsigned opcode, Dyninst::Register dest, Dyninst::Register src0, bool hasLiteral,
                uint32_t literal, codeGen &gen) override;
@@ -56,6 +69,11 @@ protected:
   void rawFlatGlobal(unsigned opcode, uint32_t vdst, uint32_t addr, uint32_t data, uint32_t saddr,
                      int32_t offset, codeGen &gen, bool glc, uint32_t seg) override;
   uint16_t toOpCode(AmdgpuOp op) const override;
+
+private:
+  // clobberAllFuncCall can be expensive, so memoize analyzed callees. (The call body itself is the
+  // shared gfx9-family amdgpuEmitCall free function in amdgpu-emitcall-gfx908.C.)
+  Dyninst::DyninstAPI::function_cache clobbered_functions;
 };
 
 #endif // _EMIT_AMDGPU_GFX908_H

@@ -339,7 +339,7 @@ public:
   // so it does not collide with the pervasive `unsigned opcode` parameters/locals in the emit* bodies.)
   virtual uint16_t toOpCode(AmdgpuOp op) const = 0;
 
-private:
+public:
 
   // Inter-module address resolution (GOT/relocation). public so the open-coded call emitter can
   // resolve an external callee's address through the runtime-selected emitter.

@@ -34,6 +34,11 @@
 #include "codegen/codegen.h"
 #include "codegen/emitters/amdgpu/emit-amdgpu.h"
 #include "dyninstAPI/src/registerSpace/registerSpace.h"
+#include "registerSpace/registerSlot.h"
+#include "mapped_object.h"
+#include "AmdgpuKernelDescriptor.h"
+#include "amdgpu-abi-sgpr.h"
+#include "amdgpu-kernel-meta.h"
 #include <cstdint>
 #include <cstdio>
 #include <stdlib.h>
@@ -82,6 +87,49 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
 
     registerSpace *regSpace = registerSpace::actualRegSpace(blockEntryPoint);
     assert(regSpace);
+
+    // Reserve the SGPRs the call path keeps live so the springboard's s_getpc veneer does not
+    // clobber them. Dyninst's point liveness marks the ORIGINAL live inputs (kernarg etc.), but it
+    // does not know (a) that enabling scratch shifts the system SGPRs up, nor (b) that emitCall
+    // reserves a spill block just below the special regs (reservedBase = grantTop-10). Read the
+    // caller kernel's ABI layout + grant from the canonical KernelMeta and mark both ranges live so
+    // the long-jump allocation (below) places the pairs clear of them. (Root-caused on gfx908: the
+    // springboard grabbed s[8:9], the pair emitCall reserves for the kernarg pointer.)
+    {
+      mapped_object *fobj = funcInstance->obj();
+      Dyninst::DyninstAPI::KernelMeta *km =
+          fobj ? fobj->getAmdgpuKernelMeta(funcInstance->symTabName()) : nullptr;
+      if (km) {
+        const Dyninst::DyninstAPI::AbiSgprLayout &L = km->layout();
+        // ARCHITECTED flat scratch (gfx942/CDNA3): no Private Segment Buffer, so the kernarg ptr is
+        // the FIRST user SGPRs (s[0:1]) and IS read by the entry prologue; scratchEnabled() is false.
+        // Reserve the full ABI live-in range [0, liveSgprEnd) there so the kernarg pointer survives.
+        // gfx908: kernarg sits at s[4:5]+ and s[0:3] (Private Segment Buffer) is dead at entry, so
+        // the system-SGPR-only reservation [userSgprCount, liveSgprEnd) is correct.
+        const bool architected = km->kd.supportsArchitectedFlatScratch();
+        if (L.scratchEnabled() || architected) {
+          const uint32_t liveStart = architected ? 0u : L.userSgprCount;
+          for (uint32_t n = liveStart; n < L.liveSgprEnd; n++) {
+            // A codegen Register is the SGPR operand code, which is the number itself.
+            Dyninst::Register r = n;
+            if (registerSlot *slot = (*regSpace)[r])
+              slot->liveState = registerSlot::live;
+          }
+          // Also reserve emitCall's SGPR spill block: reservedBase = grantTop-10, and the top 6
+          // SGPRs are special (VCC + XNACK gap + FLAT_SCRATCH per LLVM getNumExtraSGPRs), so the
+          // 4-reg spill block sits at [grantTop-10, grantTop-6). These survive the whole kernel, so
+          // the long-jump pairs must not land on them.
+          const uint32_t grantTop = km->grantedSgprTop();
+          if (grantTop >= 10) {
+            for (uint32_t n = grantTop - 10; n < grantTop - 6; n++) {
+              Dyninst::Register r = n;
+              if (registerSlot *slot = (*regSpace)[r])
+                slot->liveState = registerSlot::live;
+            }
+          }
+        }
+      }
+    }
 
     // The long jump needs two independent 64-bit SGPR pairs (the s_getpc/s_setpc PC pair and the
     // diff-constant pair). Allocate two pairs rather than one contiguous 4-register block: each is

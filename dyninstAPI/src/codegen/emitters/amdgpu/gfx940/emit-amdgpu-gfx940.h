@@ -32,12 +32,23 @@
 #define _EMIT_AMDGPU_GFX940_H
 
 #include "codegen/emitters/amdgpu/emit-amdgpu.h"
+#include "function_cache.h"
 
 class codeGen;
 
 // Thin per-gen concrete emitter: supplies only this gen's MachRegister adapter + its ENC-typed packers,
 // each naming ONLY amdgpu_gfx940. Everything else is inherited from EmitterAmdgpu.
+//
+// gfx942 objects select this emitter at runtime, so it also provides the inter-module CALL path. The
+// call body is the shared gfx9-family amdgpuEmitCall (amdgpu-emitcall-gfx908.C) -- gfx908 manual flat
+// scratch + gfx942 architected scratch branched at runtime on the KD; these overrides just delegate.
 class EmitterAmdgpuGfx940 : public EmitterAmdgpu {
+public:
+  Dyninst::Register emitCall(opCode op, codeGen &gen,
+                             const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands,
+                             func_instance *callee) override;
+  bool clobberAllFuncCall(registerSpace *rs, func_instance *callee) override;
+
 protected:
   void rawSop1(unsigned opcode, Dyninst::Register dest, Dyninst::Register src0, bool hasLiteral,
                uint32_t literal, codeGen &gen) override;
@@ -56,6 +67,10 @@ protected:
   void rawFlatGlobal(unsigned opcode, uint32_t vdst, uint32_t addr, uint32_t data, uint32_t saddr,
                      int32_t offset, codeGen &gen, bool glc, uint32_t seg) override;
   uint16_t toOpCode(AmdgpuOp op) const override;
+
+private:
+  // Memoize callees analyzed by clobberAllFuncCall (the call body is shared amdgpuEmitCall).
+  Dyninst::DyninstAPI::function_cache clobbered_functions;
 };
 
 #endif // _EMIT_AMDGPU_GFX940_H

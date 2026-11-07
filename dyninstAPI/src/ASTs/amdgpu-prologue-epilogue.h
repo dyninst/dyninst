@@ -35,30 +35,57 @@
 #include "ASTs/ast.h"
 #include "common/src/dyn_register.h"
 #include "patchAPI/h/Snippet.h"
+#include "AmdgpuKernelDescriptor.h"
+#include <vector>
+#include <cstdint>
 
 namespace Dyninst { namespace DyninstAPI {
 
-// The prologue loads a register pair with address of the buffer containing instrumentation
-// variables.
-// PatchAPI snippet is used to insert the following prologue:
+// The active prologue is the SCRATCH-mode form (KD-carrying constructor below): it sets up
+// FLAT_SCRATCH and relocates the shifted system SGPRs for hardware-scratch register spilling.
 //
-// Example when dest = 94, base = 4, offset = 0xabc; address_of_buffer is at s[4:5] + 0xabc.
-// Load it into s[94:95].
-//
-// s_load_dwordx2 s[94:95], s[4:5], 0xabc
-// s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
+// LEGACY (no longer used): the dest/base/offset constructor originally loaded a per-wave
+// buffer pointer from a kernarg slot into a register pair (s[94:95]) via
+// `s_load_dwordx2 s[94:95], s[4:5], <offset>`. The scratch backend replaced this; s[94:95]
+// is no longer used anywhere.
 //
 class AmdgpuPrologue : public Dyninst::PatchAPI::Snippet {
 public:
   AmdgpuPrologue(Dyninst::Register dest, Dyninst::Register base, unsigned offset)
       : dest_(dest), base_(base), offset_(offset) {}
 
+  // Scratch-mode prologue: instead of loading a global buffer pointer into
+  // s[94:95], set up FLAT_SCRATCH and relocate any shifted system SGPRs (the
+  // "record the register update" step). Carries the already-rewritten KD
+  // serialized to bytes (reconstructed in generate()).
+  AmdgpuPrologue(const Dyninst::AmdgpuKernelDescriptor &kd, unsigned eflag,
+                 uint32_t originalKernargSize = 0, uint32_t systemSgprShift = 2,
+                 uint32_t originalPrivateSegment = 0)
+      : scratch_(true), eflag_(eflag),
+        originalKernargSize_(originalKernargSize),
+        systemSgprShift_(systemSgprShift),
+        originalPrivateSegment_(originalPrivateSegment), kdBytes_(64) {
+    kd.writeToMemory(kdBytes_.data());
+  }
+
   bool generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer);
 
 private:
-  Dyninst::Register dest_;
-  Dyninst::Register base_;
-  unsigned offset_;
+  Dyninst::Register dest_{};
+  Dyninst::Register base_{};
+  unsigned offset_ = 0;
+  bool scratch_ = false;
+  unsigned eflag_ = 0;
+  // Pristine kernarg_segment_size (before dyninst grew it by 8). The entry prologue
+  // needs the ORIGINAL size for the per-wave-buffer pointer load / COV5 implicit-args
+  // offset, kept distinct from the grown value in the KD (pillar B).
+  uint32_t originalKernargSize_ = 0;
+  // System-SGPR shift enableScratchInKD applied (2 = leaf, just-enabled; 0 = non-leaf,
+  // compiler already had flat_scratch_init). Drives the wgid relocation in the prologue.
+  uint32_t systemSgprShift_ = 2;
+  // Caller kernel's own scratch frame size; the IACR is seated above it (SADDR=O).
+  uint32_t originalPrivateSegment_ = 0;
+  std::vector<uint8_t> kdBytes_;
 };
 
 // The AST node for the above PatchAPI snippet.

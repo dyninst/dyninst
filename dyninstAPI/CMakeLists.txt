@@ -104,6 +104,9 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9)
     src/inst-amdgpu.C
     src/AmdgpuKernelDescriptor.C
     src/AmdgpuPointHandler.C
+    src/amdgpu-kernel-meta.C
+    src/amdgpu-scratch-abi-gfx908.C
+    src/amdgpu-emitcall-gfx908.C
   )
 endif()
 
