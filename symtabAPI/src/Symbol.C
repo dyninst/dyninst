@@ -206,38 +206,14 @@ DYNINST_EXPORT bool Symbol::setSymbolType(SymbolType sType)
     return true;
 }
 
-DYNINST_EXPORT bool Symbol::setVersionFileName(std::string fileName)
+DYNINST_EXPORT void Symbol::setVersionFileName(std::string fileName)
 {
-   if (hasVersionFileName_)
-      return false;
    versionFileName_ = std::move(fileName);
-   hasVersionFileName_ = true;
-   return true;
 }
 
-DYNINST_EXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
+DYNINST_EXPORT void Symbol::setVersions(std::vector<std::string> vers)
 {
-   if (hasVersionNames_)
-      return false;
-   verNames_ = vers;
-   hasVersionNames_ = true;
-   return true;
-}
-
-DYNINST_EXPORT bool Symbol::getVersionFileName(std::string &fileName) const
-{
-   if (!hasVersionFileName_)
-      return false;
-   fileName = versionFileName_;
-   return true;
-}
-
-DYNINST_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers) const
-{
-   if (!hasVersionNames_)
-      return false;
-   vers = const_cast<std::vector<std::string> *>(&verNames_);
-   return true;
+   verNames_ = std::move(vers);
 }
 
 DYNINST_EXPORT bool Symbol::setMangledName(std::string name)

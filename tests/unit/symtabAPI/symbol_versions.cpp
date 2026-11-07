@@ -72,10 +72,8 @@ int main(int argc, char **argv) {
   std::vector<st::Symbol *> candidates;
   libc->findSymbol(candidates, "getpid", st::Symbol::ST_UNKNOWN, st::mangledName);
   st::Symbol *referring = nullptr;
-  std::vector<std::string> *referring_versions = nullptr;
   for (auto *s : candidates) {
-    if (s->isInDynSymtab() && s->getVersions(referring_versions) &&
-        referring_versions && !referring_versions->empty()) {
+    if (s->isInDynSymtab() && !s->getVersions().empty()) {
       referring = s;
       break;
     }
@@ -83,7 +81,7 @@ int main(int argc, char **argv) {
   if (!referring) {
     return skip_message("no versioned getpid in " + libc_file);
   }
-  std::string const expected = (*referring_versions)[0];
+  std::string const expected = referring->getVersions()[0];
 
   auto *sym = new st::Symbol(referring->getMangledName(), referring->getType(),
                              st::Symbol::SL_GLOBAL, st::Symbol::SV_DEFAULT, 0,
@@ -95,14 +93,10 @@ int main(int argc, char **argv) {
   }
   clobber_stack();
 
-  std::vector<std::string> *versions = nullptr;
-  if (!sym->getVersions(versions) || !versions) {
-    std::fprintf(stderr, "the new symbol has no versions\n");
-    return EXIT_FAILURE;
-  }
-  if (versions->size() != 1 || (*versions)[0] != expected) {
+  auto const &versions = sym->getVersions();
+  if (versions.size() != 1 || versions[0] != expected) {
     std::fprintf(stderr, "expected version %s, got %zu entries\n",
-                 expected.c_str(), versions->size());
+                 expected.c_str(), versions.size());
     return EXIT_FAILURE;
   }
   return EXIT_SUCCESS;

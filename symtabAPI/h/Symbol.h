@@ -203,13 +203,18 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
    bool  setDebug(bool dbg) { isDebug_ = dbg; return true; }
    bool  setCommonStorage(bool cs) { isCommonStorage_ = cs; return true; }
 
-   bool  setVersionFileName(std::string fileName);
-   bool  setVersions(std::vector<std::string> &vers);
+   // ELF symbol versioning, for SymtabAPI and the rewriter only. The version
+   // file name is the library that must provide this symbol (a version
+   // requirement); it is empty for a symbol this file defines. The version
+   // names are the symbol's version first, then any it inherits; they are
+   // empty for an unversioned symbol.
+   void setVersionFileName(std::string fileName);
+   void setVersions(std::vector<std::string> vers);
    bool  setVersionNum(unsigned verNum);
    void setVersionHidden() { versionHidden_ = true; }
 
-   bool  getVersionFileName(std::string &fileName) const;
-   bool  getVersions(std::vector<std::string> *&vers) const;
+   std::string const &getVersionFileName() const { return versionFileName_; }
+   std::vector<std::string> const &getVersions() const { return verNames_; }
    bool  getVersionHidden() const { return versionHidden_; }
 
    friend
@@ -249,8 +254,6 @@ class DYNINST_EXPORT Symbol : public AnnotatableSparse
    std::string versionFileName_;
    std::vector<std::string> verNames_;
 
-   bool hasVersionFileName_{false};
-   bool hasVersionNames_{false};
    bool versionHidden_{false};
 };
 
