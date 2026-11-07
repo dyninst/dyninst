@@ -369,7 +369,8 @@ Parser::parse_vanilla()
     // Parse the hints in order of the distance to the next hint, smallest first, with ties
     // broken by address.  The order in which equal-sized functions are parsed decides which
     // jump tables are analyzed first and so which blocks and edges exist when a table is
-    // read; ordering by address keeps the serial parse independent of the heap layout.
+    // read; ordering by address keeps the serial parse independent of the heap layout
+    // (within a region; see delayed_frames in Parser.h).
     struct HintOrder {
         Address gap;
         Address addr;

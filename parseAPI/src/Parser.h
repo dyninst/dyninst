@@ -92,7 +92,9 @@ namespace Dyninst {
             // are resumed in the order of the set, and the delayed callees are visited in
             // the order of delayed_funcs_by_addr(); both orders are by function address,
             // which keeps the serial parse order, and with it the jump table results,
-            // independent of the heap layout.
+            // independent of the heap layout.  Addresses are unique only within a region:
+            // in a relocatable object or an archive the regions overlap, functions in
+            // different regions can share an address, and their relative order is not fixed.
             struct FrameByAddr {
                 bool operator()(const ParseFrame* a, const ParseFrame* b) const;
             };
