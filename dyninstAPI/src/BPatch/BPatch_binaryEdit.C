@@ -60,7 +60,7 @@
 
 #include "boost/filesystem.hpp"
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
 #include "AmdgpuPointHandler.h"
 #endif
 
@@ -225,7 +225,7 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
 
    progress_printf("write: writing primary output file %s\n", outFile);
    if( !origBinEdit->writeFile(outFile) ) return false;
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
    std::string inputFileName = this->getImage()->getProgramFileName();
    auto *amdgpuPointHandler = dynamic_cast<Dyninst::DyninstAPI::AmdgpuGfx908PointHandler* >(pointHandler.get());
    assert(amdgpuPointHandler);

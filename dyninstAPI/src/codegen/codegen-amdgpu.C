@@ -82,10 +82,14 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
     registerSpace *regSpace = registerSpace::actualRegSpace(blockEntryPoint);
     assert(regSpace);
 
-    // We relax the alignment to pair because we will use the 4 registers as 2 pairs.
-    Dyninst::Register regBlock = regSpace->allocateGprBlock(Dyninst::RegKind::SCALAR, /* numRegs */4, NS_amdgpu::PAIR_ALIGNMENT);
-    emitter->emitLongJump(regBlock, from, to, gen);
-    regSpace->freeGprBlock(regBlock);
+    // The long jump needs two independent 64-bit SGPR pairs (the s_getpc/s_setpc PC pair and the
+    // diff-constant pair). Allocate two pairs rather than one contiguous 4-register block: each is
+    // independently even-aligned, and 2+2 non-contiguous SGPRs can be found where 4 contiguous cannot.
+    Dyninst::Register pcPair = regSpace->allocateGprBlock(Dyninst::RegKind::SCALAR, /* numRegs */ 2, /* alignment */ 2);
+    Dyninst::Register diffPair = regSpace->allocateGprBlock(Dyninst::RegKind::SCALAR, /* numRegs */ 2, /* alignment */ 2);
+    emitter->emitLongJump(pcPair, diffPair, from, to, gen);
+    regSpace->freeGprBlock(diffPair);
+    regSpace->freeGprBlock(pcPair);
   }
 }
 
