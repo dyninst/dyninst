@@ -437,12 +437,56 @@ namespace {
     }
     return true;
   }
+
+  // sc writes rd, but whether the store happens depends on the reservation at run time,
+  // so rd has no value the evaluation can check.
+  struct unknown_case {
+    char const *text;
+    uint32_t encoding;
+  };
+
+  unknown_case const unknown_cases[] = {
+      {"sc.w  a0, a1, (a2)", 0x18b6252f},
+      {"sc.d  a0, a1, (a2)", 0x18b6352f},
+  };
+
+  // Reports the case and returns false if the instruction does not write an unknown
+  // value to a0.
+  bool check_unknown(unknown_case const &c) {
+    using namespace Dyninst;
+    std::array<unsigned char, 4> bytes{};
+    for(int i = 0; i < 4; ++i) {
+      bytes[i] = static_cast<unsigned char>(c.encoding >> (8 * i));
+    }
+    InstructionAPI::InstructionDecoder dec(bytes.data(), bytes.size(), Arch_riscv64);
+    InstructionAPI::Instruction const insn = dec.decode();
+    if(!insn.isValid()) {
+      std::cerr << c.text << ": could not decode\n";
+      return false;
+    }
+
+    Assignment::Ptr a =
+        Assignment::makeAssignment(insn, insn_addr, nullptr, nullptr, AbsRegion(Absloc(rv::a0)));
+    AST::Ptr const e = DataflowAPI::SymEval::expand(a, false).first;
+    if(!e) {
+      std::cerr << c.text << ": a0 not written\n";
+      return false;
+    }
+    if(e->getID() != AST::V_BottomAST) {
+      std::cerr << c.text << ": a0 = " << e->format() << ", expected an unknown value\n";
+      return false;
+    }
+    return true;
+  }
 }
 
 int main() {
   bool ok = true;
   for(auto const &c : cases) {
     ok = check(c) && ok;
+  }
+  for(auto const &c : unknown_cases) {
+    ok = check_unknown(c) && ok;
   }
   return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }

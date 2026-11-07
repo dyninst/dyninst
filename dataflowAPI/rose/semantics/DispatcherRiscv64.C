@@ -853,6 +853,9 @@ struct IP_STORECON : P {
     data = ops->extract(d->read(rs2, 64, 0), 0, width * 8);
     tmp = d->effectiveAddress(rs1);
     d->writeMemory(tmp, width, data);
+    // rd is 0 if the store happened and 1 if it did not, which depends on the
+    // reservation at run time.
+    d->write(rd, ops->unspecified_(64));
     return;
   }
 };
