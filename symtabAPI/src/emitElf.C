@@ -181,45 +181,39 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
             if (vers.empty()) {
                 if (symbol->getLinkage() == Symbol::SL_GLOBAL) {
                     versionSymTable.push_back(1);
-
                 } else {
                     versionSymTable.push_back(0);
                     rewrite_printf( "  local\n");
                 }
             } else {
                 // new verdef entry
+                const string &symVersion = vers[0];
                 rewrite_printf( "verdef: symbol=%s  version=%s ", symbol->getMangledName().c_str(),
-                                vers[0].c_str());
-                if (verdefEntries.find(vers[0]) != verdefEntries.end()) {
-                    unsigned short index = verdefEntries[vers[0]];
-                    if (symbol->getVersionHidden()) index += 0x8000;
-                    versionSymTable.push_back(index);
+                                symVersion.c_str());
+                auto knownVerdef = verdefEntries.find(symVersion);
+                unsigned short verdefIndex;
+                if (knownVerdef != verdefEntries.end()) {
+                    verdefIndex = knownVerdef->second;
                 } else {
                     // The library's own SONAME version is the base definition,
                     // which must use VER_NDX_GLOBAL rather than a sequential index
                     const char *soname = object->getSOName();
-                    bool isBase = (soname && vers[0] == soname);
-                    unsigned short verndx = isBase ? VER_NDX_GLOBAL
-                                                   : (unsigned short) curVersionNum;
-                    unsigned short index = verndx;
-                    if (symbol->getVersionHidden()) index += 0x8000;
-                    versionSymTable.push_back(index);
-
-                    verdefEntries[vers[0]] = verndx;
+                    bool isBase = (soname && symVersion == soname);
+                    verdefIndex = isBase ? VER_NDX_GLOBAL : (unsigned short) curVersionNum;
+                    verdefEntries[symVersion] = verdefIndex;
                     if (!isBase) curVersionNum++;
                 }
-                // add all versions to the verdef entry
-                for (unsigned i = 0; i < vers.size(); i++) {
-                    rewrite_printf( "  {%s}", vers[i].c_str());
-                    if (versionNames.find(vers[i]) == versionNames.end()) {
-                        versionNames[vers[i]] = 0;
-                    }
+                unsigned short versymEntry = verdefIndex;
+                if (symbol->getVersionHidden()) versymEntry += 0x8000;
+                versionSymTable.push_back(versymEntry);
 
-                    if (find(verdauxEntries[verdefEntries[vers[0]]].begin(),
-                             verdauxEntries[verdefEntries[vers[0]]].end(),
-                             vers[i]) == verdauxEntries[verdefEntries[vers[0]]].end()) {
-                        verdauxEntries[verdefEntries[vers[0]]].push_back(vers[i]);
-                    }
+                // add all versions to the verdef entry
+                auto &verdefNames = verdauxEntries[verdefIndex];
+                for (const string &name : vers) {
+                    rewrite_printf( "  {%s}", name.c_str());
+                    versionNames.emplace(name, 0);
+                    if (find(verdefNames.begin(), verdefNames.end(), name) == verdefNames.end())
+                        verdefNames.push_back(name);
                 }
                 rewrite_printf( "\n");
             }
@@ -231,13 +225,11 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
             if (vers.size() != 1) {
                 // add an unversioned dependency
                 // If the file is not an executable, then add to unversioned entries
-                if (!symbol->getReferringSymbol()->getSymtab()->isExec()) {
-                    if (find(unversionedNeededEntries.begin(),
-                             unversionedNeededEntries.end(),
-                             fileName) == unversionedNeededEntries.end()) {
-                        rewrite_printf( "  new unversioned: %s\n", fileName.c_str());
-                        unversionedNeededEntries.push_back(fileName);
-                    }
+                if (!symbol->getReferringSymbol()->getSymtab()->isExec() &&
+                    find(unversionedNeededEntries.begin(), unversionedNeededEntries.end(),
+                         fileName) == unversionedNeededEntries.end()) {
+                    rewrite_printf( "  new unversioned: %s\n", fileName.c_str());
+                    unversionedNeededEntries.push_back(fileName);
                 }
 
                 if (symbol->getLinkage() == Symbol::SL_GLOBAL) {
@@ -250,27 +242,20 @@ bool emitElf<ElfTypes>::createElfSymbol(Symbol *symbol, unsigned strIndex, vecto
                 // There should only be one version string by this time
                 //If the version name already exists then add the same version number to the version symbol table
                 //Else give a new number and add it to the mapping.
-                if (versionNames.find(vers[0]) == versionNames.end()) {
-                    rewrite_printf( "  new version name: %s\n", vers[0].c_str());
-                    versionNames[vers[0]] = 0;
-                }
+                const string &neededVersion = vers[0];
+                if (versionNames.emplace(neededVersion, 0).second)
+                    rewrite_printf( "  new version name: %s\n", neededVersion.c_str());
 
-                if (verneedEntries.find(fileName) != verneedEntries.end()) {
-                    if (verneedEntries[fileName].find(vers[0]) != verneedEntries[fileName].end()) {
-                        rewrite_printf( "  vernum: %u\n", verneedEntries[fileName][vers[0]]);
-                        versionSymTable.push_back((unsigned short) verneedEntries[fileName][vers[0]]);
-                    } else {
-                        rewrite_printf( "  new entry #%d: %s [%s]\n",
-                                        curVersionNum, vers[0].c_str(), fileName.c_str());
-                        versionSymTable.push_back((unsigned short) curVersionNum);
-                        verneedEntries[fileName][vers[0]] = curVersionNum;
-                        curVersionNum++;
-                    }
+                auto &fileVerneeds = verneedEntries[fileName];
+                auto knownVerneed = fileVerneeds.find(neededVersion);
+                if (knownVerneed != fileVerneeds.end()) {
+                    rewrite_printf( "  vernum: %u\n", knownVerneed->second);
+                    versionSymTable.push_back((unsigned short) knownVerneed->second);
                 } else {
                     rewrite_printf( "  new entry #%d: %s [%s]\n",
-                                    curVersionNum, vers[0].c_str(), fileName.c_str());
+                                    curVersionNum, neededVersion.c_str(), fileName.c_str());
                     versionSymTable.push_back((unsigned short) curVersionNum);
-                    verneedEntries[fileName][vers[0]] = curVersionNum;
+                    fileVerneeds[neededVersion] = curVersionNum;
                     curVersionNum++;
                 }
             }
