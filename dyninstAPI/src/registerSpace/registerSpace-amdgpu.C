@@ -90,7 +90,7 @@ void registerSpace::initialize64() { assert(!"No 64-bit registers for AMDGPU"); 
 void registerSpace::initialize() { initialize32(); }
 
 Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind regKind, uint32_t numRegs,
-                                                  Dyninst::Alignment alignment) {
+                                                  uint32_t alignment) {
   uint32_t minGprId = 0;
   uint32_t maxGprId = 0;
 
@@ -109,7 +109,8 @@ Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind regKind, uint
       return Dyninst::Null_Register;
   }
 
-  uint32_t alignmentValue{alignment.getValue()};
+  uint32_t alignmentValue{alignment};
+  assert(alignmentValue != 0 && "alignment must be >= 1");
   assert(minGprId % alignmentValue == 0);
 
   // Check whether the single individual consecutive registers can be allocated

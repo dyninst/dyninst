@@ -45,8 +45,7 @@
 
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "inst-x86.h"
-#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A) || \
-    defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX950)
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
 #include "arch-amdgpu.h"
 #include <map>
 #endif
@@ -63,8 +62,7 @@ class registerSpace {
     static registerSpace *globalRegSpace_;
     static registerSpace *globalRegSpace64_;
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A) || \
-    defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940) || defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX950)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
     // AMDGPU generations can coexist in one process (a mutator may touch kernels
     // of several gens), and the generation -- not just the address width --
     // selects the special registers. So the register space is built and cached
@@ -116,7 +114,7 @@ class registerSpace {
     bool allocateSpecificRegister(codeGen &gen, Dyninst::Register r);
 
     bool canAllocate(Dyninst::Register reg) const;
-    Dyninst::Register allocateGprBlock(Dyninst::RegKind regKind, uint32_t numRegs, Dyninst::Alignment alignment);
+    Dyninst::Register allocateGprBlock(Dyninst::RegKind regKind, uint32_t numRegs, uint32_t alignment);
     void freeGprBlock(Dyninst::Register regBlock);
 
 
@@ -331,7 +329,7 @@ class registerSpace {
     static unsigned FPR(Dyninst::Register x) { return x - fpr0; }
     int framePointer() { return r29; }
 #endif
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
     static unsigned GPR(Dyninst::Register x) { return x; }
     static unsigned FPR(Dyninst::Register x) { return x; }
     static unsigned SPR(Dyninst::Register x) { return x; }

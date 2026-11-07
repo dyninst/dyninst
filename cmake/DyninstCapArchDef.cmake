@@ -56,8 +56,12 @@ elseif(DYNINST_CODEGEN_ARCH_AARCH64)
 elseif(DYNINST_CODEGEN_ARCH_RISCV64)
   set(ARCH_DEFINES_CODEGEN -Darch_riscv64 -Darch_64bit)
   set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
-elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx908 -Darch_64bit)
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9)
+  # One gfx9-family AMDGPU codegen build. The neutral arch_amdgpu_gfx9_codegen
+  # (-> DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN) guards ALL shared AMDGPU codegen; no gen is
+  # privileged at build time. Every per-gen emitter (gfx908/gfx90a/gfx940) compiles in and is
+  # selected per instrumented object at runtime via getEmitter()/getRegisterSpace().
+  set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx9_codegen -Darch_64bit)
   set(
     CAP_DEFINES
     -Dcap_fixpoint_gen
