@@ -49,7 +49,9 @@ protected:
                               uint32_t literal, codeGen &gen) override;
   void rawSopK(unsigned opcode, Dyninst::Register dest, int16_t simm16, codeGen &gen) override;
   void rawSopC(unsigned opcode, Dyninst::Register src0, Dyninst::Register src1, codeGen &gen) override;
+  void rawSopP(unsigned opcode, int16_t simm16, codeGen &gen) override;
   void rawSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset, codeGen &gen) override;
+  uint16_t toOpCode(AmdgpuOp op) const override;
 };
 
 #endif // _EMIT_AMDGPU_GFX908_H

@@ -36,6 +36,7 @@
 #include "patching/instPoint.h"
 #include <assert.h>
 #include "ASTs/codeGenAST.h"
+#include <cstdint>
 #include <vector>
 
 #include "codegen/emitters/amdgpu/gfx908/amdgpu-gfx908-details.h"
@@ -46,6 +47,37 @@ class codeGen;
 class registerSpace;
 
 class baseTramp;
+
+// The scalar opcodes the architecture-common emitter emits, as (format, mnemonic) pairs. This one list
+// drives both the AmdgpuOp enum and every per-gen EmitterAmdgpu<Gen>::opcode() switch, so the opcode set
+// lives in exactly one place. The concrete value for each (format, mnemonic) comes from that gen's
+// GENERATED amdgpu_<gen>::op::<FORMAT>::<MNEMONIC> constant (AMDGEN), never a hand-written table -- a gen
+// whose generated header lacks one of these fails to compile its subclass (the loud failure we want).
+// (format, mnemonic) is the key because a mnemonic alone is not unique across formats.
+#define DYNINST_AMDGPU_OPS(X)                                                                              \
+  X(ENC_SOP1, S_MOV_B32) X(ENC_SOP1, S_GETPC_B64) X(ENC_SOP1, S_SETPC_B64)                                \
+  X(ENC_SOP2, S_ADD_I32) X(ENC_SOP2, S_SUB_I32) X(ENC_SOP2, S_MUL_I32) X(ENC_SOP2, S_AND_B32)             \
+  X(ENC_SOP2, S_OR_B32) X(ENC_SOP2, S_XOR_B32) X(ENC_SOP2, S_ADD_U32) X(ENC_SOP2, S_ADDC_U32)             \
+  X(ENC_SOPK, S_ADDK_I32) X(ENC_SOPK, S_MULK_I32) X(ENC_SOPK, S_CMPK_LT_I32) X(ENC_SOPK, S_CMPK_LE_I32)   \
+  X(ENC_SOPK, S_CMPK_GT_I32) X(ENC_SOPK, S_CMPK_GE_I32) X(ENC_SOPK, S_CMPK_EQ_I32)                         \
+  X(ENC_SOPK, S_CMPK_LG_I32) X(ENC_SOPK, S_CMPK_EQ_U32)                                                   \
+  X(ENC_SOPC, S_CMP_LT_I32) X(ENC_SOPC, S_CMP_LE_I32) X(ENC_SOPC, S_CMP_GT_I32) X(ENC_SOPC, S_CMP_GE_I32) \
+  X(ENC_SOPC, S_CMP_EQ_I32) X(ENC_SOPC, S_CMP_LG_I32)                                                     \
+  X(ENC_SMEM, S_LOAD_DWORD) X(ENC_SMEM, S_LOAD_DWORDX2) X(ENC_SMEM, S_LOAD_DWORDX4)                        \
+  X(ENC_SMEM, S_LOAD_DWORDX8) X(ENC_SMEM, S_LOAD_DWORDX16) X(ENC_SMEM, S_STORE_DWORD)                      \
+  X(ENC_SMEM, S_STORE_DWORDX2) X(ENC_SMEM, S_STORE_DWORDX4) X(ENC_SMEM, S_DCACHE_WB)                       \
+  X(ENC_SMEM, S_ATOMIC_ADD) X(ENC_SMEM, S_ATOMIC_SUB)                                                     \
+  X(ENC_SOPP, S_WAITCNT) X(ENC_SOPP, S_NOP) X(ENC_SOPP, S_ENDPGM) X(ENC_SOPP, S_BRANCH)                   \
+  X(ENC_SOPP, S_CBRANCH_SCC0) X(ENC_SOPP, S_CBRANCH_SCC1)
+
+// Gen-neutral opcode identity. The base emitter names opcodes through this enum; each per-gen subclass
+// maps it to that gen's generated value via opcode() (below). Mnemonics in the base set are unique, so
+// the enumerator is the bare mnemonic.
+enum class AmdgpuOp : uint16_t {
+#define DYNINST_AMDGPU_OP_ENUMERATOR(fmt, name) name,
+  DYNINST_AMDGPU_OPS(DYNINST_AMDGPU_OP_ENUMERATOR)
+#undef DYNINST_AMDGPU_OP_ENUMERATOR
+};
 
 class EmitterAmdgpu : public Emitter {
 public:
@@ -250,7 +282,13 @@ protected:
                                       uint32_t literal, codeGen &gen) = 0;
   virtual void rawSopK(unsigned opcode, Dyninst::Register dest, int16_t simm16, codeGen &gen) = 0;
   virtual void rawSopC(unsigned opcode, Dyninst::Register src0, Dyninst::Register src1, codeGen &gen) = 0;
+  virtual void rawSopP(unsigned opcode, int16_t simm16, codeGen &gen) = 0;
   virtual void rawSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset, codeGen &gen) = 0;
+  // Resolve a gen-neutral AmdgpuOp to THIS gen's ISA opcode value, from the gen's generated
+  // amdgpu_<gen>::op::<FORMAT>::<MNEMONIC> constants. Per-gen for the same reason as the packers: each
+  // subclass names only its own gen's namespace. The base never names a gen. (Named toOpCode, not opcode,
+  // so it does not collide with the pervasive `unsigned opcode` parameters/locals in the emit* bodies.)
+  virtual uint16_t toOpCode(AmdgpuOp op) const = 0;
   // Adapt a codegen Register to a MachRegister of THIS gen's arch. Per-gen because the category/size
   // constants (VGPR/SGPR, BITS_*) live in the gen's own register namespace, so each subclass names only
   // its own gen -- no macro, no arch switch. The base never names a gen.

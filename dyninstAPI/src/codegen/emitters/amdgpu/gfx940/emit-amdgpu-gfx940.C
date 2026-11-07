@@ -35,6 +35,7 @@
 
 #include "emit-amdgpu-gfx940.h"
 #include "amdgpu-gfx940-details.h"
+#include "amdgpu-gfx940-encoding.h"
 #include "registers/AMDGPU/amdgpu_gfx940_regs.h"
 
 using namespace Dyninst;
@@ -56,6 +57,20 @@ MachRegister EmitterAmdgpuGfx940::toMachRegister(Register r) const {
   return MachRegister(static_cast<int32_t>(Arch_amdgpu_gfx940) | category | sizeBits | num);
 }
 
+// Map each gen-neutral AmdgpuOp to this gen's generated opcode value (amdgpu_gfx940::op::<FORMAT>::<NAME>).
+// The DYNINST_AMDGPU_OPS list (emit-amdgpu.h) is the single source; a missing or renamed op in this gen's
+// generated header fails to compile here (-Wswitch), which is the intended loud failure.
+uint16_t EmitterAmdgpuGfx940::toOpCode(AmdgpuOp o) const {
+  using namespace Dyninst::amdgpu_gfx940::op;
+  switch (o) {
+#define DYNINST_AMDGPU_OP_CASE(fmt, name) case AmdgpuOp::name: return fmt::name;
+    DYNINST_AMDGPU_OPS(DYNINST_AMDGPU_OP_CASE)
+#undef DYNINST_AMDGPU_OP_CASE
+  }
+  assert(!"EmitterAmdgpuGfx940::toOpCode: unhandled AmdgpuOp");
+  return 0;
+}
+
 // Thin per-gen packers (forward to gfx940's detail-typed helpers).
 void EmitterAmdgpuGfx940::rawSop1(unsigned opcode, Register dest, Register src0, bool hasLiteral,
                                   uint32_t literal, codeGen &gen) {
@@ -74,6 +89,9 @@ void EmitterAmdgpuGfx940::rawSopK(unsigned opcode, Register dest, int16_t simm16
 }
 void EmitterAmdgpuGfx940::rawSopC(unsigned opcode, Register src0, Register src1, codeGen &gen) {
   Dyninst::amdgpu_gfx940::emitSopC(opcode, src0, src1, gen);
+}
+void EmitterAmdgpuGfx940::rawSopP(unsigned opcode, int16_t simm16, codeGen &gen) {
+  Dyninst::amdgpu_gfx940::emitSopP(opcode, simm16, gen);
 }
 void EmitterAmdgpuGfx940::rawSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset,
                                   codeGen &gen) {

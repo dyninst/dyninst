@@ -216,7 +216,7 @@ void emitSopP(unsigned opcode, int16_t simm16, codeGen &gen) {
 // === SMEM BEGIN ===
 unsigned getSmemImmBit(unsigned opcode) {
   switch (opcode) {
-  case S_DCACHE_WB:
+  case op::ENC_SMEM::S_DCACHE_WB:
     return 0;
   default:
     return 1;
