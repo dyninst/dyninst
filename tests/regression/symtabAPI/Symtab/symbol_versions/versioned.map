@@ -1,0 +1,6 @@
+DYNINST_TEST_1.0 {
+  global:
+    dyninst_versioned_function;
+  local:
+    *;
+};

@@ -214,15 +214,12 @@ bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol)
         newSym->setReferringSymbol(referringSymbol);
 
         string filename = referringSymbol->getModule()->exec()->name();
-        vector<string> *vers{};
-        newSym->setVersionFileName(filename);
-        std::string rstr;
+        newSym->setVersionFileName(std::move(filename));
 
-        newSym->getVersionFileName(rstr);
-        if (referringSymbol->getVersions(vers) && vers != NULL && vers->size() > 0) 
+        const vector<string> &vers = referringSymbol->getVersions();
+        if (!vers.empty())
         {
-            auto newSymVers = std::vector<std::string>{(*vers)[0]};
-            newSym->setVersions(newSymVers);
+            newSym->setVersions({vers[0]});
         }
     }else{
         newSym->setReferringSymbol(referringSymbol);
