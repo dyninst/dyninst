@@ -829,8 +829,8 @@ void Parser::processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive) {//
         dyn_c_hash_map<Function*, DelayedFrames>::const_accessor waiters;
         if (!delayed_frames.find(waiters, func))
             continue;
-        for (auto vIter = waiters->second.begin(); vIter != waiters->second.end(); ++vIter) {
-            Function * delayed = (*vIter)->func;
+        for (auto frame : waiters->second) {
+            Function* delayed{frame->func};
             if (delayed->retstatus() == UNSET) {
                 delayed->set_retstatus(NORETURN);
                 delayed->obj()->cs()->incrementCounter(PARSE_NORETURN_HEURISTIC);
@@ -1163,19 +1163,19 @@ Parser::finalize_jump_tables()
             // address (blocksByAddr is maintained during parsing): a split leaves
             // the head piece in place and the jump in a piece that starts where
             // an earlier piece ends.
-            if (cur == NULL)
+            if (cur == nullptr)
                 continue;
             if (cur->last() != jumpAddr) {
                 Block* recorded{cur};
-                while (cur != NULL && cur->last() != jumpAddr && cur->end() <= jumpAddr) {
+                while (cur != nullptr && cur->last() != jumpAddr && cur->end() <= jumpAddr) {
                     Block* next{_parse_data->findBlock(f->region(), cur->end())};
                     // Every piece starts where the previous one ends, so an empty block
                     // would not advance the walk.
-                    if (next != NULL && next->end() <= cur->end())
-                        next = NULL;
+                    if (next != nullptr && next->end() <= cur->end())
+                        next = nullptr;
                     cur = next;
                 }
-                if (cur == NULL || cur->last() != jumpAddr) {
+                if (cur == nullptr || cur->last() != jumpAddr) {
                     parsing_printf("Jump table at %lx: recorded block [%lx,%lx) no longer ends at the jump and no block does, skipping\n",
                         jumpAddr, recorded->start(), recorded->end());
                     continue;
@@ -1187,10 +1187,10 @@ Parser::finalize_jump_tables()
             jumpTables.emplace(cur, &(jit->second));
         }
     };
-    for (auto fit = hint_funcs.begin(); fit != hint_funcs.end(); ++fit)
-        collect(*fit);
-    for (auto fit = discover_funcs.begin(); fit != discover_funcs.end(); ++fit)
-        collect(*fit);
+    for (auto f : hint_funcs)
+        collect(f);
+    for (auto f : discover_funcs)
+        collect(f);
 
     for (auto ait = jumpTableStart.begin(); ait != jumpTableStart.end(); ++ait)
         parsing_printf("Jump table at %lx\n", *ait);
@@ -2511,12 +2511,10 @@ void Parser::resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work)
                 func->name().c_str(),
                 func->retstatus());
         // Add each waiting frame back to the worklist
-        for (auto fIter = a->second.begin();
-                fIter != a->second.end();
-                ++fIter) {
-            work.insert(*fIter);
-            Function *f = (*fIter)->func;
-            parsing_printf("\t undelay function %s at %lx, frame delay work size %lu\n", f->name().c_str(), f->addr(), (*fIter)->delayedWork.size()); 
+        for (auto frame : a->second) {
+            work.insert(frame);
+            Function* f{frame->func};
+            parsing_printf("\t undelay function %s at %lx, frame delay work size %lu\n", f->name().c_str(), f->addr(), frame->delayedWork.size()); 
         }
         // remove func from delayedFrames map
         delayed_frames.erase(a);

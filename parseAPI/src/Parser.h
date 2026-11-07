@@ -98,7 +98,7 @@ namespace Dyninst {
             struct FrameByAddr {
                 bool operator()(const ParseFrame* a, const ParseFrame* b) const;
             };
-            typedef std::set<ParseFrame*, FrameByAddr> DelayedFrames;
+            using DelayedFrames = std::set<ParseFrame*, FrameByAddr>;
             dyn_c_hash_map<Function*, DelayedFrames> delayed_frames;
             std::vector<Function*> delayed_funcs_by_addr();
 
