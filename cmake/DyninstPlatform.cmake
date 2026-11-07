@@ -19,14 +19,7 @@ set(
   "ppc64le"
   "riscv64"
 )
-set(
-  DYNINST_CODEGEN_ARCHES
-  ${DYNINST_HOST_ARCHES}
-  "amdgpu_gfx908"
-  "amdgpu_gfx90a"
-  "amdgpu_gfx940"
-  "amdgpu_gfx950"
-)
+set(DYNINST_CODEGEN_ARCHES ${DYNINST_HOST_ARCHES} "amdgpu_gfx908")
 
 # Also supported are aliases for an architecture, as `uname -m` or DYNINST_CODEGEN_ARCH
 # may give it.

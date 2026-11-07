@@ -74,12 +74,9 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
     emitters/PowerPC/ppc64/EmitterPowerPC64Stat.C
   )
 
-elseif(
-  DYNINST_CODEGEN_ARCH_AMDGPU_GFX908
-  OR DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A
-  OR DYNINST_CODEGEN_ARCH_AMDGPU_GFX940
-  OR DYNINST_CODEGEN_ARCH_AMDGPU_GFX950
-)
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+  # gfx908 is the only AMDGPU codegen build (the C++ codegen guards are gfx908-only). The gfx90a
+  # and gfx940 emitters below are compiled into this one build and selected per object at runtime.
   list(
     APPEND _headers
     codegen-amdgpu.h
