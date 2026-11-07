@@ -137,8 +137,21 @@ namespace {
         value const a = kid(0);
         return {u128{0} - a.v, a.width};
       }
-      case Op::equalToZeroOp:
+      case Op::equalToZeroOp: {
+        // isEqual(a, b) is equalToZero(xor(a, b)); a and b must have the same width.
+        Dyninst::AST::Ptr const x = r->child(0);
+        if(x->getID() == Dyninst::AST::V_RoseAST) {
+          df::RoseAST::Ptr const xr = df::RoseAST::convert(x);
+          if(xr->val().op == Op::xorOp) {
+            value const a = eval(xr->child(0), m), b = eval(xr->child(1), m);
+            if(a.width != b.width) {
+              throw std::runtime_error("comparison of a " + std::to_string(a.width) + "-bit and a " +
+                                       std::to_string(b.width) + "-bit value in " + r->format());
+            }
+          }
+        }
         return {bits(kid(0)) == 0 ? u128{1} : u128{0}, 1};
+      }
       case Op::addOp: {
         value const a = kid(0), b = kid(1);
         return {a.v + b.v, std::max(a.width, b.width)};
