@@ -37,9 +37,10 @@
 //   id    -> the register number (val() low byte)
 //   kind  -> the category bits (regClass(): SGPR vs VGPR; so SGPR-5 != VGPR-5)
 //   block -> the size field (BITS_32 = 1 dword, BITS_64 = pair, ... BITS_512 = 16)
-// The codegen Register -> MachRegister build is PER-GEN and lives where the gen is known by type (each
-// EmitterAmdgpu<Gen>::toMachRegister() and the gfx908 register space's toMachRegister(), each naming only its own gen's
-// namespace constants -- no macro, no arch switch). This adapter operates on an ALREADY-built MachRegister
+// The codegen Register -> MachRegister build is PER-GEN and lives where the gen is known by type: each
+// EmitterAmdgpu<Gen>::toMachRegister(), naming only its own gen's namespace constants (no macro, no arch
+// switch). Register-space code derives ISA operand codes through convertRegID (RegisterConversion-amdgpu.C),
+// which dispatches on the register's own arch. This adapter operates on an ALREADY-built MachRegister
 // (which carries its own arch), so everything here is gen-neutral: classify/encode from that.
 
 #include <cstdint>
@@ -52,11 +53,6 @@
 
 namespace Dyninst {
 namespace amdgpu_adapter {
-
-// NOTE: the Register -> MachRegister build (number/category/size) is now PER-GEN and lives where the gen is
-// known by type: each EmitterAmdgpu<Gen> subclass's toMachRegister(), and the gfx908 register space's local toMachRegister().
-// Each names only its own gen's namespace constants -- no macro, no arch switch. The adapter below operates
-// on an already-built MachRegister (which carries its own arch), so it stays gen-neutral.
 
 // AMDGPU SGPR / VGPR (incl. accumulator VGPR) classification from a MachRegister's own arch + category.
 // This lives in the codegen adapter, NOT on the general MachRegister: "SGPR vs VGPR" is an AMDGPU-codegen

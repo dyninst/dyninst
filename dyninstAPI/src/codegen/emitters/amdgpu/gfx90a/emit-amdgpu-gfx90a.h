@@ -36,8 +36,7 @@
 class codeGen;
 
 // Thin per-gen concrete emitter: supplies only this gen's MachRegister adapter + its ENC-typed packers,
-// each naming ONLY amdgpu_gfx90a. Everything else is inherited from EmitterAmdgpu. A sibling gen
-// (e.g. EmitterAmdgpuGfx90a) drops in the same way (sed amdgpu_gfx908 -> amdgpu_gfx90a).
+// each naming ONLY amdgpu_gfx90a. Everything else is inherited from EmitterAmdgpu.
 class EmitterAmdgpuGfx90a : public EmitterAmdgpu {
 protected:
   Dyninst::MachRegister toMachRegister(Dyninst::Register r) const override;

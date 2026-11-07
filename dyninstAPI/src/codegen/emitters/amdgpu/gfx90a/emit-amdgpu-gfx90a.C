@@ -41,7 +41,7 @@ using namespace Dyninst;
 
 // Adapt a codegen Register to a gfx90a MachRegister: number from the id, category from vector-ness, width
 // from the dword count -- all via amdgpu_gfx90a's own namespace constants (no macro, no arch switch; the
-// base names no gen). A sibling gen is a sed of this file: amdgpu_gfx908 -> amdgpu_gfx90a.
+// base names no gen).
 MachRegister EmitterAmdgpuGfx90a::toMachRegister(Register r) const {
   const int32_t num = static_cast<int32_t>(r.getId() & 0xffu);
   const int32_t category = r.isVector() ? amdgpu_gfx90a::VGPR : amdgpu_gfx90a::SGPR;
@@ -57,7 +57,6 @@ MachRegister EmitterAmdgpuGfx90a::toMachRegister(Register r) const {
 }
 
 // Thin per-gen packers (forward to gfx90a's detail-typed helpers).
-// A sibling gen (EmitterAmdgpuGfx90a) is a sed of this file: amdgpu_gfx908 -> amdgpu_gfx90a.
 void EmitterAmdgpuGfx90a::rawSop1(unsigned opcode, Register dest, Register src0, bool hasLiteral,
                                   uint32_t literal, codeGen &gen) {
   Dyninst::amdgpu_gfx90a::emitSop1(opcode, dest, src0, hasLiteral, literal, gen);
