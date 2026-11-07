@@ -365,15 +365,29 @@ Parser::parse_vanilla()
     for (auto it = fvec.begin(); it != fvec.end(); ++it)
         svec.push_back(make_pair(it->first, it->second));
     sort(svec.begin(), svec.end());
-    vector<std::pair<long, ParseFrame*> > size_vec;
+
+    // Parse the hints in order of the distance to the next hint, smallest first, with ties
+    // broken by address.  The order in which equal-sized functions are parsed decides which
+    // jump tables are analyzed first and so which blocks and edges exist when a table is
+    // read; ordering by address keeps the serial parse independent of the heap layout
+    // (within a region; see delayed_frames in Parser.h).
+    struct HintOrder {
+        Address gap;
+        Address addr;
+        ParseFrame* frame;
+        bool operator<(const HintOrder& o) const {
+            return gap != o.gap ? gap < o.gap : addr < o.addr;
+        }
+    };
+    vector<HintOrder> size_vec;
 
     for (size_t i = 1; i < svec.size(); ++i)
-        size_vec.push_back(make_pair(svec[i].first - svec[i-1].first, svec[i-1].second));
+        size_vec.push_back(HintOrder{svec[i].first - svec[i-1].first, svec[i-1].first, svec[i-1].second});
     if (svec.size() > 0)
-        size_vec.push_back(make_pair(0, svec[svec.size()-1].second));
+        size_vec.push_back(HintOrder{0, svec.back().first, svec.back().second});
     sort(size_vec.begin(), size_vec.end());
     for (size_t i = 0; i < size_vec.size(); ++i)
-        work.insert(size_vec[i].second);
+        work.insert(size_vec[i].frame);
 
     parse_frames(work,true);
 }
@@ -615,8 +629,8 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
                                                     __FILE__,
                                                     ct->name().c_str());
                                             {
-                                                dyn_c_hash_map<Function*, std::set<ParseFrame*> >::accessor a;
-                                                set<ParseFrame *> waiters;
+                                                dyn_c_hash_map<Function*, DelayedFrames>::accessor a;
+                                                DelayedFrames waiters;
                                                 // This acquires the lock for ct, regardless we get a new set of not
                                                 bool new_set = delayed_frames.insert(a, std::make_pair(ct, waiters));
                                                 if (ct->retstatus() != UNSET) {
@@ -713,6 +727,24 @@ void
 }
 
 
+bool Parser::FrameByAddr::operator()(const ParseFrame* a, const ParseFrame* b) const
+{
+    if (a->func->addr() != b->func->addr())
+        return a->func->addr() < b->func->addr();
+    return a < b;
+}
+
+std::vector<Function*> Parser::delayed_funcs_by_addr()
+{
+    std::vector<Function*> delayed;
+    delayed.reserve(delayed_frames.size());
+    for (auto const& entry : delayed_frames)
+        delayed.push_back(entry.first);
+    std::sort(delayed.begin(), delayed.end(),
+        [](const Function* a, const Function* b) { return a->addr() < b->addr(); });
+    return delayed;
+}
+
     void
 Parser::parse_frames(LockFreeQueue<ParseFrame *> &work, bool recursive)
 {
@@ -722,11 +754,9 @@ Parser::parse_frames(LockFreeQueue<ParseFrame *> &work, bool recursive)
     {
         // Check if we can resume any frames yet
         vector<Function *> updated;
-        for (auto iter = delayed_frames.begin();
-                iter != delayed_frames.end();
-                ++iter) {
-            if (iter->first->retstatus() != UNSET) {
-                updated.push_back(iter->first);
+        for (Function* func : delayed_funcs_by_addr()) {
+            if (func->retstatus() != UNSET) {
+                updated.push_back(func);
             }
         }
         if (updated.size()) {
@@ -782,8 +812,7 @@ void Parser::processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive) {//
     // except if we're doing non-recursive parsing.
     // If we're just parsing one function, we want
     // to mark everything RETURN instead.
-    for (auto iter = delayed_frames.begin(); iter != delayed_frames.end(); ++iter) {
-        Function * func = iter->first;
+    for (Function* func : delayed_funcs_by_addr()) {
         if (func->retstatus() == UNSET) {
             if(recursive)
             {
@@ -797,8 +826,10 @@ void Parser::processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive) {//
             updated.push_back(func);
         }
 
-        set<ParseFrame *> vec = iter->second;
-        for (auto vIter = vec.begin(); vIter != vec.end(); ++vIter) {
+        dyn_c_hash_map<Function*, DelayedFrames>::const_accessor waiters;
+        if (!delayed_frames.find(waiters, func))
+            continue;
+        for (auto vIter = waiters->second.begin(); vIter != waiters->second.end(); ++vIter) {
             Function * delayed = (*vIter)->func;
             if (delayed->retstatus() == UNSET) {
                 delayed->set_retstatus(NORETURN);
@@ -1111,21 +1142,55 @@ Parser::finalize_jump_tables()
     map<Block*, Function::JumpTableInstance*> jumpTables;
 
     // Step 1: get all jump tables
-    for (auto fit = hint_funcs.begin(); fit != hint_funcs.end(); ++fit) {
-        Function* f = *fit;
+    //
+    // A JumpTableInstance records the block that ended with the indirect jump
+    // when the table was analyzed.  If that block was split afterwards (for
+    // example by an overrun entry of another jump table landing inside it),
+    // the recorded pointer names the head piece, which no longer carries the
+    // jump or its edges, and the overrun check below would silently find
+    // nothing to trim.  Whether the split happens before or after the
+    // analysis depends on parse order, so look the block up again by the
+    // jump's address, which is the key of the function's jump table map.
+    auto collect = [&](Function* f) {
         for (auto jit = f->getJumpTables().begin(); jit != f->getJumpTables().end(); ++jit) {
+            Address jumpAddr{jit->first};
+            Block* cur{jit->second.block};
+            // The table occupies memory even when its jump block is not found below,
+            // so its start still bounds the overrun of the table before it.
             jumpTableStart.insert(jit->second.tableStart);
-            jumpTables.emplace(jit->second.block, &(jit->second));
+            // The block range index is only filled by finalize_ranges, which runs
+            // after this pass, so walk forward from the recorded block by start
+            // address (blocksByAddr is maintained during parsing): a split leaves
+            // the head piece in place and the jump in a piece that starts where
+            // an earlier piece ends.
+            if (cur == NULL)
+                continue;
+            if (cur->last() != jumpAddr) {
+                Block* recorded{cur};
+                while (cur != NULL && cur->last() != jumpAddr && cur->end() <= jumpAddr) {
+                    Block* next{_parse_data->findBlock(f->region(), cur->end())};
+                    // Every piece starts where the previous one ends, so an empty block
+                    // would not advance the walk.
+                    if (next != NULL && next->end() <= cur->end())
+                        next = NULL;
+                    cur = next;
+                }
+                if (cur == NULL || cur->last() != jumpAddr) {
+                    parsing_printf("Jump table at %lx: recorded block [%lx,%lx) no longer ends at the jump and no block does, skipping\n",
+                        jumpAddr, recorded->start(), recorded->end());
+                    continue;
+                }
+                parsing_printf("Jump table at %lx: recorded block [%lx,%lx) was split, now [%lx,%lx)\n",
+                    jumpAddr, recorded->start(), recorded->end(), cur->start(), cur->end());
+                jit->second.block = cur;
+            }
+            jumpTables.emplace(cur, &(jit->second));
         }
-    }
-
-    for (auto fit = discover_funcs.begin(); fit != discover_funcs.end(); ++fit) {
-        Function* f = *fit;
-        for (auto jit = f->getJumpTables().begin(); jit != f->getJumpTables().end(); ++jit) {
-            jumpTableStart.insert(jit->second.tableStart);
-            jumpTables.emplace(jit->second.block, &(jit->second));
-        }
-    }
+    };
+    for (auto fit = hint_funcs.begin(); fit != hint_funcs.end(); ++fit)
+        collect(*fit);
+    for (auto fit = discover_funcs.begin(); fit != discover_funcs.end(); ++fit)
+        collect(*fit);
 
     for (auto ait = jumpTableStart.begin(); ait != jumpTableStart.end(); ++ait)
         parsing_printf("Jump table at %lx\n", *ait);
@@ -2432,7 +2497,7 @@ void Parser::resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work)
     }
 
     // When a function's return status is set, all waiting frames back into the worklist
-    dyn_c_hash_map<Function*, std::set<ParseFrame*> >::accessor a;
+    dyn_c_hash_map<Function*, DelayedFrames>::accessor a;
     if (!delayed_frames.find(a, func)) {
         // There were no frames waiting, ignore
         parsing_printf("[%s] %s return status %d, no waiters\n",
@@ -2446,9 +2511,8 @@ void Parser::resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work)
                 func->name().c_str(),
                 func->retstatus());
         // Add each waiting frame back to the worklist
-        set<ParseFrame *> vec = a->second;
-        for (set<ParseFrame *>::iterator fIter = vec.begin();
-                fIter != vec.end();
+        for (auto fIter = a->second.begin();
+                fIter != a->second.end();
                 ++fIter) {
             work.insert(*fIter);
             Function *f = (*fIter)->func;
