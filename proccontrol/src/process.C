@@ -403,6 +403,10 @@ bool int_process::attach(int_processSet *ps, bool reattach)
             pair<int_process *, LWP> key(proc, thr->getLWP());
             map<pair<int_process *, LWP>, bool>::iterator findIter = runningStates.find(key);
 
+            // temporaryDetach detached every thread, including the ones the OS
+            // attached automatically when they were created, so each must be
+            // attached again.
+            thr->setAttachStatus(int_thread::as_needs_attach);
             pthrd_printf("Re-attaching to thread %d/%d\n", proc->getPid(), thr->getLWP());
             if (findIter == runningStates.end() || !thr->attach()) {
                pthrd_printf("Creating thread destroy event for thread %d/%d\n", proc->getPid(), thr->getLWP());
