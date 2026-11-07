@@ -64,19 +64,19 @@ bool atomicOperationAST::generateCode_phase2(codeGen &gen, Address &retAddr,
   registerSpace *regSpace = gen.rs();
 
   Dyninst::Register addrRegPair =
-      regSpace->allocateGprBlock(RegKind::SCALAR, /* numRegs */2, NS_amdgpu::PAIR_ALIGNMENT);
+      regSpace->allocateRegister(gen, registerSlot::SGPR, /* numRegs */2, /* alignment */2);
 
   assert(addrRegPair != Null_Register &&
          "atomicOperationAST : Failed to allocate register pair");
 
-  const uint32_t addrRegId = addrRegPair.getId();
+  const uint32_t addrRegId = addrRegPair;
   ast_printf("atomicOperationAST allocated scalar register block s[%u:%u]\n", addrRegId,
              addrRegId + 1);
 
   // TODO this needs to pick up the register from placeholderReg
-  Dyninst::Register baseRegPair = Dyninst::Register(OperandRegId(94), RegKind::SCALAR, BlockSize(2));
+  Dyninst::Register baseRegPair = 94; // s[94:95]
 
-  emitter->emitMoveRegToReg(baseRegPair, addrRegPair, gen);
+  emitter->emitMoveRegBlock(baseRegPair, addrRegPair, /* numRegs */2, gen);
   emitter->emitAddConstantToRegPair(addrRegPair, (Address)offset->getOValue(), gen);
 
   switch(opcode) {
@@ -90,7 +90,7 @@ bool atomicOperationAST::generateCode_phase2(codeGen &gen, Address &retAddr,
       assert(!"atomic operation for this opcode is not implemented");
   }
 
-  regSpace->freeGprBlock(addrRegPair);
+  regSpace->freeRegister(addrRegPair, /* numRegs */2);
 
   return ret;
 }

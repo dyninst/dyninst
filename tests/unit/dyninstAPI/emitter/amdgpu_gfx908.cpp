@@ -12,8 +12,8 @@ int main() {
   using Dyninst::emitter_buffer_t;
   using namespace NS_amdgpu;
 
-  // Source the codegen register from its MachRegister identity (codegen-on-MachRegister direction),
-  // not a hand-built richer Register: convertRegID(sN) yields the scalar codegen register for s<n>.
+  // Source the codegen register from its MachRegister identity: convertRegID(sN) yields the codegen
+  // register (operand code) for s<n>. A register block is named by its first register.
   auto sreg = [](uint32_t n) {
     return convertRegID(Dyninst::MachRegister(Dyninst::amdgpu_gfx908::s0.val() + static_cast<int32_t>(n)));
   };
@@ -41,9 +41,9 @@ int main() {
   }});
 
   // Move s[2:3] to s[4:5]
-  Register regBlock2To3 = Dyninst::Register::makeScalarRegister(Dyninst::OperandRegId(2), Dyninst::BlockSize(2));
-  Register regBlock4To5 = Dyninst::Register::makeScalarRegister(Dyninst::OperandRegId(4), Dyninst::BlockSize(2));
-  emitter->emitMoveRegToReg(regBlock2To3, regBlock4To5, gen);
+  Register regBlock2To3 = sreg(2);
+  Register regBlock4To5 = sreg(4);
+  emitter->emitMoveRegBlock(regBlock2To3, regBlock4To5, /* numRegs = */ 2, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<8>{{
     0x02, 0x00, 0x84, 0xbe,                  // s_mov_b32 s4, s2
     0x03, 0x00, 0x85, 0xbe                   // s_mov_b32 s5, s3
@@ -52,7 +52,7 @@ int main() {
   // Load 64-bit immediate into register pair s[0:1]
   // s0 contains lower 32 bits
   // s1 contains upper 32 bits
-  Register regBlock0To1 = Dyninst::Register::makeScalarRegister(Dyninst::OperandRegId(0), Dyninst::BlockSize(2));
+  Register regBlock0To1 = sreg(0);
   emitter->emitLoadConst(regBlock0To1, (uint64_t)0x123456789, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<16>{{
     0xff,0x00,0x80,0xbe,0x89,0x67,0x45,0x23, // s_mov_b32 s0, 0x23456789
@@ -81,7 +81,7 @@ int main() {
   }});
 
   // Load 4 dwords from s[2:3] + 0x1234 into s[4:7]
-  Register regBlock4To7 = Dyninst::Register::makeScalarRegister(Dyninst::OperandRegId(4), Dyninst::BlockSize(4));
+  Register regBlock4To7 = sreg(4);
   emitter->emitLoadRelative(regBlock4To7, 0x1234, regBlock2To3, 4, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<12>{{
     0x01,0x01,0x0a,0xc0,0x34,0x12,0x00,0x00, // s_load_dwordx4 s[4:7], s[2:3], 0x1234
@@ -89,7 +89,7 @@ int main() {
   }});
 
   // Load 8 dwords from s[2:3] + 0x1234 into s[4:11]
-  Register regBlock4To11 = Dyninst::Register::makeScalarRegister(Dyninst::OperandRegId(4), Dyninst::BlockSize(8));
+  Register regBlock4To11 = sreg(4);
   emitter->emitLoadRelative(regBlock4To11, 0x1234, regBlock2To3, 8, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<12>{{
     0x01,0x01,0x0e,0xc0,0x34,0x12,0x00,0x00, // s_load_dwordx8 s[4:11], s[2:3], 0x1234
@@ -97,7 +97,7 @@ int main() {
   }});
 
   // Load 16 dwords from s[2:3] + 0x1234 into s[4:19]
-  Register regBlock4To19 = Dyninst::Register::makeScalarRegister(Dyninst::OperandRegId(4), Dyninst::BlockSize(16));
+  Register regBlock4To19 = sreg(4);
   emitter->emitLoadRelative(regBlock4To19, 0x1234, regBlock2To3, 16, gen);
   failed |= !verify_emitter(gen, emitter_buffer_t<12>{{
     0x01,0x01,0x12,0xc0,0x34,0x12,0x00,0x00, // s_load_dwordx16 s[4:19], s[2:3], 0x1234

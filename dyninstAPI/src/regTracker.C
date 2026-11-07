@@ -43,14 +43,14 @@ Dyninst::Register regTracker_t::hasKeptRegister(dapi::codeGenAST *n) {
 // and if so nuke it.
 
 bool regTracker_t::stealKeptRegister(Dyninst::Register r) {
-  ast_printf("STEALING kept register %u for someone else\n", r.getId());
+  ast_printf("STEALING kept register %u for someone else\n", r);
   for (auto iter = tracker.begin(); iter != tracker.end(); ++iter) {
     if (iter->second.keptRegister == r) {
       tracker.erase(iter);
       return true;
     }
   }
-  fprintf(stderr, "Odd - couldn't find kept register %u\n", r.getId());
+  fprintf(stderr, "Odd - couldn't find kept register %u\n", r);
   return true;
 }
 
@@ -94,7 +94,7 @@ void regTracker_t::debugPrint() {
 
   for (auto iter = tracker.begin(); iter != tracker.end(); ++iter) {
     fprintf(stderr, "codeGenAST %p: register %u, condition level %d\n",
-            (void *)iter->first, iter->second.keptRegister.getId(),
+            (void *)iter->first, iter->second.keptRegister,
             iter->second.keptLevel);
   }
   fprintf(stderr, "==== End debug dump of register tracker ====\n");

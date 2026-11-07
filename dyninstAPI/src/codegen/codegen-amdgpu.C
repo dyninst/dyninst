@@ -83,9 +83,9 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
     assert(regSpace);
 
     // We relax the alignment to pair because we will use the 4 registers as 2 pairs.
-    Dyninst::Register regBlock = regSpace->allocateGprBlock(Dyninst::RegKind::SCALAR, /* numRegs */4, NS_amdgpu::PAIR_ALIGNMENT);
+    Dyninst::Register regBlock = regSpace->allocateRegister(gen, registerSlot::SGPR, /* numRegs */4, /* alignment */2);
     emitter->emitLongJump(regBlock, from, to, gen);
-    regSpace->freeGprBlock(regBlock);
+    regSpace->freeRegister(regBlock, /* numRegs */4);
   }
 }
 
