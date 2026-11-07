@@ -97,3 +97,19 @@ void EmitterAmdgpuGfx90a::rawSmem(unsigned opcode, uint64_t sdata, uint64_t sbas
                                   codeGen &gen) {
   Dyninst::amdgpu_gfx90a::emitSmem(opcode, sdata, sbase, offset, gen);
 }
+void EmitterAmdgpuGfx90a::rawVop1Reg(unsigned opcode, uint32_t vdst, uint32_t src0, codeGen &gen) {
+  Dyninst::amdgpu_gfx90a::emitVop1Reg(opcode, vdst, src0, gen);
+}
+void EmitterAmdgpuGfx90a::rawVop1Imm(unsigned opcode, uint32_t vdst, uint32_t literal, codeGen &gen) {
+  Dyninst::amdgpu_gfx90a::emitVop1Imm(opcode, vdst, literal, gen);
+}
+void EmitterAmdgpuGfx90a::rawVop2(unsigned opcode, uint32_t vdst, uint32_t vsrc1, uint32_t src0, codeGen &gen) {
+  Dyninst::amdgpu_gfx90a::emitVop2(opcode, vdst, vsrc1, src0, gen);
+}
+void EmitterAmdgpuGfx90a::rawVop3a(unsigned opcode, uint32_t vdst, uint32_t src0, uint32_t src1, uint32_t src2, codeGen &gen) {
+  Dyninst::amdgpu_gfx90a::emitVop3a(opcode, vdst, src0, src1, src2, gen);
+}
+void EmitterAmdgpuGfx90a::rawFlatGlobal(unsigned opcode, uint32_t vdst, uint32_t addr, uint32_t data, uint32_t saddr,
+                       int32_t offset, codeGen &gen, bool glc, uint32_t seg) {
+  Dyninst::amdgpu_gfx90a::emitFlatGlobal(opcode, vdst, addr, data, saddr, offset, gen, glc, seg);
+}

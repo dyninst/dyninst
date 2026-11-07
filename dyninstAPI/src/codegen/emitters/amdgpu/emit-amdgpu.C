@@ -613,11 +613,14 @@ void EmitterAmdgpu::emitShortJump(int16_t wordOffset, codeGen &gen) {
 }
 
 // For this we need reg, reg+1, reg+2, reg+3.
-void EmitterAmdgpu::emitLongJump(Register reg, uint64_t fromAddress, uint64_t toAddress,
-                                       codeGen &gen) {
-  MachRegister mr = toMachRegister(reg);
-  assert(isValidSgprBlock(reg) && "reg must be a valid SGPR block");
-  assert(amdgpuNumDwords(mr) == 4 && "reg must have 4 registers");
+void EmitterAmdgpu::emitLongJump(Register pcPair, Register diffPair, uint64_t fromAddress,
+                                       uint64_t toAddress, codeGen &gen) {
+  MachRegister pcMr = toMachRegister(pcPair);
+  MachRegister diffMr = toMachRegister(diffPair);
+  assert(isValidSgprBlock(pcPair) && isValidSgprBlock(diffPair) &&
+         "pcPair/diffPair must be valid SGPR blocks");
+  assert(amdgpuNumDwords(pcMr) == 2 && amdgpuNumDwords(diffMr) == 2 &&
+         "pcPair/diffPair must each be a pair");
 
   // s_getpc_b64 will give us beginning of next instruction.
   // So our fromAddress must be incremented by 4 to accomodate for this.
@@ -627,26 +630,23 @@ void EmitterAmdgpu::emitLongJump(Register reg, uint64_t fromAddress, uint64_t to
   assert(signedFromAddress > 0 && signedToAddress > 0 && "Both addresses must be positive");
   int64_t diff = signedToAddress - signedFromAddress;
 
-  // base operand code; the consecutive pair/words are base..base+3 (SGPR operand code == number).
-  const uint32_t base = amdgpuOperandCode(mr);
+  // base operand codes (SGPR operand code == number); each pair is base..base+1.
+  const uint32_t pcBase = amdgpuOperandCode(pcMr);
+  const uint32_t diffBase = amdgpuOperandCode(diffMr);
 
-  rawSop1(toOpCode(AmdgpuOp::S_GETPC_B64), /* dest= */ base, /* src0 =*/0, /* hasLiteral = */ false,
+  // pcPair = PC of the next instruction.
+  rawSop1(toOpCode(AmdgpuOp::S_GETPC_B64), /* dest= */ pcBase, /* src0 =*/0, /* hasLiteral = */ false,
            /* literal=*/0, gen);
 
-  // we store the diff = to - from in this register pair
-  Register diffRegPair(OperandRegId(amdgpuRegNum(mr) + 2), RegKind::SCALAR, BlockSize(2));
-  this->emitLoadConst(diffRegPair, (uint64_t)diff, gen);
-  // Now we have:
-  // reg+2 = lower bits of diff
-  // reg+3 = upper bits of diff
+  // diffPair = diff = to - from (lo in diffPair[0], hi in diffPair[1]).
+  this->emitLoadConst(diffPair, (uint64_t)diff, gen);
 
-  // reg = reg + <reg+2>, SCC = carry
-  rawSop2(toOpCode(AmdgpuOp::S_ADD_U32), base, base, base + 2, gen);
-  // <reg+1> = <reg+1> + <reg+3> + carry
-  rawSop2(toOpCode(AmdgpuOp::S_ADDC_U32), base + 1, base + 1, base + 3, gen);
+  // pcPair += diffPair, 64-bit add with carry through SCC.
+  rawSop2(toOpCode(AmdgpuOp::S_ADD_U32), pcBase, pcBase, diffBase, gen);
+  rawSop2(toOpCode(AmdgpuOp::S_ADDC_U32), pcBase + 1, pcBase + 1, diffBase + 1, gen);
 
   // S_SETPC_B64 writes to the PC, so dest = 0 just like the assembler does.
-  rawSop1(toOpCode(AmdgpuOp::S_SETPC_B64), /* dest = */ 0, base, /* hasLiteral = */ false, /* literal=*/0, gen);
+  rawSop1(toOpCode(AmdgpuOp::S_SETPC_B64), /* dest = */ 0, pcBase, /* hasLiteral = */ false, /* literal=*/0, gen);
 }
 
 void EmitterAmdgpu::emitAddConstantToRegPair(Register reg, int constant, codeGen &gen) {
@@ -679,6 +679,51 @@ void EmitterAmdgpu::emitAtomicSub(Register baseAddrReg, Register src0, codeGen &
   rawSmem(toOpCode(AmdgpuOp::S_ATOMIC_SUB), amdgpuOperandCode(toMachRegister(src0)),
            (amdgpuOperandCode(toMachRegister(baseAddrReg)) >> 1), /* offset = */ 0, gen);
 }
+
+// M0 is the SOP1 SDST operand code for the M0 special register; identical across the gfx9 gens.
+// src0 = 0xFF selects a trailing 32-bit literal (the assembler's convention).
+static constexpr unsigned AMDGPU_M0_OPERAND = 124;
+// Inline-constant operand codes: 128 encodes integer 0, 129 encodes integer 1.
+static constexpr unsigned AMDGPU_INLINE_0 = 128;
+static constexpr unsigned AMDGPU_INLINE_1 = 129;
+
+void EmitterAmdgpu::emitTTraceData(uint32_t marker, codeGen &gen) {
+  // s_mov_b32 m0, <marker>
+  rawSop1(toOpCode(AmdgpuOp::S_MOV_B32), /* dest = */ AMDGPU_M0_OPERAND, /* src0 = */ 0xFF,
+           /* hasLiteral = */ true, marker, gen);
+  // s_ttracedata  (streams M0 into the SQTT/ATT trace)
+  rawSopP(toOpCode(AmdgpuOp::S_TTRACEDATA), /* simm16 = */ 0, gen);
+}
+
+void EmitterAmdgpu::emitTTraceDataReg(Register srcOperand, codeGen &gen) {
+  // s_mov_b32 m0, <srcOperand>   (srcOperand is already an SGPR operand code)
+  rawSop1(toOpCode(AmdgpuOp::S_MOV_B32), /* dest = */ AMDGPU_M0_OPERAND, /* src0 = */ srcOperand,
+           /* hasLiteral = */ false, /* literal = */ 0, gen);
+  // s_ttracedata
+  rawSopP(toOpCode(AmdgpuOp::S_TTRACEDATA), /* simm16 = */ 0, gen);
+}
+
+void EmitterAmdgpu::emitSccSave(Register saveReg, codeGen &gen) {
+  // s_cselect_b32 saveReg, 1, 0  ->  saveReg = SCC ? 1 : 0  (SSRC0 = 1, SSRC1 = 0)
+  rawSop2(toOpCode(AmdgpuOp::S_CSELECT_B32), /* dest = */ saveReg,
+           /* ssrc0 = */ AMDGPU_INLINE_1, /* ssrc1 = */ AMDGPU_INLINE_0, gen);
+}
+
+void EmitterAmdgpu::emitSccRestore(Register saveReg, codeGen &gen) {
+  // s_and_b32 saveReg, saveReg, 1  ->  sets SCC = saveReg & 1  (SSRC0 = saveReg, SSRC1 = 1)
+  rawSop2(toOpCode(AmdgpuOp::S_AND_B32), /* dest = */ saveReg,
+           /* ssrc0 = */ saveReg, /* ssrc1 = */ AMDGPU_INLINE_1, gen);
+}
+
+void EmitterAmdgpu::emitGetpcRelocated(Register sdst, uint32_t lo, uint32_t hi, codeGen &gen) {
+  // s_getpc_b64 sdst            (sdst gets the address of the following instruction)
+  rawSop1(toOpCode(AmdgpuOp::S_GETPC_B64), /* dest = */ sdst, /* src0 = */ 0,
+           /* hasLiteral = */ false, /* literal = */ 0, gen);
+  // s_add_u32  sdst,   sdst,   lo
+  rawSop2WithSrc1Literal(toOpCode(AmdgpuOp::S_ADD_U32), /* dest = */ sdst, /* src0 = */ sdst, lo, gen);
+  // s_addc_u32 sdst+1, sdst+1, hi   (carry from the low add)
+  rawSop2WithSrc1Literal(toOpCode(AmdgpuOp::S_ADDC_U32), /* dest = */ sdst + 1, /* src0 = */ sdst + 1, hi, gen);
+}
 // ===== end EmitterAmdgpu (arch-common) implementation =====
 // The gfx908 concrete subclass (EmitterAmdgpuGfx908) and its per-gen packers live in
 // amdgpu/gfx908/emit-amdgpu-gfx908.{h,C}.
@@ -694,5 +739,13 @@ EmitterAmdgpu* getAmdgpuEmitter(codeGen& gen, Dyninst::PatchAPI::Point* point) {
   gen.setAddrSpace(obj->proc());
   auto *emitter = dynamic_cast<EmitterAmdgpu *>(gen.emitter());
   assert(emitter && "AMDGPU snippet: expected an EmitterAmdgpu");
+  return emitter;
+}
+
+// No-point variant: `gen` is already bound to the instrumented AMDGPU address space (relocation-widget
+// apply, baseTramp emission), so its per-gen EmitterAmdgpu is already installed -- just recover it.
+EmitterAmdgpu* getAmdgpuEmitter(codeGen& gen) {
+  auto *emitter = dynamic_cast<EmitterAmdgpu *>(gen.emitter());
+  assert(emitter && "AMDGPU snippet: expected an EmitterAmdgpu (gen not bound to an AMDGPU addr space?)");
   return emitter;
 }
