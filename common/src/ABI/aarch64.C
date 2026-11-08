@@ -49,14 +49,19 @@ namespace Dyninst { namespace abi {
       aarch64::x0,  aarch64::x1,  aarch64::x2,  aarch64::x3,
       aarch64::x4,  aarch64::x5,  aarch64::x6,  aarch64::x7,
       aarch64::q0,  aarch64::q1,  aarch64::q2,  aarch64::q3,
-      aarch64::q4,  aarch64::q5,  aarch64::q6,  aarch64::q7
+      aarch64::q4,  aarch64::q5,  aarch64::q6,  aarch64::q7,
+      // The address of the memory for a returned composite (XR). The callee
+      // need not preserve it.
+      aarch64::x8
     };
 
-    d.function.returns = d.function.params;
-
-    // The address of the memory for a returned composite (XR). The callee
-    // need not preserve it.
-    d.function.params.insert(aarch64::x8);
+    // A result goes where an argument of its type would, but uses at most
+    // x0-x1 (a 16-byte composite) or v0-v3 (an HFA or HVA of four members);
+    // anything larger is returned in memory through x8.
+    d.function.returns = register_set{
+      aarch64::x0,  aarch64::x1,
+      aarch64::q0,  aarch64::q1,  aarch64::q2,  aarch64::q3
+    };
 
     d.function.preserved = register_set{
       aarch64::x19, aarch64::x20, aarch64::x21, aarch64::x22, aarch64::x23,
