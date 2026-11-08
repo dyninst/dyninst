@@ -1390,7 +1390,7 @@ bool DwarfWalker::parseSubrange() {
    }
 
    boost::shared_ptr<Type> rangeType = tc()->addOrUpdateType(subrange);
-   dwarf_printf("(0x%lx) Created subrange type: ID 0x%d, pointer %p (tc %p)\n", id(),
+   dwarf_printf("(0x%lx) Created subrange type: ID %d, pointer %p (tc %p)\n", id(),
                 rangeType->getID(), (void *)rangeType.get(), (void *)tc());
 
    return true;
@@ -2570,7 +2570,7 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress(
         bool result = decodeDwarfExpression(location->dwarfOp, location->opLen, tmp, loc,
                 symtab()->getArchitecture());
         if (!result) {
-            dwarf_printf("(0x%lx): dwarf expression not decoded\n", id());
+            dwarf_printf("(0x%lx) %s: dwarf expression not decoded\n", id(), DwarfDyninst::die_name(specEntry()).c_str());
             continue;
         }
 
