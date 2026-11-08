@@ -125,3 +125,41 @@ foreach(_bin c_tu4 c_tu5 c_plain4)
     REQUIRES test_binaries
   )
 endforeach()
+
+# Globals, statics, a parameter and a local of a C program. clang_dwarf5 gives
+# every static location as DW_OP_addrx, an index into .debug_addr;
+# clang_dwarf5_relpath also gives DW_AT_decl_file 0 for everything declared in
+# the primary source file. The other three use DW_OP_addr and are the controls.
+set(_targ global_vars)
+dyninst_add_test_executable(${_targ} SOURCE_FILES global_vars.cpp DEPS symtabAPI)
+set(_bin_dir "${DYNINST_TEST_BINARIES_DIR}/symtabAPI/DWARF/global_vars")
+set(
+  _global_vars_expected
+  g_i8=1
+  g_i16=2
+  g_i32=4
+  g_i64=8
+  g_vlong=8
+  g_pair=16/2
+  g_array=40
+  g_bss=8
+  g_static=4
+  counter:calls=4
+  twice:value=4
+  twice:doubled=4
+)
+foreach(
+  _bin
+  clang_dwarf5
+  clang_dwarf5_relpath
+  clang_dwarf4
+  gcc_dwarf5
+  gcc_dwarf4
+)
+  dyninst_add_test(
+    symtabAPI_${_targ}_${_bin}_test
+    TYPE regression
+    COMMAND ${_targ} "${_bin_dir}/${_bin}" ${_global_vars_expected}
+    REQUIRES test_binaries
+  )
+endforeach()
