@@ -2052,7 +2052,14 @@ bool DwarfWalker::getLineInformation(Dwarf_Word &variableLineNo,
         boost::unique_lock<dyn_mutex> l(files->lock);
         Dwarf_Word fileNameDeclVal;
         DWARF_FAIL_RET(dwarf_formudata(&fileDeclAttribute, &fileNameDeclVal));
-        if (fileNameDeclVal >= files->size() || fileNameDeclVal <= 0) {
+        // In DWARF 5, file 0 is the unit's primary source file. Before that, 0 means
+        // the DIE names no file, which is no reason to drop it.
+        Dwarf_Half version{};
+        if (fileNameDeclVal == 0 &&
+            (dwarf_cu_info(specE.cu, &version, NULL, NULL, NULL, NULL, NULL, NULL) != 0 || version < 5)) {
+            return true;
+        }
+        if (fileNameDeclVal >= files->size()) {
             dwarf_printf("Dwarf error reading line index %lu from srcFiles of size %lu\n",
                     fileNameDeclVal, files->size());
             return false;
