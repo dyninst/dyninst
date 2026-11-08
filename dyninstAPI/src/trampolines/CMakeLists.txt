@@ -23,6 +23,8 @@ elseif(DYNINST_CODEGEN_ARCH_PPC64LE)
   list(APPEND _sources baseTramp-ppc.C)
 elseif(DYNINST_CODEGEN_ARCH_AARCH64)
   list(APPEND _sources baseTramp-aarch64.C)
+elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+  list(APPEND _sources baseTramp-amdgpu.C)
 endif()
 
 dyninst_library(
