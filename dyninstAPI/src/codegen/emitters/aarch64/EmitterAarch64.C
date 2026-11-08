@@ -224,31 +224,26 @@ namespace Dyninst { namespace DyninstAPI {
         assert(0);
       }
 
-      vector<int> savedRegs;
-
-      // save r0-r7
+      // The registers to save across the call. We must save if:
+      // refCount > 0 (and not a source register)
+      // keptValue == true (keep over the call)
+      // liveState == live (technically, only if not saved by the callee)
+      // They are pushed only once the operands are evaluated: operands read
+      // the tramp frame relative to the stack pointer, so it must not move
+      // before then.
+      std::vector<Register> savedRegs;
       for(int id = 0; id < gen.rs()->numGPRs(); id++) {
         registerSlot *reg = gen.rs()->GPRs()[id];
-
-        // We must save if:
-        // refCount > 0 (and not a source register)
-        // keptValue == true (keep over the call)
-        // liveState == live (technically, only if not saved by the callee)
-
         if((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live)) {
-          insnCodeGen::saveRegister(gen, registerSpace::r0 + id, -2 * GPRSIZE_64,
-                                    insnCodeGen::Post);
           savedRegs.push_back(reg->number);
         }
       }
 
       // Passing operands in x0-x7. Reserve every argument register first, so
       // that evaluating one operand cannot take another's register. An
-      // argument register that is still in use (saved above) cannot be
-      // reserved: its operand is evaluated into another register and moved
-      // into place once no operand needs the old value any more. The stack
-      // pointer must not move here, because operands read the tramp frame
-      // relative to it.
+      // argument register that is still in use cannot be reserved: its
+      // operand is evaluated into another register and moved into place once
+      // no operand needs the old value any more and the old value is saved.
       assert(operands.size() <= 8 && "arguments past x7 are not supported");
       std::vector<Register> argRegs;
       std::vector<bool> reserved;
@@ -273,6 +268,10 @@ namespace Dyninst { namespace DyninstAPI {
           assert(0);
         }
         assert(values[id] != Null_Register);
+      }
+
+      for(Register reg : savedRegs) {
+        insnCodeGen::saveRegister(gen, reg, -2 * GPRSIZE_64, insnCodeGen::Post);
       }
 
       for(size_t id = 0; id < operands.size(); id++) {
@@ -344,8 +343,7 @@ namespace Dyninst { namespace DyninstAPI {
 
       // r7-r0
       for(signed int ui = savedRegs.size() - 1; ui >= 0; ui--) {
-        insnCodeGen::restoreRegister(gen, registerSpace::r0 + savedRegs[ui], 2 * GPRSIZE_64,
-                                     insnCodeGen::Post);
+        insnCodeGen::restoreRegister(gen, savedRegs[ui], 2 * GPRSIZE_64, insnCodeGen::Post);
       }
 
       return 0;
