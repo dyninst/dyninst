@@ -4,8 +4,18 @@
 // calls check(id, id + 0x100, id + 0x200, id + 0x300), with a different id
 // for each call. The parameters of the instrumented functions are live at
 // their entries, and every call's arguments must reach the callee in the
-// argument registers no matter how many calls came before it. The mutatee
-// checks the arguments of every call and how many calls ran.
+// argument registers no matter how many calls came before it.
+//
+// At first's entry, the mutator also inserts
+// held_diff = kHeld - held(<first's parameter>, kHeld). kHeld, the left operand
+// of the subtraction, is in a register while held is called, so the call must
+// save it and restore it afterwards, and its argument must still read first's
+// parameter from the tramp frame correctly. held's return value must survive
+// that restore. (A constant left operand of '+' would be moved to the right and
+// loaded after the call.)
+//
+// The mutatee checks the arguments of every call, how many calls ran, and the
+// held_diff result.
 //
 // Usage: call_args <mutatee> <output directory>
 // DYNINSTAPI_RT_LIB names the runtime library; the rewritten mutatee is run
@@ -29,6 +39,9 @@
 #include "BPatch_snippet.h"
 
 namespace {
+
+  // Must match HELD in mutatee.c.
+  long const kHeld = 0x0040000000000007L;
 
   std::string basename(std::string const &path) {
     auto const slash = path.rfind('/');
@@ -118,6 +131,27 @@ int main(int argc, char **argv) {
 
   BPatch_function *check = find_function(image, "check");
   if (!check) {
+    return EXIT_FAILURE;
+  }
+
+  BPatch_function *held = find_function(image, "held");
+  BPatch_function *first = find_function(image, "first");
+  BPatch_variableExpr *held_diff = image->findVariable("held_diff");
+  if (!held || !first || !held_diff) {
+    std::cerr << "Cannot find held, first or held_diff\n";
+    return EXIT_FAILURE;
+  }
+  std::vector<BPatch_point *> *first_entry = first->findPoint(BPatch_entry);
+  if (!first_entry || first_entry->empty()) {
+    std::cerr << "No entry point in first\n";
+    return EXIT_FAILURE;
+  }
+  std::vector<BPatch_snippet *> held_args{new BPatch_paramExpr(0), new BPatch_constExpr(kHeld)};
+  BPatch_funcCallExpr held_call(*held, held_args);
+  BPatch_arithExpr difference(BPatch_minus, BPatch_constExpr(kHeld), held_call);
+  if (!edit->insertSnippet(BPatch_arithExpr(BPatch_assign, *held_diff, difference),
+                           *first_entry)) {
+    std::cerr << "Cannot insert the held call at first's entry\n";
     return EXIT_FAILURE;
   }
 
