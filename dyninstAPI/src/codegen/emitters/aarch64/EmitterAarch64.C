@@ -329,13 +329,24 @@ namespace Dyninst { namespace DyninstAPI {
       INSN_SET(branchInsn, 21, 21, 1);
       insnCodeGen::generate(gen, branchInsn);
 
-      // x0 now holds the return value, which the caller frees. The other
-      // argument registers are free after the call.
-      for(size_t id = 1; id < operands.size(); id++) {
+      for(size_t id = 0; id < operands.size(); id++) {
         if(reserved[id]) {
           gen.rs()->freeRegister(argRegs[id]);
         }
       }
+
+      // The call returns its value in x0; the caller frees the register we
+      // return it in. If x0 is restored below, the value moves to a register
+      // that is not.
+      Register ret = registerSpace::r0;
+      if(std::find(savedRegs.begin(), savedRegs.end(), ret) != savedRegs.end()) {
+        ret = gen.rs()->getScratchRegister(gen, savedRegs);
+        assert(ret != Null_Register && "cannot get a register for the return value");
+        insnCodeGen::generateMove(gen, ret, registerSpace::r0);
+      }
+      bool const allocated = gen.rs()->allocateSpecificRegister(gen, ret);
+      assert(allocated && "cannot allocate the return value's register");
+      (void)allocated;
 
       /*
        * Restoring registers
@@ -346,7 +357,7 @@ namespace Dyninst { namespace DyninstAPI {
         insnCodeGen::restoreRegister(gen, savedRegs[ui], 2 * GPRSIZE_64, insnCodeGen::Post);
       }
 
-      return 0;
+      return ret;
     }
 
     // Generates call instruction sequence for all AARCH64-based systems
