@@ -16,6 +16,21 @@ void check(long id, long a, long b, long c) {
   }
 }
 
+// The value the mutator subtracts held's result from.
+#define HELD 0x0040000000000007L
+
+// Set by the snippet at first's entry: held_diff = HELD - held(x, HELD), where
+// x is first's parameter.
+volatile long held_x = -1;
+volatile long held_marker = -1;
+volatile long held_diff = -1;
+
+long held(long x, long marker) {
+  held_x = x;
+  held_marker = marker;
+  return x * 2;
+}
+
 // GCC's interprocedural register allocation lets main keep values in
 // caller-saved registers across calls to functions it knows leave them alone.
 // The inserted calls clobber those registers, as the ABI allows, so keep GCC
@@ -37,6 +52,16 @@ int main(void) {
   long const r = first(input) + second(input, input) + third(input, input, input);
   if(r != 6 + 25 + 5) {
     fprintf(stderr, "the instrumented functions returned %ld, expected 36\n", r);
+    return 1;
+  }
+  if(held_x != input || held_marker != HELD) {
+    fprintf(stderr, "held got (%ld, 0x%lx), expected (%ld, 0x%lx)\n", held_x, held_marker, input,
+            HELD);
+    return 1;
+  }
+  if(held_diff != HELD - 2 * input) {
+    fprintf(stderr, "the snippet at first computed 0x%lx, expected 0x%lx\n", held_diff,
+            HELD - 2 * input);
     return 1;
   }
   if(calls != NUM_CALLS || bad != 0) {
