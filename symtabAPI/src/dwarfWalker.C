@@ -2082,6 +2082,41 @@ bool DwarfWalker::getLineInformation(Dwarf_Word &variableLineNo,
     return true;
 }
 
+/*
+ * DWARF 5 keeps addresses and relocatable constants in .debug_addr: DW_OP_addrx and
+ * DW_OP_constx (and their pre-standard GNU forms) carry an index into it, which only
+ * the unit holding the expression can resolve. decodeDwarfExpression() sees only the
+ * operations, so each indexed one is replaced by the plain operation for its value.
+ * One that can't be resolved is left as it is, and the decoder rejects it.
+ */
+static std::vector<Dwarf_Op> resolve_indexed_ops(Dwarf_Attribute &attr, Dwarf_Op const *ops, size_t len) {
+    std::vector<Dwarf_Op> resolved(ops, ops + len);
+    for(auto &op : resolved) {
+        Dwarf_Attribute value;
+        switch(op.atom) {
+            case DW_OP_addrx:
+            case DW_OP_GNU_addr_index: {
+                Dwarf_Addr addr;
+                if(dwarf_getlocation_attr(&attr, &op, &value) == 0 && dwarf_formaddr(&value, &addr) == 0) {
+                    op.atom = DW_OP_addr;
+                    op.number = addr;
+                }
+                break;
+            }
+            case DW_OP_constx:
+            case DW_OP_GNU_const_index: {
+                Dwarf_Word val;
+                if(dwarf_getlocation_attr(&attr, &op, &value) == 0 && dwarf_formudata(&value, &val) == 0) {
+                    op.atom = DW_OP_constu;
+                    op.number = val;
+                }
+                break;
+            }
+        }
+    }
+    return resolved;
+}
+
 bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
         Address *initialStackValue,
         std::vector<VariableLocation> &locs)
@@ -2138,8 +2173,7 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
             LocDesc ld;
             ld.ld_lopc = start;
             ld.ld_hipc = end;
-            ld.dwarfOp = exprs;
-            ld.opLen = exprlen;
+            ld.ops = resolve_indexed_ops(locationAttribute, exprs, exprlen);
             locDescs.push_back(ld);
         }while(offset > 0);
         if (locDescs.size() <= 0) {
@@ -2501,8 +2535,7 @@ bool DwarfWalker::decodeExpression(Dwarf_Attribute &locationAttribute,
         LocDesc ld;
         ld.ld_lopc = start;
         ld.ld_hipc = end;
-        ld.dwarfOp = exprs;
-        ld.opLen = exprlen;
+        ld.ops = resolve_indexed_ops(locationAttribute, exprs, exprlen);
         locDescs.push_back(ld);
     }while(offset > 0);
 
@@ -2574,7 +2607,7 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress(
         loc.refClass = storageNoRef;
 
         long int *tmp = (long int *)initialStackValue;
-        bool result = decodeDwarfExpression(location->dwarfOp, location->opLen, tmp, loc,
+        bool result = decodeDwarfExpression(location->ops.data(), location->ops.size(), tmp, loc,
                 symtab()->getArchitecture());
         if (!result) {
             dwarf_printf("(0x%lx) %s: dwarf expression not decoded\n", id(), DwarfDyninst::die_name(specEntry()).c_str());
