@@ -7,8 +7,8 @@
 #include <iomanip>
 #include <sstream>
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-#include "codegen/emitters/amdgpu/gfx908/emit-amdgpu-gfx908.h"
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
+#include "codegen/emitters/amdgpu/emit-amdgpu.h"
 #endif
 
 namespace Dyninst { namespace DyninstAPI {
@@ -30,7 +30,7 @@ std::string atomicOperationAST::format(std::string indent) {
   return ret.str();
 }
 
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
 
 bool atomicOperationAST::generateCode_phase2(codeGen &gen, Address &retAddr,
                                                      Dyninst::Register &) {
@@ -58,13 +58,13 @@ bool atomicOperationAST::generateCode_phase2(codeGen &gen, Address &retAddr,
       dynamic_cast<operandAST *>((codeGenAST *)variableOperand->operand().get());
   assert(offset);
 
-  EmitterAmdgpuGfx908 *emitter = dynamic_cast<EmitterAmdgpuGfx908 *>(gen.emitter());
+  EmitterAmdgpu *emitter = dynamic_cast<EmitterAmdgpu *>(gen.emitter());
   assert(emitter);
 
   registerSpace *regSpace = gen.rs();
 
   Dyninst::Register addrRegPair =
-      regSpace->allocateGprBlock(RegKind::SCALAR, /* numRegs */2, NS_amdgpu::PAIR_ALIGNMENT);
+      regSpace->allocateGprBlock(RegKind::SCALAR, /* numRegs */2, /* alignment */ 2);
 
   assert(addrRegPair != Null_Register &&
          "atomicOperationAST : Failed to allocate register pair");

@@ -35,6 +35,14 @@
 #include "arch-amdgpu.h"
 #include "codegen/emitters/amdgpu/emit-amdgpu.h"
 #include "dyn_register.h"
+#include "Architecture.h"
+#include "addressSpace.h"
+#include "binaryEdit.h"
+#include "patching/function.h"
+#include "Symbol.h"
+#include <cstdlib>
+#include <cstring>
+#include <vector>
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
@@ -55,9 +63,37 @@ Address EmitterAmdgpu::getInterModuleVarAddr(const image_variable * /* var */, c
   return 0;
 }
 
-Address EmitterAmdgpu::getInterModuleFuncAddr(func_instance * /* func */, codeGen & /* gen */) {
-  assert(!"Not implemented for AMDGPU");
-  return 0;
+Address EmitterAmdgpu::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
+  // Reserve a zero-initialized slot in the rewritten binary and register a
+  // dependent relocation against the callee's symbol. The loader fills the slot
+  // with the resolved address at load time; emitCall reads it back via SMEM and
+  // jumps through it with S_SWAPPC_B64. Mirrors Emitterx86::getInterModuleFuncAddr.
+  AddressSpace *addrSpace = gen.addrSpace();
+  BinaryEdit *binEdit = addrSpace ? addrSpace->edit() : nullptr;
+
+  // Live-process indirect call is not supported on AMDGPU yet; only the
+  // static-rewriter path goes through here.
+  assert(binEdit && "AMDGPU getInterModuleFuncAddr: only supported under static rewriting");
+  assert(func && "AMDGPU getInterModuleFuncAddr: callee is null");
+
+  SymtabAPI::Symbol *referring = func->getRelocSymbol();
+
+  // If we've already minted a slot for this symbol, reuse it.
+  Address relocation_address = binEdit->getDependentRelocationAddr(referring);
+  if (relocation_address) {
+    return relocation_address;
+  }
+
+  const unsigned int jump_slot_size = getArchAddressWidth(gen.getArch());
+  relocation_address = binEdit->inferiorMalloc(jump_slot_size);
+
+  std::vector<unsigned char> zero(jump_slot_size, 0);
+  binEdit->writeDataSpace(reinterpret_cast<void *>(relocation_address),
+                          jump_slot_size, zero.data());
+
+  binEdit->addDependentRelocation(relocation_address, referring);
+
+  return relocation_address;
 }
 
 void EmitterAmdgpu::emitImm(opCode /* op */, Register /* src1 */, RegValue /* src2imm */, Register /* dest */,

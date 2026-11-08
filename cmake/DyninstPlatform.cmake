@@ -19,20 +19,20 @@ set(
   "ppc64le"
   "riscv64"
 )
-set(
-  DYNINST_CODEGEN_ARCHES
-  ${DYNINST_HOST_ARCHES}
-  "amdgpu_gfx908"
-  "amdgpu_gfx90a"
-  "amdgpu_gfx940"
-  "amdgpu_gfx950"
-)
+set(DYNINST_CODEGEN_ARCHES ${DYNINST_HOST_ARCHES} "amdgpu_gfx9")
 
 # Also supported are aliases for an architecture, as `uname -m` or DYNINST_CODEGEN_ARCH
 # may give it.
 # For each <alias> of a canonical <arch>, set _dyninst_arch_alias_<alias> to <arch>.
 set(_dyninst_arch_alias_amd64 "x86_64")
 set(_dyninst_arch_alias_i686 "i386")
+# The gfx9 AMDGPU codegen is one family build (per-gen emitters selected at runtime), so the per-gen
+# names are aliases of the canonical amdgpu_gfx9 codegen arch.
+set(_dyninst_arch_alias_amdgpu_gfx908 "amdgpu_gfx9")
+set(_dyninst_arch_alias_amdgpu_gfx90a "amdgpu_gfx9")
+set(_dyninst_arch_alias_amdgpu_gfx940 "amdgpu_gfx9")
+set(_dyninst_arch_alias_amdgpu_gfx942 "amdgpu_gfx9")
+set(_dyninst_arch_alias_amdgpu_gfx950 "amdgpu_gfx9")
 
 # Sets <out> to the name of architecture <arch> in <valid>, resolving aliases, and
 # DYNINST_<kind>_ARCH_<ARCH> to TRUE in the caller. Stops with <what> in the message

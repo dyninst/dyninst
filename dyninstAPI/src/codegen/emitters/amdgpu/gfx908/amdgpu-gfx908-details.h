@@ -90,12 +90,6 @@ enum ContentMask64 : uint64_t {
 //                   bits (total 32):   2(10)       7       7       8       8
 // This enum contains particular SOP1 instructions of interest.
 // Extend it later as needed.
-enum SOP1_Opcode {
-  S_MOV_B32 = 0,
-  S_GETPC_B64 = 28,
-  S_SETPC_B64 = 29,
-  S_SWAPPC_B64 = 30
-};
 
 void setEncodingSop1(uint32_t &rawInst);
 void setFixedBitsSop1(uint32_t &rawInst);
@@ -115,31 +109,6 @@ void emitSop1(unsigned opcode, Register dest, Register src0, bool hasLiteral,
 // This enum contains particular SOP2 instructions of interest.
 // Extend it later as needed.
 // NOTE: many of these operations are unused as the abstract opcode enum doesn't have such detailed options.
-enum SOP2_Opcode {
-  S_ADD_U32 = 0,
-  S_SUB_U32 = 1,
-  S_ADD_I32 = 2,
-  S_SUB_I32 = 3,
-  S_ADDC_U32 = 4,
-  S_SUBB_U32 = 5,
-  S_MUL_I32 = 36,
-  S_CSELE3CT_B32 = 10,
-  S_CSELECT_B64 = 11,
-
-  S_AND_B32 = 12,
-  S_AND_B64 = 13,
-  S_OR_B32 = 14,
-  S_OR_B64 = 15,
-  S_XOR_B32 = 16,
-  S_XOR_B64 = 17,
-  S_NAND_B32 = 22,
-  S_NAND_B64 = 23,
-  S_NOR_B32 = 24,
-  S_NOR_B64 = 25,
-  S_XNOR_B32 = 26,
-  S_XNOR_B64 = 27
-
-};
 
 void setEncodingSop2(uint32_t &rawInst);
 void setOpcodeSop2(uint32_t value, uint32_t &rawInst);
@@ -162,28 +131,6 @@ void emitSop2WithSrc1Literal(unsigned opcode, Register dest, Register src0,
 // SCC = S0 opcode S1
 // This enum contains particular SOPC instructions of interest.
 // Extend it later as needed.
-enum SOPC_Opcode {
-  S_CMP_EQ_I32 = 0,
-  S_CMP_EQ_U32 = 6,
-  S_CMP_EQ_U64 = 18,
-
-  S_CMP_LG_I32 = 1,
-  S_CMP_LG_U32 = 7,
-
-  S_CMP_GT_I32 = 2,
-  S_CMP_GT_U32 = 8,
-
-  S_CMP_GE_I32 = 3,
-  S_CMP_GE_U32 = 9,
-
-  S_CMP_LT_I32 = 4,
-  S_CMP_LT_U32 = 10,
-
-  S_CMP_LE_I32 = 5,
-  S_CMP_LE_U32 = 11
-
-  // Leaving out S_BITCMP0/1 instructions
-};
 
 void setEncodingSopC(uint32_t &rawInst);
 void setFixedBitsSopC(uint32_t &rawInst);
@@ -201,28 +148,6 @@ void emitSopC(unsigned opcode, Register src1, Register src0, codeGen &gen);
 //
 // This enum contains particular SOPK instructions of interest.
 // Extend it later as needed.
-enum SOPK_Opcode {
-  S_CMPK_EQ_I32 = 2,
-  S_CMPK_EQ_U32 = 8,
-
-  S_CMPK_LG_I32 = 3,
-  S_CMPK_LG_U32 = 9,
-
-  S_CMPK_GT_I32 = 4,
-  S_CMPK_GT_U32 = 10,
-
-  S_CMPK_GE_I32 = 5,
-  S_CMPK_GE_U32 = 11,
-
-  S_CMPK_LT_I32 = 6,
-  S_CMPK_LT_U32 = 12,
-
-  S_CMPK_LE_I32 = 7,
-  S_CMPK_LE_U32 = 13,
-
-  S_ADDK_I32 = 14,
-  S_MULK_I32 = 15
-};
 
 void setEncodingSopK(uint32_t &rawInst);
 void setFixedBitsSopK(uint32_t &rawInst);
@@ -239,18 +164,6 @@ void emitSopK(unsigned opcode, Register dest, int16_t simm16, codeGen &gen);
 //
 // This enum contains particular SOPP instructions of interest.
 // Extend it later as needed.
-enum SOPP_Opcode {
-  S_NOP = 0,
-  S_ENDPGM = 1,
-  S_BRANCH = 2,
-  S_CBRANCH_SCC0 = 4,
-  S_CBRANCH_SCC1 = 5,
-  S_CBRANCH_VCCZ = 6,
-  S_CBRANCH_VCCNZ = 7,
-  S_CBRANCH_EXECZ = 8,
-  S_CBRANCH_EXECNZ = 9,
-  S_WAITCNT = 12
-};
 
 void setEncodingSopP(uint32_t &rawInst);
 void setFixedBitsSopP(uint32_t &rawInst);
@@ -275,21 +188,6 @@ void emitSopP(unsigned opcode, int16_t simm16, codeGen &gen);
 
 // This enum contains particular SMEM instructions of interest.
 // Extend it later as needed.
-enum SMEM_Opcode {
-  S_LOAD_DWORD = 0,
-  S_LOAD_DWORDX2 = 1,
-  S_LOAD_DWORDX4 = 2,
-  S_LOAD_DWORDX8 = 3,
-  S_LOAD_DWORDX16 = 4,
-
-  S_STORE_DWORD = 16,
-  S_STORE_DWORDX2 = 17,
-  S_STORE_DWORDX4 = 18,
-
-  S_DCACHE_WB = 33,
-  S_ATOMIC_ADD = 130,
-  S_ATOMIC_SUB = 131
-};
 
 unsigned getSmemImmBit(unsigned opcode);
 void setEncodingSmem(uint64_t &rawInst);
@@ -322,6 +220,14 @@ void emitSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset,
               codeGen &gen);
 
 // === SMEM END ===
+
+// === VOP1 / VOP2 / FLAT(global/scratch) ===
+void emitVop1Reg(unsigned opcode, uint32_t vdst, uint32_t src0, codeGen &gen);
+void emitVop1Imm(unsigned opcode, uint32_t vdst, uint32_t literal, codeGen &gen);
+void emitVop2(unsigned opcode, uint32_t vdst, uint32_t vsrc1, uint32_t src0, codeGen &gen);
+void emitVop3a(unsigned opcode, uint32_t vdst, uint32_t src0, uint32_t src1, uint32_t src2, codeGen &gen);
+void emitFlatGlobal(unsigned opcode, uint32_t vdst, uint32_t addr, uint32_t data, uint32_t saddr,
+                    int32_t offset, codeGen &gen, bool glc, uint32_t seg);
 
 } // namespace amdgpu_gfx908
 } // namespace Dyninst

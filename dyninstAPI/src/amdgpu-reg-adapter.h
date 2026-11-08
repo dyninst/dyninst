@@ -31,17 +31,17 @@
 #ifndef DYNINST_AMDGPU_REG_ADAPTER_H
 #define DYNINST_AMDGPU_REG_ADAPTER_H
 
-// M1 proof-of-concept adapter: route AMDGPU codegen's register classification and ISA-operand
-// derivation through MachRegister, so the codegen `Dyninst::Register`'s `kind`/`count` fields are not
-// relied on by AMDGPU logic. MachRegister already encodes all three pieces:
+// AMDGPU codegen register adapter: route register classification and ISA-operand derivation through
+// MachRegister, so AMDGPU logic does not rely on the codegen `Dyninst::Register`'s `kind`/`count` fields.
+// MachRegister already encodes all three pieces:
 //   id    -> the register number (val() low byte)
 //   kind  -> the category bits (regClass(): SGPR vs VGPR; so SGPR-5 != VGPR-5)
 //   block -> the size field (BITS_32 = 1 dword, BITS_64 = pair, ... BITS_512 = 16)
-// `Dyninst::Register` remains only as the shared Emitter-interface boundary type; amdgpuMachRegOf()
-// adapts it to a MachRegister at entry, and everything downstream classifies/encodes from that.
-//
-// The adapter is arch-GENERAL: amdgpuMachRegOf() takes the architecture from the caller (the per-gen
-// emitter), so it is not bound to gfx908 -- it dispatches to each gen's own register constants.
+// The codegen Register -> MachRegister build is PER-GEN and lives where the gen is known by type: each
+// EmitterAmdgpu<Gen>::toMachRegister(), naming only its own gen's namespace constants (no macro, no arch
+// switch). Register-space code derives ISA operand codes through convertRegID (RegisterConversion-amdgpu.C),
+// which dispatches on the register's own arch. This adapter operates on an ALREADY-built MachRegister
+// (which carries its own arch), so everything here is gen-neutral: classify/encode from that.
 
 #include <cstdint>
 
@@ -53,40 +53,6 @@
 
 namespace Dyninst {
 namespace amdgpu_adapter {
-
-// Adapt a codegen Register to a MachRegister of the GIVEN arch: scalar/vector class from the kind, number
-// from the id, width (in 32-bit dwords) from the block count. This is the one place the codegen Register's
-// fields are read. The AMDGPU register-value encoding lives in the AMDGPU codegen layer (here), not on the
-// generic MachRegister. PER-GEN: each arch uses its OWN namespace's category + size-field constants (as
-// MachRegister::size() does), so a gen that renumbers them is handled by its own case; `arch`
-// selects the gen. Bit ranges are disjoint: arch 0xff000000 | category 0x00ff0000 | size 0x0000ff00 |
-// number 0x000000ff.
-inline MachRegister amdgpuMachRegOf(Register r, Dyninst::Architecture arch) {
-  const bool isVec = r.isVector();
-  const int32_t num = static_cast<int32_t>(r.getId() & 0xffu);
-  const uint32_t dwords = r.getCount();
-#define DYNINST_AMDGPU_MK_REG(NS)                                                                          \
-  {                                                                                                        \
-    const int32_t category = isVec ? Dyninst::NS::VGPR : Dyninst::NS::SGPR;                                 \
-    int32_t sizeBits = Dyninst::NS::BITS_32;                                                                \
-    switch (dwords) {                                                                                      \
-    case 2: sizeBits = Dyninst::NS::BITS_64; break;                                                         \
-    case 4: sizeBits = Dyninst::NS::BITS_128; break;                                                        \
-    case 8: sizeBits = Dyninst::NS::BITS_256; break;                                                        \
-    case 16: sizeBits = Dyninst::NS::BITS_512; break;                                                       \
-    default: break; /* 1 (and unexpected) -> BITS_32 */                                                     \
-    }                                                                                                      \
-    return MachRegister(static_cast<int32_t>(arch) | category | sizeBits | num);                            \
-  }
-  switch (arch) {
-  case Dyninst::Arch_amdgpu_gfx908: DYNINST_AMDGPU_MK_REG(amdgpu_gfx908)
-  case Dyninst::Arch_amdgpu_gfx90a: DYNINST_AMDGPU_MK_REG(amdgpu_gfx90a)
-  case Dyninst::Arch_amdgpu_gfx940: DYNINST_AMDGPU_MK_REG(amdgpu_gfx940)
-  case Dyninst::Arch_amdgpu_gfx950: DYNINST_AMDGPU_MK_REG(amdgpu_gfx950)
-  default: return MachRegister();
-  }
-#undef DYNINST_AMDGPU_MK_REG
-}
 
 // AMDGPU SGPR / VGPR (incl. accumulator VGPR) classification from a MachRegister's own arch + category.
 // This lives in the codegen adapter, NOT on the general MachRegister: "SGPR vs VGPR" is an AMDGPU-codegen

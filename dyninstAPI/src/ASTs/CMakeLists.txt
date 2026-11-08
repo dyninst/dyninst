@@ -51,9 +51,9 @@ set(
   variableAST.C
 )
 
-if(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
-  list(APPEND _headers AmdgpuEpilogue.h AmdgpuPrologue.h)
-  list(APPEND _sources AmdgpuEpilogue.C AmdgpuPrologue.C)
+if(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9)
+  list(APPEND _headers amdgpu-prologue-epilogue.h)
+  list(APPEND _sources amdgpu-prologue-epilogue.C)
 endif()
 
 dyninst_library(
