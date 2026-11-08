@@ -553,7 +553,7 @@ namespace {
     //        insnCodeGen::generateImm(gen, Lop, dest, REG_SP,
     //                                 gpr_off + reg*gpr_size);
     else {
-      bperr("GPR %u should not be restored...", reg.getId());
+      bperr("GPR %u should not be restored...", reg);
       assert(0);
     }
   }

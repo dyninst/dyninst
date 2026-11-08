@@ -32,9 +32,9 @@
 //
 // Unlike x86/aarch64/ppc (whose register ids are irregular and need a hand-written map), the AMDGPU
 // register space is a regular identity, so we DERIVE the mapping instead of hand-listing it:
-//  - SGPR/VGPR: the codegen id is the register number, which is the MachRegister base number (s33 =
-//    number 33). The SGPR/VGPR category bits are identical across every AMDGPU gen, so this part is
-//    arch-invariant.
+//  - SGPR/VGPR: the codegen id is the ISA operand code -- the register number for an SGPR (s33 = 33),
+//    VGPR_OPERAND_BASE + the register number for a VGPR (v5 = 261). The SGPR/VGPR category bits are
+//    identical across every AMDGPU gen, so this part is arch-invariant.
 //  - specials (vcc/exec/flat_scratch/xnack/m0/ttmp): the codegen id is the ISA scalar operand code
 //    (vcc_lo = 106, exec_lo = 126, ...), read from the GENERATED PER-ARCH table <arch>::detail::specialRegs[].
 //    That table is the single source for those codes and is per-gen, so a gen that renumbers or drops a
@@ -153,24 +153,24 @@ Register convertRegID(MachRegister reg) {
   const unsigned category = baseReg.regClass();
   const uint32_t num = (uint32_t)(baseReg.val() & 0xffu);
   if (category == amdgpu_gfx908::v0.regClass())
-    return Register(OperandRegId(num), RegKind::VECTOR, BlockSize(1));
+    return NS_amdgpu::VGPR_OPERAND_BASE + num;
   if (category == amdgpu_gfx908::s0.regClass())
-    return Register(OperandRegId(num), RegKind::SCALAR, BlockSize(1));
+    return num;
 
   // Specials: codegen id = ISA operand code, from this register's own arch table.
   uint32_t code;
   if (amdgpuSpecialCode(arch, baseReg.name(), code))
-    return Register(OperandRegId(code), RegKind::SCALAR, BlockSize(1));
+    return code;
 
   // Not an encodable register (trash from bad code), or an arch whose special table is not vendored yet.
-  return Register();
+  return Null_Register;
 }
 
 Register convertRegID(RegisterAST::Ptr toBeConverted) { return convertRegID(toBeConverted.get()); }
 
 Register convertRegID(RegisterAST *toBeConverted) {
   if (!toBeConverted) {
-    return Register();
+    return Null_Register;
   }
   return convertRegID(toBeConverted->getID());
 }
@@ -182,12 +182,12 @@ MachRegister convertRegID(Register r, Dyninst::Architecture arch) {
   }
 
   const AmdgpuArchRegs &d = amdgpuArchRegs(arch);
-  const uint32_t id = r.getId();
+  const uint32_t id = r;
 
-  // VGPR / SGPR: the codegen id is the register number, so the MachRegister is this arch's v0/s0 + id.
-  if (r.getKind() == RegKind::VECTOR) {
+  // VGPR / SGPR: the codegen id is the operand code, so the MachRegister is this arch's v0/s0 + number.
+  if (id >= NS_amdgpu::VGPR_OPERAND_BASE && id <= NS_amdgpu::VGPR_OPERAND_BASE + NS_amdgpu::MAX_VGPR_ID) {
     if (d.haveBase)
-      return MachRegister(d.v0Val + (int32_t)id);
+      return MachRegister(d.v0Val + (int32_t)(id - NS_amdgpu::VGPR_OPERAND_BASE));
   } else if (id <= NS_amdgpu::MAX_SGPR_ID) {
     if (d.haveBase)
       return MachRegister(d.s0Val + (int32_t)id);

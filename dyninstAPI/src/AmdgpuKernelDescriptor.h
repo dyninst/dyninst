@@ -273,6 +273,7 @@ public:
   // ==== END OF ALL FIELDS ===
 
 
+  // First SGPR of the pair holding the kernarg segment pointer.
   Register getKernargPtrRegisterPair();
 
   void dump(std::ostream &os) const;

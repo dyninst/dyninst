@@ -198,7 +198,7 @@ void registerSpace::createRegSpaceInt(std::vector<registerSlot *> &registers,
 
 bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num)
 {
-  regalloc_printf("Allocating specific register %u\n", num.getId());
+  regalloc_printf("Allocating specific register %u\n", num);
 
   debugPrint();
 
@@ -232,7 +232,7 @@ bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num)
     gen.markRegDefined(reg->number);
 
 
-    regalloc_printf("Allocated register %u\n", num.getId());
+    regalloc_printf("Allocated register %u\n", num);
 
     return true;
 }
@@ -261,7 +261,7 @@ Register registerSpace::getScratchRegister(codeGen &gen, std::vector<Register> &
 
     regalloc_printf("%s[%d]: getting scratch register, examining %u of %lu: reg %u (%s), offLimits %d, refCount %d, liveState %s, keptValue %d\n",
 		    FILE__, __LINE__, i, regs.size(),
-		    reg->number.getId(),
+		    reg->number,
 		    reg->name.c_str(),
 		    reg->offLimits,
 		    reg->refCount,
@@ -324,7 +324,7 @@ Register registerSpace::allocateRegister(codeGen &gen,
 {
   regalloc_printf("Allocating and retaining register...\n");
   Register reg = getScratchRegister(gen, realReg);
-  regalloc_printf("retaining register %u\n", reg.getId());
+  regalloc_printf("retaining register %u\n", reg);
   if (reg == Null_Register) return Null_Register;
   if (realReg) {
     physicalRegs(reg)->refCount = 1;
@@ -332,8 +332,55 @@ Register registerSpace::allocateRegister(codeGen &gen,
   else {
     registers_[reg]->refCount = 1;
   }
-  regalloc_printf("Allocated register %u\n", reg.getId());
+  regalloc_printf("Allocated register %u\n", reg);
   return reg;
+}
+
+bool registerSpace::canAllocate(Register reg) const {
+  auto iter = registers_.find(reg);
+  if (iter == registers_.end()) {
+    return false;
+  }
+
+  registerSlot *regSlot = iter->second;
+
+  if (regSlot->offLimits)
+    return false;
+  else if (regSlot->refCount > 0)
+    return false;
+  else if (regSlot->liveState == registerSlot::live)
+    return false;
+  else if (regSlot->keptValue)
+    return false;
+
+  return true;
+}
+
+Register registerSpace::allocateRegister(codeGen &gen, registerSlot::regType_t type, uint32_t numRegs,
+                                         uint32_t alignment) {
+  regalloc_printf("Allocating %u registers of type %d, alignment %u\n", numRegs, static_cast<int>(type), alignment);
+
+  for (registerSlot *first : GPRs_) {
+    Register base = first->number;
+    if (first->type != type || base % alignment != 0)
+      continue;
+
+    bool allFree = true;
+    for (uint32_t i = 0; i < numRegs && allFree; ++i) {
+      allFree = canAllocate(base + i) && registers_[base + i]->type == type;
+    }
+    if (!allFree)
+      continue;
+
+    for (uint32_t i = 0; i < numRegs; ++i) {
+      registers_[base + i]->markUsed(true);
+      gen.markRegDefined(base + i);
+    }
+    regalloc_printf("Allocated registers %u-%u\n", base, base + numRegs - 1);
+    return base;
+  }
+
+  return Null_Register;
 }
 
 bool registerSpace::stealRegister(Register reg, codeGen &gen) {
@@ -342,7 +389,7 @@ bool registerSpace::stealRegister(Register reg, codeGen &gen) {
     assert(registers_[reg]->keptValue == true);
     assert(registers_[reg]->liveState != registerSlot::live);
 
-    regalloc_printf("Stealing register %u\n", reg.getId());
+    regalloc_printf("Stealing register %u\n", reg);
 
     // Let the AST know it just lost...
     if (!gen.tracker()->stealKeptRegister(registers_[reg]->number)) return false;
@@ -479,14 +526,20 @@ bool registerSpace::restoreVolatileRegisters(codeGen &) {
 }
 #endif
 
+void registerSpace::freeRegister(Register first, uint32_t numRegs)
+{
+  for (Register num = first; num < first + numRegs; ++num)
+    freeSingleRegister(num);
+}
+
 // Free the specified register (decrement its refCount)
-void registerSpace::freeRegister(Register num)
+void registerSpace::freeSingleRegister(Register num)
 {
     registerSlot *reg = findRegister(num);
     if (!reg) return;
 
     reg->refCount--;
-    regalloc_printf("Freed register %u: refcount now %d\n", num.getId(), reg->refCount);
+    regalloc_printf("Freed register %u: refcount now %d\n", num, reg->refCount);
 
     if( reg->refCount < 0 ) {
         //bperr( "Freed free register!\n" );
@@ -691,7 +744,7 @@ bool registerSpace::markSavedRegister(RealRegister num, int offsetFromFP) {
 
 bool registerSpace::markSavedRegister(Register num, int offsetFromFP) {
     regalloc_printf("Marking register %u as saved, %d from frame pointer\n",
-                    num.getId(), offsetFromFP);
+                    num, offsetFromFP);
     // Find the register slot
     registerSlot *s = findRegister(num);
     return markSavedRegister(s, offsetFromFP);
@@ -716,7 +769,7 @@ void registerSlot::debugPrint(const char *prefix) {
 
 	if (prefix) fprintf(stderr, "%s", prefix);
 	fprintf(stderr, "Num: %u, name %s, type %s, refCount %d, liveState %s, beenUsed %d, initialState %s, offLimits %d, keptValue %d\n",
-                number.getId(),
+                number,
                 name.c_str(),
                 (type == GPR) ? "GPR" : ((type == FPR) ? "FPR" : "SPR"),
                 refCount,
@@ -754,13 +807,13 @@ void registerSpace::debugPrint() {
 }
 
 bool registerSpace::markKeptRegister(Register reg) {
-	regalloc_printf("Marking register %u as kept\n", reg.getId());
+	regalloc_printf("Marking register %u as kept\n", reg);
    registers_[reg]->keptValue = true;
    return false;
 }
 
 void registerSpace::unKeepRegister(Register reg) {
-	regalloc_printf("Marking register %u as unkept\n", reg.getId());
+	regalloc_printf("Marking register %u as unkept\n", reg);
    registers_[reg]->keptValue = false;
 }
 
@@ -1340,26 +1393,4 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
     }
 
 	return false;
-}
-
-bool registerSpace::canAllocate(Register reg) const {
-  assert(reg.getCount() == 1 && "reg must be a single register");
-
-  auto iter = registers_.find(reg);
-  if (iter == registers_.end()) {
-    return false;
-  }
-
-  registerSlot *regSlot = iter->second;
-
-  if (regSlot->offLimits)
-    return false;
-  else if (regSlot->refCount > 0)
-    return false;
-  else if (regSlot->liveState == registerSlot::live)
-    return false;
-  else if (regSlot->keptValue)
-    return false;
-
-  return true;
 }

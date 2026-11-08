@@ -48,16 +48,14 @@ namespace NS_amdgpu {
 // AMDGPU GFX908 registers of interest for code generation. We will use liveness on these to
 // allocate them for use in instrumentation.
 // Note that this is for Dyninst's abstraction for code generation.
-// The register ids are actual register numbers that are used in instructions. Since SGPRs and VGPRs have
-// the same register numbers, they need to be distinguished.
+// A codegen 'Register' is the ISA operand code of the register: SGPR n is n, a special register
+// (vcc, exec, ...) is its operand code, and VGPR n is VGPR_OPERAND_BASE + n. This keeps SGPRs and VGPRs
+// with the same register number distinct.
 //
 // We map these 'Register's to MachRegisters in RegisterConversion-amdgpu.C
 // For information on architectural registers see MachRegister in dyn_regs.h
 
 using namespace Dyninst;
-
-constexpr Alignment PAIR_ALIGNMENT(2);
-constexpr Alignment QUAD_ALIGNMENT(4);
 
 constexpr uint32_t MIN_SGPR_ID = 0;
 constexpr uint32_t MAX_SGPR_ID = 101;
@@ -70,6 +68,9 @@ constexpr uint32_t MAX_ALLOCATABLE_SGPR_ID = MAX_SGPR_ID - 2;
 
 constexpr uint32_t MIN_VGPR_ID = 0;
 constexpr uint32_t MAX_VGPR_ID = 255;
+
+// Operand code of v0 in a 9-bit VOP source field.
+constexpr uint32_t VGPR_OPERAND_BASE = 256;
 
 
 typedef const unsigned int insn_mask;
