@@ -8,6 +8,7 @@
 #include "inst-aarch64.h"
 #include "registerSpace/RegisterConversion.h"
 #include "registerSpace/registerSpace.h"
+#include <algorithm>
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
@@ -223,42 +224,70 @@ namespace Dyninst { namespace DyninstAPI {
         assert(0);
       }
 
-      vector<int> savedRegs;
-
-      // save r0-r7
+      // The registers to save across the call. We must save if:
+      // refCount > 0 (and not a source register)
+      // keptValue == true (keep over the call)
+      // liveState == live (technically, only if not saved by the callee)
+      // They are pushed only once the operands are evaluated: operands read
+      // the tramp frame relative to the stack pointer, so it must not move
+      // before then.
+      std::vector<Register> savedRegs;
       for(int id = 0; id < gen.rs()->numGPRs(); id++) {
         registerSlot *reg = gen.rs()->GPRs()[id];
-
-        // We must save if:
-        // refCount > 0 (and not a source register)
-        // keptValue == true (keep over the call)
-        // liveState == live (technically, only if not saved by the callee)
-
         if((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live)) {
-          insnCodeGen::saveRegister(gen, registerSpace::r0 + id, -2 * GPRSIZE_64,
-                                    insnCodeGen::Post);
           savedRegs.push_back(reg->number);
         }
       }
 
-      // Passing operands to registers
+      // Passing operands in x0-x7. Reserve every argument register first, so
+      // that evaluating one operand cannot take another's register. An
+      // argument register that is still in use cannot be reserved: its
+      // operand is evaluated into another register and moved into place once
+      // no operand needs the old value any more and the old value is saved.
+      assert(operands.size() <= 8 && "arguments past x7 are not supported");
+      std::vector<Register> argRegs;
+      std::vector<bool> reserved;
       for(size_t id = 0; id < operands.size(); id++) {
-        Register reg = Null_Register;
-        if(gen.rs()->allocateSpecificRegister(gen, registerSpace::r0 + id)) {
-          reg = registerSpace::r0 + id;
-        }
+        // registerSpace::r0 + N is xN.
+        argRegs.push_back(registerSpace::r0 + id);
+        reserved.push_back(gen.rs()->allocateSpecificRegister(gen, argRegs[id]));
+      }
 
+      // values[id] is passed to generateCode_phase2 by reference. Set to xN,
+      // it makes the operand evaluate into xN. Left as Null_Register, it lets
+      // the operand pick a free register, which phase2 writes back into
+      // values[id]. Either way values[id] then names the register that holds
+      // the operand's value.
+      std::vector<Register> values(operands.size(), Null_Register);
+      for(size_t id = 0; id < operands.size(); id++) {
+        if(reserved[id]) {
+          values[id] = argRegs[id];
+        }
         Address unnecessary = ADDR_NULL;
-        if(!operands[id]->generateCode_phase2(gen, unnecessary, reg)) {
+        if(!operands[id]->generateCode_phase2(gen, unnecessary, values[id])) {
           assert(0);
         }
-        assert(reg != Null_Register);
+        assert(values[id] != Null_Register);
+      }
+
+      for(Register reg : savedRegs) {
+        insnCodeGen::saveRegister(gen, reg, -2 * GPRSIZE_64, insnCodeGen::Post);
+      }
+
+      for(size_t id = 0; id < operands.size(); id++) {
+        if(values[id] != argRegs[id]) {
+          // A move would overwrite a value that a later move still reads.
+          assert(std::find(argRegs.begin(), argRegs.end(), values[id]) == argRegs.end());
+          insnCodeGen::generateMove(gen, argRegs[id], values[id]);
+          gen.markRegDefined(argRegs[id]);
+          gen.rs()->freeRegister(values[id]);
+        }
       }
 
       assert(gen.rs());
 
       // Address of function to call in scratch register
-      Register scratch = gen.rs()->getScratchRegister(gen);
+      Register scratch = gen.rs()->getScratchRegister(gen, argRegs);
       assert(scratch != Null_Register && "cannot get a scratch register");
       gen.markRegDefined(scratch);
 
@@ -300,17 +329,35 @@ namespace Dyninst { namespace DyninstAPI {
       INSN_SET(branchInsn, 21, 21, 1);
       insnCodeGen::generate(gen, branchInsn);
 
+      for(size_t id = 0; id < operands.size(); id++) {
+        if(reserved[id]) {
+          gen.rs()->freeRegister(argRegs[id]);
+        }
+      }
+
+      // The call returns its value in x0; the caller frees the register we
+      // return it in. If x0 is restored below, the value moves to a register
+      // that is not.
+      Register ret = registerSpace::r0;
+      if(std::find(savedRegs.begin(), savedRegs.end(), ret) != savedRegs.end()) {
+        ret = gen.rs()->getScratchRegister(gen, savedRegs);
+        assert(ret != Null_Register && "cannot get a register for the return value");
+        insnCodeGen::generateMove(gen, ret, registerSpace::r0);
+      }
+      bool const allocated = gen.rs()->allocateSpecificRegister(gen, ret);
+      assert(allocated && "cannot allocate the return value's register");
+      (void)allocated;
+
       /*
        * Restoring registers
        */
 
       // r7-r0
       for(signed int ui = savedRegs.size() - 1; ui >= 0; ui--) {
-        insnCodeGen::restoreRegister(gen, registerSpace::r0 + savedRegs[ui], 2 * GPRSIZE_64,
-                                     insnCodeGen::Post);
+        insnCodeGen::restoreRegister(gen, savedRegs[ui], 2 * GPRSIZE_64, insnCodeGen::Post);
       }
 
-      return 0;
+      return ret;
     }
 
     // Generates call instruction sequence for all AARCH64-based systems
