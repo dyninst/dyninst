@@ -48,7 +48,8 @@ namespace Dyninst { namespace DyninstAPI {
 
   void EmitterAarch64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, int sprnum,
                                              int stkOffset) {
-    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, scratchReg, REG_SP, stkOffset, 4);
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, scratchReg, REG_SP, stkOffset, 4,
+                                   insnCodeGen::Offset);
 
     // TODO move map to common location
     std::map<int, int> sysRegCodeMap = {{SPR_NZCV, 0x5A10}, {SPR_FPCR, 0x5A20}, {SPR_FPSR, 0x5A21}};
@@ -98,7 +99,7 @@ namespace Dyninst { namespace DyninstAPI {
 
     for(std::vector<registerSlot *>::iterator itr = spRegs.begin(); itr != spRegs.end(); itr++) {
       registerSlot *cur = *itr;
-      restoreSPR(gen, theRegSpace->getScratchRegister(gen), regMap[cur], 4 * GPRSIZE_32);
+      restoreSPR(gen, theRegSpace->getScratchRegister(gen), regMap[cur], cur->saveOffset);
       ret++;
     }
 
