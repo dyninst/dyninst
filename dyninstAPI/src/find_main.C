@@ -246,6 +246,49 @@ namespace Dyninst { namespace DyninstAPI {
         }
       }
     }
+
+    /* Add ABI-specific symbols
+     *
+     *  System V Application Binary Interface
+     *  AMD64 Architecture Processor Supplement
+     *  Version 1.0
+     *  February 22, 2024
+     *
+     *  RISC-V ABIs Specification
+     *  Version 1.0-rc2
+     *
+     *  ELF for the Arm 64-bit Architecture
+     *  2021Q1
+     *  April 12, 2021
+     *
+     *  OpenPOWER 64-bit ELF V2 ABI
+     *  Revision 1.5
+     *  December 1, 2020
+     */
+    {
+      // This is only required for x86_64, but gcc emits one for all architectures.
+      st::Region *region{};
+      if(linkedFile->findRegion(region, ".dynamic")) {
+        std::vector<st::Symbol *> syms{};
+        linkedFile->findSymbol(syms, "_DYNAMIC", st::Symbol::ST_UNKNOWN, st::mangledName);
+        if(syms.empty()) {
+          // clang-format off
+          linkedFile->addSymbol(
+            new st::Symbol(
+              "_DYNAMIC",
+              st::Symbol::ST_OBJECT,
+              st::Symbol::SL_LOCAL,
+              st::Symbol::SV_INTERNAL,
+              region->getMemOffset(),
+              linkedFile->getDefaultModule(),
+              region,
+              0
+            )
+          );
+          // clang-format on
+        }
+      }
+    }
   }
 
 }}

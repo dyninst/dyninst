@@ -158,33 +158,6 @@ int codeBytesSeen = 0;
  */
 int image::findMain()
 {
-#if defined(i386_unknown_linux2_0) \
-    || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
-    || (defined(os_freebsd) \
-            && (defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)))
-
-    Region *dynamicsec;
-    vector < Symbol *>syms;
-    if(linkedFile->findRegion(dynamicsec, ".dynamic")==true)
-    {
-        if(linkedFile->findSymbol(syms,
-                    "_DYNAMIC",
-                    Symbol::ST_UNKNOWN,
-                    SymtabAPI::mangledName)==false)
-        {
-            Symbol *newSym = new Symbol( "_DYNAMIC", 
-                    Symbol::ST_OBJECT, 
-                    Symbol::SL_LOCAL,
-                    Symbol::SV_INTERNAL,
-                    dynamicsec->getMemOffset(), 
-                    linkedFile->getDefaultModule(),
-                    dynamicsec, 
-                    0 );
-            linkedFile->addSymbol(newSym);
-        }
-    }
-#endif
-
     return 0; /* Success */
 }
 
