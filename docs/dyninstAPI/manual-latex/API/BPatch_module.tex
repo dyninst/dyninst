@@ -24,6 +24,9 @@ objects that it cannot match to a source file.
   formed on function names, and matching \code{BPatch\_functions} returned. If the \code{incUninstrumentable}
   flag is set, the returned table of procedures will include
   uninstrumentable functions. The default behavior is to omit these functions.
+  An external linkage stub -- an entry in the PLT on ELF, which forwards to a
+  definition supplied by another object rather than being one -- is among the
+  uninstrumentable functions, so it is reported only when this flag is set.
   [NOTE: If name is not found to match any demangled function names in the module, the
   search is repeated as if name is a mangled function name. If this second search succeeds,
   functions with mangled names matching name are returned instead.]
@@ -65,6 +68,9 @@ objects that it cannot match to a source file.
   If the incUninstrumentable flag is set, the functions searched will
   include uninstrumentable functions. The default
   behavior is to omit these functions.
+  An external linkage stub -- an entry in the PLT on ELF, which forwards to a
+  definition supplied by another object rather than being one -- is among the
+  uninstrumentable functions, so it is reported only when this flag is set.
 }
 
 \begin{apient}

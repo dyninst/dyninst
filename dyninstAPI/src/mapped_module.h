@@ -82,7 +82,8 @@ class mapped_module {
       // is a single module. Even if we went multiple, we might not have
       // module information, and so we can get collisions.
       bool findFuncVectorByMangled(const std::string &funcname,
-            std::vector<func_instance *> &funcs);
+            std::vector<func_instance *> &funcs,
+            bool includePLTStubs = false);
 
     bool findFuncsByAddr(const Address addr, std::set<func_instance *> &funcs);
     bool findBlocksByAddr(const Address addr, std::set<block_instance *> &blocks);
