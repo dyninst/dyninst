@@ -277,41 +277,6 @@ int image::findMain()
             linkedFile->addSymbol(newSym);
         }
     }
-
-#elif defined(i386_unknown_nt4_0)
-
-        vector <Symbol *>syms;
-        vector<SymtabAPI::Function *> funcs;
-
-        bool found_main = false;
-        if (found_main) {
-            if(!linkedFile->findSymbol(syms,"start",Symbol::ST_UNKNOWN, SymtabAPI::mangledName)) {
-                //use 'start' for mainCRTStartup.
-                Symbol *startSym = new Symbol( "start", 
-                        Symbol::ST_FUNCTION,
-                        Symbol::SL_GLOBAL, 
-                        Symbol::SV_DEFAULT, 
-                        eAddr ,
-                        linkedFile->getDefaultModule(),
-                        entry_region,
-                        UINT_MAX );
-                linkedFile->addSymbol(startSym);
-            }
-            syms.clear();
-        } 
-        else {
-            // add entry point as main given that nothing else was found
-            startup_printf("[%s:%u] - findmain could not find symbol "
-                    "for main, using binary entry point %x\n",
-                    __FILE__, __LINE__, eAddr);
-            linkedFile->addSymbol(new Symbol("main",
-                        Symbol::ST_FUNCTION, 
-                        Symbol::SL_GLOBAL, 
-                        Symbol::SV_DEFAULT,
-                        eAddr,
-                        linkedFile->getDefaultModule(),
-                        entry_region));
-        }
 #endif
 
     return 0; /* Success */
@@ -868,6 +833,10 @@ image::image(fileDescriptor &desc,
    {
      namespace dd = Dyninst::DyninstAPI;
      dd::main_addr_t main = dd::find_main(this->linkedFile);
+
+     if(main.is_valid && main.is_executable) {
+       dd::add_missing_symbols(this->linkedFile, main);
+     }
    }
 
    // Initialize ParseAPI 

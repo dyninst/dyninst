@@ -150,4 +150,46 @@ namespace Dyninst { namespace DyninstAPI {
     return main;
   }
 
+  static st::Symbol* make_pe_symbol(st::Symtab *st, st::Region *reg, std::string name, Dyninst::Address addr, unsigned size) {
+    startup_printf("Adding symbol '%s' at 0x%lx\n", name.c_str(), addr);
+    // clang-format off
+    return new st::Symbol(
+      std::move(name),
+      st::Symbol::ST_FUNCTION,
+      st::Symbol::SL_GLOBAL,
+      st::Symbol::SV_DEFAULT,
+      addr,
+      st->getDefaultModule(),
+      reg,
+      size
+    );
+    // clang-format on
+  }
+
+  static void add_main_symbol(st::Symtab *st, Dyninst::Address addr) {
+    const auto entry_address = static_cast<Dyninst::Address>(st->getEntryOffset());
+    st::Region *entry_region = st->findEnclosingRegion(entry_address);
+
+    if(st->getFileFormat() == st::FileFormat::PE) {
+      std::vector<st::Symbol *> syms{};
+      auto const has_start = st->findSymbol(syms, "start", st::Symbol::ST_UNKNOWN, SymtabAPI::mangledName);
+      if(!has_start) {
+        // use 'start' for mainCRTStartup.
+        st->addSymbol(make_pe_symbol(st, entry_region, "start", entry_address, UINT_MAX));
+      } else {
+        // add entry point as main given that nothing else was found
+        st->addSymbol(make_pe_symbol(st, entry_region, "main", entry_address, 0U));
+      }
+      return;
+    }
+  }
+
+  void add_missing_symbols(st::Symtab *linkedFile, main_addr_t main) {
+
+    // Don't add a 'main' symbol if there already was one
+    if(!main.is_from_symbol) {
+      add_main_symbol(linkedFile, main.addr);
+    }
+  }
+
 }}

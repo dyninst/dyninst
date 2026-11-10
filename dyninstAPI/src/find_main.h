@@ -51,6 +51,8 @@ namespace Dyninst { namespace DyninstAPI {
     }
   };
 
+  void add_missing_symbols(st::Symtab *, main_addr_t);
+
   main_addr_t find_main(st::Symtab *);
 
   namespace aarch64 {
