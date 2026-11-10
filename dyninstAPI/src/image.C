@@ -163,22 +163,6 @@ int image::findMain()
     || (defined(os_freebsd) \
             && (defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)))
 
-        if( !foundFini )
-        {
-            Region *finisec = NULL;
-            if (linkedFile->findRegion(finisec,".fini")) {
-                Symbol *finiSym = new Symbol( "_fini",
-                        Symbol::ST_FUNCTION,
-                        Symbol::SL_LOCAL,
-                        Symbol::SV_INTERNAL,
-                        finisec->getMemOffset(),
-                        linkedFile->getDefaultModule(),
-                        finisec, 
-                        0 );
-                linkedFile->addSymbol(finiSym);	
-            }	
-        }
-
     Region *dynamicsec;
     vector < Symbol *>syms;
     if(linkedFile->findRegion(dynamicsec, ".dynamic")==true)

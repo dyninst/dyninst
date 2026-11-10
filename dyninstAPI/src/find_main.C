@@ -224,6 +224,16 @@ namespace Dyninst { namespace DyninstAPI {
       if(!linkedFile->findFunctionsByName(funcs, "_start")) {
         linkedFile->addSymbol(make_elf_symbol(linkedFile, entry_region, "_start", entry_region->getMemOffset()));
       }
+
+      // Add _init/_fini that points to their section
+      for(std::string sec : {"init", "fini"}) {
+        if(!linkedFile->findFunctionsByName(funcs, "_" + sec)) {
+          st::Region *reg{};
+          if(linkedFile->findRegion(reg, "." + sec)) {
+            linkedFile->addSymbol(make_elf_symbol(linkedFile, reg, "_" + sec, reg->getMemOffset()));
+          }
+        }
+      }
     }
   }
 
