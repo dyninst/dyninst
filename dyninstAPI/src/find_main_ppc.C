@@ -316,7 +316,7 @@ namespace Dyninst { namespace DyninstAPI { namespace ppc {
    *
    *  `b` ends with a call to libc_start_main
    */
-  Dyninst::Address find_main(st::Symtab *linkedFile, pa::Block *entryBlock,
+  main_addr_t find_main(st::Symtab *linkedFile, pa::Block *entryBlock,
                              pa::SymtabCodeSource const &scs, pa::Function *f) {
     // Candidate blocks for the __libc_start_main call setup:
     // glibc's dynamic _start makes the call from its entry block,
@@ -336,18 +336,16 @@ namespace Dyninst { namespace DyninstAPI { namespace ppc {
       }
     }
 
-    Dyninst::Address mainAddress = Dyninst::ADDRESS_INVALID;
-
     for(pa::Block *b : candidates) {
       Address cand = evaluate_main_address(linkedFile, f, b);
       cand = deref_opd(linkedFile, cand);
       if(cand != Dyninst::ADDRESS_INVALID && scs.isValidAddress(cand)) {
-        mainAddress = cand;
+        return main_addr_t{cand};
         break;
       }
     }
 
-    return mainAddress;
+    return main_addr_t{}.unknown();
   }
 
 }}}

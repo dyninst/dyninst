@@ -15,14 +15,14 @@ namespace pa = Dyninst::ParseAPI;
 
 namespace Dyninst { namespace DyninstAPI {
 
-  Dyninst::Address find_main(st::Symtab *linkedFile) {
+  main_addr_t find_main(st::Symtab *linkedFile) {
     startup_printf("find_main: looking for 'main' in %s\n", linkedFile->name().c_str());
 
     // Only look for 'main' in executables, including PIE and executable DSOs.
     // see ObjectELF::isOnlyExecutable()
     if(!linkedFile->isExec()) {
       startup_printf("find_main: not an executable\n");
-      return Dyninst::ADDRESS_INVALID;
+      return main_addr_t{}.not_executable();
     }
 
     // It must have at least one code region
@@ -31,7 +31,7 @@ namespace Dyninst { namespace DyninstAPI {
       linkedFile->getCodeRegions(regions);
       if(regions.size() == 0UL) {
         startup_printf("find_main: No main found; no code regions\n");
-        return Dyninst::ADDRESS_INVALID;
+        return main_addr_t{}.invalid();
       }
     }
 
@@ -41,7 +41,7 @@ namespace Dyninst { namespace DyninstAPI {
       if(linkedFile->findFunctionsByName(funcs, name)) {
         const auto addr = funcs[0]->getFirstSymbol()->getOffset();
         startup_printf("find_main: found 'main' symbol at 0x%lx\n", addr);
-        return addr;
+        return main_addr_t{addr};
       }
     }
 
@@ -59,7 +59,7 @@ namespace Dyninst { namespace DyninstAPI {
 
     if(!entry_region) {
       startup_printf("find_main: no region found at entry 0x%lx\n", entry_address);
-      return Dyninst::ADDRESS_INVALID;
+      return main_addr_t{}.invalid();
     }
 
     pa::SymtabCodeSource scs(linkedFile);
@@ -69,14 +69,14 @@ namespace Dyninst { namespace DyninstAPI {
 
     if(code_regions.empty()) {
       startup_printf("find_main: no code region contains 0x%lx\n", entry_address);
-      return Dyninst::ADDRESS_INVALID;
+      return main_addr_t{}.invalid();
     }
 
     // We should only get one region
     if(code_regions.size() > 1UL) {
       startup_printf("find_main: found %lu possibly-overlapping code regions for 0x%lx\n",
                      code_regions.size(), entry_address);
-      return Dyninst::ADDRESS_INVALID;
+      return main_addr_t{}.invalid();
     }
 
     auto code_object = [&scs]() -> std::unique_ptr<pa::CodeObject> {
@@ -98,14 +98,14 @@ namespace Dyninst { namespace DyninstAPI {
 
     if(!entry_point) {
       startup_printf("find_main: couldn't find function at entry 0x%lx\n", entry_address);
-      return Dyninst::ADDRESS_INVALID;
+      return main_addr_t{}.invalid();
     }
 
     startup_printf("find_main: found '%s' at entry 0x%lx\n", entry_point->name().c_str(),
                    entry_address);
 
     // Try architecture-specific searches
-    auto main_addr = [&]() {
+    auto main = [&]() {
       switch(linkedFile->getArchitecture()) {
         case Dyninst::Arch_ppc32:
         case Dyninst::Arch_ppc64: {
@@ -138,16 +138,16 @@ namespace Dyninst { namespace DyninstAPI {
           break;
       }
 
-      return Dyninst::ADDRESS_INVALID;
+      return main_addr_t{}.invalid();
     }();
 
-    if(main_addr == Dyninst::ADDRESS_INVALID) {
+    if(!main.is_valid) {
       startup_printf("find_main: unable to find valid entry for 'main'\n");
     } else {
-      startup_printf("find_main: found 'main' at 0x%lx\n", main_addr);
+      startup_printf("find_main: found 'main' at 0x%lx\n", main.addr);
     }
 
-    return main_addr;
+    return main;
   }
 
 }}

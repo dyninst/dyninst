@@ -69,11 +69,11 @@ namespace Dyninst { namespace DyninstAPI { namespace x86 {
     }
   };
 
-  Dyninst::Address find_main(pa::Function *entry_point) {
+  main_addr_t find_main(pa::Function *entry_point) {
     const auto &edges = entry_point->callEdges();
     if(edges.empty()) {
       startup_printf("find_main: no call edges\n");
-      return Dyninst::ADDRESS_INVALID;
+      return main_addr_t{}.unknown();
     }
 
     // In libc, the entry point is _start which only calls __libc_start_main, so
@@ -85,7 +85,7 @@ namespace Dyninst { namespace DyninstAPI { namespace x86 {
 
     if(insns.size() < 2UL) {
       startup_printf("findMain: not enough instructions in block 0x%lx\n", b->start());
-      return Dyninst::ADDRESS_INVALID;
+      return main_addr_t{}.unknown();
     }
 
     // To get the second-to-last instruction, which loads the address of main
@@ -98,7 +98,7 @@ namespace Dyninst { namespace DyninstAPI { namespace x86 {
     assign_convert.convert(iit->second, iit->first, entry_point, b, assignments);
 
     if(assignments.empty()) {
-      return Dyninst::ADDRESS_INVALID;
+      return main_addr_t{}.invalid();
     }
 
     Assignment::Ptr assignment = assignments[0];
@@ -107,16 +107,16 @@ namespace Dyninst { namespace DyninstAPI { namespace x86 {
     if(!ast) {
       startup_printf("findMain: cannot expand %s from instruction %s\n",
                      assignment->format().c_str(), assignment->insn().format().c_str());
-      return Dyninst::ADDRESS_INVALID;
+      return main_addr_t{}.unknown();
     }
 
     FindMainVisitor fmv;
     ast->accept(&fmv);
     if(fmv.resolved) {
-      return fmv.target;
+      return main_addr_t{fmv.target};
     }
 
-    return Dyninst::ADDRESS_INVALID;
+    return main_addr_t{}.unknown();
   }
 
 }}}

@@ -867,7 +867,7 @@ image::image(fileDescriptor &desc,
    // Now add Main and Dynamic Symbols if they are not present
    {
      namespace dd = Dyninst::DyninstAPI;
-     this->address_of_main = dd::find_main(this->linkedFile);
+     dd::main_addr_t main = dd::find_main(this->linkedFile);
    }
 
    // Initialize ParseAPI 

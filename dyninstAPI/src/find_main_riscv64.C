@@ -3,8 +3,8 @@
 
 namespace Dyninst { namespace DyninstAPI { namespace riscv64 {
 
-  Dyninst::Address find_main() {
-    return Dyninst::ADDRESS_INVALID;
+  main_addr_t find_main() {
+    return main_addr_t{}.unknown();
   }
 
 }}}
