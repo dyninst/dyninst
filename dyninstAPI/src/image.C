@@ -158,60 +158,11 @@ int codeBytesSeen = 0;
  */
 int image::findMain()
 {
-#if defined(ppc64_linux) && defined(DYNINST_CODEGEN_ARCH_POWER)
-    using namespace Dyninst::InstructionAPI;
-
-        {
-            Symbol *newSym= new Symbol( "main", 
-                    Symbol::ST_FUNCTION,
-                    Symbol::SL_LOCAL,
-                    Symbol::SV_INTERNAL,
-                    mainAddress,
-                    linkedFile->getDefaultModule(),
-                    entry_region,
-                    0 );
-            linkedFile->addSymbol(newSym);		
-        }
-
-#elif defined(i386_unknown_linux2_0) \
+#if defined(i386_unknown_linux2_0) \
     || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
     || (defined(os_freebsd) \
             && (defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)))
 
-        bool foundMain = false;
-
-        if(!foundMain)
-        {
-            if(!mainAddress || !scs.isValidAddress(mainAddress)) {
-                startup_printf("%s[%d]:  invalid main address 0x%lx\n",
-                        FILE__, __LINE__, mainAddress);
-            } else {
-                startup_printf("%s[%d]:  set main address to 0x%lx\n",
-                        FILE__,__LINE__,mainAddress);
-            }
-
-            /* Note: creating a symbol for main at the invalid address 
-               anyway, because there is guard code for this later in the
-               process and otherwise we end up in a weird "this is not an
-               a.out" path.
-
-               findMain, like all important utility functions, should have
-               a way of gracefully indicating that it has failed. It should
-               not return void. NR
-               */
-
-            {
-                Symbol *newSym= new Symbol( "main", 
-                        Symbol::ST_FUNCTION,
-                        Symbol::SL_LOCAL,
-                        Symbol::SV_INTERNAL,
-                        mainAddress,
-                        linkedFile->getDefaultModule(),
-                        entry_region,
-                        0 );
-                linkedFile->addSymbol(newSym);		
-            }
-        }
         if( !foundStart )
         {
             Symbol *startSym = new Symbol( "_start",

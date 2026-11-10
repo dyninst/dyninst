@@ -198,6 +198,10 @@ namespace Dyninst { namespace DyninstAPI {
       }
       return;
     }
+
+    if(addr != Dyninst::ADDRESS_INVALID) {
+      st->addSymbol(make_elf_symbol(st, entry_region, "main", addr));
+    }
   }
 
   void add_missing_symbols(st::Symtab *linkedFile, main_addr_t main) {
