@@ -163,20 +163,6 @@ int image::findMain()
     || (defined(os_freebsd) \
             && (defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)))
 
-        if( !foundStart )
-        {
-            Symbol *startSym = new Symbol( "_start",
-                    Symbol::ST_FUNCTION,
-                    Symbol::SL_LOCAL,
-                    Symbol::SV_INTERNAL,
-                    entry_region->getMemOffset(),
-                    linkedFile->getDefaultModule(),
-                    entry_region,
-                    0 );
-            //cout << "sim for start!" << endl;
-
-            linkedFile->addSymbol(startSym);		
-        }
         if( !foundFini )
         {
             Region *finisec = NULL;

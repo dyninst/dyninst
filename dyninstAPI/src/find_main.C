@@ -210,6 +210,21 @@ namespace Dyninst { namespace DyninstAPI {
     if(!main.is_from_symbol) {
       add_main_symbol(linkedFile, main.addr);
     }
+
+    const auto entry_address = static_cast<Dyninst::Address>(linkedFile->getEntryOffset());
+    st::Region *entry_region = linkedFile->findEnclosingRegion(entry_address);
+
+    /*  Add helper symbols
+     *
+     *    ABIs don't require these, but Dyninst uses them during rewriting
+     *    (see BinaryEdit::makeInitAndFiniIfNeeded()).
+     */
+    {
+      std::vector<st::Function *> funcs{};
+      if(!linkedFile->findFunctionsByName(funcs, "_start")) {
+        linkedFile->addSymbol(make_elf_symbol(linkedFile, entry_region, "_start", entry_region->getMemOffset()));
+      }
+    }
   }
 
 }}
