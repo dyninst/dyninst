@@ -234,6 +234,17 @@ namespace Dyninst { namespace DyninstAPI {
           }
         }
       }
+
+      // Add pointers to the beginning and end of the init/fini arrays
+      // This uses the GNU convention of leading double underscore instead of the traditional single underscore
+      for(std::string sec : {"init_array", "fini_array"}) {
+        if(!linkedFile->findFunctionsByName(funcs, "_" + sec)) {
+          st::Region *reg{};
+          if(linkedFile->findRegion(reg, "." + sec)) {
+            linkedFile->addSymbol(make_elf_symbol(linkedFile, reg, "_" + sec, reg->getMemOffset()));
+          }
+        }
+      }
     }
   }
 
