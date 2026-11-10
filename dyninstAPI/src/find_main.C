@@ -166,6 +166,22 @@ namespace Dyninst { namespace DyninstAPI {
     // clang-format on
   }
 
+  static st::Symbol* make_elf_symbol(st::Symtab *st, st::Region *reg, std::string name, Dyninst::Address addr) {
+    startup_printf("Adding symbol '%s' at 0x%lx\n", name.c_str(), addr);
+    // clang-format off
+    return new st::Symbol(
+      name,
+      st::Symbol::ST_FUNCTION,
+      st::Symbol::SL_LOCAL,
+      st::Symbol::SV_INTERNAL,
+      addr,
+      st->getDefaultModule(),
+      reg,
+      0U
+    );
+    // clang-format on
+  }
+
   static void add_main_symbol(st::Symtab *st, Dyninst::Address addr) {
     const auto entry_address = static_cast<Dyninst::Address>(st->getEntryOffset());
     st::Region *entry_region = st->findEnclosingRegion(entry_address);

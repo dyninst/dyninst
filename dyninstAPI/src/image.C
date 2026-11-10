@@ -200,21 +200,6 @@ int image::findMain()
                not return void. NR
                */
 
-            Region *pltsec;
-            if((linkedFile->findRegion(pltsec, ".plt")) && pltsec->isOffsetInRegion(mainAddress))
-            {
-                //logLine( "No static symbol for function main\n" );
-                Symbol *newSym = new Symbol("DYNINST_pltMain", 
-                        Symbol::ST_FUNCTION, 
-                        Symbol::SL_LOCAL,
-                        Symbol::SV_INTERNAL,
-                        mainAddress,
-                        linkedFile->getDefaultModule(),
-                        entry_region,
-                        0 );
-                linkedFile->addSymbol( newSym );
-            }
-            else
             {
                 Symbol *newSym= new Symbol( "main", 
                         Symbol::ST_FUNCTION,
