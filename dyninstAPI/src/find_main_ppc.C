@@ -185,7 +185,7 @@ namespace {
       cur_addr += cur.size();
     }
     if(!find) {
-      return 0;
+      return Dyninst::ADDRESS_INVALID;
     }
 
     Dyninst::Address ss_addr = 0;
@@ -258,7 +258,7 @@ namespace {
         }
       }
       if(ait == assigns.end()) {
-        return 0;
+        return Dyninst::ADDRESS_INVALID;
       }
 
       // Slice back to the definition of R8, and, if possible, simplify
@@ -288,7 +288,7 @@ namespace {
       }
     }
 
-    return 0;
+    return Dyninst::ADDRESS_INVALID;
   }
 
 }
@@ -341,7 +341,7 @@ namespace Dyninst { namespace DyninstAPI { namespace ppc {
     for(pa::Block *b : candidates) {
       Address cand = evaluate_main_address(linkedFile, f, b);
       cand = deref_opd(linkedFile, cand);
-      if(cand != 0 && scs.isValidAddress(cand)) {
+      if(cand != Dyninst::ADDRESS_INVALID && scs.isValidAddress(cand)) {
         mainAddress = cand;
         break;
       }
