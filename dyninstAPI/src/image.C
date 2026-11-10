@@ -151,16 +151,6 @@ extern unsigned enable_pd_sharedobj_debug;
 
 int codeBytesSeen = 0;
 
-/**
- * Search for the Main Symbols in the list of symbols, Only in case
- * if the file is a shared object. If not present add them to the
- * list. Returns zero on success, nonzero otherwise.
- */
-int image::findMain()
-{
-    return 0; /* Success */
-}
-
 /*
  * Check if image is libdyninstRT
  */
