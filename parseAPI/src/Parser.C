@@ -372,7 +372,7 @@ Parser::parse_vanilla()
     // read; ordering by address keeps the serial parse independent of the heap layout
     // (within a region; see delayed_frames in Parser.h).
     struct HintOrder {
-        Address gap;
+        size_t gap;
         Address addr;
         ParseFrame* frame;
         bool operator<(const HintOrder& o) const {
