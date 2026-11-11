@@ -729,6 +729,9 @@ void
 
 std::vector<Function*> Parser::delayed_funcs_by_addr() const
 {
+    // The iterators of delayed_frames are not thread-safe: iterating it is undefined
+    // while another thread calls any member of it, as the tasks of the parallel region
+    // in ProcessFrames do.
     assert(!omp_in_parallel());
     std::vector<Function*> delayed;
     delayed.reserve(delayed_frames.size());
