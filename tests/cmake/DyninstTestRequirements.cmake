@@ -67,3 +67,8 @@ dyninst_test_requirement(
   WHEN DYNINST_ENABLE_USERNS_TESTS
   REASON "needs unprivileged user namespaces (DYNINST_ENABLE_USERNS_TESTS=OFF)"
 )
+dyninst_test_requirement(
+  stackanalysis_any_arch
+  WHEN NOT DYNINST_CODEGEN_ARCH_AARCH64 OR DYNINST_HOST_ARCH_X86_64
+  REASON "StackAnalysis has no entry state in a native aarch64 build"
+)
