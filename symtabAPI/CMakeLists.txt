@@ -38,6 +38,7 @@ set(
   src/Object-pe.h
   src/Object.h
   src/Object-nt.h
+  src/plt_stubs.h
   src/Type-mem.h
   src/indexed_symbols.hpp
   src/symtab_impl.hpp
@@ -56,6 +57,7 @@ set(
   src/LineInformation.C
   src/Module.C
   src/Object.C
+  src/plt_stubs.C
   src/Region.C
   src/relocationEntry.C
   src/Statement.C
@@ -107,7 +109,7 @@ dyninst_library(
   PRIVATE_HEADER_FILES ${_private_headers}
   SOURCE_FILES ${_sources}
   DEFINES SYMTAB_LIB
-  DYNINST_DEPS common
+  DYNINST_DEPS common instructionAPI
   DYNINST_INTERNAL_DEPS dynDwarf dynElf
   PRIVATE_DEPS OpenMP::OpenMP_CXX Dyninst::Boost Dyninst::ElfUtils Dyninst::PeParse
 )
