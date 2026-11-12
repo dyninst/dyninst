@@ -37,6 +37,10 @@
 
 #include "CodeSource.h"
 #include "debug_parse.h"
+#include "common/src/symbolDemangleWithCache.h"
+
+#include <atomic>
+#include <unordered_set>
 
 using namespace std;
 using namespace Dyninst;
@@ -232,6 +236,58 @@ CodeSource::non_returning_syscalls_x86_64 = {
         {60 /*exit*/,true},
         {15 /*sigreturn*/, true}};
 
+namespace {
+  // Names added with CodeSource::addNonReturningMangledName and
+  // addNonReturningDemangledName. Written only until
+  // non_returning_set_finalized is set, read-only afterwards.
+  struct UserNonReturning {
+    std::unordered_set<std::string> mangled;
+    std::unordered_set<std::string> with_params;     // demangled, "foo(int)"
+    std::unordered_set<std::string> without_params;  // demangled, "foo"
+    bool empty() const { return mangled.empty() && with_params.empty() && without_params.empty(); }
+  };
+  UserNonReturning &user_non_returning() {
+    static UserNonReturning names;
+    return names;
+  }
+  std::atomic<bool> non_returning_set_finalized{false};
+
+  bool canAddNonReturning(char const *what, std::string const &name) {
+    if (non_returning_set_finalized) {
+        parsing_printf("%s(%s) ignored: parsing has started\n", what, name.c_str());
+        return false;
+    }
+    return !name.empty();
+  }
+}
+
+namespace Dyninst { namespace ParseAPI {
+  // Called when the first Parser is made; the user names never change after it.
+  void finalizeNonReturningSet() {
+    non_returning_set_finalized = true;
+  }
+}}
+
+bool
+CodeSource::addNonReturningMangledName(std::string const &name)
+{
+    if (!canAddNonReturning("addNonReturningMangledName", name)) return false;
+    user_non_returning().mangled.insert(name);
+    return true;
+}
+
+bool
+CodeSource::addNonReturningDemangledName(std::string const &name)
+{
+    if (!canAddNonReturning("addNonReturningDemangledName", name)) return false;
+    auto &u = user_non_returning();
+    if (name.find('(') != std::string::npos)
+        u.with_params.insert(name);
+    else
+        u.without_params.insert(name);
+    return true;
+}
+
 bool
 CodeSource::nonReturning(string name)
 {
@@ -242,7 +298,21 @@ CodeSource::nonReturning(string name)
 		(name.find("exit") != name.npos)) return true;
 #endif
 	parsing_printf("Checking non-returning for %s\n", name.c_str());
-    return non_returning_funcs.find(name) != non_returning_funcs.end();
+    if (non_returning_funcs.find(name) != non_returning_funcs.end()) return true;
+
+    auto const &u = user_non_returning();
+    if (u.empty()) return false;
+    // The name is a mangled one (a PLT relocation or a symbol's mangled name)
+    // or one parseAPI already demangled (a Function's name); try it as given
+    // and, for the demangled sets, also its demangled forms.
+    if (u.mangled.count(name)) return true;
+    if (!u.without_params.empty() &&
+        (u.without_params.count(name) ||
+         u.without_params.count(symbol_demangle_with_cache(name, false)))) return true;
+    if (!u.with_params.empty() &&
+        (u.with_params.count(name) ||
+         u.with_params.count(symbol_demangle_with_cache(name, true)))) return true;
+    return false;
 }
 
 bool
