@@ -68,7 +68,7 @@ boost::shared_ptr<Type>>::type typeCollection::addOrUpdateType(boost::shared_ptr
 	if (typesByID.insert(a, {type->getID(), type}))
 	{
 		if ( type->getName() != "" )
-			typesByName.insert({type->getName(), type});
+			addByName(type, false);
 		return type;
 	}
 
@@ -94,20 +94,7 @@ boost::shared_ptr<Type>>::type typeCollection::addOrUpdateType(boost::shared_ptr
 
 	/* The type may have gained a name. */
 	if ( a->second->getName() != "")
-	{
-        dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::accessor o;
-		if (typesByName.find(o, a->second->getName()))
-		{
-			if (a->second != o->second)
-			{
-                o->second = a->second;
-			}
-		}
-		else
-		{
-            typesByName.insert({a->second->getName(), a->second});
-		}
-	}
+		addByName(a->second, true);
 
 	/* Tell the parser to update its type pointer. */
 	return a->second;
