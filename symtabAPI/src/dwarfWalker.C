@@ -197,7 +197,6 @@ public:
  * The parse was fastest with 8 to 16 workers on every file measured, and at 96 took
  * 1.3 to 3.3 times as long as at 16.
  */
-
 unsigned worker_count(size_t units) {
 #ifdef _OPENMP
     constexpr unsigned max_workers = 16;
