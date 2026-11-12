@@ -114,7 +114,9 @@ Function::Function(Address addr, string name, CodeObject * obj,
     if (obj && obj->cs()) {
         obj->cs()->incrementCounter(PARSE_FUNCTION_COUNT);
     }
-    if (obj && obj->cs() && obj->cs()->nonReturning(name)) {
+    // The name is the demangled one; the address check also tries every
+    // mangled name of the symbol, which is what the built-in list holds.
+    if (obj && obj->cs() && (obj->cs()->nonReturning(name) || obj->cs()->nonReturning(addr))) {
         set_retstatus(NORETURN);
     }
 }
@@ -499,7 +501,7 @@ void Function::set_retstatus(FuncReturnStatus rs)
     // A exmaple is .Unwind_Resume, which is non-returning.
     // But on powerpc, the function contains a BLR instruction,
     // looking like a return instruction, but actually is not.
-    if (obj()->cs()->nonReturning(_name) && rs != NORETURN) return;
+    if (rs != NORETURN && (obj()->cs()->nonReturning(_name) || obj()->cs()->nonReturning(addr()))) return;
     parsing_printf("Set function %s at %lx ret status from %d to %d\n", _name.c_str(), addr(), _rs.load(), rs);
     if (_rs == RETURN && rs == NORETURN) {
         parsing_printf("\tERROR: ret status is already set to RETURN, now setting to NORETURN\n");
