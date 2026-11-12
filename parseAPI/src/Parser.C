@@ -29,6 +29,7 @@
  */
 
 #include "Parser.h"
+#include "symtabAPI/h/Region.h"
 
 #if defined(_OPENMP)
 #include <omp.h>
@@ -364,19 +365,28 @@ Parser::parse_vanilla()
     vector<std::pair<Address, ParseFrame*> > svec;
     for (auto it = fvec.begin(); it != fvec.end(); ++it)
         svec.push_back(make_pair(it->first, it->second));
-    sort(svec.begin(), svec.end());
+    sort(svec.begin(), svec.end(),
+        [](const std::pair<Address, ParseFrame*>& a, const std::pair<Address, ParseFrame*>& b) {
+            if (a.first != b.first)
+                return a.first < b.first;
+            return region_order(a.second->func->region()) < region_order(b.second->func->region());
+        });
 
     // Parse the hints in order of the distance to the next hint, smallest first, with ties
     // broken by address.  The order in which equal-sized functions are parsed decides which
     // jump tables are analyzed first and so which blocks and edges exist when a table is
-    // read; ordering by address keeps the serial parse independent of the heap layout
-    // (within a region; see delayed_frames in Parser.h).
+    // read; ordering by address, then region_order, keeps the serial parse independent of
+    // the heap layout.
     struct HintOrder {
         size_t gap;
         Address addr;
         ParseFrame* frame;
         bool operator<(const HintOrder& o) const {
-            return gap != o.gap ? gap < o.gap : addr < o.addr;
+            if (gap != o.gap)
+                return gap < o.gap;
+            if (addr != o.addr)
+                return addr < o.addr;
+            return region_order(frame->func->region()) < region_order(o.frame->func->region());
         }
     };
     vector<HintOrder> size_vec;
@@ -738,8 +748,20 @@ std::vector<Function*> Parser::delayed_funcs_by_addr() const
     for (auto const& entry : delayed_frames)
         delayed.push_back(entry.first);
     std::sort(delayed.begin(), delayed.end(),
-        [](const Function* a, const Function* b) { return a->addr() < b->addr(); });
+        [](const Function* a, const Function* b) {
+            if (a->addr() != b->addr())
+                return a->addr() < b->addr();
+            return region_order(a->region()) < region_order(b->region());
+        });
     return delayed;
+}
+
+Address Parser::region_order(const CodeRegion* r)
+{
+    const SymtabCodeRegion* sr{dynamic_cast<const SymtabCodeRegion*>(r)};
+    if (sr == nullptr)
+        return 0;
+    return sr->symRegion()->getFileOffset();
 }
 
     void
