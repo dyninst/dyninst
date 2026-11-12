@@ -1390,7 +1390,7 @@ bool DwarfWalker::parseSubrange() {
    }
 
    boost::shared_ptr<Type> rangeType = tc()->addOrUpdateType(subrange);
-   dwarf_printf("(0x%lx) Created subrange type: ID 0x%d, pointer %p (tc %p)\n", id(),
+   dwarf_printf("(0x%lx) Created subrange type: ID %d, pointer %p (tc %p)\n", id(),
                 rangeType->getID(), (void *)rangeType.get(), (void *)tc());
 
    return true;
@@ -2052,7 +2052,14 @@ bool DwarfWalker::getLineInformation(Dwarf_Word &variableLineNo,
         boost::unique_lock<dyn_mutex> l(files->lock);
         Dwarf_Word fileNameDeclVal;
         DWARF_FAIL_RET(dwarf_formudata(&fileDeclAttribute, &fileNameDeclVal));
-        if (fileNameDeclVal >= files->size() || fileNameDeclVal <= 0) {
+        // In DWARF 5, file 0 is the unit's primary source file. Before that, 0 means
+        // the DIE names no file, which is no reason to drop it.
+        Dwarf_Half version{};
+        if (fileNameDeclVal == 0 &&
+            (dwarf_cu_info(specE.cu, &version, NULL, NULL, NULL, NULL, NULL, NULL) != 0 || version < 5)) {
+            return true;
+        }
+        if (fileNameDeclVal >= files->size()) {
             dwarf_printf("Dwarf error reading line index %lu from srcFiles of size %lu\n",
                     fileNameDeclVal, files->size());
             return false;
@@ -2073,6 +2080,41 @@ bool DwarfWalker::getLineInformation(Dwarf_Word &variableLineNo,
     DWARF_FAIL_RET(dwarf_formudata(&lineNoAttribute, &variableLineNo));
 
     return true;
+}
+
+/*
+ * DWARF 5 keeps addresses and relocatable constants in .debug_addr: DW_OP_addrx and
+ * DW_OP_constx (and their pre-standard GNU forms) carry an index into it, which only
+ * the unit holding the expression can resolve. decodeDwarfExpression() sees only the
+ * operations, so each indexed one is replaced by the plain operation for its value.
+ * One that can't be resolved is left as it is, and the decoder rejects it.
+ */
+static std::vector<Dwarf_Op> resolve_indexed_ops(Dwarf_Attribute &attr, Dwarf_Op const *ops, size_t len) {
+    std::vector<Dwarf_Op> resolved(ops, ops + len);
+    for(auto &op : resolved) {
+        Dwarf_Attribute value;
+        switch(op.atom) {
+            case DW_OP_addrx:
+            case DW_OP_GNU_addr_index: {
+                Dwarf_Addr addr;
+                if(dwarf_getlocation_attr(&attr, &op, &value) == 0 && dwarf_formaddr(&value, &addr) == 0) {
+                    op.atom = DW_OP_addr;
+                    op.number = addr;
+                }
+                break;
+            }
+            case DW_OP_constx:
+            case DW_OP_GNU_const_index: {
+                Dwarf_Word val;
+                if(dwarf_getlocation_attr(&attr, &op, &value) == 0 && dwarf_formudata(&value, &val) == 0) {
+                    op.atom = DW_OP_constu;
+                    op.number = val;
+                }
+                break;
+            }
+        }
+    }
+    return resolved;
 }
 
 bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
@@ -2131,8 +2173,7 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
             LocDesc ld;
             ld.ld_lopc = start;
             ld.ld_hipc = end;
-            ld.dwarfOp = exprs;
-            ld.opLen = exprlen;
+            ld.ops = resolve_indexed_ops(locationAttribute, exprs, exprlen);
             locDescs.push_back(ld);
         }while(offset > 0);
         if (locDescs.size() <= 0) {
@@ -2494,8 +2535,7 @@ bool DwarfWalker::decodeExpression(Dwarf_Attribute &locationAttribute,
         LocDesc ld;
         ld.ld_lopc = start;
         ld.ld_hipc = end;
-        ld.dwarfOp = exprs;
-        ld.opLen = exprlen;
+        ld.ops = resolve_indexed_ops(locationAttribute, exprs, exprlen);
         locDescs.push_back(ld);
     }while(offset > 0);
 
@@ -2567,10 +2607,10 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress(
         loc.refClass = storageNoRef;
 
         long int *tmp = (long int *)initialStackValue;
-        bool result = decodeDwarfExpression(location->dwarfOp, location->opLen, tmp, loc,
+        bool result = decodeDwarfExpression(location->ops.data(), location->ops.size(), tmp, loc,
                 symtab()->getArchitecture());
         if (!result) {
-            dwarf_printf("(0x%lx): dwarf expression not decoded\n", id());
+            dwarf_printf("(0x%lx) %s: dwarf expression not decoded\n", id(), DwarfDyninst::die_name(specEntry()).c_str());
             continue;
         }
 
