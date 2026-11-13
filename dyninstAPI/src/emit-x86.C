@@ -400,7 +400,7 @@ bool EmitterAMD64::emitMoveRegToReg(registerSlot *source, registerSlot *dest, co
     return emitMoveRegToReg(source->encoding(), dest->encoding(), gen);
 }
 
-void EmitterAMD64::emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen)
+void emitLEA64(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen)
 {
     Register tmp_base = base;
     Register tmp_index = index;
@@ -411,6 +411,11 @@ void EmitterAMD64::emitLEA(Register base, Register index, unsigned int scale, in
 	    gen);
    ::emitLEA(RealRegister(tmp_base), RealRegister(tmp_index), scale, disp,
             RealRegister(tmp_dest), gen);
+}
+
+void EmitterAMD64::emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen)
+{
+    emitLEA64(base, index, scale, disp, dest, gen);
     gen.markRegDefined(dest);
 }
 
