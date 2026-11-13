@@ -189,6 +189,27 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
  public:
     typedef dyn_c_hash_map<void *, CodeRegion*> RegionMap;
 
+    /* Add a function that never returns to the names parsing checks, in
+       addition to the built-in list. The name is matched against every
+       function and every PLT stub of every object parsed afterwards.
+
+       addNonReturningMangledName: the symbol name as it appears in the
+       binary, matched exactly, e.g. _ZN3c106detail14torchCheckFailEPKcS2_jS2_.
+       A C function's name is its symbol name.
+
+       addNonReturningDemangledName: matched against the demangled name with
+       parameters if the name has a parameter list, e.g.
+       "c10::detail::torchCheckFail(char const*, char const*, unsigned int, char const*)",
+       and otherwise without parameters, which covers every overload, e.g.
+       c10::detail::torchCheckFail.
+
+       Must be called before the first object is parsed: the names are then
+       read concurrently by the parse threads and never change. Returns false,
+       and adds nothing, once parsing has started or for an empty name.
+    */
+    static bool addNonReturningMangledName(std::string const &name);
+    static bool addNonReturningDemangledName(std::string const &name);
+
     /* Returns true if the function at an address is known to be
        non returning (e.g., is named `exit' on Linux/ELF, etc.).
 

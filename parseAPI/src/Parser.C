@@ -59,6 +59,10 @@ using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InstructionAPI;
 
+namespace Dyninst { namespace ParseAPI {
+  void finalizeNonReturningSet();  // CodeSource.C
+}}
+
 typedef std::pair< Address, EdgeTypeEnum > edge_pair_t;
 typedef vector< edge_pair_t > Edges_t;
 
@@ -80,6 +84,9 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
     _parse_data(NULL),
     _parse_state(UNPARSED)
 {
+    // From here on the parse threads read the user's non-returning functions.
+    finalizeNonReturningSet();
+
     // cache plt entries for fast lookup
     const map<Address, string> & lm = obj.cs()->linkage();
     map<Address, string>::const_iterator lit = lm.begin();

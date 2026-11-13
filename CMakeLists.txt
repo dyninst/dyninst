@@ -86,6 +86,7 @@ add_subdirectory(dynC_API)
 
 add_subdirectory(docs)
 add_subdirectory(parseThat)
+add_subdirectory(tools/noreturn)
 add_subdirectory(dyninstAPI_RT)
 
 if(DYNINST_ENABLE_TESTS)
