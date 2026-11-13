@@ -87,7 +87,40 @@ namespace Dyninst {
             LockFreeQueue<ParseFrame *> frames;
 
             boost::atomic<bool> delayed_frames_changed;
-            dyn_c_hash_map<Function*, std::set<ParseFrame*> > delayed_frames;
+
+            // Orders functions that share an address.  Addresses are unique only within a
+            // region: in a relocatable object the regions overlap, and functions in different
+            // regions can share an address.  The key is the file offset of the region read
+            // through SymtabAPI, which differs for every section that holds code and does not
+            // change after the file is loaded; it is 0 for any other code source.
+            // Region::getDiskOffset would not do: for ELF it is the section address, 0 for
+            // every section of a relocatable object.  Nor would the section number:
+            // Symtab::addRegion renumbers the regions after the one it inserts.
+            static Address region_order(const CodeRegion* r);
+
+            // Frames waiting for a callee's return status, keyed by the callee.  Waiters
+            // are resumed in the order of the set, and the delayed callees are visited in
+            // the order of delayed_funcs_by_addr(); both orders are by function address,
+            // then region_order, which keeps the serial parse order, and with it the jump
+            // table results, independent of the heap layout.
+            struct FrameByAddr {
+                bool operator()(const ParseFrame* a, const ParseFrame* b) const {
+                    if (a->func->addr() != b->func->addr())
+                        return a->func->addr() < b->func->addr();
+                    const Address ra{region_order(a->func->region())};
+                    const Address rb{region_order(b->func->region())};
+                    if (ra != rb)
+                        return ra < rb;
+                    return a < b;
+                }
+            };
+            using DelayedFrames = std::set<ParseFrame*, FrameByAddr>;
+            dyn_c_hash_map<Function*, DelayedFrames> delayed_frames;
+            // Iterating a dyn_c_hash_map is undefined while any other thread calls a member
+            // of it.  delayed_frames is only modified concurrently by the tasks of the
+            // parallel region in ProcessFrames, so call this only outside that region (it
+            // asserts that no OpenMP parallel region is active).
+            std::vector<Function*> delayed_funcs_by_addr() const;
 
             // differentiate those provided via hints and
             // those found through RT or speculative parsing
