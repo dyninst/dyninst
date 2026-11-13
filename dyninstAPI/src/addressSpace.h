@@ -183,6 +183,10 @@ class AddressSpace : public InstructionSource {
     bool inferiorReallocInternal(Address item, unsigned newSize);
     bool inferiorShrinkBlock(heapItem *h, Address block, unsigned newSize);
     bool inferiorExpandBlock(heapItem *h, Address block, unsigned newSize);
+    // Address of a NUL-terminated copy of 'str' in the data heap, written on first use.
+    // Code generation can run several times for the same snippet, so each distinct
+    // string is stored once. ADDR_NULL if it cannot be written.
+    Address getStringConstant(std::string const &str);
 
     bool isInferiorAllocated(Address block);
 
@@ -500,6 +504,7 @@ class AddressSpace : public InstructionSource {
     bool useTraps_;
     bool sigILLTrampoline_;
     inferiorHeap heap_;
+    std::map<std::string, Address> stringConstants_;
 
     // Loaded mapped objects (may be just 1)
     std::vector<mapped_object *> mapped_objects;
