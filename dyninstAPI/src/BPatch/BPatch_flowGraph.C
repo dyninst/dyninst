@@ -73,13 +73,36 @@ BPatch_flowGraph::BPatch_flowGraph(BPatch_function *func,
   isValid_ = valid = true;
 
   if (!createBasicBlocks()) {
-    fprintf(stderr, "Failed to make basic blocks!\n");
+    bperr("%s[%d]: failed to create basic blocks for %s\n", FILE__, __LINE__,
+          func->getName().c_str());
     isValid_ = valid = false;
     return;
   }
 }
 
-bool DEBUG_LOOP = false;
+namespace {
+
+// Start address of a block for diagnostics; 0 when the block is not in this flow graph.
+unsigned long blockAddr(BPatch_basicBlock const *b) {
+  return b ? b->getStartAddress() : 0;
+}
+
+char const *loopLocName(BPatch_procedureLocation loc) {
+  switch (loc) {
+  case BPatch_locLoopEntry:
+    return "loop entry";
+  case BPatch_locLoopExit:
+    return "loop exit";
+  case BPatch_locLoopStartIter:
+    return "loop start iter";
+  case BPatch_locLoopEndIter:
+    return "loop end iter";
+  default:
+    return "non-loop location";
+  }
+}
+
+}
 
 void
 BPatch_flowGraph::findLoopExitInstPoints(BPatch_loop *loop,
@@ -97,10 +120,11 @@ BPatch_flowGraph::findLoopExitInstPoints(BPatch_loop *loop,
     // outside this loop then this edge exits this loop
     for (unsigned j = 0; j < edges.size(); j++)
       if (!loop->hasBlock(edges[j]->getTarget())) {
-        if (DEBUG_LOOP) edges[j]->dump();
         BPatch_point *bP = edges[j]->getPoint();
         if (!bP) {
-          fprintf(stderr, "ERROR: exit edge had no inst point\n");
+          inst_printf("%s[%d]: loop exit edge 0x%lx -> 0x%lx has no instrumentation point\n",
+                      FILE__, __LINE__, blockAddr(edges[j]->getSource()),
+                      blockAddr(edges[j]->getTarget()));
         }
         else {
           bP->overrideType(BPatch_locLoopExit);
@@ -158,17 +182,14 @@ BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc,
    *  Case (1) is still a problem.
    */
 
-  if (DEBUG_LOOP)
-    fprintf(stderr,"%s findLoopInstPoints 0x%p\n",
-            ll_func()->prettyName().c_str(), (void*)loop);
+  inst_printf("%s[%d]: findLoopInstPoints: %s in %s, loop %p\n", FILE__, __LINE__,
+              loopLocName(loc), ll_func()->prettyName().c_str(), static_cast<void *>(loop));
 
   BPatch_Vector<BPatch_point*> *points = new BPatch_Vector<BPatch_point *>;
 
   switch (loc) {
 
   case BPatch_locLoopEntry: {
-    if (DEBUG_LOOP) fprintf(stderr,"loop entry\n");
-
     // return inst points for each edge e where e's target is this
     // loop's entries and e's source is not a block in this loop or
     // its subloops.
@@ -180,10 +201,11 @@ BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc,
       for (unsigned i = 0; i < edges.size(); i++) {
         // hasBlock is inclusive, checks subloops
         if (!loop->hasBlock(edges[i]->getSource())) {
-	  if (DEBUG_LOOP) edges[i]->dump();
 	  BPatch_point *iP = edges[i]->getPoint();
 	  if (!iP) {
-	    fprintf(stderr, "ERROR: failed to find loop entry point!\n");
+	    inst_printf("%s[%d]: loop entry edge 0x%lx -> 0x%lx has no instrumentation point\n",
+	                FILE__, __LINE__, blockAddr(edges[i]->getSource()),
+	                blockAddr(edges[i]->getTarget()));
 	  }
 	  else {
 	    iP->overrideType(BPatch_locLoopEntry);
@@ -194,29 +216,24 @@ BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc,
       }
     }
     if (0 == points->size()) {
-      fprintf(stderr,"Warning: request to instrument loop entry "
-              "of a loop w/o an entry edge.");
+      inst_printf("%s[%d]: loop has no instrumentable entry edge\n", FILE__, __LINE__);
     }
 
     break;
   }
 
   case BPatch_locLoopExit: {
-    if (DEBUG_LOOP) fprintf(stderr,"loop exit\n");
-
     // return inst points for all edges e such that e->source is a
     // member of this loop (including subloops) and e->target is
     // not a member of this loop (including its subloops)
     findLoopExitInstPoints(loop, points);
     if (!points->size())
-      fprintf(stderr, "ERROR: failed to find loop exit points!\n");
+      inst_printf("%s[%d]: loop has no instrumentable exit edge\n", FILE__, __LINE__);
 
     break;
   }
 
   case BPatch_locLoopStartIter: {
-    if (DEBUG_LOOP) fprintf(stderr,"loop start iter\n");
-
     // instrument the entris of the loop
     BPatch_Vector<BPatch_basicBlock*> entries;
     loop->getLoopEntries(entries);
@@ -236,16 +253,14 @@ BPatch_flowGraph::findLoopInstPoints(const BPatch_procedureLocation loc,
   }
 
   case BPatch_locLoopEndIter: {
-    if (DEBUG_LOOP) fprintf(stderr,"loop end iter\n");
-
     // point for the backedge of this loop
     BPatch_Vector<BPatch_edge*> edges;
     loop->getBackEdges(edges);
     for (auto edge : edges) {
-      if (DEBUG_LOOP) edge->dump();
       BPatch_point *iP = edge->getPoint();
       if (!iP) {
-        inst_printf("%s[%d]: loop back edge has no instrumentation point\n", FILE__, __LINE__);
+        inst_printf("%s[%d]: loop back edge 0x%lx -> 0x%lx has no instrumentation point\n",
+                    FILE__, __LINE__, blockAddr(edge->getSource()), blockAddr(edge->getTarget()));
         continue;
       }
       iP->overrideType(BPatch_locLoopEndIter);
@@ -475,9 +490,7 @@ bool BPatch_flowGraph::createSourceBlocks() {
         cur != insnsByAddr.end();
         ++cur)
       {
-        if( getAddSpace()->getSourceLines(cur->second, lines ) ) {
-          // /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx\n", __FILE__, __LINE__, cur->second );
-        }
+        getAddSpace()->getSourceLines(cur->second, lines);
       }
     if( lines.size() != 0 ) {
       if( ! currentBlock->sourceBlocks ) {
@@ -492,10 +505,6 @@ bool BPatch_flowGraph::createSourceBlocks() {
           continue;
         }
 
-        // /* DEBUG */ fprintf( stderr, "%s[%d]: Inserting %s:", __FILE__, __LINE__, currentSourceFile );
-        // /* DEBUG */ std::set< unsigned short >::iterator iter = lineNos.begin();
-        // /* DEBUG */ for( ; iter != lineNos.end(); iter++ ) { fprintf( stderr, " %d", * iter ); }
-        // /* DEBUG */ fprintf( stderr, "\n" );
         BPatch_sourceBlock * sourceBlock = new BPatch_sourceBlock( currentSourceFile, lineNos );
         currentBlock->sourceBlocks->push_back( sourceBlock );
 
@@ -504,11 +513,6 @@ bool BPatch_flowGraph::createSourceBlocks() {
         lineNos.insert( (unsigned short)lines[j].lineNumber() );
       }
       if( !lineNos.empty()) {
-        // /* DEBUG */ fprintf( stderr, "%s[%d]: Inserting %s:", __FILE__, __LINE__, currentSourceFile );
-        // /* DEBUG */ std::set< unsigned short >::iterator iter = lineNos.begin();
-        // /* DEBUG */ for( ; iter != lineNos.end(); iter++ ) { fprintf( stderr, " %d", * iter ); }
-        // /* DEBUG */ fprintf( stderr, "\n" );
-
         BPatch_sourceBlock * sourceBlock = new BPatch_sourceBlock( currentSourceFile, lineNos );
         currentBlock->sourceBlocks->push_back( sourceBlock );
       }
