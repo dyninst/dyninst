@@ -21,4 +21,11 @@ dyninst_add_test(
   DEPS instructionAPI
 )
 
+dyninst_add_test(
+  instructionAPI_rep_string_ops_x86
+  TYPE unit
+  SOURCE_FILES rep-string-ops-x86.cpp
+  DEPS instructionAPI
+)
+
 add_subdirectory(AST)

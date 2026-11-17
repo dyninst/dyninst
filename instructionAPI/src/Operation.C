@@ -275,6 +275,24 @@ namespace Dyninst { namespace InstructionAPI {
     }
   }
 
+  namespace {
+    bool isCompareString(entryID id) {
+      switch(id) {
+        case e_cmpsb:
+        case e_cmpsw:
+        case e_cmpsd:
+        case e_cmpsq:
+        case e_scasb:
+        case e_scasw:
+        case e_scasd:
+        case e_scasq:
+          return true;
+        default:
+          return false;
+      }
+    }
+  }
+
   void Operation::SetUpNonOperandData() {
     if(archDecodedFrom != Arch_x86 && archDecodedFrom != Arch_x86_64)
       return;
@@ -283,7 +301,8 @@ namespace Dyninst { namespace InstructionAPI {
         otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
         otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
         otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
-        if(prefixID == prefix_repnz) {
+        // repe/repne cmps and scas also stop on zf; F3 on them is REPE
+        if(prefixID == prefix_repnz || isCompareString(operationID)) {
           otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
         }
       }

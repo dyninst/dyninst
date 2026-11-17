@@ -10556,6 +10556,18 @@ const char* ia32_entry::name(ia32_locations* loc)
    return NULL;
 }
 
+bool ia32_entry::isStringOp() const
+{
+   switch(opsema >> FPOS) {
+      case fREP:
+      case fSCAS:
+      case fCMPS:
+         return true;
+      default:
+         return false;
+   }
+}
+
 entryID ia32_entry::getID(ia32_locations* l) const
 {
    if((id != e_No_Entry) || (tabidx == t_done) || (l == NULL))
