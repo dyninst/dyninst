@@ -48,3 +48,10 @@ dyninst_add_test(
   SOURCE_FILES read_write.cpp
   DEPS instructionAPI register_tests
 )
+
+dyninst_add_test(
+  instructionAPI_x86_avx_decoding_tests
+  TYPE integration
+  SOURCE_FILES avx_decoding.cpp
+  DEPS instructionAPI
+)
