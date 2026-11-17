@@ -354,8 +354,10 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
                                             int &indexStride,
                                             std::map<Address, Address>& entries) {
     CodeSource *cs = block->obj()->cs();
+    const SymtabCodeSource* scs{dynamic_cast<const SymtabCodeSource*>(cs)};
     set<Address> jumpTargets;
     Address prevReadAddress = 0;
+    Address nextTable = 0;
     auto start = std::max(indexBound.low,0L);
     for (auto v = start; v <= indexBound.high; v += indexBound.stride) {
         JumpTableReadVisitor jtrv(index, v, cs, block->region(), isZeroExtend, memoryReadSize);
@@ -363,6 +365,13 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
        if (jtrv.valid && cs->isCode(jtrv.targetAddress)) {
             if ((cs->getArch() == Arch_x86_64 || cs->getArch() == Arch_riscv64) && FindJunkInstruction(jtrv.targetAddress)) {
                 parsing_printf("WARNING: resolving jump tables leads to junk instruction from %lx\n", jtrv.targetAddress);
+                break;
+            }
+            // Another table's base is loaded by its own lea; this table ends before it.
+            if (scs != nullptr && prevReadAddress == 0)
+                nextTable = scs->nextTableBase(jtrv.readAddress);
+            if (nextTable != 0 && jtrv.readAddress >= nextTable) {
+                parsing_printf("\t index %ld, table address %lx is the base of another table at %lx, stop\n", v, jtrv.readAddress, nextTable);
                 break;
             }
             if (jtrv.readAddress < minReadAddress || minReadAddress == 0) minReadAddress = jtrv.readAddress;

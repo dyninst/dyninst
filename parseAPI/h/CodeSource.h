@@ -44,6 +44,7 @@
 
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/lockable_adapter.hpp>
+#include <mutex>
 #include "concurrent.h"
 
 class StatContainer;
@@ -361,7 +362,18 @@ class DYNINST_EXPORT SymtabCodeSource : public CodeSource, public boost::lockabl
     void startTimer(const std::string& /*name*/) const; 
     void stopTimer(const std::string& /*name*/) const;
     bool findCatchBlockByTryRange(Address /*given try address*/, std::set<Address> & /* catch start */)  const;
+
+    // The lowest address above addr that a rip-relative lea in the code loads into a
+    // read-only data region, or 0 if there is none.  Compilers load the base of each
+    // jump table with such a lea, so a table read starting at addr cannot extend to
+    // the returned address.  x86_64 only (0 elsewhere).  The addresses are collected
+    // once from the raw bytes, so the answer does not depend on the order of the parse.
+    Address nextTableBase(Address addr) const;
  private:
+    mutable std::vector<Address> _table_bases;
+    mutable std::once_flag _table_bases_once;
+    void init_table_bases() const;
+
     void init(hint_filt *, bool);
     void init_regions(hint_filt *, bool);
     void init_hints(RegionMap &, hint_filt*);

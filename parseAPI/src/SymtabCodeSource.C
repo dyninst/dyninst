@@ -28,6 +28,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include <vector>
+#include <algorithm>
+#include <cstring>
+#include <cstdint>
+#include <iterator>
 #include <map>
 #include <atomic>
 
@@ -998,3 +1002,51 @@ SymtabCodeSource::findCatchBlockByTryRange(Address addr, std::set<Address> & cat
     return true;
 }
 
+void
+SymtabCodeSource::init_table_bases() const
+{
+    if (getArch() != Arch_x86_64)
+        return;
+    std::vector<SymtabAPI::Region*> regions;
+    _symtab->getAllRegions(regions);
+    std::vector<std::pair<Address, Address>> rodata;
+    for (auto r : regions) {
+        if (r->isLoadable() && r->getRegionPermissions() == SymtabAPI::Region::RP_R && r->getMemSize() > 0)
+            rodata.emplace_back(r->getMemOffset(), r->getMemOffset() + r->getMemSize());
+    }
+    std::sort(rodata.begin(), rodata.end());
+    auto inRodata = [&rodata](Address a) {
+        auto it = std::upper_bound(rodata.begin(), rodata.end(), std::make_pair(a, ~Address{0}));
+        return it != rodata.begin() && a < std::prev(it)->second;
+    };
+    constexpr std::size_t leaSize{7};  // REX.W 8d modrm disp32
+    for (auto r : regions) {
+        if (!r->isText() || r->getDiskSize() < leaSize)
+            continue;
+        auto const* bytes{static_cast<unsigned char const*>(r->getPtrToRawData())};
+        if (bytes == nullptr)
+            continue;
+        Address base{r->getMemOffset()};
+        for (std::size_t i = 0; i + leaSize <= r->getDiskSize(); ++i) {
+            // lea disp32(%rip), r64: REX with W set (0x48-0x4f; X and B are ignored with
+            // rip-relative addressing), 8d, modrm mod=00 rm=101
+            if ((bytes[i] & 0xf8) != 0x48 || bytes[i + 1] != 0x8d || (bytes[i + 2] & 0xc7) != 0x05)
+                continue;
+            int32_t disp{};
+            std::memcpy(&disp, bytes + i + 3, sizeof disp);
+            Address target{base + i + leaSize + static_cast<Address>(static_cast<int64_t>(disp))};
+            if (target % 4 == 0 && inRodata(target))
+                _table_bases.push_back(target);
+        }
+    }
+    std::sort(_table_bases.begin(), _table_bases.end());
+    _table_bases.erase(std::unique(_table_bases.begin(), _table_bases.end()), _table_bases.end());
+}
+
+Address
+SymtabCodeSource::nextTableBase(Address addr) const
+{
+    std::call_once(_table_bases_once, [this]() { init_table_bases(); });
+    auto it = std::upper_bound(_table_bases.begin(), _table_bases.end(), addr);
+    return it == _table_bases.end() ? 0 : *it;
+}
