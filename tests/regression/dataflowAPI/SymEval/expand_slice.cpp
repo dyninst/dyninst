@@ -31,9 +31,9 @@ namespace df = Dyninst::DataflowAPI;
 
 namespace {
 
-  // The first assignment to a register in b that is not a flag, and its address.
+  // The first assignment to a register in b that is not a flag, or null.
   // An instruction's flag assignments come in no fixed order.
-  bool first_register_write(pa::Function* f, pa::Block* b, Dyninst::Assignment::Ptr& out, Dyninst::Address& addr) {
+  Dyninst::Assignment::Ptr first_register_write(pa::Function* f, pa::Block* b) {
     pa::Block::Insns insns;
     b->getInsns(insns);
     for(auto const& i : insns) {
@@ -43,13 +43,11 @@ namespace {
       for(auto const& a : assigns) {
         Dyninst::Absloc const& loc = a->out().absloc();
         if(loc.type() == Dyninst::Absloc::Register && !loc.reg().isFlag()) {
-          out = a;
-          addr = i.first;
-          return true;
+          return a;
         }
       }
     }
-    return false;
+    return Dyninst::Assignment::Ptr{};
   }
 
   // The expression expand gave the slice's node for a
@@ -57,12 +55,12 @@ namespace {
     Dyninst::NodeIterator b, e;
     g->allNodes(b, e);
     for(; b != e; ++b) {
-      auto node = boost::static_pointer_cast<Dyninst::SliceNode>(*b);
-      if(node->assign() && node->assign()->addr() == a->addr() && node->assign()->out() == a->out()) {
+      auto node = boost::dynamic_pointer_cast<Dyninst::SliceNode>(*b);
+      if(node && node->assign() && node->assign()->addr() == a->addr() && node->assign()->out() == a->out()) {
         return res[node->assign()];
       }
     }
-    return Dyninst::AST::Ptr();
+    return Dyninst::AST::Ptr{};
   }
 
   bool check(char const* path) {
@@ -71,21 +69,24 @@ namespace {
       std::cerr << path << ": cannot open\n";
       return false;
     }
-    pa::SymtabCodeSource source(symtab);
-    pa::CodeObject co(&source);
+    auto* source = new pa::SymtabCodeSource(symtab);
+    auto* co = new pa::CodeObject(source);
     const Dyninst::Address entry = symtab->getEntryOffset();
-    co.parse(entry, false);
+    co->parse(entry, false);
     std::set<pa::CodeRegion*> regions;
-    source.findRegions(entry, regions);
-    pa::Function* f = regions.empty() ? nullptr : co.findFuncByEntry(*regions.begin(), entry);
+    source->findRegions(entry, regions);
+    if(regions.empty()) {
+      std::cerr << path << ": no code region holds the entry point 0x" << std::hex << entry << std::dec << "\n";
+      return false;
+    }
+    pa::Function* f = co->findFuncByEntry(*regions.begin(), entry);
     if(!f || !f->entry()) {
       std::cerr << path << ": no function at the entry point 0x" << std::hex << entry << std::dec << "\n";
       return false;
     }
 
-    Dyninst::Assignment::Ptr a;
-    Dyninst::Address addr{};
-    if(!first_register_write(f, f->entry(), a, addr)) {
+    Dyninst::Assignment::Ptr a = first_register_write(f, f->entry());
+    if(!a) {
       std::cerr << path << ": the entry block writes no register\n";
       return false;
     }
@@ -103,7 +104,7 @@ namespace {
       return false;
     }
     Dyninst::AST::Ptr ast = value(g, a, res);
-    std::cerr << path << ": 0x" << std::hex << addr << std::dec << " " << a->format() << " = "
+    std::cout << path << ": 0x" << std::hex << a->addr() << std::dec << " " << a->format() << " = "
               << (ast ? ast->format() : "<none>") << "\n";
     if(rv == df::SymEval::FAILED || !ast) {
       std::cerr << path << ": no expression for the assignment\n";
