@@ -70,9 +70,10 @@ namespace {
       return false;
     }
     auto* source = new pa::SymtabCodeSource(symtab);
-    auto* co = new pa::CodeObject(source);
+    // Parse only the function at the entry point and the functions it calls.
+    auto* co = new pa::CodeObject(source, nullptr, nullptr, false, true);
     const Dyninst::Address entry = symtab->getEntryOffset();
-    co->parse(entry, false);
+    co->parse(entry, true);
     std::set<pa::CodeRegion*> regions;
     source->findRegions(entry, regions);
     if(regions.empty()) {
