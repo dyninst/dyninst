@@ -111,7 +111,6 @@ bool operatorAST::initRegisters(codeGen &g) {
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 
 bool operatorAST::generateOptimizedAssignment(codeGen &gen, int size_) {
-  (void)size_;
   if(!(loperand && roperand)) {
     return false;
   }
@@ -140,8 +139,11 @@ bool operatorAST::generateOptimizedAssignment(codeGen &gen, int size_) {
 
   if(roperand->getoType() == operandType::Constant) {
     // Looks like 'global = constant'
+    if(size_ != 4) {
+      return false;
+    }
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
-    if(laddr >> 32 || ((Dyninst::Address)roperand->getOValue()) >> 32 || size_ == 8) {
+    if(laddr >> 32 || ((Dyninst::Address)roperand->getOValue()) >> 32) {
       // Make sure value and address are 32-bit values.
       return false;
     }
