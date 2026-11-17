@@ -6,29 +6,35 @@ dyninst_add_test_executable(
   DEPS parseAPI
 )
 
-# One test per architecture over all of its findMain binaries. They are only
-# read, so they run on every host.
+# One test per architecture over its findMain binaries, which are only read.
+# SymEval skips StackAnalysis for aarch64 code.
 set(_dir "${DYNINST_TEST_BINARIES_DIR}/dyninstAPI/findMain")
 foreach(
   _arch
   IN
   ITEMS aarch64 i686 ppc64le riscv64 x86_64
 )
-  # StackAnalysis's entry state is chosen by the build's code-generation
-  # architecture: a stack height of 0 in POWER and RISC-V builds, minus the
-  # return address in x86 builds, none in native aarch64 builds. aarch64 code
-  # skips StackAnalysis. x86 code needs an x86_64 build.
-  set(_requires test_binaries)
-  if(_arch STREQUAL "i686" OR _arch STREQUAL "x86_64")
-    list(APPEND _requires codegen:x86_64)
-  elseif(NOT _arch STREQUAL "aarch64")
-    list(APPEND _requires stackanalysis_any_arch)
+  dyninst_has_stackanalysis(${_arch} _has_stackanalysis)
+  if(NOT _arch STREQUAL "aarch64" AND NOT _has_stackanalysis)
+    continue()
   endif()
+  set(_requires test_binaries)
   if(_arch STREQUAL "riscv64")
     list(APPEND _requires capstone)
   endif()
-  file(GLOB _binaries "${_dir}/${_arch}/*")
-  list(SORT _binaries)
+  set(
+    _binaries
+    dyn.nopie.nostripped
+    dyn.nopie.stripped
+    dyn.pie.nostripped
+    dyn.pie.stripped
+    stat.nopie.nostripped
+    stat.nopie.stripped
+  )
+  if(NOT _arch STREQUAL "ppc64le" AND NOT _arch STREQUAL "riscv64")
+    list(APPEND _binaries stat.pie.nostripped stat.pie.stripped)
+  endif()
+  list(TRANSFORM _binaries PREPEND "${_dir}/${_arch}/")
   dyninst_add_test(
     dataflowAPI_symeval_expand_slice_${_arch}_test
     TYPE regression
@@ -36,6 +42,7 @@ foreach(
     REQUIRES ${_requires}
   )
 endforeach()
+unset(_has_stackanalysis)
 unset(_requires)
 unset(_binaries)
 unset(_dir)
