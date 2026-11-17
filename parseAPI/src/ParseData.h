@@ -129,6 +129,12 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
     // Delayed work elements 
     std::map<ParseWorkElem *, Function *> delayedWork;
 
+    // Jump tables held back while delayedWork is not empty.  A jump table's targets are
+    // computed from the control flow that leads to it, so it is resolved only after every
+    // delayed call fallthrough of the frame has been parsed; otherwise its result would
+    // depend on which callees another thread happened to finish first.
+    std::vector<ParseWorkElem *> heldJumpTables;
+
     std::map<Address, Block*> leadersToBlock;
     //dyn_hash_map<Address, Block*> leadersToBlock;  // block map
     Address curAddr;                           // current insn address

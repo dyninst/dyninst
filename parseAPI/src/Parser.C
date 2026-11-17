@@ -1501,6 +1501,11 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         for (uIter = updated.begin(); uIter != updated.end(); ++uIter) {
             frame.delayedWork.erase(*uIter);
         }
+        if (frame.delayedWork.empty()) {
+            for (auto held : frame.heldJumpTables)
+                frame.pushWork(held);
+            frame.heldJumpTables.clear();
+        }
     }
 
     frame.set_status(ParseFrame::PROGRESS);
@@ -1747,6 +1752,10 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
         } else if (work->order() == ParseWorkElem::seed_addr) {
             cur = leadersToBlock[work->target()];
         } else if (work->order() == ParseWorkElem::resolve_jump_table) {
+            if (!frame.delayedWork.empty()) {
+                frame.heldJumpTables.push_back(work);
+                continue;
+            }
             // resume to resolve jump table
             auto work_ah = work->ah();
             parsing_printf("... continue parse indirect jump at %lx\n", work_ah->getAddr());
