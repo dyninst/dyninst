@@ -531,6 +531,8 @@ namespace Dyninst { namespace InstructionAPI {
       case e_arpl: return {x86::zf};
       case e_bsf: return standardFlags;
       case e_bsr: return standardFlags;
+      case e_lzcnt: return standardFlags;
+      case e_tzcnt: return standardFlags;
       case e_bt: return standardFlags;
       case e_bts: return standardFlags;
       case e_btr: return standardFlags;
