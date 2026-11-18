@@ -74,7 +74,7 @@ with the reason a test prints when it is not met:
 | `native`           | code generation for the host           |
 | `dynamic`          | `DYNINST_ENABLE_DYNAMIC_TESTS`         |
 | `userns`           | `DYNINST_ENABLE_USERNS_TESTS`          |
-| `stackanalysis`    | no aarch64 or amdgpu code generation   |
+| `stackanalysis`    | no aarch64, amdgpu or i386 codegen     |
 
 - `test_binaries`: The test_binaries repository, which
   `DYNINST_ENABLE_TESTS=ALL` downloads; its path is
@@ -126,7 +126,8 @@ with the reason a test prints when it is not met:
 
 - `stackanalysis`: The test runs StackAnalysis, which has no entry
   stack height for aarch64 or amdgpu code generation and throws for
-  code of every architecture there.
+  code of every architecture there. With i386 code generation it has
+  no 64-bit ABI and crashes on 64-bit code.
 
 A new requirement is defined in that file with
 `dyninst_test_requirement`, described in

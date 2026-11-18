@@ -69,9 +69,12 @@ dyninst_test_requirement(
 )
 
 # StackAnalysis has no entry stack height for aarch64 or amdgpu code generation,
-# and throws for code of every architecture.
+# and throws for code of every architecture. i386 code generation has no 64-bit
+# ABI, so StackAnalysis crashes on calls and jumps in 64-bit code.
 dyninst_test_requirement(
   stackanalysis
-  WHEN NOT DYNINST_CODEGEN_ARCH_AARCH64 AND NOT DYNINST_CODEGEN_ARCH MATCHES "^amdgpu_"
+  WHEN
+    NOT DYNINST_CODEGEN_ARCH_AARCH64 AND NOT DYNINST_CODEGEN_ARCH_I386 AND NOT
+    DYNINST_CODEGEN_ARCH MATCHES "^amdgpu_"
   REASON "StackAnalysis does not support code generation for ${DYNINST_CODEGEN_ARCH}"
 )
