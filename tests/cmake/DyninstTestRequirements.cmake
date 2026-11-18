@@ -68,28 +68,10 @@ dyninst_test_requirement(
   REASON "needs unprivileged user namespaces (DYNINST_ENABLE_USERNS_TESTS=OFF)"
 )
 
-# Sets <result> to TRUE when StackAnalysis in this build can analyze code of
-# <arch>. StackAnalysis::createEntryInput takes the entry state from the build,
-# not from the code: a stack height of 0 in ppc64le and riscv64 builds, minus
-# the return address in i386 builds and on an x86_64 host, and none otherwise.
-# x86 code needs x86's entry state, and aarch64 and amdgpu code have none.
-function(dyninst_has_stackanalysis arch result)
-  if(DEFINED _dyninst_arch_alias_${arch})
-    set(arch ${_dyninst_arch_alias_${arch}})
-  endif()
-  set(${result} FALSE PARENT_SCOPE)
-  if(arch STREQUAL "x86_64" OR arch STREQUAL "i386")
-    if(DYNINST_CODEGEN_ARCH_X86_64)
-      set(${result} TRUE PARENT_SCOPE)
-    endif()
-  elseif(arch STREQUAL "ppc64le" OR arch STREQUAL "riscv64")
-    if(
-      DYNINST_CODEGEN_ARCH_PPC64LE
-      OR DYNINST_CODEGEN_ARCH_RISCV64
-      OR DYNINST_CODEGEN_ARCH_I386
-      OR DYNINST_HOST_ARCH_X86_64
-    )
-      set(${result} TRUE PARENT_SCOPE)
-    endif()
-  endif()
-endfunction()
+# StackAnalysis has no entry stack height for aarch64 or amdgpu code generation,
+# and throws for code of every architecture.
+dyninst_test_requirement(
+  stackanalysis
+  WHEN NOT DYNINST_CODEGEN_ARCH_AARCH64 AND NOT DYNINST_CODEGEN_ARCH MATCHES "^amdgpu_"
+  REASON "StackAnalysis does not support code generation for ${DYNINST_CODEGEN_ARCH}"
+)

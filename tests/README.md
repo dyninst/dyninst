@@ -74,6 +74,7 @@ with the reason a test prints when it is not met:
 | `native`           | code generation for the host           |
 | `dynamic`          | `DYNINST_ENABLE_DYNAMIC_TESTS`         |
 | `userns`           | `DYNINST_ENABLE_USERNS_TESTS`          |
+| `stackanalysis`    | no aarch64 or amdgpu code generation   |
 
 - `test_binaries`: The test_binaries repository, which
   `DYNINST_ENABLE_TESTS=ALL` downloads; its path is
@@ -122,6 +123,10 @@ with the reason a test prints when it is not met:
   in them; the one test that needs a capability there, the chroot case
   of `common_filesystem`, then reports itself as skipped and names that
   setting.
+
+- `stackanalysis`: The test runs StackAnalysis, which has no entry
+  stack height for aarch64 or amdgpu code generation and throws for
+  code of every architecture there.
 
 A new requirement is defined in that file with
 `dyninst_test_requirement`, described in

@@ -14,11 +14,10 @@ foreach(
   IN
   ITEMS aarch64 i686 ppc64le riscv64 x86_64
 )
-  dyninst_has_stackanalysis(${_arch} _has_stackanalysis)
-  if(NOT _arch STREQUAL "aarch64" AND NOT _has_stackanalysis)
-    continue()
-  endif()
   set(_requires test_binaries)
+  if(NOT _arch STREQUAL "aarch64")
+    list(APPEND _requires stackanalysis)
+  endif()
   if(_arch STREQUAL "riscv64")
     list(APPEND _requires capstone)
   endif()
@@ -42,7 +41,6 @@ foreach(
     REQUIRES ${_requires}
   )
 endforeach()
-unset(_has_stackanalysis)
 unset(_requires)
 unset(_binaries)
 unset(_dir)
