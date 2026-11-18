@@ -605,8 +605,10 @@ void StackAnalysis::summarize() {
 
          for (auto iter2 = xferFuncs.begin(); iter2 != xferFuncs.end();
             ++iter2) {
-            input[iter2->target] = iter2->apply(input);
+            // Apply before input[] inserts the target, which apply looks up
+            DefHeightSet result = iter2->apply(input);
             DefHeightSet &s = input[iter2->target];
+            s = result;
             const Definition &def = s.begin()->def;
             const Height &h = s.begin()->height;
             if (def.type == Definition::DEF && def.block == NULL) {
@@ -3718,7 +3720,10 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::summaryAccumulate(
 // Accumulation to the input map. This is intended to create a summary, so we
 // create something that can take further input.
 void StackAnalysis::TransferFunc::accumulate(TransferSet &inputs) {
-   inputs[target] = summaryAccumulate(inputs);
+   // Accumulate before inputs[] inserts the target, which summaryAccumulate
+   // looks up
+   TransferFunc result = summaryAccumulate(inputs);
+   inputs[target] = result;
 }
 
 
