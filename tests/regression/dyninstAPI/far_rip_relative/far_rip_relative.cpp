@@ -11,12 +11,16 @@
 //    save must not overwrite;
 //  - the call must reach the callee with the stack the caller set up, so its
 //    seventh argument and 16-byte alignment are intact.
-// The mutatee is linked above 4 GiB so that neither target can be addressed
-// with a 32-bit absolute address either.
+// The rewritten code must form these addresses relative to itself: the
+// rewriter shifts the image, and a PIE or shared library is loaded at an
+// unknown base, so an absolute address would be wrong. The mutatee is built
+// three ways: a PIE linked above 4 GiB, a non-PIE executable, and a shared
+// library linked at 0.
 //
-// Usage: far_rip_relative <mutatee> <output directory>
-// DYNINSTAPI_RT_LIB names the runtime library; the rewritten mutatee is run
-// with the runtime library's directory in LD_LIBRARY_PATH.
+// Usage: far_rip_relative <mutatee> <output directory> [<host>]
+// DYNINSTAPI_RT_LIB names the runtime library. Without <host>, the rewritten
+// mutatee is run. With <host>, the mutatee is a shared library: <host>, which
+// loads it, is run with the output directory first in LD_LIBRARY_PATH.
 
 #include <cerrno>
 #include <cstdint>
@@ -41,7 +45,6 @@
 namespace {
 
   constexpr uint64_t max_disp32 = 0x7fffffff;
-  constexpr uint64_t max_addr32 = 0xffffffff;
 
   std::string basename(std::string const &path) {
     auto const slash = path.rfind('/');
@@ -94,12 +97,13 @@ namespace {
 }
 
 int main(int argc, char **argv) {
-  if (argc != 3) {
-    std::cerr << "Usage " << argv[0] << ": mutatee outdir\n";
+  if (argc != 3 && argc != 4) {
+    std::cerr << "Usage " << argv[0] << ": mutatee outdir [host]\n";
     return EXIT_FAILURE;
   }
   std::string const mutatee = argv[1];
   std::string const outdir = argv[2];
+  std::string const host = argc == 4 ? argv[3] : "";
 
   char const *rt = std::getenv("DYNINSTAPI_RT_LIB");
   if (!rt || !*rt) {
@@ -136,10 +140,10 @@ int main(int argc, char **argv) {
 
   // far_fn is next to far_value, so it is out of reach whenever far_value is.
   // Without this, the test passes without exercising the rewritten code.
-  if (address_of(far_value) <= max_addr32 || bss_end - address_of(far_value) <= max_disp32) {
-    std::cerr << std::hex << "far_value (0x" << address_of(far_value) << ") is below 4 GiB or "
-              << "within 2 GiB of the end of .bss (0x" << bss_end << "); the layout does not "
-              << "exercise the rewritten code\n";
+  if (bss_end - address_of(far_value) <= max_disp32) {
+    std::cerr << std::hex << "far_value (0x" << address_of(far_value) << ") is within 2 GiB of "
+              << "the end of .bss (0x" << bss_end << "); the layout does not exercise the "
+              << "rewritten code\n";
     return EXIT_FAILURE;
   }
 
@@ -169,5 +173,8 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
+  if (!host.empty()) {
+    return run(host, outdir + ":" + dirname(rt)) ? EXIT_SUCCESS : EXIT_FAILURE;
+  }
   return run(rewritten, dirname(rt)) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
