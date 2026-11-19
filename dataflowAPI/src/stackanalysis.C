@@ -2874,21 +2874,38 @@ bool StackAnalysis::handleThunkCall(Instruction insn, Block *block,
 
 
 void StackAnalysis::createEntryInput(AbslocState &input) {
-   // FIXME for POWER/non-IA32
-   // IA32 - the in height includes the return address and therefore
-   // is <wordsize>
-   // POWER - the in height is 0
-#if defined(DYNINST_CODEGEN_ARCH_POWER) || defined(DYNINST_CODEGEN_ARCH_RISCV64)
-   input[Absloc(sp())].addInitSet(Height(0));
-#elif defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
-   input[Absloc(sp())].addInitSet(Height(-word_size));
-   if (sp() == x86_64::rsp) {
-      input[Absloc(x86_64::esp)].addInitSet(Height(-word_size));
+   // The stack height at the function's entry, by the architecture of the
+   // code being analyzed
+   switch (func->isrc()->getArch()) {
+      case Arch_riscv64:
+      case Arch_ppc32:
+      case Arch_ppc64: {
+         // The return address is in a register
+         input[Absloc(sp())].addInitSet(Height(0));
+         break;
+      }
+      case Arch_x86:
+      case Arch_x86_64: {
+         // The call pushed the return address
+         input[Absloc(sp())].addInitSet(Height(-word_size));
+         if (sp() == x86_64::rsp) {
+            input[Absloc(x86_64::esp)].addInitSet(Height(-word_size));
+         }
+         break;
+      }
+      case Arch_none:
+      case Arch_aarch32:
+      case Arch_aarch64:
+      case Arch_cuda:
+      case Arch_amdgpu_gfx908:
+      case Arch_amdgpu_gfx90a:
+      case Arch_amdgpu_gfx940:
+      case Arch_amdgpu_gfx950:
+      case Arch_intelGen9: {
+         STACKANALYSIS_ASSERT(0 && "Unimplemented architecture");
+         break;
+      }
    }
-#else
-   DYNINST_SUPPRESS_UNUSED_VARIABLE(input);
-   STACKANALYSIS_ASSERT(0 && "Unimplemented architecture");
-#endif
 }
 
 void StackAnalysis::createSummaryEntryInput(TransferSet &input) {
