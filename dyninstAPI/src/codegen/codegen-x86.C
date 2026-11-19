@@ -291,14 +291,34 @@ void insnCodeGen::generatePush64(codeGen &gen, Dyninst::Address val)
 
 void insnCodeGen::generateBranch64(codeGen &gen, Dyninst::Address to)
 {
-  // jmp *0(%rip) with the 64-bit target right after it: reaches any
-  // address without touching the stack, which may hold a leaf's red zone.
-  // JUMP_ABS64_SZ bytes.
+  if (gen.addrSpace()->proc()) {
+    // jmp *0(%rip) with the 64-bit target right after it: reaches any
+    // address without touching the stack, which may hold a leaf's red zone.
+    // JUMP_ABS64_SZ bytes.
+    GET_PTR(insn, gen);
+    append_memory_as_byte(insn, 0xFF);
+    append_memory_as_byte(insn, 0x25);
+    append_memory_as(insn, int32_t{0});
+    append_memory_as(insn, uint64_t{to});
+    SET_PTR(insn, gen);
+    return;
+  }
+  // A binary rewrite needs the target relative to the code (see
+  // emitFarAddress), and a branch may be taken with every register live and
+  // the flags live. Form it in %rax, saved below the red zone, swap it with
+  // the saved value, and return to it, popping the red zone with the return:
+  //   lea -128(%rsp),%rsp; push %rax; lea ...,%rax; xchg %rax,(%rsp); ret $128
+  // JUMP_PCREL64_SZ bytes for a target within 4 GiB.
+  emitLEA64(REGNUM_RSP, Null_Register, 0, -AMD64_RED_ZONE, REGNUM_RSP, gen);
+  emitPushReg64(REGNUM_RAX, gen);
+  emitFarAddress(REGNUM_RAX, to, gen);
   GET_PTR(insn, gen);
-  append_memory_as_byte(insn, 0xFF);
-  append_memory_as_byte(insn, 0x25);
-  append_memory_as(insn, int32_t{0});
-  append_memory_as(insn, uint64_t{to});
+  append_memory_as_byte(insn, 0x48); // xchg %rax,(%rsp)
+  append_memory_as_byte(insn, 0x87);
+  append_memory_as_byte(insn, 0x04);
+  append_memory_as_byte(insn, 0x24);
+  append_memory_as_byte(insn, 0xC2); // ret $AMD64_RED_ZONE
+  append_memory_as(insn, uint16_t{AMD64_RED_ZONE});
   SET_PTR(insn, gen);
 }
 
@@ -338,9 +358,22 @@ void insnCodeGen::generateCall(codeGen &gen,
     // D:
 
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
-    // So we need to know where D is off of "from"
-    if(gen.addrSpace()->getAddressWidth() == 8)
+    if(gen.addrSpace()->getAddressWidth() == 8 && !gen.addrSpace()->proc())
     {
+        // A binary rewrite needs the target relative to the code (see
+        // emitFarAddress). %r11 is free at a call: the ABI passes nothing in
+        // it and does not preserve it across calls. The call pushes the
+        // right return address itself.
+        emitFarAddress(REGNUM_R11, target, gen);
+        GET_PTR(insn, gen);
+        append_memory_as_byte(insn, 0x41); // call *%r11
+        append_memory_as_byte(insn, 0xFF);
+        append_memory_as_byte(insn, 0xD3);
+        SET_PTR(insn, gen);
+    }
+    else if(gen.addrSpace()->getAddressWidth() == 8)
+    {
+        // So we need to know where D is off of "from"
         generatePush64(gen, from+CALL_ABS64_SZ);
         generateBranch64(gen, target);
     }
