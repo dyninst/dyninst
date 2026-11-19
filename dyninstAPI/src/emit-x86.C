@@ -2033,6 +2033,21 @@ void EmitterAMD64::emitLoadShared(opCode op, Register dest, const image_variable
     addr = getInterModuleVarAddr(var, gen);
   }
   
+  // RIP-relative forms below take a 32-bit displacement from the end of a
+  // 7-byte instruction. Out of that reach, form the address in dest instead.
+  if (!is_disp32(addr - (gen.currAddr() + 7))) {
+    insnCodeGen::generateFarAddress(gen, dest, addr);
+    if (op == loadConstOp) {
+      if (!(is_local || !var))
+        emitLoadIndir(dest, dest, 8, gen); // the jump slot holds the address
+      return;
+    }
+    if (!is_local)
+      emitLoadIndir(dest, dest, 8, gen); // the jump slot holds the address
+    emitLoadIndir(dest, dest, size, gen);
+    return;
+  }
+
   if(op == loadConstOp) {
     int addr_offset = addr - gen.currAddr();
     // Brutal hack for IP-relative: displacement operand on 32-bit = IP-relative on 64-bit.
@@ -2070,8 +2085,10 @@ void EmitterAMD64::emitStoreShared(Register source, const image_variable *var, b
   gen.markRegDefined(dest);
  
   // load register with address from jump slot
-  emitLEA(Null_Register, Null_Register, 0, addr-gen.currAddr() - 7, dest, gen);
-  //emitMovPCRMToReg64(dest, addr-gen.currAddr(), gen, true);
+  if (is_disp32(addr - (gen.currAddr() + 7)))
+    emitLEA(Null_Register, Null_Register, 0, addr-gen.currAddr() - 7, dest, gen);
+  else
+    insnCodeGen::generateFarAddress(gen, dest, addr);
   if(!is_local)
      emitLoadIndir(dest, dest, 8, gen);
     
