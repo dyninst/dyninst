@@ -326,6 +326,10 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
 #define JUMP_ABS64_SZ (14)
 // A call pushes the return address (13 bytes) and then jumps
 #define CALL_ABS64_SZ (JUMP_ABS64_SZ+JUMP_ABS64_SZ-1)
+// The same jump in a binary rewrite, where the target is formed relative to
+// the code (generateBranch64), for a target within 4 GiB
+#define JUMP_PCREL64_SZ (27)
+#define JUMP_FAR64_MAX_SZ (JUMP_PCREL64_SZ)
 #endif
 
 #define PUSH_RM_OPC1 (0xFF)
