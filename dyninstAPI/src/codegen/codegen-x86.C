@@ -289,6 +289,13 @@ void insnCodeGen::generatePush64(codeGen &gen, Dyninst::Address val)
   SET_PTR(insn, gen);
 }
 
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
+void insnCodeGen::generateFarAddress(codeGen &gen, Dyninst::Register reg, Dyninst::Address target)
+{
+  emitFarAddress(reg, target, gen);
+}
+#endif
+
 void insnCodeGen::generateBranch64(codeGen &gen, Dyninst::Address to)
 {
   if (gen.addrSpace()->proc()) {

@@ -59,6 +59,11 @@ class insnCodeGen {
   static void generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::Address to);
   static void generateBranch(codeGen &gen, int disp);
   static void generateBranch64(codeGen &gen, Dyninst::Address to);
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
+  // Loads the address 'target' into 'reg' when it is out of reach of a
+  // 32-bit displacement; see emitFarAddress in codegen-x86.C.
+  static void generateFarAddress(codeGen &gen, Dyninst::Register reg, Dyninst::Address target);
+#endif
   static void generateBranch32(codeGen &gen, Dyninst::Address to);
   static void generateCall(codeGen &gen, Dyninst::Address from, Dyninst::Address to);
 
