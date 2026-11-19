@@ -765,41 +765,30 @@ SymEval::Retval_t process(SliceNode::Ptr ptr, Result_t &dbase, std::set<Edge::Pt
   }
 }
 
+// StackAnalysis takes the registers a call clobbers from ABI::getABI, which
+// describes the codegen architecture rather than the code's. Only code of an
+// architecture that ABI describes is analyzed; all of these have an entry stack
+// height in StackAnalysis::createEntryInput.
+static bool isCodegenArch(Architecture arch) {
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
+  // cap_32_64 also sets up the 32-bit x86 ABI
+  return arch == Arch_x86_64 || arch == Arch_x86;
+#elif defined(DYNINST_CODEGEN_ARCH_I386)
+  return arch == Arch_x86;
+#elif defined(DYNINST_CODEGEN_ARCH_POWER)
+  // cap_32_64 also sets up the 32-bit POWER ABI
+  return arch == Arch_ppc64 || arch == Arch_ppc32;
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
+  return arch == Arch_riscv64;
+#else
+  DYNINST_SUPPRESS_UNUSED_VARIABLE(arch);
+  return false;
+#endif
+}
+
 static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func, ParseAPI::Block *block) {
-  if(!ast) {
+  if(!ast || !isCodegenArch(func->isrc()->getArch())) {
     return ast;
-  }
-  switch(func->isrc()->getArch()) {
-    // StackAnalysis::createEntryInput isn't implemented for these.
-    case Arch_none:
-    case Arch_aarch32:
-    case Arch_aarch64:
-    case Arch_cuda:
-    case Arch_amdgpu_gfx908:
-    case Arch_amdgpu_gfx90a:
-    case Arch_amdgpu_gfx940:
-    case Arch_amdgpu_gfx950:
-    case Arch_intelGen9:
-      return ast;
-
-    // ABI::getABI has register sets only for the address widths the codegen
-    // architecture supports, and StackAnalysis dereferences them.
-    case Arch_x86:
-    case Arch_ppc32:
-#if defined(DYNINST_CODEGEN_ARCH_64BIT) && !defined(cap_32_64)
-      return ast;
-#else
-      break;
-#endif
-
-    case Arch_x86_64:
-    case Arch_ppc64:
-    case Arch_riscv64:
-#if !defined(DYNINST_CODEGEN_ARCH_64BIT)
-      return ast;
-#else
-      break;
-#endif
   }
   // Let's experiment with simplification
   StackAnalysis sA(func);
