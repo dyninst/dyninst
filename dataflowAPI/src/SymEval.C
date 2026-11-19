@@ -769,17 +769,43 @@ static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *fu
   if(!ast) {
     return ast;
   }
-  auto arch = func->isrc()->getArch();
-  // This is a hack to prevent parsing of AMGPU binaries from segfaulting
-  // in (common/h/Annotatable.h: Dyninst::AnnotatableSparse::getAnnosForObject）
-  // The problem seems to be that the annotation hash maps (annos_by_type_t) are
-  // not thread safe
-  if(arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940 || arch == Arch_amdgpu_gfx950) {
-    return ast;
-  }
-  // StackAnalysis::createEntryInput isn't implemented on aarch64.
-  if(arch == Arch_aarch64) {
-    return ast;
+  switch(func->isrc()->getArch()) {
+    // This is a hack to prevent parsing of AMGPU binaries from segfaulting
+    // in (common/h/Annotatable.h: Dyninst::AnnotatableSparse::getAnnosForObject）
+    // The problem seems to be that the annotation hash maps (annos_by_type_t) are
+    // not thread safe
+    case Arch_amdgpu_gfx908:
+    case Arch_amdgpu_gfx90a:
+    case Arch_amdgpu_gfx940:
+    case Arch_amdgpu_gfx950:
+      return ast;
+
+    // StackAnalysis::createEntryInput isn't implemented for these.
+    case Arch_none:
+    case Arch_aarch32:
+    case Arch_aarch64:
+    case Arch_cuda:
+    case Arch_intelGen9:
+      return ast;
+
+    // ABI::getABI has register sets only for the address widths the codegen
+    // architecture supports, and StackAnalysis dereferences them.
+    case Arch_x86:
+    case Arch_ppc32:
+#if defined(DYNINST_CODEGEN_ARCH_64BIT) && !defined(cap_32_64)
+      return ast;
+#else
+      break;
+#endif
+
+    case Arch_x86_64:
+    case Arch_ppc64:
+    case Arch_riscv64:
+#if !defined(DYNINST_CODEGEN_ARCH_64BIT)
+      return ast;
+#else
+      break;
+#endif
   }
   // Let's experiment with simplification
   StackAnalysis sA(func);
