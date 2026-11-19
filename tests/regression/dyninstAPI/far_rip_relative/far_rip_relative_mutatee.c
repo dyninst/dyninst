@@ -1,6 +1,14 @@
 #include <stdint.h>
 #include <stdio.h>
 
+/* The shared-library build (FAR_RIP_RELATIVE_SHLIB, -fvisibility=hidden)
+ * exports only far_rip_relative_main, which far_rip_relative_host calls: the
+ * assembly below reaches the data with RIP-relative accesses, which a shared
+ * object can only make to symbols it does not export. */
+#if defined(FAR_RIP_RELATIVE_SHLIB)
+#define main __attribute__((visibility("default"))) far_rip_relative_main
+#endif
+
 long seen_arg7 = -1;
 int seen_aligned = -1;
 
