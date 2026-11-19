@@ -62,7 +62,8 @@ dyninst_add_test(
   TYPE regression
   COMMAND
     $<TARGET_FILE:dyninstAPI_far_rip_relative>
-    $<TARGET_FILE:far_rip_relative_mutatee_nopie> ${CMAKE_CURRENT_BINARY_DIR}/rewritten_nopie
+    $<TARGET_FILE:far_rip_relative_mutatee_nopie>
+    ${CMAKE_CURRENT_BINARY_DIR}/rewritten_nopie
   REQUIRES host:x86_64 native
   PROPERTIES TIMEOUT 120 ENVIRONMENT "DYNINSTAPI_RT_LIB=$<TARGET_FILE:dyninstAPI_RT>"
 )
@@ -71,9 +72,8 @@ dyninst_add_test(
   dyninstAPI_far_rip_relative_shlib
   TYPE regression
   COMMAND
-    $<TARGET_FILE:dyninstAPI_far_rip_relative>
-    $<TARGET_FILE:far_rip_relative_shlib> ${CMAKE_CURRENT_BINARY_DIR}/rewritten_shlib
-    $<TARGET_FILE:far_rip_relative_host>
+    $<TARGET_FILE:dyninstAPI_far_rip_relative> $<TARGET_FILE:far_rip_relative_shlib>
+    ${CMAKE_CURRENT_BINARY_DIR}/rewritten_shlib $<TARGET_FILE:far_rip_relative_host>
   REQUIRES host:x86_64 native
   PROPERTIES TIMEOUT 120 ENVIRONMENT "DYNINSTAPI_RT_LIB=$<TARGET_FILE:dyninstAPI_RT>"
 )
