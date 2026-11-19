@@ -7,19 +7,17 @@ dyninst_add_test_executable(
 )
 
 # One test per architecture over its findMain binaries, which are only read.
-# SymEval skips StackAnalysis for aarch64 code.
+# SymEval simplifies stack references with the codegen architecture's ABI, so
+# the tests run only when Dyninst generates code for the host.
 set(_dir "${DYNINST_TEST_BINARIES_DIR}/dyninstAPI/findMain")
 foreach(
   _arch
   IN
   ITEMS aarch64 i686 ppc64le riscv64 x86_64
 )
-  set(_requires test_binaries)
-  if(NOT _arch STREQUAL "aarch64")
-    list(APPEND _requires stackanalysis)
-  endif()
+  set(_capstone)
   if(_arch STREQUAL "riscv64")
-    list(APPEND _requires capstone)
+    set(_capstone capstone)
   endif()
   set(
     _binaries
@@ -38,9 +36,9 @@ foreach(
     dataflowAPI_symeval_expand_slice_${_arch}_test
     TYPE regression
     COMMAND symeval_expand_slice ${_binaries}
-    REQUIRES ${_requires}
+    REQUIRES test_binaries native ${_capstone}
   )
 endforeach()
-unset(_requires)
+unset(_capstone)
 unset(_binaries)
 unset(_dir)

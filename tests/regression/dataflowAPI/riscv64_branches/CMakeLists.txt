@@ -8,7 +8,7 @@ dyninst_add_test(
   SOURCE_FILES riscv64_branches.cpp
   DEPS parseAPI
   ARGS "${_dir}/dyn.nopie.nostripped" "${_dir}/dyn.pie.nostripped"
-  REQUIRES capstone test_binaries stackanalysis
+  REQUIRES capstone test_binaries
 )
 
 unset(_dir)
