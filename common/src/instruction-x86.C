@@ -57,9 +57,10 @@ namespace NS_x86 {
     }
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
     if(type() & REL_D_DATA) {
-      // Worst-case: replace RIP with push of IP, use, and cleanup
-      // 8: unknown; previous constant
-      return count_prefixes(type()) + size() + 8;
+      // Worst case: step past the red zone and save a scratch register
+      // (5 + 1), form the address in it (7 + 7), the instruction without its
+      // displacement (-4), then restore (1 + 5)
+      return count_prefixes(type()) + size() + 22;
     }
 #endif
 

@@ -50,6 +50,44 @@
 using namespace std;
 using namespace Dyninst::InstructionAPI;
 
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
+namespace {
+  // Loads the address of targetAddr into reg, for a target out of reach of a
+  // 32-bit displacement.
+  //
+  // In a process, code runs at the address it is generated for, so the
+  // absolute address is loaded. Code generated for a binary rewrite does not:
+  // the rewriter shifts the image when it writes the file, and a shared
+  // object or PIE is loaded at a base chosen at run time. Only offsets
+  // between the generated code and its targets hold, so the address is
+  // formed relative to the instruction: lea d(%rip),%reg, then
+  // lea d(%reg),%reg while the rest of the offset does not fit in 32 bits.
+  // Both forms leave the flags alone.
+  void emitFarAddress(Dyninst::Register reg, Dyninst::Address targetAddr, codeGen &gen) {
+    if (gen.addrSpace()->proc()) {
+      emitMovImmToReg64(reg, targetAddr, true, gen);
+      return;
+    }
+    constexpr int64_t leaRipSize = 7; // REX.W 8D /r disp32
+    int64_t rest = static_cast<int64_t>(targetAddr - (gen.currAddr() + leaRipSize));
+    auto nextStep = [&rest]() {
+      int64_t const step = rest > INT32_MAX ? INT32_MAX : (rest < INT32_MIN ? INT32_MIN : rest);
+      rest -= step;
+      return static_cast<int32_t>(step);
+    };
+    GET_PTR(insn, gen);
+    append_memory_as_byte(insn, 0x48 | (reg >= 8 ? 0x04 : 0x00)); // REX.W, REX.R for r8-r15
+    append_memory_as_byte(insn, 0x8D);
+    append_memory_as_byte(insn, ((reg & 7) << 3) | 0x05); // mod 00, r/m 101: [%rip + disp32]
+    append_memory_as(insn, nextStep());
+    SET_PTR(insn, gen);
+    gen.markRegDefined(reg);
+    while (rest != 0)
+      emitLEA64(reg, Null_Register, 0, nextStep(), reg, gen);
+  }
+}
+#endif
+
 
 #define MODRM_MOD(x) ((x) >> 6)
 #define MODRM_RM(x) ((x) & 7)
@@ -461,21 +499,19 @@ bool insnCodeGen::modifyCall(Dyninst::Address targetAddr, NS_x86::instruction &i
 
 bool insnCodeGen::modifyData(Dyninst::Address targetAddr, instruction &insn, codeGen &gen)
 {
-    // We may need to change these from 32-bit relative
-    // to 64-bit absolute. This happens with the jumps and calls
-    // as well, but it's better encapsulated there.
-
-    // We have three options:
+    // The relocated copy of a RIP-relative access may be out of reach of a
+    // 32-bit displacement. The options are:
     // a) 32-bit relative (AKA "original").
-    // b) 32-bit absolute version (where 32-bit relative would fail but we're low)
-    // c) 64-bit absolute version
+    // b) 32-bit absolute (32-bit code generation only).
+    // c) x86_64: the target address is formed in a scratch register
+    //    (emitFarAddress), and the access goes through that register.
     const unsigned char *origInsn = insn.ptr();
     const unsigned char* origInsnStart = origInsn;
     // unsigned insnType = insn.type();
     unsigned insnSz = insn.size();
     Dyninst::Address from = gen.currAddr();
 
-    bool is_data_abs64 = false;
+    bool via_pointer_reg = false;
     signed long newDisp = targetAddr - from;
     GET_PTR(newInsn, gen);
 
@@ -509,18 +545,18 @@ bool insnCodeGen::modifyData(Dyninst::Address targetAddr, instruction &insn, cod
     unsigned char mod_rm = *origInsn++;
 
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
-    if (!is_disp32(newDisp+insnSz) && !is_addr32(targetAddr)) 
+    if (!is_disp32(newDisp+insnSz))
     {
-        // Case C: replace with 64-bit.
+        // Case C: address the target through pointer_reg.
         // This preamble must come before any writes to newInsn!
         // The code around us may be a leaf function that keeps data in the
         // red zone, so step past it before saving pointer_reg on the stack.
-        is_data_abs64 = true;
+        via_pointer_reg = true;
         pointer_reg = (mod_rm & 0x38) != 0 ? 0 : 3;
         SET_PTR(newInsn, gen);
         emitLEA64(REGNUM_RSP, Null_Register, 0, -AMD64_RED_ZONE, REGNUM_RSP, gen);
         emitPushReg64(pointer_reg, gen);
-        emitMovImmToReg64(pointer_reg, targetAddr, true, gen);
+        emitFarAddress(pointer_reg, targetAddr, gen);
         REGET_PTR(newInsn, gen);
     }
 #endif
@@ -529,7 +565,7 @@ bool insnCodeGen::modifyData(Dyninst::Address targetAddr, instruction &insn, cod
     memcpy(newInsn, origInsnStart, pref_count + opcode_len);
     newInsn += pref_count + opcode_len;
 
-    if (is_data_abs64)
+    if (via_pointer_reg)
     {
         // change ModRM byte to use [pointer_reg]: requires
         // us to change last three bits (the r/m field)
@@ -571,7 +607,7 @@ bool insnCodeGen::modifyData(Dyninst::Address targetAddr, instruction &insn, cod
     SET_PTR(newInsn, gen);
 
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
-    if (is_data_abs64) {
+    if (via_pointer_reg) {
         // Cleanup on aisle pointer_reg...
         assert(pointer_reg != (Dyninst::Register)-1);
         emitPopReg64(pointer_reg, gen);
@@ -587,7 +623,7 @@ bool insnCodeGen::modifyIndirectBranchThroughMemory(Dyninst::Address targetAddr,
 {
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
     signed long const newDisp = targetAddr - gen.currAddr();
-    if (!is_disp32(newDisp + insn.size()) && !is_addr32(targetAddr)) {
+    if (!is_disp32(newDisp + insn.size())) {
         // modifyData would save a scratch register around the branch, which
         // moves %rsp for the callee of a call and is never restored after a
         // jump. Branch through %r11 instead: the ABI passes no arguments in it
@@ -601,7 +637,7 @@ bool insnCodeGen::modifyIndirectBranchThroughMemory(Dyninst::Address targetAddr,
         assert(origInsn[pref_count] == 0xff);
         unsigned char const mod_rm = origInsn[pref_count + 1];
 
-        emitMovImmToReg64(REGNUM_R11, targetAddr, true, gen);
+        emitFarAddress(REGNUM_R11, targetAddr, gen);
         GET_PTR(newInsn, gen);
         // Keep the original prefixes (notrack, for one), with REX.B added.
         unsigned char rex = 0x40;
