@@ -770,21 +770,15 @@ static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *fu
     return ast;
   }
   switch(func->isrc()->getArch()) {
-    // This is a hack to prevent parsing of AMGPU binaries from segfaulting
-    // in (common/h/Annotatable.h: Dyninst::AnnotatableSparse::getAnnosForObject）
-    // The problem seems to be that the annotation hash maps (annos_by_type_t) are
-    // not thread safe
-    case Arch_amdgpu_gfx908:
-    case Arch_amdgpu_gfx90a:
-    case Arch_amdgpu_gfx940:
-    case Arch_amdgpu_gfx950:
-      return ast;
-
     // StackAnalysis::createEntryInput isn't implemented for these.
     case Arch_none:
     case Arch_aarch32:
     case Arch_aarch64:
     case Arch_cuda:
+    case Arch_amdgpu_gfx908:
+    case Arch_amdgpu_gfx90a:
+    case Arch_amdgpu_gfx940:
+    case Arch_amdgpu_gfx950:
     case Arch_intelGen9:
       return ast;
 
