@@ -22,7 +22,7 @@ namespace NS_x86 {
     // longJumpSize == size of code needed to get
     // anywhere in memory space.
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
-    const int longJumpSize = JUMP_ABS64_SZ;
+    const int longJumpSize = JUMP_FAR64_MAX_SZ;
 #else
     const int longJumpSize = JUMP_ABS32_SZ;
 #endif
@@ -76,7 +76,7 @@ namespace NS_x86 {
 
   unsigned instruction::jumpSize(long disp, unsigned addr_width) {
     if(addr_width == 8 && !is_disp32(disp)) {
-      return JUMP_ABS64_SZ;
+      return JUMP_FAR64_MAX_SZ;
     }
     return JUMP_SZ;
   }
@@ -94,7 +94,7 @@ namespace NS_x86 {
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
   unsigned instruction::maxJumpSize(unsigned addr_width) {
     if(addr_width == 8) {
-      return JUMP_ABS64_SZ;
+      return JUMP_FAR64_MAX_SZ;
     }
     return JUMP_SZ;
   }
