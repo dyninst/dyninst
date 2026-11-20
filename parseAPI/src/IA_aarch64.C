@@ -99,12 +99,12 @@ bool IA_aarch64::isTailCall(const Function* context, EdgeTypeEnum type, unsigned
         const std::set<Address>& knownTargets ) const
 {
     switch(type) {
-       case CALL:
        case COND_TAKEN:
        case DIRECT:
        case INDIRECT:
           type = DIRECT;
           break;
+       case CALL:
        case COND_NOT_TAKEN:
        case FALLTHROUGH:
        case CALL_FT:
