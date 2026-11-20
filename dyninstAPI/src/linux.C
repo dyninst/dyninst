@@ -319,6 +319,22 @@ bool BinaryEdit::archSpecificMultithreadCapable() {
         }
 
         if( numSymsFound == NUM_PTHREAD_SYMS ) return true;
+        return false;
+    }
+
+    // A dynamic executable that only needs libc is still threaded when that
+    // libc implements threads.  Check the C library the loader would pick.
+    for (auto const &dep : mobj->parse_img()->getObject()->getDependencies()) {
+        if (dep.compare(0, 8, "libc.so.") != 0) continue;
+        std::vector<std::string> paths;
+        if (!getResolvedLibraryPath(dep, paths)) continue;
+        for (auto const &path : paths) {
+            // The search path mixes 32- and 64-bit directories
+            Symtab *libc = nullptr;
+            if (!Symtab::openFile(libc, path) || libc->getAddressWidth() != getAddressWidth())
+                continue;
+            return implementsPthreads(libc);
+        }
     }
 
     return false;
