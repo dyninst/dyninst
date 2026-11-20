@@ -64,10 +64,7 @@ Dyninst::Address parse_func::getEndOffset() {
 }
 
 bool parse_func::isPLTFunction() {
-  if(isPLTFunction_) {
-    return true;
-  }
-  return obj()->cs()->linkage().find(addr()) != obj()->cs()->linkage().end();
+  return isPLTFunction_ || isPLTStub();
 }
 
 void *parse_func::getPtrToInstruction(Dyninst::Address addr) const {
@@ -135,7 +132,7 @@ bool parse_func::isInstrumentable() {
     return false;
   } else {
     // Create instrumentation points for non-plt functions
-    if(obj()->cs()->linkage().find(addr()) != obj()->cs()->linkage().end()) {
+    if(isPLTStub()) {
       return false;
     }
   }

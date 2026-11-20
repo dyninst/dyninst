@@ -408,12 +408,14 @@ const std::vector<func_instance *> *mapped_object::findFuncVectorByPretty(const 
    return allFunctionsByPrettyName[funcname];
 }
 
-const std::vector <func_instance *> *mapped_object::findFuncVectorByMangled(const std::string &funcname)
+const std::vector <func_instance *> *mapped_object::findFuncVectorByMangled(const std::string &funcname,
+                                                                            bool includePLTStubs)
 {
     if (funcname.empty()) return NULL;
 
     // First, check the underlying image.
-    const std::vector<parse_func *> *img_funcs = parse_img()->findFuncVectorByMangled(funcname);
+    const std::vector<parse_func *> *img_funcs =
+       parse_img()->findFuncVectorByMangled(funcname, includePLTStubs);
     if (img_funcs == NULL) {
        return NULL;
     }
