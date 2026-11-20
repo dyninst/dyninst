@@ -64,7 +64,8 @@ struct AmdgpuGfx908PointHandler : PointHandler {
   uint32_t getMaxUsedSgprId(const AmdgpuKernelDescriptor &kd) const;
 
   bool canInstrument(const AmdgpuKernelDescriptor &kd) const;
-  bool isScalarRegAvailable(Register reg, const AmdgpuKernelDescriptor &kd) const;
+  // Whether the numRegs SGPRs starting at base are free for instrumentation in this kernel.
+  bool isScalarRegAvailable(Register base, uint32_t numRegs, const AmdgpuKernelDescriptor &kd) const;
 
   void insertPrologueIfKernel(BPatch_function *function);
   void insertEpilogueIfKernel(BPatch_function *function);

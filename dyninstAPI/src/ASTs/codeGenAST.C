@@ -79,11 +79,11 @@ Dyninst::Register codeGenAST::allocateAndKeep(codeGen &gen) {
   // Allocate a register
   Dyninst::Register dest = gen.rs()->allocateRegister(gen);
 
-  ast_printf("Allocator returned %u\n", dest.getId());
+  ast_printf("Allocator returned %u\n", dest);
   assert(dest != Dyninst::Null_Register);
 
   if(useCount > 1) {
-    ast_printf("Adding kept register %u for node %p: useCount %d\n", dest.getId(), (void *)this, useCount);
+    ast_printf("Adding kept register %u for node %p: useCount %d\n", dest, (void *)this, useCount);
     // If use count is 0 or 1, we don't want to keep
     // it around. If it's > 1, then we can keep the node
     // (by construction) and want to since there's another
@@ -176,7 +176,7 @@ bool codeGenAST::previousComputationValid(Dyninst::Register &reg, codeGen &gen) 
   Dyninst::Register keptReg = gen.tracker()->hasKeptRegister(this);
   if(keptReg != Dyninst::Null_Register) {
     reg = keptReg;
-    ast_printf("Returning previously used register %u for node %p\n", reg.getId(), (void *)this);
+    ast_printf("Returning previously used register %u for node %p\n", reg, (void *)this);
     return true;
   }
   return false;
