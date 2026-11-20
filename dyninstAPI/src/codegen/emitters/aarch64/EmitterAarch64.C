@@ -236,7 +236,7 @@ namespace Dyninst { namespace DyninstAPI {
 
         if((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live)) {
           insnCodeGen::saveRegister(gen, registerSpace::r0 + id, -2 * GPRSIZE_64,
-                                    insnCodeGen::Post);
+                                    insnCodeGen::Pre);
           savedRegs.push_back(reg->number);
         }
       }

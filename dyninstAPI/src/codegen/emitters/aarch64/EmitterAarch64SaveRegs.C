@@ -29,7 +29,7 @@ namespace Dyninst { namespace DyninstAPI {
     insnCodeGen::generate(gen, insn);
 
     insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, scratchReg, REG_SP, stkOffset, 4,
-                                   insnCodeGen::Pre);
+                                   insnCodeGen::Offset);
   }
 
   void EmitterAarch64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save_off) {
@@ -105,12 +105,16 @@ namespace Dyninst { namespace DyninstAPI {
       spRegs.push_back(regFpsr);
     }
 
+    // Each register has a fixed slot in the frame, so SP does not move: the
+    // GPRs and FPRs were saved at fixed offsets from it, and code generated
+    // later addresses them through those offsets.
+    std::map<int, int> const sprSlot = {
+        {SPR_NZCV, STK_NZCV}, {SPR_FPCR, STK_FPCR}, {SPR_FPSR, STK_FPSR}};
     for(std::vector<registerSlot *>::iterator itr = spRegs.begin(); itr != spRegs.end(); itr++) {
       registerSlot *cur = *itr;
-      saveSPR(gen, theRegSpace->getScratchRegister(gen), regMap[cur], -4 * GPRSIZE_32);
-      theRegSpace->markSavedRegister(cur->number, offset);
-
-      offset += 4 * GPRSIZE_32;
+      int const slot = offset + sprSlot.at(regMap[cur]);
+      saveSPR(gen, theRegSpace->getScratchRegister(gen), regMap[cur], slot);
+      theRegSpace->markSavedRegister(cur->number, slot);
       ret++;
     }
 
