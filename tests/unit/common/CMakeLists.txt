@@ -49,4 +49,6 @@ dyninst_add_test(
   DEPS common
 )
 
+dyninst_add_test(common_arch_power_test TYPE unit SOURCE_FILES arch_power.cpp DEPS common)
+
 add_subdirectory(registers)

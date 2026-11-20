@@ -106,6 +106,68 @@ bool instruction::isCondBranch() const {
     return isInsnType(Bmask, BCmatch);
 }
 
+// lwarx/ldarx/lbarx/lharx/lqarx: X-form, primary opcode 31, distinguished by the extended opcode.
+bool instruction::isAtomicLoad() const {
+    if (XFORM_OP(*this) != LXop)
+        return false;
+    switch (XFORM_XO(*this)) {
+        case LWARXxop:
+        case LDARXxop:
+        case LBARXxop:
+        case LHARXxop:
+        case LQARXxop:
+            return true;
+        default:
+            return false;
+    }
+}
+
+// stwcx./stdcx./stbcx./sthcx./stqcx.: the store-conditional that ends the sequence.
+bool instruction::isAtomicStore() const {
+    if (XFORM_OP(*this) != STXop)
+        return false;
+    switch (XFORM_XO(*this)) {
+        case STWCXxop:
+        case STDCXxop:
+        case STBCXxop:
+        case STHCXxop:
+        case STQCXxop:
+            return true;
+        default:
+            return false;
+    }
+}
+
+// bclr/bcctr/bctar (XL-form): a branch, conditional or not and with or without LK, whose
+// target is the value of LR, CTR or TAR rather than a field of the instruction, so
+// getTarget() cannot compute it.
+bool instruction::isBranchToLR() const {
+    return XLFORM_OP(*this) == BCLRop && XLFORM_XO(*this) == BCLRxop;
+}
+
+bool instruction::isBranchToCTR() const {
+    return XLFORM_OP(*this) == BCCTRop && XLFORM_XO(*this) == BCCTRxop;
+}
+
+bool instruction::isBranchToTAR() const {
+    return XLFORM_OP(*this) == BCTARop && XLFORM_XO(*this) == BCTARxop;
+}
+
+// mtspr (XFX-form, opcode 31): the SPR number is split, its low five bits in the RA field
+// and its high five bits in the RB field (as generateMoveToSPR() writes them).
+static bool isMoveToSPR(const instruction &insn, unsigned spr) {
+    return XFXFORM_OP(insn) == MTSPRop && XFXFORM_XO(insn) == MTSPRxop
+        && XFORM_RA(insn) == (spr & 0x1f) && XFORM_RB(insn) == ((spr >> 5) & 0x1f);
+}
+
+bool instruction::isMoveToLR() const {
+    return isMoveToSPR(*this, SPR_LR);
+}
+
+bool instruction::isMoveToCTR() const {
+    return isMoveToSPR(*this, SPR_CTR);
+}
+
 unsigned instruction::jumpSize(Dyninst::Address from, Dyninst::Address to, unsigned addr_width) {
     Dyninst::Address disp = ABS((long)(to - from));
     return jumpSize(disp, addr_width);
