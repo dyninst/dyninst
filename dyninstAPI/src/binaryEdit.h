@@ -37,6 +37,7 @@
 #include <string.h>
 #include <vector>
 #include <map>
+#include <set>
 #include <memory>
 
 #include "dynproc/infHeap.h"
@@ -162,6 +163,12 @@ class BinaryEdit : public AddressSpace {
     // Add a library prerequisite
     void addLibraryPrereq(std::string libname);
 
+    // Relocate, then add a DT_NEEDED entry for the runtime library if this
+    // object's instrumentation needs it (tramp guards or trap mappings). A
+    // dependency the runtime library itself needs leaves the entry to the object
+    // the user opened. Called once per object, before any object is written.
+    void linkRuntimeLib();
+
    void setupRTLibrary(std::vector<BinaryEdit *> &r);
    std::vector<BinaryEdit *> &rtLibrary();
    bool getAllDependencies(std::map<std::string, BinaryEdit* > &deps);
@@ -174,6 +181,8 @@ class BinaryEdit : public AddressSpace {
    void setMultiThreadCapable(bool b);
 
    void addSibling(BinaryEdit *);
+   // The BinaryEdit the user opened; the others in its write set are dependencies.
+   void setPrimary(BinaryEdit *);
    std::vector<BinaryEdit *> &getSiblings();
 
    bool replaceTrapHandler();
@@ -224,6 +233,10 @@ class BinaryEdit : public AddressSpace {
     mapped_object *mobj;
     std::vector<BinaryEdit *> rtlib;
     std::vector<BinaryEdit *> siblings;
+    BinaryEdit *primary_{nullptr};
+    std::set<std::string> rtClosure_;
+    bool rtClosureComputed_{false};
+    std::set<std::string> const& rtDependencyClosure();
     bool multithread_capable_;
     bool writing_;
 
