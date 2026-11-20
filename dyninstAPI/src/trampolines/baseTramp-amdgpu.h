@@ -31,16 +31,17 @@
 #ifndef DYNINST_DYNINSTAPI_BASETRAMP_AMDGPU_H
 #define DYNINST_DYNINSTAPI_BASETRAMP_AMDGPU_H
 
+#include "dyn_register.h"
 #include "trampolines/baseTramp.h"
 
 class baseTramp_amdgpu final : public baseTramp {
 public:
-  bool generateSaves(codeGen &, registerSpace *) override {
-    return true;
-  }
-  bool generateRestores(codeGen &, registerSpace *) override {
-    return true;
-  }
+  bool generateSaves(codeGen &, registerSpace *) override;
+  bool generateRestores(codeGen &, registerSpace *) override;
+
+private:
+  // SGPR holding SCC across the snippet body, or Null_Register when SCC is dead at the point.
+  Dyninst::Register sccSave_{Dyninst::Null_Register};
 };
 
 #endif
