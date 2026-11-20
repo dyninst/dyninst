@@ -238,8 +238,21 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
               inst.tableEntryMap);
 
     inst.tableEnd += inst.indexStride;
-    if (jumpTableOutEdges.size() > 0 && inst.indexStride > 0)
-        func->getJumpTables()[block->last()] = inst;
+    if (jumpTableOutEdges.size() > 0 && inst.indexStride > 0) {
+        // The edges of every read of this table stay (they are only ever added), so the
+        // record keeps every entry ever read: finalize_jump_tables can only remove the edge
+        // of an overrun entry that the record still lists.  A later, shorter read (for
+        // example a value-driven re-read that finds a tighter bound) must not hide an
+        // earlier, longer one.
+        auto& tables = func->getJumpTables();
+        auto old = tables.find(block->last());
+        if (old != tables.end() && old->second.indexStride > 0) {
+            inst.tableEntryMap.insert(old->second.tableEntryMap.begin(), old->second.tableEntryMap.end());
+            inst.tableStart = std::min(inst.tableStart, old->second.tableStart);
+            inst.tableEnd = std::max(inst.tableEnd, old->second.tableEnd);
+        }
+        tables[block->last()] = inst;
+    }
 
     parsing_printf(", find %lu edges\n", jumpTableOutEdges.size());
     outEdges.insert(outEdges.end(), jumpTableOutEdges.begin(), jumpTableOutEdges.end());
