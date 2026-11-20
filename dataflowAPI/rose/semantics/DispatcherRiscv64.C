@@ -771,8 +771,8 @@ struct IP_DIVW : P {
     rs2_bits = ops->extract(d->read(rs2, 64, 0), 0, 32);
     rs1_int = ops->ite(ops->number_(64, is_signed), rs1_bits, rs1_bits);
     rs2_int = ops->ite(ops->number_(64, is_signed), rs2_bits, rs2_bits);
-    quotient = ops->ite(ops->isEqual(rs2_int, ops->number_(64, 0)),
-                        ops->number_(64, -1),
+    quotient = ops->ite(ops->isEqual(rs2_int, ops->number_(32, 0)),
+                        ops->number_(32, -1),
                         is_signed ? ops->signedDivide(rs1_int, rs2_int)
                                   : ops->unsignedDivide(rs1_int, rs2_int));
     d->write(rd, d->SignExtend(ops->extract(quotient, 0, 32), 64));
@@ -810,7 +810,7 @@ struct IP_REMW : P {
     rs2_bits = ops->extract(d->read(rs2, 64, 0), 0, 32);
     rs1_int = ops->ite(ops->number_(64, is_signed), rs1_bits, rs1_bits);
     rs2_int = ops->ite(ops->number_(64, is_signed), rs2_bits, rs2_bits);
-    remainder = ops->ite(ops->isEqual(rs2_int, ops->number_(64, 0)), rs1_int,
+    remainder = ops->ite(ops->isEqual(rs2_int, ops->number_(32, 0)), rs1_int,
                          is_signed ? ops->signedModulo(rs1_int, rs2_int)
                                    : ops->unsignedModulo(rs1_int, rs2_int));
     d->write(rd, d->SignExtend(ops->extract(remainder, 0, 32), 64));
@@ -853,6 +853,9 @@ struct IP_STORECON : P {
     data = ops->extract(d->read(rs2, 64, 0), 0, width * 8);
     tmp = d->effectiveAddress(rs1);
     d->writeMemory(tmp, width, data);
+    // rd is 0 if the store happened and 1 if it did not, which depends on the
+    // reservation at run time.
+    d->write(rd, ops->unspecified_(64));
     return;
   }
 };
@@ -1378,9 +1381,11 @@ DispatcherRiscv64::readMemory(const BaseSemantics::SValuePtr &addr,
   SymEvalSemantics::StateASTPtr state =
       SymEvalSemantics::StateAST::promote(operators->currentState());
 
-  // The second, third and fourth arguments will remain unused
-  return state->readMemory(addr, operators->unspecified_(1), NULL, NULL,
-                           readSize);
+  // The second, third and fourth arguments will remain unused. readSize is in
+  // bytes.
+  return state
+      ->readMemory(addr, operators->unspecified_(1), NULL, NULL, readSize)
+      ->copy(8 * readSize);
 }
 
 void DispatcherRiscv64::writeMemory(const BaseSemantics::SValuePtr &addr,

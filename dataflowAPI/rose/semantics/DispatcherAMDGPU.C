@@ -59,72 +59,33 @@ namespace rose {
  *                                      Functors that handle individual AMDGPU instructions kinds
  *******************************************************************************************************************************/
                 typedef InsnProcessor P;
+                // The 32-bit scalar adds work on 32-bit values, so that the carry out of bit 31 (SCC) is
+                // the carry of the add itself. An immediate operand can arrive sign-extended to 64 bits.
+                BaseSemantics::SValuePtr operand32(P::D d, P::Ops ops, SgAsmExpression *arg) {
+                    if(SgAsmIntegerValueExpression * ival = isSgAsmIntegerValueExpression(arg))
+                        return ops->number_(32, ival->get_value() & 0xffffffffULL);
+                    return ops->extract(ops->unsignedExtend(d->read(arg),64),0,32);
+                }
+
                 struct IP_s_add_u32 : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
-                        BaseSemantics::SValuePtr src1;
-                        BaseSemantics::SValuePtr src0;
-                        if(SgAsmIntegerValueExpression * ival = isSgAsmIntegerValueExpression(args[1])){
-                            src1 = ops->number_(64, ival->get_value());
-                        }else{
-                            src1 = ops->unsignedExtend(d->read(args[1]),64);
-                        } 
-                        if(SgAsmIntegerValueExpression * ival = isSgAsmIntegerValueExpression(args[2])){
-                            src0 = ops->number_(64, ival->get_value());
-                        }else{
-                            src0 = ops->unsignedExtend(d->read(args[2]),64);
-                        } 
-
-
-                        BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr n, z, c, v;
-
-                        result = d->doAddOperation( src0 , src1 ,false,ops->boolean_(false),n,z,c,v);
-
-                        BaseSemantics::SValuePtr scc_value;
-
-                        scc_value = ops->ite(
-                                ops->isUnsignedGreaterThanOrEqual(result,ops->number_(64,0x100000000)),
-                                ops->number_(1,1),
-                                ops->number_(1,0));
-
-                        d->writeRegister(d->REG_SCC,scc_value);
-                        
-                        d->write(args[0],ops->extract(result,0,32));
-                        //d->writeRegister(d->REG_SCC,c);
+                        BaseSemantics::SValuePtr result = d->doAddOperation(operand32(d, ops, args[2]),
+                                                                            operand32(d, ops, args[1]),
+                                                                            false, ops->boolean_(false), n, z, c, v);
+                        d->writeRegister(d->REG_SCC, c);
+                        d->write(args[0], result);
                     }
                 };
                 struct IP_s_addc_u32 : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
-                        BaseSemantics::SValuePtr src1;
-                        BaseSemantics::SValuePtr src0;
-
-                        if(SgAsmIntegerValueExpression * ival = isSgAsmIntegerValueExpression(args[1])){
-                            src1 = ops->number_(64, ival->get_value());
-
-                        }else{
-                            src1 = ops->unsignedExtend(d->read(args[1]),64);
-                        } 
-                        if(SgAsmIntegerValueExpression * ival = isSgAsmIntegerValueExpression(args[2])){
-                            src0 = ops->number_(64, ival->get_value());
-                        }else{
-                            src0 = ops->unsignedExtend(d->read(args[2]),64);
-                        } 
-
-
-                        BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr n, z, c, v;
-                        BaseSemantics::SValuePtr old_scc = d->readRegister(d->REG_SCC);
-                        result = d->doAddOperation( src0 , src1 ,false,
-                                d->readRegister(d->REG_SCC)
-                                ,n,z,c,v);
-
-
-
-                        d->write(args[0],ops->extract(result,0,32));
-                        d->writeRegister(d->REG_SCC,c);
-
+                        BaseSemantics::SValuePtr result = d->doAddOperation(operand32(d, ops, args[2]),
+                                                                            operand32(d, ops, args[1]),
+                                                                            false, d->readRegister(d->REG_SCC),
+                                                                            n, z, c, v);
+                        d->writeRegister(d->REG_SCC, c);
+                        d->write(args[0], result);
                     }
                 };
  
@@ -181,7 +142,7 @@ namespace rose {
                 struct IP_s_setpc_b64 : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr result;
-                        BaseSemantics::SValuePtr lowPC = ops->extract(d->read(args[0]),0,32);
+                        BaseSemantics::SValuePtr lowPC = d->ZeroExtend(ops->extract(d->read(args[0]),0,32),64);
                         BaseSemantics::SValuePtr highPC = d->ZeroExtend(d->read(args[1]),64);
                         BaseSemantics::SValuePtr n, z, c, v;
                         result = d->doAddOperation( ops->shiftLeft(highPC, ops->number_(32,32)) , lowPC,false,ops->boolean_(false),n,z,c,v);
@@ -199,7 +160,7 @@ namespace rose {
                         d->write(args[1],storehighPC);
  
                         BaseSemantics::SValuePtr n, z, c, v;
-                        BaseSemantics::SValuePtr lowPC = ops->extract(d->read(args[2]),0,32);
+                        BaseSemantics::SValuePtr lowPC = d->ZeroExtend(ops->extract(d->read(args[2]),0,32),64);
                         BaseSemantics::SValuePtr highPC = d->ZeroExtend(d->read(args[3]),64);
                         result = d->doAddOperation( ops->shiftLeft(highPC, ops->number_(32,32)) , lowPC,false,ops->boolean_(false),n,z,c,v);
                         d->writeRegister(d->REG_PC, result);
