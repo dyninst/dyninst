@@ -422,6 +422,17 @@ public:
 
     void setDebugParsing(bool x);
 
+    //  BPatch::addNonReturningMangledName, addNonReturningDemangledName:
+    //  Treat calls to the named function as never returning, in addition to
+    //  Dyninst's built-in list (exit, abort, __cxa_throw, ...). A mangled name
+    //  is matched exactly against symbol names; a demangled name is matched
+    //  with parameters if it has a parameter list, otherwise without them
+    //  (covering every overload). Call them before opening or creating any
+    //  process or binary; they return false once parsing has started.
+
+    bool addNonReturningMangledName(const std::string &name);
+    bool addNonReturningDemangledName(const std::string &name);
+
     //  BPatch::setBaseTrampDeletion:
     //  Turn on/off deletion of base tramp
     
