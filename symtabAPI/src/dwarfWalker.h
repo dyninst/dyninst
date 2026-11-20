@@ -364,8 +364,7 @@ private:
 
     typedef struct {
         Dwarf_Addr ld_lopc, ld_hipc;
-        Dwarf_Op * dwarfOp;
-        size_t opLen;
+        std::vector<Dwarf_Op> ops;
     }LocDesc;
 
     bool decodeLocationListForStaticOffsetOrAddress(
