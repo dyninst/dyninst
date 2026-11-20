@@ -4,6 +4,10 @@
 #include "debug.h"
 #include "dyn_register.h"
 #include "amdgpu-reg-adapter.h"
+#include "registers/AMDGPU/amdgpu_gfx908_regs.h"
+#include "registers/AMDGPU/amdgpu_gfx90a_regs.h"
+#include "registers/AMDGPU/amdgpu_gfx940_regs.h"
+#include "registers/AMDGPU/amdgpu_gfx950_regs.h"
 #include <vector>
 
 using Register = Dyninst::Register;
@@ -11,25 +15,33 @@ using OperandRegId = Dyninst::OperandRegId;
 using BlockSize = Dyninst::BlockSize;
 using namespace Dyninst::amdgpu_adapter;
 
-namespace {
-// Supplies THIS register space's architecture to the (arch-general) register adapter, in one place.
-// Under runtime codegen-arch dispatch this gfx908 literal becomes the instrumented object's architecture.
-inline Dyninst::MachRegister mrOf(Dyninst::Register r) {
-  return Dyninst::amdgpu_adapter::amdgpuMachRegOf(r, Dyninst::Arch_amdgpu_gfx908);
-}
-} // namespace
+// SPRs: reserved special registers. Their codegen Register id (the ISA operand code) is derived from
+// the per-gen MachRegister via convertRegID (which reads the register's own arch), so a gfx940
+// MachRegister yields gfx940 operand codes. The operand codes live in the generated specialRegs[]
+// table rather than being hand-listed here; this macro only names the slots once per generation.
+#define DYNINST_AMDGPU_PUSH_SPRS(NS)                                                                      \
+  do {                                                                                                    \
+    registers.push_back(new registerSlot(convertRegID(NS::flat_scratch_lo), "flat_scratch_lo", true, registerSlot::liveAlways, registerSlot::SPR)); \
+    registers.push_back(new registerSlot(convertRegID(NS::flat_scratch_hi), "flat_scratch_hi", true, registerSlot::liveAlways, registerSlot::SPR)); \
+    registers.push_back(new registerSlot(convertRegID(NS::xnack_mask_lo), "xnack_mask_lo", true, registerSlot::liveAlways, registerSlot::SPR)); \
+    registers.push_back(new registerSlot(convertRegID(NS::xnack_mask_hi), "xnack_mask_hi", true, registerSlot::liveAlways, registerSlot::SPR)); \
+    registers.push_back(new registerSlot(convertRegID(NS::vcc_lo), "vcc_lo", true, registerSlot::liveAlways, registerSlot::SPR)); \
+    registers.push_back(new registerSlot(convertRegID(NS::vcc_hi), "vcc_hi", true, registerSlot::liveAlways, registerSlot::SPR)); \
+    registers.push_back(new registerSlot(convertRegID(NS::exec_lo), "exec_lo", true, registerSlot::liveAlways, registerSlot::SPR)); \
+    registers.push_back(new registerSlot(convertRegID(NS::exec_hi), "exec_hi", true, registerSlot::liveAlways, registerSlot::SPR)); \
+  } while (0)
 
-void registerSpace::initialize32() {
-  static bool done = false;
-  if (done)
-    return;
-
+// Build the register space for one AMDGPU generation. GPR id ranges are
+// gfx9-common (NS_amdgpu) so the SGPR/VGPR slots are identical for every gen;
+// only the SPRs are picked per-gen. The caller (getRegisterSpaceForArch) owns
+// caching, so this just builds and returns a fresh space.
+registerSpace *registerSpace::buildAmdgpuRegisterSpace(Dyninst::Architecture arch) {
   std::vector<registerSlot *> registers;
 
   // TODO: This initialization doesn't consider all registers. Right now only the registers we typically
   // use for instrumentation are considered. This might need work later on.
 
-  // SGPRs
+  // SGPRs. GPR id ranges are gfx9-common (NS_amdgpu), so the SGPR slots are the same for every gen.
   for (unsigned id = NS_amdgpu::MIN_SGPR_ID; id <= NS_amdgpu::MAX_SGPR_ID; id++) {
     char name[32];
     sprintf(name, "s%u", id);
@@ -39,7 +51,7 @@ void registerSpace::initialize32() {
                                          registerSlot::SGPR));
   }
 
-  // VGPRs
+  // VGPRs. Also gfx9-common.
   for (unsigned id = 0; id <= 255; id++) {
     char name[32];
     sprintf(name, "v%u", id);
@@ -49,30 +61,36 @@ void registerSpace::initialize32() {
                                          registerSlot::VGPR));
   }
 
-  // SPRs: reserved special registers. Their codegen Register id (the ISA operand code) is derived from
-  // the MachRegister via convertRegID, so the operand codes live in one place (the generated
-  // specialRegs[] table) rather than being hand-listed here.
+  // SPRs: pick the generation's MachRegister namespace so the operand codes match the target gen.
   // clang-format off
-    registers.push_back(new registerSlot(convertRegID(amdgpu_gfx908::flat_scratch_lo), "flat_scratch_lo", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(convertRegID(amdgpu_gfx908::flat_scratch_hi), "flat_scratch_hi", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(convertRegID(amdgpu_gfx908::xnack_mask_lo), "xnack_mask_lo", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(convertRegID(amdgpu_gfx908::xnack_mask_hi), "xnack_mask_hi", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(convertRegID(amdgpu_gfx908::vcc_lo), "vcc_lo", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(convertRegID(amdgpu_gfx908::vcc_hi), "vcc_hi", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(convertRegID(amdgpu_gfx908::exec_lo), "exec_lo", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(convertRegID(amdgpu_gfx908::exec_hi), "exec_hi", true, registerSlot::liveAlways, registerSlot::SPR));
+  switch (arch) {
+    case Dyninst::Arch_amdgpu_gfx908: DYNINST_AMDGPU_PUSH_SPRS(Dyninst::amdgpu_gfx908); break;
+    case Dyninst::Arch_amdgpu_gfx90a: DYNINST_AMDGPU_PUSH_SPRS(Dyninst::amdgpu_gfx90a); break;
+    case Dyninst::Arch_amdgpu_gfx940: DYNINST_AMDGPU_PUSH_SPRS(Dyninst::amdgpu_gfx940); break;
+    case Dyninst::Arch_amdgpu_gfx950: DYNINST_AMDGPU_PUSH_SPRS(Dyninst::amdgpu_gfx950); break;
+    default: assert(!"registerSpace::buildAmdgpuRegisterSpace: unsupported AMDGPU architecture");
+  }
   // clang-format on
 
-  registerSpace::createRegisterSpace64(registers);
-  done = true;
+  registerSpace *rs = new registerSpace();
+  rs->addr_width = 8;
+  createRegSpaceInt(registers, rs);
+  return rs;
 }
+
+#undef DYNINST_AMDGPU_PUSH_SPRS
+
+// The shared contract keeps a no-arg initialize32(); on AMDGPU the per-gen spaces
+// are built lazily through getRegisterSpaceForArch, so this just materializes the
+// baseline (gfx908) generation.
+void registerSpace::initialize32() { getRegisterSpaceForArch(Dyninst::Arch_amdgpu_gfx908); }
 
 void registerSpace::initialize64() { assert(!"No 64-bit registers for AMDGPU"); }
 
 void registerSpace::initialize() { initialize32(); }
 
 Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind regKind, uint32_t numRegs,
-                                                  Dyninst::Alignment alignment) {
+                                                  uint32_t alignment) {
   uint32_t minGprId = 0;
   uint32_t maxGprId = 0;
 
@@ -91,7 +109,8 @@ Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind regKind, uint
       return Dyninst::Null_Register;
   }
 
-  uint32_t alignmentValue{alignment.getValue()};
+  uint32_t alignmentValue{alignment};
+  assert(alignmentValue != 0 && "alignment must be >= 1");
   assert(minGprId % alignmentValue == 0);
 
   // Check whether the single individual consecutive registers can be allocated
@@ -129,10 +148,7 @@ Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind regKind, uint
 }
 
 void registerSpace::freeGprBlock(Dyninst::Register regBlock) {
-  Dyninst::MachRegister mr = mrOf(regBlock);
-  bool scalarOrVector = amdgpuIsSgpr(mr) || amdgpuIsVgpr(mr);
-  assert(scalarOrVector && "regBlock must be a scalar or vector block");
-
+  // Blocks returned by allocateGprBlock are SGPR or VGPR by construction.
   for (auto reg : regBlock.getIndividualRegisters()) {
     freeRegister(reg);
   }

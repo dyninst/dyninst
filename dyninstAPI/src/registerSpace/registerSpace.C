@@ -59,13 +59,43 @@
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "codegen/emitters/aarch64/EmitterAarch64.h"
-#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
 #include "arch-amdgpu.h"
 #include "codegen/emitters/amdgpu/emit-amdgpu.h"
 #endif
 
 registerSpace *registerSpace::globalRegSpace_ = NULL;
 registerSpace *registerSpace::globalRegSpace64_ = NULL;
+
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
+
+std::map<Dyninst::Architecture, registerSpace *> registerSpace::regSpaceByArch_;
+
+// Look up (or build and cache) the register space for a specific AMDGPU
+// generation. The per-gen build lives in registerSpace-amdgpu.C; caching lives
+// here so every entry point shares one cache.
+registerSpace *registerSpace::getRegisterSpaceForArch(Dyninst::Architecture arch) {
+    auto it = regSpaceByArch_.find(arch);
+    if (it != regSpaceByArch_.end()) return it->second;
+    registerSpace *rs = buildAmdgpuRegisterSpace(arch);
+    assert(rs);
+    regSpaceByArch_[arch] = rs;
+    return rs;
+}
+
+registerSpace *registerSpace::getRegisterSpace(unsigned /*width*/) {
+    // AMDGPU has no width-only register space: the generation (not just the
+    // address width) selects the special registers. Width-only callers cannot
+    // name a generation, so they get the baseline (gfx908); callers that hold an
+    // AddressSpace resolve the real generation through the overload below.
+    return getRegisterSpaceForArch(Dyninst::Arch_amdgpu_gfx908);
+}
+
+registerSpace *registerSpace::getRegisterSpace(AddressSpace *as) {
+    return getRegisterSpaceForArch(as->getArch());
+}
+
+#else
 
 registerSpace *registerSpace::getRegisterSpace(unsigned width) {
     if (globalRegSpace_ == NULL) initialize();
@@ -77,6 +107,8 @@ registerSpace *registerSpace::getRegisterSpace(unsigned width) {
 registerSpace *registerSpace::getRegisterSpace(AddressSpace *as) {
     return getRegisterSpace(as->getAddressWidth());
 }
+
+#endif
 
 registerSpace *registerSpace::conservativeRegSpace(AddressSpace *proc) {
     registerSpace *ret = getRegisterSpace(proc);
@@ -1310,7 +1342,7 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 #if defined(DYNINST_CODEGEN_ARCH_AARCH64)
 	assert(0);
 	//#error "aarch64 should not be 32bit long"
-#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
 	assert(0 && "AMDGPU is 64-bit; addr_width==4 is unreachable");
 #else
 		range = regToMachReg32.equal_range(reg);
@@ -1318,7 +1350,7 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 #endif
 	}
 	else {
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
 		// AMDGPU: the codegen Register <-> MachRegister mapping is a 1:1 derivation (convertRegID),
 		// so there is no regToMachReg* multimap to range over. The build is single codegen-arch,
 		// so the ids are this arch's; #2532 generalizes this to the instrumented object's arch.
