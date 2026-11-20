@@ -765,16 +765,29 @@ SymEval::Retval_t process(SliceNode::Ptr ptr, Result_t &dbase, std::set<Edge::Pt
   }
 }
 
+// StackAnalysis takes the registers a call clobbers from ABI::getABI, which
+// describes the codegen architecture rather than the code's. Only code of an
+// architecture that ABI describes is analyzed; all of these have an entry stack
+// height in StackAnalysis::createEntryInput.
+static bool isCodegenArch(Architecture arch) {
+#if defined(DYNINST_CODEGEN_ARCH_X86_64)
+  // cap_32_64 also sets up the 32-bit x86 ABI
+  return arch == Arch_x86_64 || arch == Arch_x86;
+#elif defined(DYNINST_CODEGEN_ARCH_I386)
+  return arch == Arch_x86;
+#elif defined(DYNINST_CODEGEN_ARCH_POWER)
+  // cap_32_64 also sets up the 32-bit POWER ABI
+  return arch == Arch_ppc64 || arch == Arch_ppc32;
+#elif defined(DYNINST_CODEGEN_ARCH_RISCV64)
+  return arch == Arch_riscv64;
+#else
+  DYNINST_SUPPRESS_UNUSED_VARIABLE(arch);
+  return false;
+#endif
+}
+
 static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func, ParseAPI::Block *block) {
-  if(!ast) {
-    return ast;
-  }
-  auto arch = func->isrc()->getArch();
-  // This is a hack to prevent parsing of AMGPU binaries from segfaulting
-  // in (common/h/Annotatable.h: Dyninst::AnnotatableSparse::getAnnosForObject）
-  // The problem seems to be that the annotation hash maps (annos_by_type_t) are
-  // not thread safe
-  if(arch == Arch_amdgpu_gfx908 || arch == Arch_amdgpu_gfx90a || arch == Arch_amdgpu_gfx940 || arch == Arch_amdgpu_gfx950) {
+  if(!ast || !isCodegenArch(func->isrc()->getArch())) {
     return ast;
   }
   // Let's experiment with simplification
