@@ -166,6 +166,10 @@ typedef struct {
 
 #define TRAP_HEADER_SIG 0x759191D6
 #define DT_DYNINST 0x6D191957
+/* Where a rewritten executable's own DT_PREINIT_ARRAY was before the rewriter
+ * pointed DT_PREINIT_ARRAY at DYNINSTpreinit; DYNINSTpreinit calls them. */
+#define DT_DYNINST_PREINIT_ARRAY 0x6D191958
+#define DT_DYNINST_PREINIT_ARRAYSZ 0x6D191959
 
 // Suppress warning about flexible array members not valid in C++
 // FIXME: invalid flexible array member, traps[], in structure below
