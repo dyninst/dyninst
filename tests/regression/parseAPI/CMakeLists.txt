@@ -2,4 +2,5 @@ include_guard(GLOBAL)
 
 add_subdirectory(IndirectControlFlowAnalysis)
 add_subdirectory(parseGaps)
+add_subdirectory(SinkEdgeCleanup)
 add_subdirectory(UnappliedRelocations)
