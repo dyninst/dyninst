@@ -44,32 +44,30 @@
 #include "Register.h"
 
 
-using namespace Dyninst;
-using namespace Dyninst::InstructionAPI;
 
 struct livenessData{
 	bitArray in, out, use, def;
 };
 
 class DYNINST_EXPORT LivenessAnalyzer{
-	std::map<ParseAPI::Block*, livenessData> blockLiveInfo;
-	std::map<ParseAPI::Function*, bool> liveFuncCalculated;
-        std::map<ParseAPI::Function*, bitArray> funcRegsDefined;
+	std::map<Dyninst::ParseAPI::Block*, livenessData> blockLiveInfo;
+	std::map<Dyninst::ParseAPI::Function*, bool> liveFuncCalculated;
+        std::map<Dyninst::ParseAPI::Function*, bitArray> funcRegsDefined;
 	InstructionCache cachedLivenessInfo;
 
-	const bitArray& getLivenessIn(ParseAPI::Block *block);
-	const bitArray& getLivenessOut(ParseAPI::Block *block, bitArray &allRegsDefined);
-	void processEdgeLiveness(ParseAPI::Edge* e, livenessData& data, ParseAPI::Block* block, const bitArray& allRegsDefined);
+	const bitArray& getLivenessIn(Dyninst::ParseAPI::Block *block);
+	const bitArray& getLivenessOut(Dyninst::ParseAPI::Block *block, bitArray &allRegsDefined);
+	void processEdgeLiveness(Dyninst::ParseAPI::Edge* e, livenessData& data, Dyninst::ParseAPI::Block* block, const bitArray& allRegsDefined);
 	
-	void summarizeBlockLivenessInfo(ParseAPI::Function* func, ParseAPI::Block *block, bitArray &allRegsDefined);
-	bool updateBlockLivenessInfo(ParseAPI::Block *block, bitArray &allRegsDefined);
+	void summarizeBlockLivenessInfo(Dyninst::ParseAPI::Function* func, Dyninst::ParseAPI::Block *block, bitArray &allRegsDefined);
+	bool updateBlockLivenessInfo(Dyninst::ParseAPI::Block *block, bitArray &allRegsDefined);
 	
-	ReadWriteInfo calcRWSets(Instruction curInsn, ParseAPI::Block *blk, Address a);
+	ReadWriteInfo calcRWSets(Dyninst::InstructionAPI::Instruction curInsn, Dyninst::ParseAPI::Block *blk, Dyninst::Address a);
 
-	void* getPtrToInstruction(ParseAPI::Block *block, Address addr) const;	
-	bool isExitBlock(ParseAPI::Block *block);
-	bool isMMX(MachRegister machReg);
-	MachRegister changeIfMMX(MachRegister machReg);
+	void* getPtrToInstruction(Dyninst::ParseAPI::Block *block, Dyninst::Address addr) const;	
+	bool isExitBlock(Dyninst::ParseAPI::Block *block);
+	bool isMMX(Dyninst::MachRegister machReg);
+	Dyninst::MachRegister changeIfMMX(Dyninst::MachRegister machReg);
 	int width;
 	ABI* abi;
 
@@ -77,18 +75,18 @@ public:
 	typedef enum {Before, After} Type;
 	typedef enum {Invalid_Location} ErrorType;
 	LivenessAnalyzer(int w);
-	LivenessAnalyzer(Architecture arch, int w);
-	void analyze(ParseAPI::Function *func);
+	LivenessAnalyzer(Dyninst::Architecture arch, int w);
+	void analyze(Dyninst::ParseAPI::Function *func);
 
-	bool query(ParseAPI::Location loc, Type type, const MachRegister &machReg, bool& live);
-	bool query(ParseAPI::Location loc, Type type, bitArray &bitarray);
+	bool query(Dyninst::ParseAPI::Location loc, Type type, const Dyninst::MachRegister &machReg, bool& live);
+	bool query(Dyninst::ParseAPI::Location loc, Type type, bitArray &bitarray);
 
 	ErrorType getLastError(){ return errorno; }
 
-	void clean(ParseAPI::Function *func);
+	void clean(Dyninst::ParseAPI::Function *func);
 	void clean();
 
-	int getIndex(MachRegister machReg);
+	int getIndex(Dyninst::MachRegister machReg);
 	ABI* getABI() { return abi;}
 
 private:
