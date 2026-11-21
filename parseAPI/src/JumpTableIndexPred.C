@@ -13,6 +13,9 @@
 #include "AbslocInterface.h"
 #include "SymEval.h"
 
+#include <algorithm>
+#include <vector>
+
 using namespace Dyninst;
 using namespace Dyninst::DataflowAPI;
 using namespace Dyninst::ParseAPI;
@@ -56,8 +59,19 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
 
     if (visit.find(curBlock) != visit.end()) return;
     visit.insert(curBlock);
-    Block::edgelist targets;
-    curBlock->copy_targets(targets);
+    // The walk visits each block once, so a block reached along several successors is
+    // connected only through the first one taken, and that edge's type decides which
+    // branch condition bounds the index.  Block::edgelist is ordered by Edge pointer;
+    // walking the successors by target address and edge type keeps the analysis graph,
+    // and with it the bound, independent of the heap layout.
+    Block::edgelist targetSet;
+    curBlock->copy_targets(targetSet);
+    std::vector<ParseAPI::Edge*> targets(targetSet.begin(), targetSet.end());
+    std::sort(targets.begin(), targets.end(), [](const ParseAPI::Edge* a, const ParseAPI::Edge* b) {
+        if (a->trg()->start() != b->trg()->start())
+            return a->trg()->start() < b->trg()->start();
+        return a->type() < b->type();
+    });
     for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
 	// Xiaozhu:
 	// Our current slicing code ignores tail calls 
