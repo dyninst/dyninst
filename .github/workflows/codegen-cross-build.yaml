@@ -66,13 +66,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: [get-oses, get-compilers]
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: ${{ fromJson(needs.get-oses.outputs.latest) }}
         compiler: ${{ fromJson(needs.get-compilers.outputs.all) }}
         codegen_arch: [i386, x86_64, aarch64, ppc64le, amdgpu_gfx908]
     permissions:
       packages: read
+      actions: write  # cancel-head-ci
     container:
       image: ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
       credentials:
@@ -93,3 +94,8 @@ jobs:
           src-dir: "${GITHUB_WORKSPACE}/src"
           extra-cmake-flags: "-DDYNINST_CODEGEN_ARCH=${{ matrix.codegen_arch }}"
           tests: "REGRESSION"
+
+      - name: Cancel the rest of this commit's CI
+        if: ${{ failure() }}
+        continue-on-error: true
+        uses: ./src/.github/actions/cancel-head-ci
