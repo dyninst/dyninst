@@ -32,7 +32,7 @@
 #define INSTRUCTION_CACHE_H
 
 #include "dyntypes.h"
-#include "bitArray.h"
+#include "registers/LivenessSet.h"
 #include <map>
 #include "CFG.h"
 
@@ -41,8 +41,8 @@ using namespace Dyninst;
 
 struct ReadWriteInfo
 {
-  bitArray read;
-  bitArray written;
+  LivenessSet read;
+  LivenessSet written;
   int insnSize;
 };
 

@@ -7,8 +7,6 @@ dyninst_add_test_executable(
 )
 
 # One test per architecture over its findMain binaries, which are only read.
-# SymEval simplifies stack references with the codegen architecture's ABI, so
-# the tests run only when Dyninst generates code for the host.
 set(_dir "${DYNINST_TEST_BINARIES_DIR}/dyninstAPI/findMain")
 foreach(
   _arch
@@ -36,7 +34,7 @@ foreach(
     dataflowAPI_symeval_expand_slice_${_arch}_test
     TYPE regression
     COMMAND symeval_expand_slice ${_binaries}
-    REQUIRES test_binaries native ${_capstone}
+    REQUIRES test_binaries ${_capstone}
   )
 endforeach()
 unset(_capstone)

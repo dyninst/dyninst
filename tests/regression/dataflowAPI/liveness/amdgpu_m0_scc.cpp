@@ -1,8 +1,8 @@
 #include "CFG.h"
 #include "CodeObject.h"
 #include "Location.h"
-#include "bitArray.h"
 #include "liveness.h"
+#include "registers/LivenessSet.h"
 #include "registers/AMDGPU/amdgpu_gfx908_regs.h"
 
 #include <cstdio>
@@ -57,8 +57,8 @@ int main(int argc, char **argv) {
   auto *sts = new Dyninst::ParseAPI::SymtabCodeSource(argv[1]);
   auto *co = new Dyninst::ParseAPI::CodeObject(sts);
 
-  // The analyzer for the binary's own architecture: the ABI of getABI(int)
-  // depends on the codegen architecture of the build.
+  // The analyzer for the binary's own architecture, not the build's codegen
+  // architecture.
   LivenessAnalyzer la(sts->getArch(), 8);
 
   std::map<Dyninst::Address, bool> checked;
@@ -73,13 +73,13 @@ int main(int argc, char **argv) {
           continue;
         }
         int const index = la.getIndex(e.reg);
-        bitArray live;
+        Dyninst::LivenessSet live;
         Dyninst::ParseAPI::Location loc(f, Dyninst::ParseAPI::InsnLoc(b, i->first, i->second));
         bool const queried = la.query(loc, LivenessAnalyzer::Before, live);
-        if(index < 0 || !queried || live[index] != e.live) {
+        if(index < 0 || !queried || live.contains(e.reg) != e.live) {
           std::fprintf(stderr, "FAILED: 0x%lx %s: expected %s, got %s\n", static_cast<unsigned long>(e.addr),
                               e.reg.name().c_str(), e.live ? "live" : "dead",
-                              index < 0 ? "untracked" : (!queried ? "no result" : (live[index] ? "live" : "dead")));
+                              index < 0 ? "untracked" : (!queried ? "no result" : (live.contains(e.reg) ? "live" : "dead")));
           ok = false;
         }
       }
