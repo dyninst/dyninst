@@ -1011,6 +1011,7 @@ public:
 
    //Misc
    virtual bool attach() = 0;
+   void setAttachStatus(attach_status_t astatus) { attach_status = astatus; }
    Thread::ptr thread();
 
    typedef void(*continue_cb_t)(int_thread *thrd);

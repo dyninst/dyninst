@@ -2860,6 +2860,12 @@ bool linux_thread::attach()
    pthrd_printf("Calling PTRACE_ATTACH on thread %d/%d\n",
                 llproc()->getPid(), lwp);
    int result = do_ptrace((pt_req) PTRACE_ATTACH, lwp, NULL, NULL);
+   if (result != 0 && errno == ESRCH) {
+      // The thread exited after its LWP was listed; the caller treats it as destroyed
+      pthrd_printf("Thread %d/%d exited before PTRACE_ATTACH\n", llproc()->getPid(), lwp);
+      setLastError(err_noproc, "Thread exited before attach");
+      return false;
+   }
    if (result != 0) {
       perr_printf("Failed to attach to thread: %s\n", strerror(errno));
       setLastError(err_internal, "Failed to attach to thread");
