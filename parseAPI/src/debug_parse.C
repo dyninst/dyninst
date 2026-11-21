@@ -43,6 +43,7 @@ using namespace Dyninst::ParseAPI;
 int Dyninst::ParseAPI::dyn_debug_parsing = 0;
 int Dyninst::ParseAPI::dyn_debug_malware = 0;
 int Dyninst::ParseAPI::dyn_debug_indirect_collect = 0;
+int Dyninst::ParseAPI::dyn_debug_invalid_insn = -1;
 int Dyninst::ParseAPI::dyn_debug_initialized = 0;
 
 int Dyninst::ParseAPI::parsing_printf_int(const char *format, ...)
@@ -122,6 +123,26 @@ int Dyninst::ParseAPI::indirect_collect_printf_int(const char *format, ...)
 
     return ret;
 }
+// DYNINST_DEBUG_INVALID_INSN: one line per instruction the parser cannot decode, with its bytes.
+int Dyninst::ParseAPI::invalid_insn_printf_int(const char *format, ...)
+{
+    static bool const enabled = getenv("DYNINST_DEBUG_INVALID_INSN") != nullptr;
+    dyn_debug_invalid_insn = enabled;
+    if(!enabled) return 0;
+    if(format == nullptr) return -1;
+
+    va_list va;
+    va_start(va, format);
+    int ret = 0;
+    #pragma omp critical
+    {
+      ret = vfprintf(stderr, format, va);
+      fflush(stderr);
+    }
+    va_end(va);
+    return ret;
+}
+
 const std::string PARSE_BLOCK_COUNT("parseBlockCount");
 const std::string PARSE_FUNCTION_COUNT("parseFunctionCount");
 const std::string PARSE_BLOCK_SIZE("parseBlockSize");

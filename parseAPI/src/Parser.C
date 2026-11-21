@@ -72,6 +72,26 @@ namespace {
             return x->offset() < y->offset();
         }
     };
+
+    // Parsing stops at an instruction the decoder cannot decode; DYNINST_DEBUG_INVALID_INSN
+    // prints where, in which function, and the bytes, so the missing encoding can be found.
+    void reportInvalidInsn(Function *func, Address addr)
+    {
+        if(!dyn_debug_invalid_insn) {
+            return;
+        }
+        CodeRegion *reg = func->region();
+        Address const end = reg->offset() + reg->length();
+        auto const *bytes = static_cast<unsigned char const *>(reg->getPtrToInstruction(addr));
+        std::string hex;
+        char buf[4];
+        for(Address a = addr; bytes && a < end && a < addr + 15; ++a) {
+            std::snprintf(buf, sizeof buf, " %02x", bytes[a - addr]);
+            hex += buf;
+        }
+        invalid_insn_printf("invalid instruction at 0x%lx in %s (0x%lx):%s\n", addr,
+                            func->name().c_str(), func->addr(), hex.c_str());
+    }
 }
 
 Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) :
@@ -1986,6 +2006,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 break;
             } else if ( ahPtr->isInvalidInsn() ) {
                 // 4. Invalid or `abort-causing' instructions
+                reportInvalidInsn(func, ahPtr->getAddr());
                 end_block(cur,ahPtr);
                 if (!set_edge_parsing_status(frame,cur->last(), cur)) break;
                 link_addr(ahPtr->getAddr(), _sink, DIRECT, true, func);

@@ -162,7 +162,7 @@ enum VEX_TYPE
 #define EVEXGET_L2(b) (unsigned char)((1 << 6) & (b))
 #define EVEXGET_LL(b) (unsigned char)(((b) >> 5) & 0x03)
 #define EVEXGET_PP(b) (unsigned char)(3 & (b))
-#define EVEXGET_MM(b) (unsigned char)(3 & (b))
+#define EVEXGET_MM(b) (unsigned char)(7 & (b))
 #define EVEXGET_AAA(b) (unsigned char)(7 & (b))
 #define EVEXGET_r(b) (((unsigned char)(~b) & (unsigned char)(1 << 7)) >> 7)
 #define EVEXGET_R(b) (((unsigned char)(~b) & (unsigned char)(1 << 4)) >> 4)
