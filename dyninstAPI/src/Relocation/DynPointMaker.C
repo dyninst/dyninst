@@ -32,6 +32,8 @@
 #include "patching/instPoint.h"
 #include "instructionAPI/h/Instruction.h"
 
+using namespace Dyninst;
+
 Point *DynPointMaker::mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f) {
    return new instPoint(t, m, SCAST_FI(f));
 }

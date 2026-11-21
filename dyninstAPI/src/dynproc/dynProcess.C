@@ -54,6 +54,8 @@
 
 #include <sstream>
 
+using namespace Dyninst;
+
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using functionCallAST = Dyninst::DyninstAPI::functionCallAST;
 using operandAST = Dyninst::DyninstAPI::operandAST;

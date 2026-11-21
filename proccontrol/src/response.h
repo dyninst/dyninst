@@ -37,8 +37,6 @@
 #include <map>
 #include <vector>
 
-using namespace Dyninst;
-using namespace ProcControlAPI;
 
 class mem_response;
 class result_response;
@@ -72,7 +70,7 @@ class response : public boost::enable_shared_from_this<response> {
    bool error;
    int errorcode;
    int_process *proc;
-   int_eventAsyncIO *aio;
+   Dyninst::ProcControlAPI::int_eventAsyncIO *aio;
 
   protected:
    response();
@@ -87,7 +85,7 @@ class response : public boost::enable_shared_from_this<response> {
    } resp_type_t;
    resp_type_t resp_type;
 
-   ArchEvent *decoder_event;
+   Dyninst::ProcControlAPI::ArchEvent *decoder_event;
 
    int multi_resp_size;
    int multi_resp_recvd;
@@ -118,22 +116,22 @@ class response : public boost::enable_shared_from_this<response> {
    void markError(int code = 0);
    void markSyncHandled();
 
-   void setEvent(Event::ptr ev);
-   Event::ptr getEvent() const;
+   void setEvent(Dyninst::ProcControlAPI::Event::ptr ev);
+   Dyninst::ProcControlAPI::Event::ptr getEvent() const;
 
    unsigned int markAsMultiResponse(int num_resps);
    bool isMultiResponse();
    unsigned int multiResponseSize();
    bool isMultiResponseComplete();
 
-   void setDecoderEvent(ArchEvent *ae);
-   ArchEvent *getDecoderEvent();
+   void setDecoderEvent(Dyninst::ProcControlAPI::ArchEvent *ae);
+   Dyninst::ProcControlAPI::ArchEvent *getDecoderEvent();
 
    void setProcess(int_process *p);
    int_process *getProcess() const;
 
-   int_eventAsyncIO *getAsyncIOEvent();
-   void setAsyncIOEvent(int_eventAsyncIO *aoi_);
+   Dyninst::ProcControlAPI::int_eventAsyncIO *getAsyncIOEvent();
+   void setAsyncIOEvent(Dyninst::ProcControlAPI::int_eventAsyncIO *aoi_);
 
    std::string name() const;
 };
@@ -249,7 +247,7 @@ class mem_response : public response
    char *buffer;
    unsigned size;
    bool buffer_set;
-   Address last_base;
+   Dyninst::Address last_base;
    mem_response();
    mem_response(char *targ, unsigned targ_size);
 
@@ -268,10 +266,10 @@ class mem_response : public response
    void setBuffer(char *targ, unsigned targ_size);
    void setResponse(char *src, unsigned src_size);
    void setResponse();
-   void postResponse(char *src, unsigned src_size, Address src_addr = 0);
+   void postResponse(char *src, unsigned src_size, Dyninst::Address src_addr = 0);
    void postResponse();
-   void setLastBase(Address a);
-   Address lastBase();
+   void setLastBase(Dyninst::Address a);
+   Dyninst::Address lastBase();
 };
 
 class stack_response : public response

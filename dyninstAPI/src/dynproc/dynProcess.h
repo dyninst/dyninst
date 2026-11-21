@@ -141,10 +141,10 @@ public:
 
     unsigned getMemoryPageSize() const;
 
-    typedef ProcControlAPI::Process::mem_perm PCMemPerm;
-    bool getMemoryAccessRights(Address start,  PCMemPerm& rights);
-    bool setMemoryAccessRights(Address start,  size_t size, PCMemPerm  rights);
-    void changeMemoryProtections(Address addr, size_t size, PCMemPerm  rights,
+    typedef Dyninst::ProcControlAPI::Process::mem_perm PCMemPerm;
+    bool getMemoryAccessRights(Dyninst::Address start,  PCMemPerm& rights);
+    bool setMemoryAccessRights(Dyninst::Address start,  size_t size, PCMemPerm  rights);
+    void changeMemoryProtections(Dyninst::Address addr, size_t size, PCMemPerm  rights,
                                  bool setShadow);
 
 public:
@@ -169,9 +169,9 @@ public:
     bool getAllActiveFrames(std::vector<Frame> &activeFrames);
 
     // Inferior Malloc
-    Address inferiorMalloc(unsigned size, inferiorHeapType type=anyHeap,
-                           Address near_=0, bool *err=NULL);
-    void inferiorMallocConstraints(Address near, Address &lo, Address &hi,
+    Dyninst::Address inferiorMalloc(unsigned size, inferiorHeapType type=anyHeap,
+                           Dyninst::Address near_=0, bool *err=NULL);
+    void inferiorMallocConstraints(Dyninst::Address near, Dyninst::Address &lo, Dyninst::Address &hi,
                                    inferiorHeapType /* type */); // platform-specific
     virtual void inferiorFree(Dyninst::Address);
     virtual bool inferiorRealloc(Dyninst::Address, unsigned int);
@@ -179,9 +179,9 @@ public:
     // Instrumentation support
     bool mappedObjIsDeleted(mapped_object *obj);
     void installInstrRequests(const std::vector<Dyninst::DyninstAPI::instMapping*> &requests);
-    Address getTOCoffsetInfo(Address dest); // platform-specific
-    Address getTOCoffsetInfo(func_instance *func); // platform-specific
-    bool getOPDFunctionAddr(Address &opdAddr); // architecture-specific
+    Dyninst::Address getTOCoffsetInfo(Dyninst::Address dest); // platform-specific
+    Dyninst::Address getTOCoffsetInfo(func_instance *func); // platform-specific
+    bool getOPDFunctionAddr(Dyninst::Address &opdAddr); // architecture-specific
 
     // iRPC interface
     bool postIRPC(Dyninst::DyninstAPI::codeGenASTPtr action,
@@ -192,7 +192,7 @@ public:
                  void **result,
                  bool userRPC,
                  bool isMemAlloc = false,
-                 Address addr = 0);
+                 Dyninst::Address addr = 0);
 	bool postIRPC(void* buffer, 
 		int size, 
 		void* userData, 
@@ -202,13 +202,13 @@ public:
 		void** result, 
 		bool userRPC, 
 		bool isMemAlloc = false, 
-		Address addr = 0);
+		Dyninst::Address addr = 0);
 private:
         bool postIRPC_internal(void *buffer,
                                unsigned size,
                                unsigned breakOffset,
-                               Register resultReg,
-                               Address addr,
+                               Dyninst::Register resultReg,
+                               Dyninst::Address addr,
                                void *userData,
                                bool runProcessWhenDone,
                                PCThread *thread,
@@ -232,40 +232,40 @@ public:
 
     // code overwrites
     bool getOverwrittenBlocks
-      ( std::map<Address, unsigned char *>& overwrittenPages,//input
-        std::list<std::pair<Address,Address> >& overwrittenRegions,//output
+      ( std::map<Dyninst::Address, unsigned char *>& overwrittenPages,//input
+        std::list<std::pair<Dyninst::Address,Dyninst::Address> >& overwrittenRegions,//output
         std::list<block_instance *> &writtenBBIs);//output
 
     // synch modified mapped objects with current memory contents
-    mapped_object *createObjectNoFile(Address addr);
-    void updateCodeBytes( const std::list<std::pair<Address, Address> > &owRegions);
+    mapped_object *createObjectNoFile(Dyninst::Address addr);
+    void updateCodeBytes( const std::list<std::pair<Dyninst::Address, Dyninst::Address> > &owRegions);
 
-    bool isRuntimeHeapAddr(Address addr) const;
+    bool isRuntimeHeapAddr(Dyninst::Address addr) const;
     bool isExploratoryModeOn() const;
 
     bool hideDebugger(); // platform-specific
-    void flushAddressCache_RT(Address start = 0, unsigned size = 0);
+    void flushAddressCache_RT(Dyninst::Address start = 0, unsigned size = 0);
     void flushAddressCache_RT(codeRange *range) { 
         flushAddressCache_RT(range->get_address(), range->get_size());
     }
 
     // Active instrumentation tracking
-    typedef std::pair<Address, Address> AddrPair;
+    typedef std::pair<Dyninst::Address, Dyninst::Address> AddrPair;
     typedef std::set<AddrPair> AddrPairSet;
-    typedef std::set<Address> AddrSet;
+    typedef std::set<Dyninst::Address> AddrSet;
 
     struct ActiveDefensivePad {
-        Address activePC;
-        Address padStart;
+        Dyninst::Address activePC;
+        Dyninst::Address padStart;
         block_instance *callBlock;
         block_instance *ftBlock;
-        ActiveDefensivePad(Address a, Address b, block_instance *c, block_instance *d)
+        ActiveDefensivePad(Dyninst::Address a, Dyninst::Address b, block_instance *c, block_instance *d)
             : activePC(a), padStart(b), callBlock(c), ftBlock(d) {}
     };
     typedef std::list<ActiveDefensivePad> ADPList;
 
     bool patchPostCallArea(instPoint *point);
-    func_instance *findActiveFuncByAddr(Address addr);
+    func_instance *findActiveFuncByAddr(Dyninst::Address addr);
 
     /////////////////////////////////////////////
     // End Exploratory and Defensive mode stuff
@@ -276,18 +276,18 @@ public:
     std::vector<func_instance *> pcsToFuncs(std::vector<Frame> stackWalk);
 
     // architecture-specific
-    virtual bool hasBeenBound(const SymtabAPI::relocationEntry &entry, 
-			   func_instance *&target_pdf, Address base_addr);
+    virtual bool hasBeenBound(const Dyninst::SymtabAPI::relocationEntry &entry, 
+			   func_instance *&target_pdf, Dyninst::Address base_addr);
 
     // AddressSpace implementations //
-    virtual Address offset() const;
-    virtual Address length() const;
-    virtual Architecture getArch() const;
+    virtual Dyninst::Address offset() const;
+    virtual Dyninst::Address length() const;
+    virtual Dyninst::Architecture getArch() const;
     virtual bool multithread_capable(bool ignoreIfMtNotSet = false); // platform-specific
     virtual bool multithread_ready(bool ignoreIfMtNotSet = false);
     virtual bool needsPIC();
-    virtual void addTrap(Address from, Address to, codeGen &gen);
-    virtual void removeTrap(Address from);
+    virtual void addTrap(Dyninst::Address from, Dyninst::Address to, codeGen &gen);
+    virtual void removeTrap(Dyninst::Address from);
 
     // Miscellaneuous
     void debugSuicide();
@@ -297,13 +297,13 @@ public:
     bool walkStack(std::vector<Frame> &stackWalk, PCThread *thread);
     bool getActiveFrame(Frame &frame, PCThread *thread);
 
-    void addSignalHandler(Address, unsigned);
-    bool isInSignalHandler(Address addr);
+    void addSignalHandler(Dyninst::Address, unsigned);
+    bool isInSignalHandler(Dyninst::Address addr);
 
-    bool bindPLTEntry(const SymtabAPI::relocationEntry &,
-                      Address,
+    bool bindPLTEntry(const Dyninst::SymtabAPI::relocationEntry &,
+                      Dyninst::Address,
                       func_instance *, 
-                      Address);
+                      Dyninst::Address);
     bool supportsUserThreadEvents(); 
 
 protected:
@@ -323,7 +323,7 @@ protected:
     static PCProcess *setupExecedProcess(PCProcess *proc, std::string execPath);
 
     // Process create/exec constructor
-    PCProcess(ProcControlAPI::Process::ptr pcProc, std::string file,
+    PCProcess(Dyninst::ProcControlAPI::Process::ptr pcProc, std::string file,
             BPatch_hybridMode analysisMode)
         : pcProc_(pcProc),
           parent_(NULL),
@@ -366,7 +366,7 @@ protected:
     }
 
     // Process attach constructor
-    PCProcess(ProcControlAPI::Process::ptr pcProc, BPatch_hybridMode analysisMode)
+    PCProcess(Dyninst::ProcControlAPI::Process::ptr pcProc, BPatch_hybridMode analysisMode)
         : pcProc_(pcProc),
           parent_(NULL),
           initialThread_(NULL), 
@@ -406,10 +406,10 @@ protected:
         irpcTramp_ = baseTramp::createForIRPC(this);
     }
 
-    static PCProcess *setupForkedProcess(PCProcess *parent, ProcControlAPI::Process::ptr pcProc);
+    static PCProcess *setupForkedProcess(PCProcess *parent, Dyninst::ProcControlAPI::Process::ptr pcProc);
 
     // Process fork constructor
-    PCProcess(PCProcess *parent, ProcControlAPI::Process::ptr pcProc)
+    PCProcess(PCProcess *parent, Dyninst::ProcControlAPI::Process::ptr pcProc)
         : pcProc_(pcProc),
           parent_(parent),
           initialThread_(NULL), // filled in during bootstrap
@@ -465,9 +465,9 @@ protected:
     bool setAOut(fileDescriptor &desc);
     bool hasPassedMain(); // OS-specific
     bool insertBreakpointAtMain();
-    ProcControlAPI::Breakpoint::ptr getBreakpointAtMain() const;
+    Dyninst::ProcControlAPI::Breakpoint::ptr getBreakpointAtMain() const;
     bool removeBreakpointAtMain();
-    Address getLibcStartMainParam(PCThread *thread); // architecture-specific
+    Dyninst::Address getLibcStartMainParam(PCThread *thread); // architecture-specific
     bool copyDanglingMemory(PCProcess *parent);
     void invalidateMTCache();
 
@@ -481,12 +481,12 @@ protected:
     bool iRPCDyninstInit();
 
 
-    Address getRTEventBreakpointAddr();
-    Address getRTEventIdAddr();
-    Address getRTEventArg1Addr();
-    Address getRTEventArg2Addr();
-    Address getRTEventArg3Addr();
-    Address getRTTrapFuncAddr();
+    Dyninst::Address getRTEventBreakpointAddr();
+    Dyninst::Address getRTEventIdAddr();
+    Dyninst::Address getRTEventArg1Addr();
+    Dyninst::Address getRTEventArg2Addr();
+    Dyninst::Address getRTEventArg3Addr();
+    Dyninst::Address getRTTrapFuncAddr();
 
     // Shared library managment
     void addASharedObject(mapped_object *newObj);
@@ -495,14 +495,14 @@ protected:
     // Inferior heap management
     void addInferiorHeap(mapped_object *obj);
     bool skipHeap(const heapDescriptor &heap); // platform-specific
-    bool inferiorMallocDynamic(int size, Address lo, Address hi);
+    bool inferiorMallocDynamic(int size, Dyninst::Address lo, Dyninst::Address hi);
 
     // platform-specific
     inferiorHeapType getDynamicHeapType() const; 
     
     // Hybrid Mode
-    bool triggerStopThread(Address pointAddress, int callbackID, void *calculation);
-    Address stopThreadCtrlTransfer(instPoint *intPoint, Address target);
+    bool triggerStopThread(Dyninst::Address pointAddress, int callbackID, void *calculation);
+    Dyninst::Address stopThreadCtrlTransfer(instPoint *intPoint, Dyninst::Address target);
     bool generateRequiredPatches(instPoint *callPt, AddrPairSet &);
     void generatePatchBranches(AddrPairSet &);
 
@@ -541,7 +541,7 @@ protected:
     void markExited();
 
     // Debugging
-    bool setBreakpoint(Address addr);
+    bool setBreakpoint(Dyninst::Address addr);
     void writeDebugDataSpace(void *inTracedProcess, uint32_t amount,
             const void *inSelf);
     bool launchDebugger();
@@ -551,14 +551,14 @@ protected:
     // Fields //
 
     // Underlying ProcControl process
-    ProcControlAPI::Process::ptr pcProc_;
+    Dyninst::ProcControlAPI::Process::ptr pcProc_;
     PCProcess *parent_;
 
     // Corresponding threads
     std::map<dynthread_t, PCThread *> threadsByTid_;
     PCThread *initialThread_;
 
-    ProcControlAPI::Breakpoint::ptr mainBrkPt_;
+    Dyninst::ProcControlAPI::Breakpoint::ptr mainBrkPt_;
 
     // Properties
     std::string file_;
@@ -584,17 +584,17 @@ protected:
     codeRangeTree signalHandlerLocations_;
     std::vector<mapped_object *> deletedObjects_;
     std::vector<heapItem *> dyninstRT_heaps_;
-    Address RT_address_cache_addr_;
+    Dyninst::Address RT_address_cache_addr_;
 
     // Addresses of variables in RT library
-    Address sync_event_id_addr_;
-    Address sync_event_arg1_addr_;
-    Address sync_event_arg2_addr_;
-    Address sync_event_arg3_addr_;
-    Address sync_event_breakpoint_addr_;
-    Address rt_trap_func_addr_;
-    Address thread_hash_tids;
-    Address thread_hash_indices;
+    Dyninst::Address sync_event_id_addr_;
+    Dyninst::Address sync_event_arg1_addr_;
+    Dyninst::Address sync_event_arg2_addr_;
+    Dyninst::Address sync_event_arg3_addr_;
+    Dyninst::Address sync_event_breakpoint_addr_;
+    Dyninst::Address rt_trap_func_addr_;
+    Dyninst::Address thread_hash_tids;
+    Dyninst::Address thread_hash_indices;
     int thread_hash_size;
 
     // The same PCEventHandler held by the BPatch layer
@@ -614,16 +614,16 @@ protected:
 	std::set<Dyninst::ProcControlAPI::Thread::ptr> syncRPCThreads_;
     Dyninst::Stackwalker::Walker *stackwalker_;
     static Dyninst::SymtabAPI::SymtabReaderFactory *symReaderFactory_;
-    std::map<Address, ProcControlAPI::Breakpoint::ptr> installedCtrlBrkpts;
+    std::map<Dyninst::Address, Dyninst::ProcControlAPI::Breakpoint::ptr> installedCtrlBrkpts;
 };
 
 class inferiorRPCinProgress : public codeRange {
 public:
     inferiorRPCinProgress() :
-        rpc(ProcControlAPI::IRPC::ptr()),
+        rpc(Dyninst::ProcControlAPI::IRPC::ptr()),
         rpcStartAddr(0),
         rpcCompletionAddr(0),
-        resultRegister(Null_Register),
+        resultRegister(Dyninst::Null_Register),
         returnValue(NULL),
         runProcWhenDone(false),
         isComplete(false),
@@ -634,15 +634,15 @@ public:
         memoryAllocated(false)
     {}
 
-    virtual Address get_address() const { return rpc->getAddress(); }
+    virtual Dyninst::Address get_address() const { return rpc->getAddress(); }
     virtual unsigned get_size() const { return (rpcCompletionAddr - rpc->getAddress())+1; }
-    virtual void *getPtrToInstruction(Address /*addr*/) const { assert(0); return NULL; }
+    virtual void *getPtrToInstruction(Dyninst::Address /*addr*/) const { assert(0); return NULL; }
 
-    ProcControlAPI::IRPC::ptr rpc;
-    Address rpcStartAddr;
-    Address rpcCompletionAddr;
+    Dyninst::ProcControlAPI::IRPC::ptr rpc;
+    Dyninst::Address rpcStartAddr;
+    Dyninst::Address rpcCompletionAddr;
 
-    Register resultRegister; // register that contains the return value
+    Dyninst::Register resultRegister; // register that contains the return value
     void *returnValue;
 
     bool runProcWhenDone;
@@ -656,10 +656,10 @@ public:
 
 class signal_handler_location : public codeRange {
 public:
-    signal_handler_location(Address addr, unsigned size) :
+    signal_handler_location(Dyninst::Address addr, unsigned size) :
         addr_(addr), size_(size) {}
 
-    Address get_address() const {
+    Dyninst::Address get_address() const {
         return addr_;
     }
     unsigned get_size() const {
@@ -667,7 +667,7 @@ public:
     }
 
 private:
-    Address addr_;
+    Dyninst::Address addr_;
     unsigned size_;
 };
 
@@ -700,7 +700,7 @@ class DynFrameHelper : public Dyninst::Stackwalker::FrameFuncHelper {
 
   public:
     DynFrameHelper(PCProcess *pc);
-    virtual Dyninst::Stackwalker::FrameFuncHelper::alloc_frame_t allocatesFrame(Address addr);
+    virtual Dyninst::Stackwalker::FrameFuncHelper::alloc_frame_t allocatesFrame(Dyninst::Address addr);
     virtual ~DynFrameHelper();
 };
 
@@ -710,8 +710,8 @@ class DynWandererHelper : public Dyninst::Stackwalker::WandererHelper {
 
   public:
     DynWandererHelper(PCProcess *pc);
-    virtual bool isPrevInstrACall(Address addr, Address &target);
-    virtual Dyninst::Stackwalker::WandererHelper::pc_state isPCInFunc(Address func_entry, Address pc);
+    virtual bool isPrevInstrACall(Dyninst::Address addr, Dyninst::Address &target);
+    virtual Dyninst::Stackwalker::WandererHelper::pc_state isPCInFunc(Dyninst::Address func_entry, Dyninst::Address pc);
     virtual bool requireExactMatch();
     virtual ~DynWandererHelper();
 };

@@ -134,7 +134,7 @@ private:
     // writes, through codeGen::markRegDefined, so that unneeded saves can
     // be dropped when the tramp is regenerated.
     // Default: record nothing; conservative saves are kept.
-    virtual void accumulateBodyClobbers(codeGen &, codeBufIndex_t) const {}
+    virtual void accumulateBodyClobbers(codeGen &, codegen_arch::codeBufIndex_t) const {}
 
     // True if this generation pass saved the condition flags but the
     // generated body never writes them, i.e. a regeneration pass would drop

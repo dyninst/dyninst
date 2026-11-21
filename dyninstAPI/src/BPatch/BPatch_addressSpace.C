@@ -68,6 +68,8 @@
 #include "AmdgpuPointHandler.h"
 #endif
 
+using namespace Dyninst;
+
 using Dyninst::PatchAPI::Patcher;
 using Dyninst::PatchAPI::DynInsertSnipCommand;
 using Dyninst::PatchAPI::DynReplaceFuncCommand;

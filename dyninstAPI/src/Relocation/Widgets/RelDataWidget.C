@@ -38,6 +38,8 @@
 #include "../CodeTracker.h"
 #include "../CodeBuffer.h"
 
+using namespace codegen_arch;
+
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;

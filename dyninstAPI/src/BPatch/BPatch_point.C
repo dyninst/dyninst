@@ -62,6 +62,8 @@
 #include "mapped_object.h"
 #include "Snippet.h"
 
+using namespace Dyninst;
+
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 namespace dapi = Dyninst::DyninstAPI;

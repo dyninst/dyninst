@@ -3,6 +3,8 @@
 #include "EmitterAarch64Stat.h"
 #include "registerSpace/registerSpace.h"
 
+using namespace codegen_arch;
+
 namespace Dyninst { namespace DyninstAPI {
 
   bool EmitterAarch64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {

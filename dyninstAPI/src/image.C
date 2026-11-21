@@ -66,7 +66,7 @@
 // For callbacks
 #include "dyninstAPI/src/mapped_object.h"
 
-AnnotationClass<image_variable> ImageVariableUpPtrAnno("ImageVariableUpPtrAnno", NULL);
+Dyninst::AnnotationClass<image_variable> ImageVariableUpPtrAnno("ImageVariableUpPtrAnno", NULL);
 std::vector<image*> allImages;
 
 using namespace std;

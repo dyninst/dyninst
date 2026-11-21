@@ -5,6 +5,8 @@
 
 #include <map>
 
+using namespace codegen_arch;
+
 namespace Dyninst { namespace DyninstAPI {
 
   void EmitterAarch64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, int save_off) {

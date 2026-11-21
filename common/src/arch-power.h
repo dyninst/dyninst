@@ -89,7 +89,7 @@ namespace NS_power {
 #define BFORM_OP(x) ((unsigned int) (((x).asInt() & 0xfc000000) >> 26 ))
 #define BFORM_BO(x) ((unsigned int) (((x).asInt() & 0x03e00000) >> 21 ))
 #define BFORM_BI(x) ((unsigned int) (((x).asInt() & 0x001f0000) >> 16 ))
-#define BFORM_BD(x) (instruction::signExtend( \
+#define BFORM_BD(x) (NS_power::instruction::signExtend( \
                                     (((x).asInt() & 0x0000fffc) >>  2 ), 14))
 #define BFORM_AA(x) ((unsigned int) (((x).asInt() & 0x00000002) >>  1 ))
 #define BFORM_LK(x) ((unsigned int) (((x).asInt() & 0x00000001)       ))

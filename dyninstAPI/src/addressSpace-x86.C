@@ -11,6 +11,8 @@
 #include <deque>
 #include <vector>
 
+using namespace Dyninst;
+
 namespace di = Dyninst::InstructionAPI;
 namespace da = Dyninst::DyninstAPI;
 

@@ -10,6 +10,9 @@
 #include "RegisterConversion.h"
 #include "registerSpace/registerSpace.h"
 
+using namespace Dyninst;
+using namespace codegen_arch;
+
 struct parsed_regs {
   std::set<Dyninst::Register> gprs, fprs;
 };

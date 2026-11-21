@@ -3,6 +3,8 @@
 #include "codegen/emitters/PowerPC/ppc64/EmitterPowerPC64Dyn.h"
 #include "inst-power.h"
 
+using namespace codegen_arch;
+
 namespace Dyninst { namespace DyninstAPI {
 
   bool EmitterPowerPC64Dyn::emitTOCCommon(block_instance *block, bool call, codeGen &gen) {

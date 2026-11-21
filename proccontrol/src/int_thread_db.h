@@ -64,8 +64,6 @@ extern "C" {
 #include <string>
 #include <deque>
 
-using namespace Dyninst;
-using namespace ProcControlAPI;
 
 class thread_db_thread;
 
@@ -83,8 +81,8 @@ public:
     thread_db_process(Dyninst::PID pid_, int_process *p);
     virtual ~thread_db_process();
 
-    async_ret_t decodeTdbBreakpoint(EventBreakpoint::ptr bp);
-    bool decodeTdbLWPExit(EventLWPDestroy::ptr lwp_ev);
+    async_ret_t decodeTdbBreakpoint(Dyninst::ProcControlAPI::EventBreakpoint::ptr bp);
+    bool decodeTdbLWPExit(Dyninst::ProcControlAPI::EventLWPDestroy::ptr lwp_ev);
 
     /* helper functions for thread_db interactions */
 
@@ -94,7 +92,7 @@ public:
     async_ret_t initThreadDB();
 
     virtual void freeThreadDBAgent();
-    virtual async_ret_t getEventForThread(int_eventThreadDB *iev);
+    virtual async_ret_t getEventForThread(Dyninst::ProcControlAPI::int_eventThreadDB *iev);
     static void addThreadDBHandlers(HandlerPool *hpool);
 
     /*
@@ -117,14 +115,14 @@ public:
     int_thread *triggerThread() const;
     async_ret_t initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info, Dyninst::LWP lwp);
 
-    virtual bool setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Address> > &bps,
+    virtual bool setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Dyninst::Address> > &bps,
                                           bool &add_bp);
     virtual bool isTrackingThreads();
     virtual bool refreshThreads();
     virtual int threaddb_getPid();
 
-    async_ret_t plat_calcTLSAddress(int_thread *thread, int_library *lib, Offset off,
-                                    Address &outaddr, std::set<response::ptr> &resps);
+    async_ret_t plat_calcTLSAddress(int_thread *thread, int_library *lib, Dyninst::Offset off,
+                                    Dyninst::Address &outaddr, std::set<response::ptr> &resps);
     
     //The types for thread_db functions we will call
     typedef td_err_e (*td_init_t)(void);
@@ -164,7 +162,7 @@ public:
     static td_thr_tlsbase_t p_td_thr_tlsbase;
 
 protected:
-    Event::ptr decodeThreadEvent(td_event_msg_t *eventMsg, bool &async);
+    Dyninst::ProcControlAPI::Event::ptr decodeThreadEvent(td_event_msg_t *eventMsg, bool &async);
     async_ret_t handleThreadAttach(td_thrhandle_t *thr, Dyninst::LWP lwp);
     // plat_convertToBreakpointAddress moved to int_process so we avoid
     // diamond inheritance undefined behavior
@@ -173,18 +171,18 @@ protected:
     bool thread_db_proc_initialized;
     static Mutex<> thread_db_init_lock;
 
-    std::map<Dyninst::Address, std::pair<int_breakpoint *, EventType> > addr2Event;
+    std::map<Dyninst::Address, std::pair<int_breakpoint *, Dyninst::ProcControlAPI::EventType> > addr2Event;
     td_thragent_t *threadAgent;
     bool createdThreadAgent;
 
     struct ps_prochandle *self;
     int_thread *trigger_thread;
 
-    std::deque<Event::ptr> savedEvents;
+    std::deque<Dyninst::ProcControlAPI::Event::ptr> savedEvents;
 
     std::set<mem_response::ptr> resps;
     std::set<result_response::ptr> res_resps;
-    EventThreadDB::ptr dispatch_event;
+    Dyninst::ProcControlAPI::EventThreadDB::ptr dispatch_event;
 
     bool hasAsyncPending;
     bool initialThreadEventCreated;
@@ -265,46 +263,46 @@ protected:
     bool threadHandle_alloced;
     bool enabled_event_reporting;
   private:
-    std::map<int_library *, Address> cached_tls_areas;
+    std::map<int_library *, Dyninst::Address> cached_tls_areas;
 };
 
-class ThreadDBDispatchHandler : public Handler
+class ThreadDBDispatchHandler : public Dyninst::ProcControlAPI::Handler
 {
   public:
    ThreadDBDispatchHandler();
    virtual ~ThreadDBDispatchHandler();
-   virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
-   void getEventTypesHandled(std::vector<EventType> &etypes);
+   virtual Dyninst::ProcControlAPI::Handler::handler_ret_t handleEvent(Dyninst::ProcControlAPI::Event::ptr ev);
+   void getEventTypesHandled(std::vector<Dyninst::ProcControlAPI::EventType> &etypes);
    virtual int getPriority() const;
 };
 
-class ThreadDBCreateHandler : public Handler
+class ThreadDBCreateHandler : public Dyninst::ProcControlAPI::Handler
 {
 public:
    ThreadDBCreateHandler();
    virtual ~ThreadDBCreateHandler();
-   virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
-   void getEventTypesHandled(std::vector<EventType> &etypes);
+   virtual Dyninst::ProcControlAPI::Handler::handler_ret_t handleEvent(Dyninst::ProcControlAPI::Event::ptr ev);
+   void getEventTypesHandled(std::vector<Dyninst::ProcControlAPI::EventType> &etypes);
    virtual int getPriority() const;
 };
 
-class ThreadDBLibHandler : public Handler
+class ThreadDBLibHandler : public Dyninst::ProcControlAPI::Handler
 {
 public:
    ThreadDBLibHandler();
    virtual ~ThreadDBLibHandler();
-   virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
+   virtual Dyninst::ProcControlAPI::Handler::handler_ret_t handleEvent(Dyninst::ProcControlAPI::Event::ptr ev);
    virtual int getPriority() const;
-   void getEventTypesHandled(std::vector<EventType> &etypes);
+   void getEventTypesHandled(std::vector<Dyninst::ProcControlAPI::EventType> &etypes);
 };
 
-class ThreadDBDestroyHandler : public Handler
+class ThreadDBDestroyHandler : public Dyninst::ProcControlAPI::Handler
 {
 public:
    ThreadDBDestroyHandler();
    virtual ~ThreadDBDestroyHandler();
-   virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
-   void getEventTypesHandled(std::vector<EventType> &etypes);
+   virtual Dyninst::ProcControlAPI::Handler::handler_ret_t handleEvent(Dyninst::ProcControlAPI::Event::ptr ev);
+   void getEventTypesHandled(std::vector<Dyninst::ProcControlAPI::EventType> &etypes);
    virtual int getPriority() const;
 };
 

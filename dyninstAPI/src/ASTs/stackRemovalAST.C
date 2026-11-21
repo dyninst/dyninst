@@ -6,6 +6,8 @@
 #include <iomanip>
 #include <sstream>
 
+using namespace codegen_arch;
+
 namespace Dyninst { namespace DyninstAPI {
 
 std::string stackRemovalAST::format(std::string indent) {

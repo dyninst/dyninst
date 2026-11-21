@@ -22,6 +22,8 @@
 #include <cstdio>
 #include <limits>
 
+using namespace codegen_arch;
+
 namespace Dyninst { namespace DyninstAPI {
 
   /*

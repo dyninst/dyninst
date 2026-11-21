@@ -35,7 +35,6 @@
 #include "dyntypes.h"
 #include "common/src/dthread.h"
 
-using namespace Dyninst;
 
 class int_process;
 class int_thread;

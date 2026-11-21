@@ -48,6 +48,9 @@
 #include <cassert>
 #include <iostream>
 
+using namespace Dyninst;
+using namespace Dyninst::ProcControlAPI;
+
 using namespace std;
 unsigned long int_iRPC::next_id;
 

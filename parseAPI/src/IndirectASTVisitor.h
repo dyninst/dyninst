@@ -11,8 +11,6 @@
 #include "SymbolicExpression.h"
 
 using namespace std;
-using namespace Dyninst;
-using namespace Dyninst::DataflowAPI;
 
 //bool PerformTableRead(StridedInterval &target, set<int64_t> & jumpTargets, CodeSource*);
 
@@ -24,85 +22,85 @@ using namespace Dyninst::DataflowAPI;
 
 
 
-class SimplifyVisitor: public ASTVisitor {
-    Address addr;
+class SimplifyVisitor: public Dyninst::ASTVisitor {
+    Dyninst::Address addr;
     bool keepMultiOne;
     SymbolicExpression &se;
 public:
-    using ASTVisitor::visit;
-    virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
-    SimplifyVisitor(Address a, bool k, SymbolicExpression &sym): addr(a), keepMultiOne(k), se(sym) {}
+    using Dyninst::ASTVisitor::visit;
+    virtual ASTPtr visit(Dyninst::DataflowAPI::RoseAST *ast);
+    SimplifyVisitor(Dyninst::Address a, bool k, SymbolicExpression &sym): addr(a), keepMultiOne(k), se(sym) {}
 };
 
 
-class BoundCalcVisitor: public ASTVisitor {
+class BoundCalcVisitor: public Dyninst::ASTVisitor {
      
 public:
-    using ASTVisitor::visit;
+    using Dyninst::ASTVisitor::visit;
     map<AST*, StridedInterval*> bound;
     BoundFact &boundFact;
-    ParseAPI::Block *block;
+    Dyninst::ParseAPI::Block *block;
     bool handleOneByteRead;
     int derefSize;
 
-    BoundCalcVisitor(BoundFact &bf, ParseAPI::Block* b, bool handle, int size): 
+    BoundCalcVisitor(BoundFact &bf, Dyninst::ParseAPI::Block* b, bool handle, int size): 
         boundFact(bf), block(b), handleOneByteRead(handle), derefSize(size) {}
     ~BoundCalcVisitor();
-    virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
-    virtual ASTPtr visit(DataflowAPI::ConstantAST *ast);
-    virtual ASTPtr visit(DataflowAPI::VariableAST *ast);
+    virtual ASTPtr visit(Dyninst::DataflowAPI::RoseAST *ast);
+    virtual ASTPtr visit(Dyninst::DataflowAPI::ConstantAST *ast);
+    virtual ASTPtr visit(Dyninst::DataflowAPI::VariableAST *ast);
     bool IsResultBounded(AST::Ptr ast) {
         return bound.find(ast.get()) != bound.end();
     }
     StridedInterval* GetResultBound(AST::Ptr ast); 
 };
 
-class JumpCondVisitor: public ASTVisitor {
+class JumpCondVisitor: public Dyninst::ASTVisitor {
 
 public:
-    using ASTVisitor::visit;
+    using Dyninst::ASTVisitor::visit;
     bool invertFlag;
-    virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
+    virtual ASTPtr visit(Dyninst::DataflowAPI::RoseAST *ast);
     JumpCondVisitor() : invertFlag(false) {}
 };
 
-class ComparisonVisitor: public ASTVisitor {
+class ComparisonVisitor: public Dyninst::ASTVisitor {
 
 public:
-    using ASTVisitor::visit;
+    using Dyninst::ASTVisitor::visit;
     AST::Ptr subtrahend, minuend;
-    virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
+    virtual ASTPtr visit(Dyninst::DataflowAPI::RoseAST *ast);
 
     ComparisonVisitor(): subtrahend(AST::Ptr()), minuend(AST::Ptr()) {} 
 };
 
-class JumpTableFormatVisitor: public ASTVisitor {
+class JumpTableFormatVisitor: public Dyninst::ASTVisitor {
 
     bool PotentialIndexing(AST::Ptr);
 public:
-    using ASTVisitor::visit;
-    AbsRegion index;
+    using Dyninst::ASTVisitor::visit;
+    Dyninst::AbsRegion index;
     int numOfVar;
     int memoryReadLayer;
-    ParseAPI::Block *b;
+    Dyninst::ParseAPI::Block *b;
     bool findIncorrectFormat;
     bool findTableBase;    
     bool findIndex;
     bool firstAdd;
-    virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
-    virtual ASTPtr visit(DataflowAPI::VariableAST *ast);
-    JumpTableFormatVisitor(ParseAPI::Block *bl);
+    virtual ASTPtr visit(Dyninst::DataflowAPI::RoseAST *ast);
+    virtual ASTPtr visit(Dyninst::DataflowAPI::VariableAST *ast);
+    JumpTableFormatVisitor(Dyninst::ParseAPI::Block *bl);
 };
 
-class JumpTableReadVisitor: public ASTVisitor {
+class JumpTableReadVisitor: public Dyninst::ASTVisitor {
 public:
-    using ASTVisitor::visit;
-    AbsRegion index;
+    using Dyninst::ASTVisitor::visit;
+    Dyninst::AbsRegion index;
     int64_t indexValue;
-    CodeSource* cs;
-    CodeRegion* cr;
-    Address targetAddress;
-    Address readAddress;
+    Dyninst::ParseAPI::CodeSource* cs;
+    Dyninst::ParseAPI::CodeRegion* cr;
+    Dyninst::Address targetAddress;
+    Dyninst::Address readAddress;
     int memoryReadSize;
     bool valid;
     bool isZeroExtend;
@@ -110,10 +108,10 @@ public:
 
     // This tracks the results of computation for each sub AST
     map<AST*, int64_t> results;
-    JumpTableReadVisitor(AbsRegion i, int v, CodeSource *c, CodeRegion *r, bool ze, int m);
-    virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
-    virtual ASTPtr visit(DataflowAPI::ConstantAST *ast);
-    virtual ASTPtr visit(DataflowAPI::VariableAST *ast);
-    bool PerformMemoryRead(Address addr, int64_t &v);
+    JumpTableReadVisitor(Dyninst::AbsRegion i, int v, Dyninst::ParseAPI::CodeSource *c, Dyninst::ParseAPI::CodeRegion *r, bool ze, int m);
+    virtual ASTPtr visit(Dyninst::DataflowAPI::RoseAST *ast);
+    virtual ASTPtr visit(Dyninst::DataflowAPI::ConstantAST *ast);
+    virtual ASTPtr visit(Dyninst::DataflowAPI::VariableAST *ast);
+    bool PerformMemoryRead(Dyninst::Address addr, int64_t &v);
 };
 #endif

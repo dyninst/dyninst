@@ -32,6 +32,8 @@
 #include "int_process.h"
 #include <string.h>
 
+using namespace Dyninst;
+
 using namespace std;
 
 memEntry::memEntry() :

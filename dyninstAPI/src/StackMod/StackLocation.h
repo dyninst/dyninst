@@ -40,13 +40,12 @@
 #include "dyntypes.h"
 #include "StackAccess.h"
 
-using namespace Dyninst;
 
 typedef IntervalTree<Dyninst::Address, int> ValidPCRange;
 
 class StackLocation {
     public:
-        StackLocation(StackAnalysis::Height o, int s, StackAccess::StackAccessType t, bool h, ValidPCRange* v = NULL) :
+        StackLocation(Dyninst::StackAnalysis::Height o, int s, StackAccess::StackAccessType t, bool h, ValidPCRange* v = NULL) :
             _type(t),
             _size(s),
             _isStackMemory(true),
@@ -57,7 +56,7 @@ class StackLocation {
             _valid(v)
     {}
 
-        StackLocation(StackAnalysis::Height o, StackAccess::StackAccessType t, MachRegister r, ValidPCRange* v = NULL) :
+        StackLocation(Dyninst::StackAnalysis::Height o, StackAccess::StackAccessType t, Dyninst::MachRegister r, ValidPCRange* v = NULL) :
             _type(t),
             _size(1),
             _isStackMemory(true),
@@ -69,7 +68,7 @@ class StackLocation {
             _valid(v)
     {}
 
-        StackLocation(MachRegister r, int s) :
+        StackLocation(Dyninst::MachRegister r, int s) :
             _type(StackAccess::StackAccessType::UNKNOWN),
             _size(s),
             _isStackMemory(false),
@@ -99,13 +98,13 @@ class StackLocation {
         bool isNull() const { return _isNull; }
 
         bool isStackMemory() const { return _isStackMemory; }
-        StackAnalysis::Height off() const { return _off; }
-        void setOff(StackAnalysis::Height o) { _off = o; }
+        Dyninst::StackAnalysis::Height off() const { return _off; }
+        void setOff(Dyninst::StackAnalysis::Height o) { _off = o; }
         bool isRegisterHeight() const { return _isRegisterHeight; }
 
         bool isRegister() const { return _isRegister; }
-        MachRegister reg() const { return _reg; }
-        void setReg(MachRegister r) { _reg = r; }
+        Dyninst::MachRegister reg() const { return _reg; }
+        void setReg(Dyninst::MachRegister r) { _reg = r; }
 
         ValidPCRange* valid() const { return _valid; }
 
@@ -125,11 +124,11 @@ class StackLocation {
         int _size;
 
         bool _isStackMemory;
-        StackAnalysis::Height _off;
+        Dyninst::StackAnalysis::Height _off;
         bool _isRegisterHeight{};
 
         bool _isRegister;
-        MachRegister _reg;
+        Dyninst::MachRegister _reg;
 
         bool _isNull;
 

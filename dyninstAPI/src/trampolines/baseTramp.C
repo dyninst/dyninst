@@ -47,6 +47,8 @@
 #include "patching/instPoint.h"
 #include "Point.h"
 
+using namespace codegen_arch;
+
 using namespace Dyninst;
 using namespace PatchAPI;
 

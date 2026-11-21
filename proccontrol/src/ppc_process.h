@@ -49,27 +49,27 @@ class ppc_process : virtual public int_process
   virtual void plat_breakpointBytes(unsigned char *buffer);
   virtual bool plat_breakpointAdvancesPC() const;
 
-  virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Address> &addrResult);
-  virtual bool plat_convertToBreakpointAddress(Address &addr, int_thread *thr);
+  virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Dyninst::Address> &addrResult);
+  virtual bool plat_convertToBreakpointAddress(Dyninst::Address &addr, int_thread *thr);
   virtual bool plat_needsPCSaveBeforeSingleStep();
   virtual void plat_getEmulatedSingleStepAsyncs(int_thread *thr, std::set<response::ptr> resps);
 
 
   void cleanupSSOnContinue(int_thread *thr);
  private:
-  async_ret_t readPCForSS(int_thread *thr, Address &pc);
-  async_ret_t readInsnForSS(Address pc, int_thread *thr, unsigned int &rawInsn);
+  async_ret_t readPCForSS(int_thread *thr, Dyninst::Address &pc);
+  async_ret_t readInsnForSS(Dyninst::Address pc, int_thread *thr, unsigned int &rawInsn);
   void registerSSClearCB();
 
   std::map<int_thread *, reg_response::ptr> pcs_for_ss;
-  std::map<Address, mem_response::ptr> mem_for_ss;
+  std::map<Dyninst::Address, mem_response::ptr> mem_for_ss;
 };
 
 class ppc_thread : virtual public int_thread
 {
   protected:
    bool have_cached_pc;
-   Address cached_pc;
+   Dyninst::Address cached_pc;
   public:
    ppc_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
    virtual ~ppc_thread();
@@ -84,14 +84,14 @@ class ppc_thread : virtual public int_thread
                                 bool &done);
    virtual unsigned hwBPAvail(unsigned mode);
 
-   virtual EventBreakpoint::ptr decodeHWBreakpoint(response::ptr &resp,
+   virtual Dyninst::ProcControlAPI::EventBreakpoint::ptr decodeHWBreakpoint(response::ptr &resp,
                                                    bool have_reg = false,
                                                    Dyninst::MachRegisterVal regval = 0);
    virtual bool bpNeedsClear(hw_breakpoint *hwbp);
 
-   void setCachedPC(Address pc);
+   void setCachedPC(Dyninst::Address pc);
    void clearCachedPC();
-   bool haveCachedPC(Address &pc);
+   bool haveCachedPC(Dyninst::Address &pc);
 };
 
 #endif

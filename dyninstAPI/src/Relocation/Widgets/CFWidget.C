@@ -46,6 +46,7 @@
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
+using namespace codegen_arch;
 
 ///////////////////////
 

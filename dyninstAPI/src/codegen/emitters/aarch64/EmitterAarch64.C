@@ -9,6 +9,9 @@
 #include "registerSpace/RegisterConversion.h"
 #include "registerSpace/registerSpace.h"
 
+using namespace Dyninst;
+using namespace codegen_arch;
+
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 // VG(03/15/02): Restore mutatee value of GPR reg to dest GPR

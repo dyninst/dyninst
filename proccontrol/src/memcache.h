@@ -137,7 +137,7 @@ class memCache {
    async_ret_t doOperation(memEntry *me, int_thread *op_thread);
    async_ret_t getExistingOperation(mcache_t::iterator i, memEntry *orig);   
    async_ret_t lookupAsync(memEntry *me, int_thread *op_thread);
-   void updateReadCacheWithWrite(Address dest, char *src, unsigned long size);
+   void updateReadCacheWithWrite(Dyninst::Address dest, char *src, unsigned long size);
   public:
    memCache(int_process *p);
    ~memCache();

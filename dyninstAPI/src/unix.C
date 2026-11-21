@@ -43,6 +43,8 @@
 
 #include <sstream>
 
+using namespace Dyninst;
+
 extern char **environ;
 
 using namespace Dyninst::ProcControlAPI;

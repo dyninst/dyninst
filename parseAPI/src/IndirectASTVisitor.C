@@ -3,7 +3,10 @@
 #include "debug_parse.h"
 #include "CodeObject.h"
 #include <algorithm>
+
+using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
+using namespace Dyninst::DataflowAPI;
 
 AST::Ptr SimplifyVisitor::visit(DataflowAPI::RoseAST *ast) {
         unsigned totalChildren = ast->numChildren();

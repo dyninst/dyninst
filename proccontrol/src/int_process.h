@@ -61,8 +61,6 @@ class CallStackCallback;
 }
 }
 
-using namespace Dyninst;
-using namespace ProcControlAPI;
 
 class int_thread;
 class int_threadPool;
@@ -212,12 +210,12 @@ class Counter {
 class ProcStopEventManager {
   private:
    int_process *proc;
-   std::set<Event::ptr> held_pstop_events;
+   std::set<Dyninst::ProcControlAPI::Event::ptr> held_pstop_events;
   public:
    ProcStopEventManager(int_process *p);
    ~ProcStopEventManager();
 
-   bool prepEvent(Event::ptr ev);
+   bool prepEvent(Dyninst::ProcControlAPI::Event::ptr ev);
    void checkEvents();
 
    bool processStoppedTo(int state_id);
@@ -297,7 +295,7 @@ class int_process
    int getContSignal() const;
    virtual bool forked();
 
-   virtual OSType getOS() const = 0;
+   virtual Dyninst::OSType getOS() const = 0;
   protected:
    virtual bool plat_forked() = 0;
    virtual bool post_forked();
@@ -336,21 +334,21 @@ class int_process
    Dyninst::PID getPid() const;
    int_threadPool *threadPool() const;
 
-   Process::ptr proc() const;
+   Dyninst::ProcControlAPI::Process::ptr proc() const;
    mem_state::ptr memory() const;
 
-   err_t getLastError();
+   Dyninst::ProcControlAPI::err_t getLastError();
    const char *getLastErrorMsg();
    void clearLastError();
-   void setLastError(err_t err, const char *err_str);
+   void setLastError(Dyninst::ProcControlAPI::err_t err, const char *err_str);
 
    void throwDetachEvent(bool temporary, bool leaveStopped);
 
    virtual bool preTerminate();
    bool terminate(bool &needs_sync);
-   void updateSyncState(Event::ptr ev, bool gen);
+   void updateSyncState(Dyninst::ProcControlAPI::Event::ptr ev, bool gen);
 
-   virtual void plat_adjustSyncType(Event::ptr, bool) {}
+   virtual void plat_adjustSyncType(Dyninst::ProcControlAPI::Event::ptr, bool) {}
    virtual Dyninst::Architecture getTargetArch() = 0;
    virtual unsigned getTargetPageSize() = 0;
    virtual unsigned plat_getRecommendedReadSize();
@@ -371,7 +369,7 @@ class int_process
 
    static const char *stateName(State s);
 
-   void initializeProcess(Process::ptr p);
+   void initializeProcess(Dyninst::ProcControlAPI::Process::ptr p);
 
    virtual void instantiateRPCThread() {}
 
@@ -410,15 +408,15 @@ class int_process
    virtual bool plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp) = 0;
    virtual bool plat_threadOpsNeedProcStop();
 
-   virtual SymbolReaderFactory *plat_defaultSymReader();
-   virtual SymbolReaderFactory *getSymReader();
-   virtual void setSymReader(SymbolReaderFactory *fact);
+   virtual Dyninst::SymbolReaderFactory *plat_defaultSymReader();
+   virtual Dyninst::SymbolReaderFactory *getSymReader();
+   virtual void setSymReader(Dyninst::SymbolReaderFactory *fact);
 
    virtual Dyninst::Address direct_infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
    virtual bool direct_infFree(Dyninst::Address addr);
 
-   Address infMalloc(unsigned long size, bool use_addr, Address addr);
-   bool infFree(Address addr);
+   Dyninst::Address infMalloc(unsigned long size, bool use_addr, Dyninst::Address addr);
+   bool infFree(Dyninst::Address addr);
    static bool infMalloc(unsigned long size, int_addressSet *aset, bool use_addr);
    static bool infFree(int_addressSet *aset);
 
@@ -438,10 +436,10 @@ class int_process
    virtual bool plat_writeMem(int_thread *thr, const void *local,
                               Dyninst::Address remote, size_t size, bp_write_t bp_write) = 0;
 
-   virtual async_ret_t plat_calcTLSAddress(int_thread *thread, int_library *lib, Offset off,
-                                           Address &outaddr, std::set<response::ptr> &resps);
+   virtual async_ret_t plat_calcTLSAddress(int_thread *thread, int_library *lib, Dyninst::Offset off,
+                                           Dyninst::Address &outaddr, std::set<response::ptr> &resps);
 
-   virtual Address plat_findFreeMemory(size_t) { return 0; }
+   virtual Dyninst::Address plat_findFreeMemory(size_t) { return 0; }
 
    //For a platform, if plat_needsAsyncIO returns true then the async
    // set of functions need to be implemented. By default these are
@@ -452,24 +450,24 @@ class int_process
    virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
                                    size_t size, result_response::ptr result, bp_write_t bp_write);
 
-   bool getMemoryAccessRights(Dyninst::Address addr, Process::mem_perm& rights);
+   bool getMemoryAccessRights(Dyninst::Address addr, Dyninst::ProcControlAPI::Process::mem_perm& rights);
    bool setMemoryAccessRights(Dyninst::Address addr, size_t size,
-                              Process::mem_perm rights,
-                              Process::mem_perm& oldRights);
+                              Dyninst::ProcControlAPI::Process::mem_perm rights,
+                              Dyninst::ProcControlAPI::Process::mem_perm& oldRights);
    // Zuyu FIXME pure virtual function
-   virtual bool plat_getMemoryAccessRights(Dyninst::Address addr, Process::mem_perm& rights);
+   virtual bool plat_getMemoryAccessRights(Dyninst::Address addr, Dyninst::ProcControlAPI::Process::mem_perm& rights);
    virtual bool plat_setMemoryAccessRights(Dyninst::Address addr, size_t size,
-                                           Process::mem_perm rights,
-                                           Process::mem_perm& oldRights);
-   virtual bool plat_decodeMemoryRights(Process::mem_perm& rights_internal,
+                                           Dyninst::ProcControlAPI::Process::mem_perm rights,
+                                           Dyninst::ProcControlAPI::Process::mem_perm& oldRights);
+   virtual bool plat_decodeMemoryRights(Dyninst::ProcControlAPI::Process::mem_perm& rights_internal,
                                         unsigned long rights);
-   virtual bool plat_encodeMemoryRights(Process::mem_perm rights_internal,
+   virtual bool plat_encodeMemoryRights(Dyninst::ProcControlAPI::Process::mem_perm rights_internal,
                                         unsigned long& rights);
 
    virtual bool findAllocatedRegionAround(Dyninst::Address addr,
-                                          Process::MemoryRegion& memRegion);
+                                          Dyninst::ProcControlAPI::Process::MemoryRegion& memRegion);
    virtual bool plat_findAllocatedRegionAround(Dyninst::Address addr,
-                                               Process::MemoryRegion& memRegion);
+                                               Dyninst::ProcControlAPI::Process::MemoryRegion& memRegion);
 
    memCache *getMemCache();
 
@@ -477,7 +475,7 @@ class int_process
 	// Windows-only technically
    virtual void* plat_getDummyThreadHandle() const { return NULL; }
 
-   virtual void noteNewDequeuedEvent(Event::ptr ev);
+   virtual void noteNewDequeuedEvent(Dyninst::ProcControlAPI::Event::ptr ev);
 
    static bool isInCB();
    static void setInCB(bool b);
@@ -501,11 +499,11 @@ class int_process
 
    virtual bool plat_needsPCSaveBeforeSingleStep();
    virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Dyninst::Address> &result);
-   virtual bool plat_convertToBreakpointAddress(Address &, int_thread *) { return true; }
+   virtual bool plat_convertToBreakpointAddress(Dyninst::Address &, int_thread *) { return true; }
    virtual void plat_getEmulatedSingleStepAsyncs(int_thread *thr, std::set<response::ptr> resps);
    virtual bool plat_needsThreadForMemOps() const { return true; }
    virtual unsigned int plat_getCapabilities();
-   virtual Event::ptr plat_throwEventsBeforeContinue(int_thread *thr);
+   virtual Dyninst::ProcControlAPI::Event::ptr plat_throwEventsBeforeContinue(int_thread *thr);
 
    int_library *getLibraryByName(std::string s) const;
    size_t numLibs() const;
@@ -530,7 +528,7 @@ class int_process
    void wasCreatedViaAttach(bool val) { createdViaAttach = val; }
 
    // Platform-specific; is this address in what we consider a system lib.
-   virtual bool addrInSystemLib(Address /*addr*/) { return false; }
+   virtual bool addrInSystemLib(Dyninst::Address /*addr*/) { return false; }
 
    ProcStopEventManager &getProcStopManager();
 
@@ -539,7 +537,7 @@ class int_process
    bool isRunningSilent(); //No callbacks
    void setRunningSilent(bool b);
 
-   virtual ExecFileInfo* plat_getExecutableInfo() const { return NULL; }
+   virtual Dyninst::ProcControlAPI::ExecFileInfo* plat_getExecutableInfo() const { return NULL; }
 
    int_libraryTracking *getLibraryTracking();
    int_LWPTracking *getLWPTracking();
@@ -560,9 +558,9 @@ class int_process
    std::map<int,int> fds;
    Dyninst::Architecture arch;
    int_threadPool *threadpool;
-   Process::ptr up_proc;
+   Dyninst::ProcControlAPI::Process::ptr up_proc;
    HandlerPool *handlerpool;
-   LibraryPool libpool;
+   Dyninst::ProcControlAPI::LibraryPool libpool;
    bool hasCrashSignal;
    int crashSignal;
    bool hasExitCode;
@@ -581,10 +579,10 @@ class int_process
    ProcStopEventManager proc_stop_manager;
    std::map<int, int> proc_desyncd_states;
    void *user_data;
-   err_t last_error;
+   Dyninst::ProcControlAPI::err_t last_error;
    const char *last_error_string;
-   SymbolReaderFactory *symbol_reader;
-   static SymbolReaderFactory *user_set_symbol_reader;
+   Dyninst::SymbolReaderFactory *symbol_reader;
+   static Dyninst::SymbolReaderFactory *user_set_symbol_reader;
 
    //Cached PlatFeature pointers, which are used to avoid slow dynamic casts
    // (they're used frequently in tight loops on BG/Q)
@@ -609,7 +607,7 @@ class int_process
 };
 
 struct ProcToIntProc {
-   int_process *operator()(const Process::ptr &p) const { return p->llproc(); }
+   int_process *operator()(const Dyninst::ProcControlAPI::Process::ptr &p) const { return p->llproc(); }
 };
 
 /**
@@ -665,7 +663,7 @@ class hybrid_lwp_control_process : virtual public int_process
    virtual bool suspendThread(int_thread *thr);
    virtual bool resumeThread(int_thread *thr);
 
-   virtual void noteNewDequeuedEvent(Event::ptr ev);
+   virtual void noteNewDequeuedEvent(Dyninst::ProcControlAPI::Event::ptr ev);
    virtual bool plat_debuggerSuspended();
 
    virtual bool plat_processGroupContinues();
@@ -700,7 +698,7 @@ class thread_exitstate
   public:
    Dyninst::LWP lwp;
    Dyninst::THR_ID thr_id;
-   Process::ptr proc_ptr;
+   Dyninst::ProcControlAPI::Process::ptr proc_ptr;
    void *user_data;
 };
 
@@ -712,11 +710,11 @@ class proc_exitstate
    bool crashed;
    int crash_signal;
    int exit_code;
-   err_t last_error;
+   Dyninst::ProcControlAPI::err_t last_error;
    const char *last_error_msg;
    void *user_data;
 
-   void setLastError(err_t e_, const char *m) { last_error = e_; last_error_msg = m; }
+   void setLastError(Dyninst::ProcControlAPI::err_t e_, const char *m) { last_error = e_; last_error_msg = m; }
 };
 
 /**
@@ -752,7 +750,7 @@ public:
                                    bool initial_thrd,
                                    attach_status_t astatus = as_unknown);
    static int_thread *createRPCThread(int_process *p);
-   Process::ptr proc() const;
+   Dyninst::ProcControlAPI::Process::ptr proc() const;
    int_process *llproc() const;
 
    Dyninst::LWP getLWP() const;
@@ -1011,7 +1009,7 @@ public:
 
    //Misc
    virtual bool attach() = 0;
-   Thread::ptr thread();
+   Dyninst::ProcControlAPI::Thread::ptr thread();
 
    typedef void(*continue_cb_t)(int_thread *thrd);
    static void addContinueCB(continue_cb_t cb);
@@ -1042,7 +1040,7 @@ public:
                                 bool resume,
                                 std::set<response::ptr> &resps,
                                 bool &done);
-   virtual EventBreakpoint::ptr decodeHWBreakpoint(response::ptr &resp,
+   virtual Dyninst::ProcControlAPI::EventBreakpoint::ptr decodeHWBreakpoint(response::ptr &resp,
                                                    bool have_reg = false,
                                                    Dyninst::MachRegisterVal regval = 0);
    virtual bool bpNeedsClear(hw_breakpoint *hwbp);
@@ -1055,15 +1053,15 @@ public:
 
    void setSuspended(bool b);
    bool isSuspended() const;
-   void setLastError(err_t ec, const char *es);
+   void setLastError(Dyninst::ProcControlAPI::err_t ec, const char *es);
 
-   hw_breakpoint *getHWBreakpoint(Address addr);
+   hw_breakpoint *getHWBreakpoint(Dyninst::Address addr);
 
  protected:
    Dyninst::THR_ID tid;
    Dyninst::LWP lwp;
    int_process *proc_;
-   Thread::ptr up_thread;
+   Dyninst::ProcControlAPI::Thread::ptr up_thread;
    int continueSig_;
    attach_status_t attach_status;
 
@@ -1119,8 +1117,8 @@ public:
     bool user_syscall;
     bool next_syscall_is_exit;
 
-   Address stopped_on_breakpoint_addr;
-   Address postponed_stopped_on_breakpoint_addr;
+   Dyninst::Address stopped_on_breakpoint_addr;
+   Dyninst::Address postponed_stopped_on_breakpoint_addr;
 
    bp_instance *clearing_breakpoint;
    emulated_singlestep *em_singlestep;
@@ -1128,11 +1126,11 @@ public:
 
    std::set<hw_breakpoint *> hw_breakpoints;
    static std::set<continue_cb_t> continue_cbs;
-   CallStackUnwinding *unwinder;
+   Dyninst::ProcControlAPI::CallStackUnwinding *unwinder;
  public:
-   Address addr_fakeSyscallExitBp;
+   Dyninst::Address addr_fakeSyscallExitBp;
    bool isSet_fakeSyscallExitBp;
-   Breakpoint::ptr BPptr_fakeSyscallExitBp;
+   Dyninst::ProcControlAPI::Breakpoint::ptr BPptr_fakeSyscallExitBp;
 };
 
 /**
@@ -1145,12 +1143,12 @@ class int_threadPool {
    friend class int_thread;
  private:
    std::vector<int_thread *> threads;
-   std::vector<Thread::ptr> hl_threads;
+   std::vector<Dyninst::ProcControlAPI::Thread::ptr> hl_threads;
    std::map<Dyninst::LWP, int_thread *> thrds_by_lwp;
 
    mutable int_thread *initial_thread; // may be updated by side effect on Windows
    int_process *proc_;
-   ThreadPool *up_pool;
+   Dyninst::ProcControlAPI::ThreadPool *up_pool;
    bool had_multiple_threads;
  public:
    int_threadPool(int_process *p);
@@ -1171,14 +1169,14 @@ class int_threadPool {
    unsigned size() const;
 
    int_process *proc() const;
-   ThreadPool *pool() const;
+   Dyninst::ProcControlAPI::ThreadPool *pool() const;
 
    int_thread *findThreadByLWP(Dyninst::LWP lwp);
    int_thread *initialThread() const;
    bool allHandlerStopped();
    bool allStopped(int state_id);
 
-   void saveUserState(Event::ptr ev);
+   void saveUserState(Dyninst::ProcControlAPI::Event::ptr ev);
    void restoreUserState();
 };
 
@@ -1204,7 +1202,7 @@ class int_library
    bool has_data_load;
    bool marked;
    void *user_data;
-   Library::ptr up_lib;
+   Dyninst::ProcControlAPI::Library::ptr up_lib;
    bool is_shared_lib;
    mem_state::ptr memory;
   public:
@@ -1231,13 +1229,13 @@ class int_library
 
    bool isSharedLib() const;
 
-   Library::ptr getUpPtr() const;
+   Dyninst::ProcControlAPI::Library::ptr getUpPtr() const;
    void markAsCleanable();
-   void setLoadAddress(Address addr);
-   void setDynamicAddress(Address addr);
+   void setLoadAddress(Dyninst::Address addr);
+   void setDynamicAddress(Dyninst::Address addr);
 
-   Address mapAddress();
-   void setMapAddress(Address a);
+   Dyninst::Address mapAddress();
+   void setMapAddress(Dyninst::Address a);
    void markAOut() { is_shared_lib = false; }
 
    bool inProcess(int_process *proc);
@@ -1291,7 +1289,7 @@ class int_breakpoint
    friend class sw_breakpoint;
    friend class hw_breakpoint;
  private:
-   Breakpoint::weak_ptr up_bp;
+   Dyninst::ProcControlAPI::Breakpoint::weak_ptr up_bp;
    Dyninst::Address to;
    bool isCtrlTransfer_;
    void *data;
@@ -1308,11 +1306,11 @@ class int_breakpoint
    // all threads in process need to be synchronized at this breakpoint
    bool is_proc_synchronous{false};
 
-   std::set<Thread::const_ptr> thread_specific;
+   std::set<Dyninst::ProcControlAPI::Thread::const_ptr> thread_specific;
  public:
-   int_breakpoint(Breakpoint::ptr up);
-   int_breakpoint(Dyninst::Address to, Breakpoint::ptr up, bool off);
-   int_breakpoint(unsigned int hw_prems_, unsigned int hw_size_, Breakpoint::ptr up);
+   int_breakpoint(Dyninst::ProcControlAPI::Breakpoint::ptr up);
+   int_breakpoint(Dyninst::Address to, Dyninst::ProcControlAPI::Breakpoint::ptr up, bool off);
+   int_breakpoint(unsigned int hw_prems_, unsigned int hw_size_, Dyninst::ProcControlAPI::Breakpoint::ptr up);
    ~int_breakpoint();
 
    bool isCtrlTransfer() const;
@@ -1325,9 +1323,9 @@ class int_breakpoint
    bool isOneTimeBreakpoint() const;
    bool isOneTimeBreakpointHit() const;
 
-   void setThreadSpecific(Thread::const_ptr p);
+   void setThreadSpecific(Dyninst::ProcControlAPI::Thread::const_ptr p);
    bool isThreadSpecific() const;
-   bool isThreadSpecificTo(Thread::const_ptr p) const;
+   bool isThreadSpecificTo(Dyninst::ProcControlAPI::Thread::const_ptr p) const;
 
    void setProcessStopper(bool b);
    bool isProcessStopper() const;
@@ -1343,7 +1341,7 @@ class int_breakpoint
    unsigned getHWPerms() const;
 
    bool isOffsetTransfer() const;
-   Breakpoint::weak_ptr upBreakpoint() const;
+   Dyninst::ProcControlAPI::Breakpoint::weak_ptr upBreakpoint() const;
 };
 
 class bp_instance
@@ -1351,7 +1349,7 @@ class bp_instance
    friend class Dyninst::ProcControlAPI::EventBreakpoint;
   protected:
    std::set<int_breakpoint *> bps;
-   std::set<Breakpoint::ptr> hl_bps;
+   std::set<Dyninst::ProcControlAPI::Breakpoint::ptr> hl_bps;
    Dyninst::Address addr;
    bool installed;
    int suspend_count;
@@ -1367,9 +1365,9 @@ class bp_instance
                              bool &empty, std::set<response::ptr> &resps);
    virtual async_ret_t uninstall(int_process *proc, std::set<response::ptr> &resps) = 0;
 
-   Address getAddr() const;
+   Dyninst::Address getAddr() const;
 
-   bp_instance(Address addr);
+   bp_instance(Dyninst::Address addr);
    bp_instance(const bp_instance *ip);
 
    typedef std::set<int_breakpoint *>::iterator iterator;
@@ -1477,14 +1475,14 @@ class emulated_singlestep {
    bool saved_single_step;
    int_breakpoint *bp;
    int_thread *thr;
-   std::set<Address> addrs;
+   std::set<Dyninst::Address> addrs;
 
   public:
    emulated_singlestep(int_thread *thr);
    ~emulated_singlestep();
 
-   bool containsBreakpoint(Address addr) const;
-   async_ret_t add(Address addr);
+   bool containsBreakpoint(Dyninst::Address addr) const;
+   async_ret_t add(Dyninst::Address addr);
    async_ret_t clear();
    void restoreSSMode();
 
@@ -1492,38 +1490,38 @@ class emulated_singlestep {
 };
 
 struct clearError {
-   void operator()(Process::ptr p) {
+   void operator()(Dyninst::ProcControlAPI::Process::ptr p) {
       p->clearLastError();
    }
 
    template <class T>
-   void operator()(const std::pair<T, Process::const_ptr> &v) {
+   void operator()(const std::pair<T, Dyninst::ProcControlAPI::Process::const_ptr> &v) {
       v.second->clearLastError();
    }
    template <class T>
-   void operator()(const std::pair<Process::const_ptr, T> &v) {
+   void operator()(const std::pair<Dyninst::ProcControlAPI::Process::const_ptr, T> &v) {
       v.first->clearLastError();
    }
    template <class T>
-   void operator()(const std::pair<T, Process::ptr> &v) {
+   void operator()(const std::pair<T, Dyninst::ProcControlAPI::Process::ptr> &v) {
       v.second->clearLastError();
    }
    template <class T>
-   void operator()(const std::pair<Process::ptr, T> &v) {
+   void operator()(const std::pair<Dyninst::ProcControlAPI::Process::ptr, T> &v) {
       v.first->clearLastError();
    }
 };
 
 struct setError {
 private:
-   err_t err;
+   Dyninst::ProcControlAPI::err_t err;
    const char *err_str;
 public:
-   setError(err_t e, const char *s) { err = e; err_str = s; }
-   void operator()(Process::ptr p) {
+   setError(Dyninst::ProcControlAPI::err_t e, const char *s) { err = e; err_str = s; }
+   void operator()(Dyninst::ProcControlAPI::Process::ptr p) {
       p->setLastError(err, err_str);
    }
-   void operator()(const std::pair<Address, Process::ptr> &v) {
+   void operator()(const std::pair<Dyninst::Address, Dyninst::ProcControlAPI::Process::ptr> &v) {
       v.second->setLastError(err, err_str);
    }
 };
@@ -1590,11 +1588,11 @@ class int_notify {
 
 	typedef details_t::wait_object_t wait_object_t;
    friend int_notify *notify();
-   friend EventNotify *Dyninst::ProcControlAPI::evNotify();
+   friend Dyninst::ProcControlAPI::EventNotify *Dyninst::ProcControlAPI::evNotify();
  private:
    static int_notify *the_notify;
-   EventNotify up_notify;
-   std::set<EventNotify::notify_cb_t> cbs;
+   Dyninst::ProcControlAPI::EventNotify up_notify;
+   std::set<Dyninst::ProcControlAPI::EventNotify::notify_cb_t> cbs;
    int events_noted;
    details_t my_internals;
  public:
@@ -1602,8 +1600,8 @@ class int_notify {
    void noteEvent();
    void clearEvent();
 
-   void registerCB(EventNotify::notify_cb_t cb);
-   void removeCB(EventNotify::notify_cb_t cb);
+   void registerCB(Dyninst::ProcControlAPI::EventNotify::notify_cb_t cb);
+   void removeCB(Dyninst::ProcControlAPI::EventNotify::notify_cb_t cb);
    bool hasEvents();
    details_t::wait_object_t getWaitable();
 };
@@ -1628,7 +1626,7 @@ private:
   bool have_queued_events;
   bool is_running;
   bool should_exit;
-  Process::thread_mode_t threadMode;
+  Dyninst::ProcControlAPI::Process::thread_mode_t threadMode;
 
   void evhandler_main();
 #if defined(os_windows)
@@ -1639,7 +1637,7 @@ private:
   void eventqueue_cb();
 
 public:
-  static const Process::thread_mode_t default_thread_mode = Process::HandlerThreading;
+  static const Dyninst::ProcControlAPI::Process::thread_mode_t default_thread_mode = Dyninst::ProcControlAPI::Process::HandlerThreading;
   MTManager();
   ~MTManager();
 
@@ -1650,8 +1648,8 @@ public:
   void endWork();
 
   bool handlerThreading();
-  Process::thread_mode_t getThreadMode();
-  bool setThreadMode(Process::thread_mode_t tm, bool init = false);
+  Dyninst::ProcControlAPI::Process::thread_mode_t getThreadMode();
+  bool setThreadMode(Dyninst::ProcControlAPI::Process::thread_mode_t tm, bool init = false);
 
   static void eventqueue_cb_wrapper();
 };
@@ -1673,8 +1671,8 @@ class MTLock
       should_unlock = true;
       if (!MTManager::mt_) {
          MTManager::mt_ = new MTManager();
-         if ((MTManager::default_thread_mode == Process::HandlerThreading) ||
-             (MTManager::default_thread_mode == Process::CallbackThreading)) {
+         if ((MTManager::default_thread_mode == Dyninst::ProcControlAPI::Process::HandlerThreading) ||
+             (MTManager::default_thread_mode == Dyninst::ProcControlAPI::Process::CallbackThreading)) {
             mt()->startWork();
          }
          mt()->setThreadMode(MTManager::default_thread_mode, true);
@@ -1682,7 +1680,7 @@ class MTLock
       else if (mt()->handlerThreading()) {
          mt()->startWork();
          if ((c == deliver_callbacks) &&
-             (MTManager::default_thread_mode == Process::HandlerThreading) &&
+             (MTManager::default_thread_mode == Dyninst::ProcControlAPI::Process::HandlerThreading) &&
              notify()->hasEvents())
          {
             pthrd_printf("MTLock triggered event handling\n");
@@ -1711,7 +1709,7 @@ class MTLock
       if (mt()->handlerThreading()) {
          mt()->startWork();
          if (notify()->hasEvents() &&
-             (MTManager::default_thread_mode == Process::HandlerThreading) )
+             (MTManager::default_thread_mode == Dyninst::ProcControlAPI::Process::HandlerThreading) )
          {
             pthrd_printf("MTLock triggered event handling\n");
             int_process::waitAndHandleEvents(false);

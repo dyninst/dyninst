@@ -8,6 +8,8 @@
 #include "Register.h"
 #include "registers/MachRegister.h"
 
+using namespace Dyninst;
+
 namespace parse = Dyninst::ParseAPI;
 namespace insn = Dyninst::InstructionAPI;
 

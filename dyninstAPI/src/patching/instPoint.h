@@ -84,12 +84,12 @@ class instPoint : public Dyninst::PatchAPI::Point {
     static instPoint *edge(func_instance *, edge_instance *);
     static instPoint *preInsn(func_instance *,
                               block_instance *,
-                              Address,
-                              InstructionAPI::Instruction = InstructionAPI::Instruction(),
+                              Dyninst::Address,
+                              Dyninst::InstructionAPI::Instruction = Dyninst::InstructionAPI::Instruction(),
                               bool trusted = false);
     static instPoint *postInsn(func_instance *,
-                               block_instance *, Address,
-                               InstructionAPI::Instruction = InstructionAPI::Instruction(),
+                               block_instance *, Dyninst::Address,
+                               Dyninst::InstructionAPI::Instruction = Dyninst::InstructionAPI::Instruction(),
                                bool trusted = false);
     static instPoint *preCall(func_instance *,
                               block_instance *);
@@ -107,7 +107,7 @@ class instPoint : public Dyninst::PatchAPI::Point {
     // (possibly func context) block
     instPoint(Type, PatchMgrPtr, block_instance *, func_instance *);
     // Insn
-    instPoint(Type, PatchMgrPtr, block_instance *, Address, InstructionAPI::Instruction, func_instance *);
+    instPoint(Type, PatchMgrPtr, block_instance *, Dyninst::Address, Dyninst::InstructionAPI::Instruction, func_instance *);
     instPoint(Type, PatchMgrPtr, edge_instance *, func_instance *);
 
   public:
@@ -124,7 +124,7 @@ class instPoint : public Dyninst::PatchAPI::Point {
     // as to the _next_ address that will execute.
 
     //Address addr() const;
-    Address insnAddr() const { return addr_; }
+    Dyninst::Address insnAddr() const { return addr_; }
 
     // This is for address tracking... if we're between
     // blocks (e.g., post-call, function exit, or edge
@@ -132,7 +132,7 @@ class instPoint : public Dyninst::PatchAPI::Point {
     // a block give us the next block that will execute.
     // Unlike block() above, this always works.
     block_instance *block_compat() const;
-    Address addr_compat() const;
+    Dyninst::Address addr_compat() const;
 
     bitArray liveRegisters();
 
@@ -151,8 +151,8 @@ class instPoint : public Dyninst::PatchAPI::Point {
     void calcLiveness();
     // Will fill in insn if it's NULL-equivalent
     static bool checkInsn(block_instance *,
-                          InstructionAPI::Instruction &insn,
-                          Address a);
+                          Dyninst::InstructionAPI::Instruction &insn,
+                          Dyninst::Address a);
 
     baseTramp *baseTramp_;
 };

@@ -83,7 +83,7 @@ namespace Dyninst { namespace DyninstAPI {
 
     void emitGetRetVal(Register dest, bool addr_of, codeGen &gen) override;
 
-    codeBufIndex_t emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen) override;
+    codegen_arch::codeBufIndex_t emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen) override;
 
     void emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest,
                  codeGen &gen) override;

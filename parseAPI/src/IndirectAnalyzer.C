@@ -17,6 +17,9 @@
 #include "InstructionDecoder.h"
 #include "SymEval.h"
 
+using namespace Dyninst;
+using namespace Dyninst::DataflowAPI;
+
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InstructionAPI;
 

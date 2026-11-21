@@ -41,12 +41,10 @@
 #include "Handler.h"
 #include "common/src/addrtranslate.h"
 
-using namespace Dyninst;
-using namespace ProcControlAPI;
 
 class sysv_process;
 
-class PCProcReader : public ProcessReader
+class PCProcReader : public Dyninst::ProcessReader
 {
    friend class sysv_process;
 private:
@@ -57,8 +55,8 @@ public:
    PCProcReader(sysv_process *proc_);
    virtual ~PCProcReader();
    virtual bool start();
-   virtual bool ReadMem(Address addr, void *buffer, unsigned size);
-   virtual bool GetReg(MachRegister reg, MachRegisterVal &val);
+   virtual bool ReadMem(Dyninst::Address addr, void *buffer, unsigned size);
+   virtual bool GetReg(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);
    virtual bool done();
 
    bool hasPendingAsync();
@@ -84,31 +82,31 @@ class sysv_process : public int_libraryTracking
    bool isLibraryTrap(Dyninst::Address trap_addr);
    static bool addSysVHandlers(HandlerPool *hpool);
 
-   virtual bool setTrackLibraries(bool b, int_breakpoint* &bp, Address &addr, bool &add_bp);
+   virtual bool setTrackLibraries(bool b, int_breakpoint* &bp, Dyninst::Address &addr, bool &add_bp);
    virtual bool isTrackingLibraries();
  protected:
    virtual bool plat_execed();
    virtual bool plat_isStaticBinary();
    virtual int_library *plat_getExecutable();
-   virtual bool plat_getInterpreterBase(Address &addr);
+   virtual bool plat_getInterpreterBase(Dyninst::Address &addr);
 
-   AddressTranslate *constructTranslator(Dyninst::PID pid);
-   AddressTranslate *translator();
+   Dyninst::AddressTranslate *constructTranslator(Dyninst::PID pid);
+   Dyninst::AddressTranslate *translator();
 
    static int_breakpoint *lib_trap;
 
-   Address breakpoint_addr;
+   Dyninst::Address breakpoint_addr;
    bool lib_initialized;
    PCProcReader *procreader;
   private:
    
    bool track_libraries;
    int_library *aout;
-   static SymbolReaderFactory *symreader_factory;
+   static Dyninst::SymbolReaderFactory *symreader_factory;
 
    void createAddrTranslator();
    void deleteAddrTranslator();
-   AddressTranslate *translator_;
+   Dyninst::AddressTranslate *translator_;
 
    typedef enum {
      NotReady,

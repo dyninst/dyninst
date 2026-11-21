@@ -77,9 +77,9 @@ public:
   // The target address is held in an even aligned register pair
   // Return the index of s_setpc_b64 in the codegen memory buffer.
   // Note that Dyninst::DyninstAPI::RegControl is unused on AMDGPU, simply pass Dyninst::DyninstAPI::RegControl::rc_no_control.
-  codeBufIndex_t emitIf(Register expr_reg, Register target, Dyninst::DyninstAPI::RegControl rc, codeGen &gen);
+  codegen_arch::codeBufIndex_t emitIf(Dyninst::Register expr_reg, Dyninst::Register target, Dyninst::DyninstAPI::RegControl rc, codeGen &gen);
 
-  codeBufIndex_t emitA(opCode op, Dyninst::Register src1, long dst, codeGen &gen, Dyninst::DyninstAPI::RegControl rc);
+  codegen_arch::codeBufIndex_t emitA(opCode op, Dyninst::Register src1, long dst, codeGen &gen, Dyninst::DyninstAPI::RegControl rc);
 
   Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst, codeGen &gen, const instPoint *location);
 
@@ -92,97 +92,97 @@ public:
   void emitVstore(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Address dst,
                   codeGen &gen, int size = 4, AddressSpace * proc = NULL);
 
-  void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen);
+  void emitOp(unsigned opcode, Dyninst::Register dest, Dyninst::Register src1, Dyninst::Register src2, codeGen &gen);
 
   // What is opcode2?
-  void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
+  void emitOpImm(unsigned opcode1, unsigned opcode2, Dyninst::Register dest, Dyninst::Register src1, Dyninst::RegValue src2imm,
                  codeGen &gen);
 
   void emitImm(opCode op, Dyninst::Register src, Dyninst::RegValue src2imm, Dyninst::Register dst, codeGen &gen, bool isSigned = true);
 
   // The above signature is wierd, hence use the one below. TODO: later on, clean up the above mess
-  void emitOpImmSimple(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen);
+  void emitOpImmSimple(unsigned op, Dyninst::Register dest, Dyninst::Register src1, Dyninst::RegValue src2imm, codeGen &gen);
 
   // SALU relational operations on AMDGPU use SOPC encoding, and destination is
   // always SCC, have placeholder value as 0 for dest, mention in comment /*
   // SCC_DUMMY = */ when calling this.
   // ALSO FIXME: bool s seems like a redundant parameter
-  void emitRelOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen,
+  void emitRelOp(unsigned opcode, Dyninst::Register dest, Dyninst::Register src1, Dyninst::Register src2, codeGen &gen,
                  bool s);
 
-  void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen,
+  void emitRelOpImm(unsigned op, Dyninst::Register dest, Dyninst::Register src1, Dyninst::RegValue src2imm, codeGen &gen,
                     bool s);
 
-  void emitDiv(Register dest, Register src1, Register src2, codeGen &gen, bool s);
+  void emitDiv(Dyninst::Register dest, Dyninst::Register src1, Dyninst::Register src2, codeGen &gen, bool s);
 
-  void emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen);
+  void emitTimesImm(Dyninst::Register dest, Dyninst::Register src1, Dyninst::RegValue src2imm, codeGen &gen);
 
-  void emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s);
+  void emitDivImm(Dyninst::Register dest, Dyninst::Register src1, Dyninst::RegValue src2imm, codeGen &gen, bool s);
 
   // TODO: Implementation requires full 'codeGen' and 'registerSpace' class to
   // allocate register. This method doesn't fit AMDGPU because addr needs to be
   // stored in 2 additional registers. Use emitLoadConst followed by
   // emitLoadIndir for the same effect.
-  void emitLoad(Register dest, Address addr, int size, codeGen &gen);
+  void emitLoad(Dyninst::Register dest, Dyninst::Address addr, int size, codeGen &gen);
 
   // Consider dest, dest+1 pairs to load the value
   // dest = lower 32 bits of imm (LSBs)
   // dest + 1 = upper 32 bits of imm (MSBs)
-  void emitLoadConst(Register dest, Address imm, codeGen &gen);
+  void emitLoadConst(Dyninst::Register dest, Dyninst::Address imm, codeGen &gen);
 
   // s_load_dword, x2, x4, x8, x16
-  void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen);
+  void emitLoadIndir(Dyninst::Register dest, Dyninst::Register addr_reg, int size, codeGen &gen);
 
-  bool emitCallRelative(Register, Address, Register, codeGen &);
+  bool emitCallRelative(Dyninst::Register, Dyninst::Address, Dyninst::Register, codeGen &);
 
-  bool emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen);
+  bool emitLoadRelative(Dyninst::Register dest, Dyninst::Address offset, Dyninst::Register base, int size, codeGen &gen);
 
-  void emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size,
-                      codeGen &gen, Address offset);
+  void emitLoadShared(opCode op, Dyninst::Register dest, const image_variable *var, bool is_local, int size,
+                      codeGen &gen, Dyninst::Address offset);
 
-  void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
+  void emitLoadFrameAddr(Dyninst::Register dest, Dyninst::Address offset, codeGen &gen);
 
   // These implicitly use the stored original/non-inst value
-  void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
+  void emitLoadOrigFrameRelative(Dyninst::Register dest, Dyninst::Address offset, codeGen &gen);
 
-  void emitLoadOrigRegRelative(Register dest, Address offset, Register base, codeGen &gen,
+  void emitLoadOrigRegRelative(Dyninst::Register dest, Dyninst::Address offset, Dyninst::Register base, codeGen &gen,
                                bool store);
 
-  void emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen);
+  void emitLoadOrigRegister(Dyninst::Address register_num, Dyninst::Register dest, codeGen &gen);
 
-  void emitStoreOrigRegister(Address register_num, Register dest, codeGen &gen);
+  void emitStoreOrigRegister(Dyninst::Address register_num, Dyninst::Register dest, codeGen &gen);
 
-  void emitStore(Address addr, Register src, int size, codeGen &gen);
+  void emitStore(Dyninst::Address addr, Dyninst::Register src, int size, codeGen &gen);
 
-  void emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen);
+  void emitStoreIndir(Dyninst::Register addr_reg, Dyninst::Register src, int size, codeGen &gen);
 
-  void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size,
+  void emitStoreFrameRelative(Dyninst::Address offset, Dyninst::Register src, Dyninst::Register scratch, int size,
                               codeGen &gen);
 
-  void emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen);
+  void emitStoreRelative(Dyninst::Register source, Dyninst::Address offset, Dyninst::Register base, int size, codeGen &gen);
 
-  void emitStoreShared(Register source, const image_variable *var, bool is_local, int size,
+  void emitStoreShared(Dyninst::Register source, const image_variable *var, bool is_local, int size,
                        codeGen &gen);
 
-  bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
+  bool emitMoveRegToReg(Dyninst::Register src, Dyninst::Register dest, codeGen &gen);
 
   bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
 
-  Register emitCall(opCode op, codeGen &gen, const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands,
+  Dyninst::Register emitCall(opCode op, codeGen &gen, const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands,
                     func_instance *callee);
 
-  void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
+  void emitGetRetVal(Dyninst::Register dest, bool addr_of, codeGen &gen);
 
-  void emitGetRetAddr(Register dest, codeGen &gen);
+  void emitGetRetAddr(Dyninst::Register dest, codeGen &gen);
 
-  void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op,
+  void emitGetParam(Dyninst::Register dest, Dyninst::Register param_num, instPoint::Type pt_type, opCode op,
                     bool addr_of, codeGen &gen);
 
-  void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen);
+  void emitASload(int ra, int rb, int sc, long imm, Dyninst::Register dest, int stackShift, codeGen &gen);
 
   void emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift, codeGen &gen);
 
-  void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
+  void emitCSload(int ra, int rb, int sc, long imm, Dyninst::Register dest, codeGen &gen);
 
   void emitCountSpecLoad(const BPatch_countSpec_NP *as, Dyninst::Register dest, codeGen &gen);
 
@@ -198,15 +198,15 @@ public:
   bool emitBTRestores(baseTramp *bt, codeGen &gen);
 
   // TODO: requires allocating / deallocating register (see next comment).
-  void emitStoreImm(Address addr, int imm, codeGen &gen);
+  void emitStoreImm(Dyninst::Address addr, int imm, codeGen &gen);
 
   // TODO: Implementation requires full 'codeGen' and 'registerSpace' class to
   // allocate register.
-  void emitAddSignedImm(Address addr, int imm, codeGen &gen);
+  void emitAddSignedImm(Dyninst::Address addr, int imm, codeGen &gen);
 
-  bool emitPush(codeGen &, Register);
+  bool emitPush(codeGen &, Dyninst::Register);
 
-  bool emitPop(codeGen &, Register);
+  bool emitPop(codeGen &, Dyninst::Register);
 
   bool emitAdjustStackPointer(int index, codeGen &gen);
 
@@ -218,12 +218,12 @@ public:
   void emitNops(unsigned numNops, codeGen &gen);
 
   // s[reg:reg+1] += constant
-  void emitAddConstantToRegPair(Register reg, int constant, codeGen &gen);
+  void emitAddConstantToRegPair(Dyninst::Register reg, int constant, codeGen &gen);
 
   void emitEndProgram(codeGen &gen);
 
   // Set 32-bit reg = 32-bit literal
-  void emitMovLiteral(Register reg, uint32_t literal, codeGen &gen);
+  void emitMovLiteral(Dyninst::Register reg, uint32_t literal, codeGen &gen);
 
   // wordOffset can be positive or negetive 16 bit value
   // conditionally set PC = PC + SignExtend(wordOffset * 4) + 4
@@ -232,13 +232,13 @@ public:
   // set PC = PC + SignExtend(wordOffset * 4) + 4
   void emitShortJump(int16_t wordOffset, codeGen &gen);
 
-  void emitLongJump(Register reg, uint64_t fromAddress, uint64_t toAddress, codeGen &gen);
+  void emitLongJump(Dyninst::Register reg, uint64_t fromAddress, uint64_t toAddress, codeGen &gen);
 
   void emitScalarDataCacheWriteback(codeGen &gen);
 
-  void emitAtomicAdd(Register baseAddrReg, Register src0, codeGen &gen);
+  void emitAtomicAdd(Dyninst::Register baseAddrReg, Dyninst::Register src0, codeGen &gen);
 
-  void emitAtomicSub(Register baseAddrReg, Register src0, codeGen &gen);
+  void emitAtomicSub(Dyninst::Register baseAddrReg, Dyninst::Register src0, codeGen &gen);
 protected:
   // ---- per-gen hooks: the ONLY things a concrete gen subclass supplies ----
   // The register/codegen ARCHITECTURE of this gen (gfx908, ...). Used everywhere the base needs an arch
@@ -259,12 +259,12 @@ protected:
 
 private:
   // Some helper functions
-  bool isValidSgpr(Register reg) const;
-  bool isValidSgprBlock(Register regBlock) const;
-  bool isValidSgprPair(Register regBlock) const;
+  bool isValidSgpr(Dyninst::Register reg) const;
+  bool isValidSgprBlock(Dyninst::Register regBlock) const;
+  bool isValidSgprPair(Dyninst::Register regBlock) const;
 
-  Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) /* override */;
-  Address getInterModuleVarAddr(const image_variable *var, codeGen& gen) /* override */;
+  Dyninst::Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) /* override */;
+  Dyninst::Address getInterModuleVarAddr(const image_variable *var, codeGen& gen) /* override */;
 };
 
 // The concrete per-gen emitters (EmitterAmdgpuGfx908, ...) subclass EmitterAmdgpu and live under

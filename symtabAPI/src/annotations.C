@@ -33,6 +33,10 @@
 #include "annotations.h"
 #include "Annotatable.h"
 
+using namespace Dyninst::SymtabAPI;
+
+using namespace Dyninst;
+
 AnnotationClass<std::vector<std::string> > SymbolVersionNamesAnno("SymbolVersionNamesAnno");
 AnnotationClass<std::string> SymbolFileNameAnno("SymbolFileNameAnno");
 AnnotationClass<std::vector<Region *> > UserRegionsAnno("UserRegionsAnno");

@@ -5,6 +5,8 @@
 
 #include <map>
 
+using namespace codegen_arch;
+
 namespace Dyninst { namespace DyninstAPI {
 
   void EmitterAarch64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprnum,

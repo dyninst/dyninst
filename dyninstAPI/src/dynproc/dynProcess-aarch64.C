@@ -34,6 +34,7 @@
 #include "patching/function.h"
 
 #include "symtabAPI/h/Symtab.h"
+using namespace Dyninst;
 using namespace SymtabAPI;
 
 

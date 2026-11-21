@@ -46,6 +46,8 @@
 
 #include "debug_dataflow.h"
 
+using namespace rose::BinaryAnalysis::InstructionSemantics2;
+
 using namespace Dyninst;
 using namespace DataflowAPI;
 

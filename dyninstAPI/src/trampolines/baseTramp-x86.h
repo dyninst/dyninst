@@ -37,7 +37,7 @@ class baseTramp_x86 final : public baseTramp {
 public:
   bool generateSaves(codeGen &gen, registerSpace *) override;
   bool generateRestores(codeGen &gen, registerSpace *) override;
-  void accumulateBodyClobbers(codeGen &gen, codeBufIndex_t bodyStart) const override;
+  void accumulateBodyClobbers(codeGen &gen, codegen_arch::codeBufIndex_t bodyStart) const override;
   bool savedUnneededFlags(registerSpace *) const override;
   bool mayClobberFlags() const override;
 };

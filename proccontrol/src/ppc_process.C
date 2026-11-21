@@ -34,6 +34,10 @@
 #include <iostream>
 #include "unaligned_memory_access.h"
 
+using namespace Dyninst::ProcControlAPI;
+
+using namespace Dyninst;
+
 using namespace NS_power;
 using namespace std;
 

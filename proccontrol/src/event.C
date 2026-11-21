@@ -43,6 +43,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+using namespace Dyninst;
+using namespace Dyninst::ProcControlAPI;
+
 using namespace std;
 
 ArchEvent::ArchEvent(std::string name_) :

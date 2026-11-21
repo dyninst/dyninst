@@ -46,6 +46,9 @@
 #include "Mailbox.h"
 #include "common/src/dyninst_filesystem.h"
 
+using namespace Dyninst;
+using namespace Dyninst::ProcControlAPI;
+
 using namespace std;
 
 #if defined(cap_thread_db)

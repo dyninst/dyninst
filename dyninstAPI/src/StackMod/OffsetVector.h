@@ -40,18 +40,17 @@
 
 #include "StackLocation.h"
 
-using namespace Dyninst;
 
 class OffsetVector
 {
     public:
-        typedef StackAnalysis::Height K;
+        typedef Dyninst::StackAnalysis::Height K;
         typedef StackLocation* V;
 
         OffsetVector() {}
 
         IntervalTree<K,V> stack() { return _stack; }
-        std::map<MachRegister, IntervalTree<K,V> > definedRegs() { return _definedRegs; }
+        std::map<Dyninst::MachRegister, IntervalTree<K,V> > definedRegs() { return _definedRegs; }
 
         void insert(K lb, K ub, V v, bool isRegHeight);
 
@@ -59,23 +58,23 @@ class OffsetVector
         void update(K lb, V newVal);
 
         bool erase(K key, bool stack=true);
-        bool erase(MachRegister r, V val);
+        bool erase(Dyninst::MachRegister r, V val);
 
         bool find(K key, V& val) const;
-        bool find(K key, MachRegister reg, V& val) const;
+        bool find(K key, Dyninst::MachRegister reg, V& val) const;
         bool find(K key, K& lb, K& ub, V& val) const;
 
-        void addSkip(MachRegister, StackAnalysis::Height, Address, Address);
-        bool isSkip(MachRegister, StackAnalysis::Height, Address, Address) const;
+        void addSkip(Dyninst::MachRegister, Dyninst::StackAnalysis::Height, Dyninst::Address, Dyninst::Address);
+        bool isSkip(Dyninst::MachRegister, Dyninst::StackAnalysis::Height, Dyninst::Address, Dyninst::Address) const;
         void printSkips() const;
 
         void print() const;
 
     private:
         IntervalTree<K,V> _stack;
-        std::map<MachRegister, IntervalTree<K,V> > _definedRegs;
+        std::map<Dyninst::MachRegister, IntervalTree<K,V> > _definedRegs;
 
-        std::map<MachRegister, std::map<StackAnalysis::Height, std::set<std::pair<Address,Address> >* >* > _skipRegPCs;
+        std::map<Dyninst::MachRegister, std::map<Dyninst::StackAnalysis::Height, std::set<std::pair<Dyninst::Address,Dyninst::Address> >* >* > _skipRegPCs;
 
 };
 

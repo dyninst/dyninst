@@ -42,8 +42,6 @@
 #include "response.h"
 #include <stdlib.h>
 
-using namespace Dyninst;
-using namespace ProcControlAPI;
 
 class int_process;
 class int_thread;
@@ -141,7 +139,7 @@ class int_iRPC : public boost::enable_shared_from_this<int_iRPC>
    unsigned long startOffset() const;
    bool isAsync() const;
    int_thread *thread() const;
-   IRPC::weak_ptr getIRPC() const;
+   Dyninst::ProcControlAPI::IRPC::weak_ptr getIRPC() const;
    iRPCAllocation::ptr allocation() const;
    iRPCAllocation::ptr targetAllocation() const;
    bool isProcStopRPC() const;
@@ -174,7 +172,7 @@ class int_iRPC : public boost::enable_shared_from_this<int_iRPC>
    void setStartOffset(unsigned long o);
    void setAsync(bool a);
    void setThread(int_thread *t);
-   void setIRPC(IRPC::weak_ptr o);
+   void setIRPC(Dyninst::ProcControlAPI::IRPC::weak_ptr o);
    void setAllocation(iRPCAllocation::ptr i);
    void setTargetAllocation(iRPCAllocation::ptr i);
    void setAllocSize(unsigned long size);
@@ -194,7 +192,7 @@ class int_iRPC : public boost::enable_shared_from_this<int_iRPC>
    Dyninst::Address infMallocResult();
    void setMallocResult(Dyninst::Address addr);
    rpc_wrapper *getWrapperForDecode();
-   Address getInfFreeTarget();
+   Dyninst::Address getInfFreeTarget();
 
    int_thread::State getRestoreToState() const;
    void setRestoreToState(int_thread::State s);
@@ -207,10 +205,10 @@ class int_iRPC : public boost::enable_shared_from_this<int_iRPC>
    unsigned long binary_size;
    unsigned long start_offset;
    int_thread *thrd;
-   Address inffree_target;
+   Dyninst::Address inffree_target;
    iRPCAllocation::ptr cur_allocation;
    iRPCAllocation::ptr target_allocation;
-   IRPC::weak_ptr hl_irpc;
+   Dyninst::ProcControlAPI::IRPC::weak_ptr hl_irpc;
    bool async;
    bool freeBinaryBlob;
    bool restore_internal;
@@ -251,32 +249,32 @@ class iRPCMgr
 iRPCMgr *rpcMgr();
 
 //Runs after user callback
-class iRPCHandler : public Handler
+class iRPCHandler : public Dyninst::ProcControlAPI::Handler
 {
   public:
    iRPCHandler();
    virtual ~iRPCHandler();
-   virtual handler_ret_t handleEvent(Event::ptr ev);
-   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+   virtual handler_ret_t handleEvent(Dyninst::ProcControlAPI::Event::ptr ev);
+   virtual void getEventTypesHandled(std::vector<Dyninst::ProcControlAPI::EventType> &etypes);
    virtual int getPriority() const;
 };
 
-class iRPCPreCallbackHandler : public Handler
+class iRPCPreCallbackHandler : public Dyninst::ProcControlAPI::Handler
 {
   public:
    iRPCPreCallbackHandler();
    virtual ~iRPCPreCallbackHandler();
-   virtual handler_ret_t handleEvent(Event::ptr ev);
-   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+   virtual handler_ret_t handleEvent(Dyninst::ProcControlAPI::Event::ptr ev);
+   virtual void getEventTypesHandled(std::vector<Dyninst::ProcControlAPI::EventType> &etypes);
 };
 
-class iRPCLaunchHandler : public Handler
+class iRPCLaunchHandler : public Dyninst::ProcControlAPI::Handler
 {
   public:
    iRPCLaunchHandler();
    virtual ~iRPCLaunchHandler();
-   virtual handler_ret_t handleEvent(Event::ptr ev);
-   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+   virtual handler_ret_t handleEvent(Dyninst::ProcControlAPI::Event::ptr ev);
+   virtual void getEventTypesHandled(std::vector<Dyninst::ProcControlAPI::EventType> &etypes);
 };
 
 //Wraps an int_iRPC::ptr so that the user level class IRPC doesn't

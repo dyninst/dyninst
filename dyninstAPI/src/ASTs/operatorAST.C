@@ -18,6 +18,8 @@
 #include <limits>
 #include <sstream>
 
+using namespace codegen_arch;
+
 namespace {
   bool IsSignedOperation(BPatch_type *l, BPatch_type *r) {
     if(l == NULL || r == NULL) {

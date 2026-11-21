@@ -34,6 +34,9 @@
 #include <fcntl.h>
 #include <string.h>
 
+using namespace Dyninst;
+using namespace Dyninst::ProcControlAPI;
+
 int_notify::unix_details::unix_details() :
    pipe_in(-1),
    pipe_out(-1)

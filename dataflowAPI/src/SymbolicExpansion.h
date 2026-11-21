@@ -36,7 +36,6 @@
 
 class SgAsmInstruction;
 
-using namespace rose::BinaryAnalysis::InstructionSemantics2;
 
 namespace Dyninst {
     namespace DataflowAPI {
@@ -55,23 +54,23 @@ namespace Dyninst {
 
 
             static bool expandPPC32(SgAsmInstruction *rose_insn,
-                                      BaseSemantics::RiscOperatorsPtr ops,
+                                      rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::RiscOperatorsPtr ops,
                                       const std::string &insn_dump);
 
             static bool expandPPC64(SgAsmInstruction *rose_insn,
-                                      BaseSemantics::RiscOperatorsPtr ops,
+                                      rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::RiscOperatorsPtr ops,
                                       const std::string &insn_dump);
 
             static bool expandAarch64(SgAsmInstruction *rose_insn,
-                                      BaseSemantics::RiscOperatorsPtr ops,
+                                      rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::RiscOperatorsPtr ops,
                                       const std::string &insn_dump);
 
             static bool expandRiscv64(SgAsmInstruction *rose_insn,
-                                      BaseSemantics::RiscOperatorsPtr ops,
+                                      rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::RiscOperatorsPtr ops,
                                       const std::string &insn_dump);
 
             static bool expandAMDGPU(SgAsmInstruction *rose_insn,
-                                      BaseSemantics::RiscOperatorsPtr ops,
+                                      rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::RiscOperatorsPtr ops,
                                       const std::string &insn_dump);
 
 

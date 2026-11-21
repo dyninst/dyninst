@@ -50,6 +50,8 @@
 #include <set>
 #include <iostream>
 
+using namespace Dyninst::ProcControlAPI;
+
 using namespace Dyninst;
 using namespace std;
 

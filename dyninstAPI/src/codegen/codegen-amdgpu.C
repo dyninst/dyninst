@@ -37,6 +37,8 @@
 #include <cstdint>
 #include <stdlib.h>
 
+using namespace codegen_arch;
+
 void insnCodeGen::generateTrap(codeGen & /* gen */) {
   // BinaryEdit::addTrap calls this.
   // We currently only do static binary rewriting for AMDGPU and don't need to generate trap

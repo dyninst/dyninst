@@ -73,7 +73,6 @@
 #include "parseAPI/h/CodeSource.h"
 
 using namespace std;
-using namespace Dyninst;
 
 typedef bool (*functionNameSieve_t)(const char *test,void *data);
 #define RH_SEPERATOR '/'
@@ -135,7 +134,7 @@ class fileDescriptor {
 
     // Some platforms have split code and data. If yours is not one of them,
     // hand in the same address for code and data.
-    fileDescriptor(string file, Address code, Address data) : 
+    fileDescriptor(string file, Dyninst::Address code, Dyninst::Address data) : 
 #if defined(os_windows)
 		procHandle_(INVALID_HANDLE_VALUE),
 		fileHandle_(INVALID_HANDLE_VALUE),
@@ -148,8 +147,8 @@ class fileDescriptor {
         {}
 
     // ctor for non-files
-    fileDescriptor(string file, Address code, Address data, 
-                   Address length, void* ) :
+    fileDescriptor(string file, Dyninst::Address code, Dyninst::Address data, 
+                   Dyninst::Address length, void* ) :
 #if defined(os_windows)
 		procHandle_(INVALID_HANDLE_VALUE),
 		fileHandle_(INVALID_HANDLE_VALUE),
@@ -179,19 +178,19 @@ class fileDescriptor {
      
      const string &file() const { return file_; }
      const string &member() const { return member_; }
-     Address code() const { return code_; }
-     Address data() const { return data_; }
+     Dyninst::Address code() const { return code_; }
+     Dyninst::Address data() const { return data_; }
      int pid() const { return pid_; }
 //     Address loadAddr() const { return loadAddr_; }
-     void setLoadAddr(Address a) { 
+     void setLoadAddr(Dyninst::Address a) { 
         code_ += a;
         data_ += a;
      }
-     void setCode(Address c) { code_ = c; }
-     void setData(Address d) { data_ = d; }
+     void setCode(Dyninst::Address c) { code_ = c; }
+     void setData(Dyninst::Address d) { data_ = d; }
      void setMember(string member) { member_ = member; }
      void setPid(int pid) { pid_ = pid; }
-     Address length() const { return length_; } //only for non-files
+     Dyninst::Address length() const { return length_; } //only for non-files
      void* rawPtr();                            //only for non-files
 
 #if defined(os_windows)
@@ -212,10 +211,10 @@ private:
 #endif
      string file_;
      string member_;
-     Address code_;
-     Address data_;
+     Dyninst::Address code_;
+     Dyninst::Address data_;
      int pid_;
-     Address length_;        // set only if this is not really a file
+     Dyninst::Address length_;        // set only if this is not really a file
 
      bool IsEqual( const fileDescriptor &fd ) const;
 };
@@ -224,24 +223,24 @@ class image_variable {
  private:
  public:
     image_variable() {}
-    image_variable(SymtabAPI::Variable *var,
+    image_variable(Dyninst::SymtabAPI::Variable *var,
     		   pdmodule *mod);
 
-    Address getOffset() const;
+    Dyninst::Address getOffset() const;
 
     string symTabName() const { return var_->getFirstSymbol()->getMangledName(); }
-    SymtabAPI::Aggregate::name_iter symtab_names_begin() const;
-    SymtabAPI::Aggregate::name_iter symtab_names_end() const;
-    SymtabAPI::Aggregate::name_iter pretty_names_begin() const;
-    SymtabAPI::Aggregate::name_iter pretty_names_end() const;
+    Dyninst::SymtabAPI::Aggregate::name_iter symtab_names_begin() const;
+    Dyninst::SymtabAPI::Aggregate::name_iter symtab_names_end() const;
+    Dyninst::SymtabAPI::Aggregate::name_iter pretty_names_begin() const;
+    Dyninst::SymtabAPI::Aggregate::name_iter pretty_names_end() const;
     
     bool addSymTabName(const std::string &, bool isPrimary = false);
     bool addPrettyName(const std::string &, bool isPrimary = false);
 
     pdmodule *pdmod() const { return pdmod_; }
-    SymtabAPI::Variable *svar() const { return var_; }
+    Dyninst::SymtabAPI::Variable *svar() const { return var_; }
 
-    SymtabAPI::Variable *var_{};
+    Dyninst::SymtabAPI::Variable *var_{};
     pdmodule *pdmod_{};
     
 };
@@ -278,10 +277,10 @@ class image : public codeRange {
 
    void analyzeIfNeeded();
    bool isParsed() { return parseState_ == analyzed; }
-   parse_func* addFunction(Address functionEntryAddr, const char *name=NULL);
+   parse_func* addFunction(Dyninst::Address functionEntryAddr, const char *name=NULL);
 
    // creates the module if it does not exist
-   pdmodule *getOrCreateModule (SymtabAPI::Module *mod);
+   pdmodule *getOrCreateModule (Dyninst::SymtabAPI::Module *mod);
 
  protected:
    ~image();
@@ -314,11 +313,11 @@ class image : public codeRange {
    /**** Overlapping region objects MUST NOT use these routines      ****/
    /*********************************************************************/
    // Find a function that begins at a particular address
-   parse_func *findFuncByEntry(const Address &entry);
+   parse_func *findFuncByEntry(const Dyninst::Address &entry);
    // Code sharing allows multiple functions to overlap a given point
-   int findFuncs(const Address offset, set<ParseAPI::Function *> & funcs);
+   int findFuncs(const Dyninst::Address offset, set<Dyninst::ParseAPI::Function *> & funcs);
    // Find the basic blocks that overlap the given address
-   int findBlocksByAddr(const Address offset, set<ParseAPI::Block*> & blocks);
+   int findBlocksByAddr(const Dyninst::Address offset, set<Dyninst::ParseAPI::Block*> & blocks);
   
    //Add an extra pretty name to a known function (needed for handling
    //overloaded functions in paradyn)
@@ -326,7 +325,7 @@ class image : public codeRange {
 
    // Create an image variable (e.g., malloced variable). Creates the
    // variable and adds to appropriate data structures.
-   image_variable* createImageVariable(Address offset, std::string name, int size, pdmodule *mod);
+   image_variable* createImageVariable(Dyninst::Address offset, std::string name, int size, pdmodule *mod);
 	
    bool symbolExists(const std::string &); /* Check symbol existence */
    void postProcess(const std::string);          /* Load .pif file */
@@ -337,33 +336,33 @@ class image : public codeRange {
    string name() const { return name_;}
    string pathname() const { return pathname_; }
    const fileDescriptor &desc() const { return desc_; }
-   Address imageOffset() const { return imageOffset_;}
-   Address dataOffset() const { return dataOffset_;}
-   Address dataLength() const { return dataLen_;} 
-   Address imageLength() const { return imageLen_;} 
+   Dyninst::Address imageOffset() const { return imageOffset_;}
+   Dyninst::Address dataOffset() const { return dataOffset_;}
+   Dyninst::Address dataLength() const { return dataLen_;} 
+   Dyninst::Address imageLength() const { return imageLen_;} 
 
-   void setImageLength(Address newlen);
+   void setImageLength(Dyninst::Address newlen);
 
    // codeRange interface implementation
-   Address get_address() const { return imageOffset(); }
+   Dyninst::Address get_address() const { return imageOffset(); }
    unsigned get_size() const { return imageLength(); }
 
-   SymtabAPI::Symtab *getObject() const { return linkedFile; }
-   ParseAPI::CodeObject *codeObject() const { return obj_; }
+   Dyninst::SymtabAPI::Symtab *getObject() const { return linkedFile; }
+   Dyninst::ParseAPI::CodeObject *codeObject() const { return obj_; }
 
    bool isDyninstRTLib() const { return is_libdyninstRT; }
    bool isExecutable() const { return getObject()->isExec(); }
    bool isSharedLibrary() const { return getObject()->isSharedLibrary(); }
    bool isUnlinkedObjectFile() const { return getObject()->isUnlinkedObjectFile(); }
 
-   bool getExecCodeRanges(std::vector<std::pair<Address, Address> > &ranges);
+   bool getExecCodeRanges(std::vector<std::pair<Dyninst::Address, Dyninst::Address> > &ranges);
 
    // Return symbol table information
-   SymtabAPI::Symbol *symbol_info(const std::string& symbol_name);
+   Dyninst::SymtabAPI::Symbol *symbol_info(const std::string& symbol_name);
    // And used for finding inferior heaps.... hacky, but effective.
-   bool findSymByPrefix(const std::string &prefix, std::vector<SymtabAPI::Symbol *> &ret);
+   bool findSymByPrefix(const std::string &prefix, std::vector<Dyninst::SymtabAPI::Symbol *> &ret);
 
-   const ParseAPI::CodeObject::funclist &getAllFunctions();
+   const Dyninst::ParseAPI::CodeObject::funclist &getAllFunctions();
    const std::vector<image_variable*> &getAllVariables();
 
    //-----------DEFENSIVE-MODE CODE------------//
@@ -385,28 +384,28 @@ class image : public codeRange {
    const std::vector<image_variable *> &getExportedVariables() const;
    const std::vector<image_variable *> &getCreatedVariables();
 
-   bool getInferiorHeaps(vector<pair<string, Address> > &codeHeaps,
-                         vector<pair<string, Address> > &dataHeaps);
+   bool getInferiorHeaps(vector<pair<string, Dyninst::Address> > &codeHeaps,
+                         vector<pair<string, Dyninst::Address> > &dataHeaps);
 
    bool getModules(vector<pdmodule *> &mods);
 
     int getNextBlockID() { return nextBlockID_++; }
 
-   std::unordered_map<Address, std::string> *getPltFuncs();
-   void getPltFuncs(std::map<Address, std::string> &out);
+   std::unordered_map<Dyninst::Address, std::string> *getPltFuncs();
+   void getPltFuncs(std::map<Dyninst::Address, std::string> &out);
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
-   bool updatePltFunc(parse_func *caller_func, Address stub_targ);
+   bool updatePltFunc(parse_func *caller_func, Dyninst::Address stub_targ);
 #endif
 
    // Object deletion (defensive mode)
-   void destroy(ParseAPI::Block *);
-   void destroy(ParseAPI::Edge *);
-   void destroy(ParseAPI::Function *);
+   void destroy(Dyninst::ParseAPI::Block *);
+   void destroy(Dyninst::ParseAPI::Edge *);
+   void destroy(Dyninst::ParseAPI::Function *);
 
 
  private:
-   void findModByAddr (const SymtabAPI::Symbol *lookUp, vector<SymtabAPI::Symbol *> &mods,
-                       string &modName, Address &modAddr, 
+   void findModByAddr (const Dyninst::SymtabAPI::Symbol *lookUp, vector<Dyninst::SymtabAPI::Symbol *> &mods,
+                       string &modName, Dyninst::Address &modAddr, 
                        const string &defName);
 
    //
@@ -421,7 +420,7 @@ class image : public codeRange {
    bool determineImageType();
    bool addSymtabVariables();
 
-   void setModuleLanguages(std::unordered_map<std::string, SymtabAPI::supportedLanguages> *mod_langs);
+   void setModuleLanguages(std::unordered_map<std::string, Dyninst::SymtabAPI::supportedLanguages> *mod_langs);
 
    // We have a _lot_ of lookup types; this handles proper entry
    void enterFunctionInTables(parse_func *func);
@@ -443,12 +442,12 @@ class image : public codeRange {
    string name_;		 /* filename part of file, no slashes */
    string pathname_;      /* file name with path */
 
-   Address imageOffset_;
+   Dyninst::Address imageOffset_;
    unsigned imageLen_;
-   Address dataOffset_;
+   Dyninst::Address dataOffset_;
    unsigned dataLen_;
 
-   std::unordered_map<Address, parse_func *> activelyParsing;
+   std::unordered_map<Dyninst::Address, parse_func *> activelyParsing;
 
    //Address codeValidStart_;
    //Address codeValidEnd_;
@@ -458,9 +457,9 @@ class image : public codeRange {
    bool is_libdyninstRT;
 
    // data from the symbol table 
-   SymtabAPI::Symtab *linkedFile;
+   Dyninst::SymtabAPI::Symtab *linkedFile;
 #if defined(os_linux) || defined(os_freebsd)
-   SymtabAPI::Archive *archive;
+   Dyninst::SymtabAPI::Archive *archive;
 #endif
 
    // ParseAPI
@@ -471,7 +470,7 @@ class image : public codeRange {
    Dyninst::DyninstAPI::DynParseCallback * parse_cb_;
    void *cb_arg0_; // argument for mapped_object callback
 
-   map<SymtabAPI::Module *, pdmodule *> mods_;
+   map<Dyninst::SymtabAPI::Module *, pdmodule *> mods_;
 
 
    std::vector<image_variable *> everyUniqueVariable;
@@ -485,12 +484,12 @@ class image : public codeRange {
 
    // "Function" symbol names that are PLT entries or the equivalent
    // FIXME remove
-   std::unordered_map<Address, std::string> *pltFuncs;
+   std::unordered_map<Dyninst::Address, std::string> *pltFuncs;
 
-   std::unordered_map <Address, image_variable *> varsByAddr;
+   std::unordered_map <Dyninst::Address, image_variable *> varsByAddr;
 
-   vector<pair<string, Address> > codeHeaps_;
-   vector<pair<string, Address> > dataHeaps_;
+   vector<pair<string, Dyninst::Address> > codeHeaps_;
+   vector<pair<string, Dyninst::Address> > dataHeaps_;
 
    // new element tracking
    vector<parse_block*> newBlocks_;
@@ -509,7 +508,7 @@ class image : public codeRange {
 class pdmodule {
    friend class image;
  public:
-   pdmodule(SymtabAPI::Module *mod, image *e)
+   pdmodule(Dyninst::SymtabAPI::Module *mod, image *e)
    	    : mod_(mod), exec_(e) {}
 
    void cleanProcessSpecific(PCProcess *p);
@@ -534,16 +533,16 @@ class pdmodule {
                               std::vector<parse_func *> &found);
    void dumpMangled(std::string const& prefix) const;
    const string &fileName() const;
-   SymtabAPI::supportedLanguages language() const;
-   Address addr() const;
+   Dyninst::SymtabAPI::supportedLanguages language() const;
+   Dyninst::Address addr() const;
    bool isShared() const;
 
-   SymtabAPI::Module *mod();
+   Dyninst::SymtabAPI::Module *mod();
 
    image *imExec() const { return exec_; }
    
  private:
-   SymtabAPI::Module *mod_;
+   Dyninst::SymtabAPI::Module *mod_;
    image *exec_;
 };
 

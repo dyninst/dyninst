@@ -39,6 +39,10 @@
 #include "patching/function.h"
 #include "arch-aarch64.h"
 
+using namespace Dyninst;
+
+using namespace codegen_arch;
+
 void insnCodeGen::generate(codeGen &gen, instruction &insn) {
   unsigned raw = insn.asInt();
   gen.copy(&raw, sizeof(unsigned));

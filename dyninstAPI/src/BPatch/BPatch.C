@@ -61,6 +61,9 @@
 #include <fstream>
 #include <numeric>
 
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
+
 using namespace std;
 using namespace SymtabAPI;
 

@@ -47,6 +47,9 @@
 
 #include "unaligned_memory_access.h"
 
+using namespace Dyninst;
+using namespace codegen_arch;
+
 using namespace std;
 using namespace Dyninst::InstructionAPI;
 

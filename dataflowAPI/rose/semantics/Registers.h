@@ -14,7 +14,6 @@
 #include <queue>
 #include <string>
 
-using namespace Sawyer::Container;
 
 /** Defines registers available for a particular architecture.
  *
@@ -240,7 +239,7 @@ RegisterDictionary::RegisterDescriptors
 RegisterDictionary::filter_nonoverlapping(RegisterDescriptors desc, Compare order, bool reconsider_parts)
 {
     RegisterDescriptors retval;
-    Map<std::pair<int/*major*/, int/*minor*/>, ExtentMap> have_bits; // the union of the bits of descriptors we will return
+    Sawyer::Container::Map<std::pair<int/*major*/, int/*minor*/>, ExtentMap> have_bits; // the union of the bits of descriptors we will return
 
     // Process the descriptors in the order specified.
     std::priority_queue<RegisterDescriptor, RegisterDescriptors, Compare> heap(order, desc);

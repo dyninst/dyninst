@@ -39,6 +39,8 @@
 #include <assert.h>
 #include <iostream>
 
+using namespace Dyninst::ProcControlAPI;
+
 using namespace std;
 
 std::set<Generator::gen_cb_func_t> Generator::CBs;

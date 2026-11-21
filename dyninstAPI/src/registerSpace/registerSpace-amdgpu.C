@@ -6,6 +6,8 @@
 #include "amdgpu-reg-adapter.h"
 #include <vector>
 
+using namespace Dyninst;
+
 using Register = Dyninst::Register;
 using OperandRegId = Dyninst::OperandRegId;
 using BlockSize = Dyninst::BlockSize;

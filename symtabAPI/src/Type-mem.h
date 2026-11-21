@@ -38,14 +38,12 @@
 #include <string.h>
 #include <utility>
 
-using namespace Dyninst;
-using namespace SymtabAPI;
 
 template<class T>
-T *upgradePlaceholder(Type *placeholder, T *new_type)
+T *upgradePlaceholder(Dyninst::SymtabAPI::Type *placeholder, T *new_type)
 {
-    assert(sizeof(T) <= Type::max_size);
-    memset(static_cast<void*>(placeholder), 0, Type::max_size);
+    assert(sizeof(T) <= Dyninst::SymtabAPI::Type::max_size);
+    memset(static_cast<void*>(placeholder), 0, Dyninst::SymtabAPI::Type::max_size);
     T* ret = new(placeholder) T{};
     assert(static_cast<void*>(placeholder) == static_cast<void*>(ret));
     *ret = *new_type;
@@ -54,8 +52,8 @@ T *upgradePlaceholder(Type *placeholder, T *new_type)
 
 template<class T>
 typename boost::enable_if<
-    boost::integral_constant<bool, !bool(boost::is_same<Type, T>::value)>,
-boost::shared_ptr<Type>>::type typeCollection::addOrUpdateType(boost::shared_ptr<T> type)
+    boost::integral_constant<bool, !bool(boost::is_same<Dyninst::SymtabAPI::Type, T>::value)>,
+boost::shared_ptr<Dyninst::SymtabAPI::Type>>::type Dyninst::SymtabAPI::typeCollection::addOrUpdateType(boost::shared_ptr<T> type)
 {
 	//Instanciating this function for 'Type' would be a mistake, which
 	//the following assert tries to guard against.  If you trigger this,
@@ -64,7 +62,7 @@ boost::shared_ptr<Type>>::type typeCollection::addOrUpdateType(boost::shared_ptr
     // NOTE: Disabled, we use SFINAE instead to handle this.
     // BOOST_STATIC_ASSERT(sizeof(T) != sizeof(Type));
 
-    dyn_c_hash_map<int, boost::shared_ptr<Type>>::accessor a;
+    Dyninst::dyn_c_hash_map<int, boost::shared_ptr<Dyninst::SymtabAPI::Type>>::accessor a;
 	if (typesByID.insert(a, {type->getID(), type}))
 	{
 		if ( type->getName() != "" )
@@ -82,7 +80,7 @@ boost::shared_ptr<Type>>::type typeCollection::addOrUpdateType(boost::shared_ptr
 		return a->second;
 	}
 
-	if (a->second->getDataClass() == dataUnknownType)
+	if (a->second->getDataClass() == Dyninst::SymtabAPI::dataUnknownType)
 	{
 		upgradePlaceholder(a->second.get(), type.get());
 	}

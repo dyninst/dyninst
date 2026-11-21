@@ -50,6 +50,8 @@
 #include "StackModExpr.h"
 #include "StackModChecker.h"
 
+using namespace Dyninst;
+
 
 StackModChecker::~StackModChecker() {
     // Free the height vectors in blockHeights

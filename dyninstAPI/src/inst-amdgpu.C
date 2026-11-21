@@ -36,6 +36,9 @@
 #include "codegen/emitters/amdgpu/emit-amdgpu.h"
 #include "dyn_register.h"
 
+using namespace Dyninst;
+using namespace codegen_arch;
+
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 
 /***********************************************************************************************/

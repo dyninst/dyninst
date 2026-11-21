@@ -8,6 +8,8 @@
 #include <boost/thread/lock_guard.hpp>
 #include <limits>
 
+using namespace Dyninst;
+
 namespace {
 
   class PLTFunction : public Dyninst::SymtabAPI::Function {

@@ -54,10 +54,9 @@ namespace NS_amdgpu {
 // We map these 'Register's to MachRegisters in RegisterConversion-amdgpu.C
 // For information on architectural registers see MachRegister in dyn_regs.h
 
-using namespace Dyninst;
 
-constexpr Alignment PAIR_ALIGNMENT(2);
-constexpr Alignment QUAD_ALIGNMENT(4);
+constexpr Dyninst::Alignment PAIR_ALIGNMENT(2);
+constexpr Dyninst::Alignment QUAD_ALIGNMENT(4);
 
 constexpr uint32_t MIN_SGPR_ID = 0;
 constexpr uint32_t MAX_SGPR_ID = 101;

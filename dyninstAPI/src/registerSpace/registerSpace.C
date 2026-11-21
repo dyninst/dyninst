@@ -64,6 +64,8 @@
 #include "codegen/emitters/amdgpu/emit-amdgpu.h"
 #endif
 
+using namespace Dyninst;
+
 registerSpace *registerSpace::globalRegSpace_ = NULL;
 registerSpace *registerSpace::globalRegSpace64_ = NULL;
 

@@ -47,6 +47,10 @@
 #include <sstream>
 #include <limits>
 
+using namespace Dyninst;
+
+using namespace codegen_arch;
+
 bool shouldAssertIfInLongBranch = true;
 bool failedLongBranchLocal = false;
 class TrackStacktraces {

@@ -7,6 +7,8 @@
 #include "registers/abstract_regs.h"
 #include "emitter_test.h"
 
+using namespace Dyninst;
+
 int main() {
   using Dyninst::verify_emitter;
   using Dyninst::emitter_buffer_t;

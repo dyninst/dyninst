@@ -50,26 +50,25 @@ class func_instance;
 class edge_instance;
 
 using namespace std;
-using namespace Dyninst;
 using Dyninst::PatchAPI::DynCFGMaker;
 
 class mapped_module;
 
 class int_symbol {
  public:
-    int_symbol(SymtabAPI::Symbol *sym, Address base) : addr_(base + sym->getOffset()), sym_(sym) {}
+    int_symbol(Dyninst::SymtabAPI::Symbol *sym, Dyninst::Address base) : addr_(base + sym->getOffset()), sym_(sym) {}
     int_symbol() : addr_(0), sym_(NULL) {}
 
-    Address getAddr() const { return addr_; }
+    Dyninst::Address getAddr() const { return addr_; }
     unsigned getSize() const { return sym_->getSize(); }
     string symTabName() const { return sym_->getMangledName(); }
     string prettyName() const { return sym_->getPrettyName(); }
     string typedName() const { return sym_->getTypedName(); }
-    const SymtabAPI::Symbol *sym() const { return sym_; }
+    const Dyninst::SymtabAPI::Symbol *sym() const { return sym_; }
 
  private:
-    Address addr_;
-    const SymtabAPI::Symbol *sym_;
+    Dyninst::Address addr_;
+    const Dyninst::SymtabAPI::Symbol *sym_;
 };
 
 
@@ -80,18 +79,18 @@ class int_variable {
     int_variable() {}
  public:
     int_variable(image_variable *var,
-                 Address base,
+                 Dyninst::Address base,
                  mapped_module *mod);
 
     int_variable(int_variable *parVar, mapped_module *child);
 
-    Address getAddress() const { return addr_; }
+    Dyninst::Address getAddress() const { return addr_; }
     // Can variables have multiple names?
     string symTabName() const;
-    SymtabAPI::Aggregate::name_iter pretty_names_begin() const;
-    SymtabAPI::Aggregate::name_iter pretty_names_end() const;
-    SymtabAPI::Aggregate::name_iter symtab_names_begin() const;
-    SymtabAPI::Aggregate::name_iter symtab_names_end() const;
+    Dyninst::SymtabAPI::Aggregate::name_iter pretty_names_begin() const;
+    Dyninst::SymtabAPI::Aggregate::name_iter pretty_names_end() const;
+    Dyninst::SymtabAPI::Aggregate::name_iter symtab_names_begin() const;
+    Dyninst::SymtabAPI::Aggregate::name_iter symtab_names_end() const;
     
     //const vector<string>& prettyNameVector() const;
     //const vector<string>& symTabNameVector() const;
@@ -99,7 +98,7 @@ class int_variable {
     //AddressSpace *as() const { return mod()->proc(); }
     const image_variable *ivar() const { return ivar_; }
 
-    Address addr_{};
+    Dyninst::Address addr_{};
     unsigned size_{};
     // type?
     image_variable *ivar_{};
@@ -108,13 +107,13 @@ class int_variable {
 };
 
 struct edgeStub {
-    edgeStub(block_instance *s, Address t, ParseAPI::EdgeTypeEnum y)
+    edgeStub(block_instance *s, Dyninst::Address t, Dyninst::ParseAPI::EdgeTypeEnum y)
     { src = s; trg = t; type = y; }
-    edgeStub(block_instance* s, Address t, ParseAPI::EdgeTypeEnum y, bool b) :
+    edgeStub(block_instance* s, Dyninst::Address t, Dyninst::ParseAPI::EdgeTypeEnum y, bool b) :
         src(s), trg(t), type(y), checked(b) { }
     block_instance* src;
-    Address trg;
-    ParseAPI::EdgeTypeEnum type;
+    Dyninst::Address trg;
+    Dyninst::ParseAPI::EdgeTypeEnum type;
     bool checked{};
 };
 
@@ -153,7 +152,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
                                              AddressSpace *p,
                                              BPatch_hybridMode m = BPatch_normalMode,
                                              bool parseGaps = true);
-    static mapped_object *createMappedObject(ProcControlAPI::Library::const_ptr lib,
+    static mapped_object *createMappedObject(Dyninst::ProcControlAPI::Library::const_ptr lib,
                                              AddressSpace *p,
                                              BPatch_hybridMode m = BPatch_normalMode,
                                              bool parseGaps = true);
@@ -170,24 +169,24 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     // Full name, including path
     const string &fullName() const { return fullName_; }
     string fileName() const;
-    Address codeAbs() const;
-    Address codeBase() const { return codeBase_; }
-    Address imageOffset() const { return parse_img()->imageOffset(); }
+    Dyninst::Address codeAbs() const;
+    Dyninst::Address codeBase() const { return codeBase_; }
+    Dyninst::Address imageOffset() const { return parse_img()->imageOffset(); }
     unsigned imageSize() const { return parse_img()->imageLength(); }
     unsigned memoryEnd(); // largest allocated memory address + 1
 
     // 32-bit math safe!
-    bool isCode(Address addr) const;
-    bool isData(Address addr) const;
+    bool isCode(Dyninst::Address addr) const;
+    bool isData(Dyninst::Address addr) const;
 
-    Address getBaseAddress() const { return codeBase(); }
+    Dyninst::Address getBaseAddress() const { return codeBase(); }
 
-    Address dataAbs() const;
-    Address dataBase() const { return dataBase_; }
-    Address dataOffset() const { return parse_img()->dataOffset(); }
+    Dyninst::Address dataAbs() const;
+    Dyninst::Address dataBase() const { return dataBase_; }
+    Dyninst::Address dataOffset() const { return parse_img()->dataOffset(); }
     unsigned dataSize() const { return parse_img()->dataLength(); }
-    Address getTOCBaseAddress() const {return tocBase;}
-    void setTOCBaseAddress(Address addr) {tocBase = addr;}
+    Dyninst::Address getTOCBaseAddress() const {return tocBase;}
+    void setTOCBaseAddress(Dyninst::Address addr) {tocBase = addr;}
 
     image *parse_img() const { return image_; }
     bool isSharedLib() const;
@@ -202,7 +201,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     const std::string debugString() const;
 
     // Used for codeRange ONLY! DON'T USE THIS! BAD USER!
-    Address get_address() const { return codeAbs(); }
+    Dyninst::Address get_address() const { return codeAbs(); }
     void *get_local_ptr() const;
     unsigned get_size() const { return imageSize(); }
 
@@ -213,20 +212,20 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
 
     mapped_module *getDefaultModule();
 
-    func_instance *findFuncByEntry(const Address addr);
+    func_instance *findFuncByEntry(const Dyninst::Address addr);
     func_instance *findFuncByEntry(const block_instance *blk);
 
     bool getInfHeapList(std::vector<heapDescriptor> &infHeaps);
-    void getInferiorHeaps(vector<pair<string, Address> > &infHeaps);
+    void getInferiorHeaps(vector<pair<string, Dyninst::Address> > &infHeaps);
 
-    bool findFuncsByAddr(const Address addr, std::set<func_instance *> &funcs);
-    bool findBlocksByAddr(const Address addr, std::set<block_instance *> &blocks);
-    block_instance *findBlockByEntry(const Address addr);
-    block_instance *findOneBlockByAddr(const Address addr);
+    bool findFuncsByAddr(const Dyninst::Address addr, std::set<func_instance *> &funcs);
+    bool findBlocksByAddr(const Dyninst::Address addr, std::set<block_instance *> &blocks);
+    block_instance *findBlockByEntry(const Dyninst::Address addr);
+    block_instance *findOneBlockByAddr(const Dyninst::Address addr);
 
     // codeRange method
-    void *getPtrToInstruction(Address addr) const;
-    void *getPtrToData(Address addr) const;
+    void *getPtrToInstruction(Dyninst::Address addr) const;
+    void *getPtrToData(Dyninst::Address addr) const;
 
     // Try to avoid using these if you can, since they'll trigger
     // parsing and allocation.
@@ -242,37 +241,37 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     }
     bool isExploratoryModeOn();
     bool parseNewEdges(const std::vector<edgeStub>& sources);
-    bool parseNewFunctions(std::vector<Address> &funcEntryAddrs);
-    bool updateCodeBytesIfNeeded(Address entryAddr); // ret true if was needed
-    void updateCodeBytes(const std::list<std::pair<Address,Address> > &owRanges );
+    bool parseNewFunctions(std::vector<Dyninst::Address> &funcEntryAddrs);
+    bool updateCodeBytesIfNeeded(Dyninst::Address entryAddr); // ret true if was needed
+    void updateCodeBytes(const std::list<std::pair<Dyninst::Address,Dyninst::Address> > &owRanges );
     void setCodeBytesUpdated(bool);
-    void addProtectedPage(Address pageAddr); // adds to protPages_
-    void removeProtectedPage(Address pageAddr);
+    void addProtectedPage(Dyninst::Address pageAddr); // adds to protPages_
+    void removeProtectedPage(Dyninst::Address pageAddr);
     void removeEmptyPages();
     void remove(func_instance *func);
     void remove(instPoint *p);
     void splitBlock(block_instance *first, block_instance *second);
-    bool findBlocksByRange(Address startAddr,
-                          Address endAddr,
+    bool findBlocksByRange(Dyninst::Address startAddr,
+                          Dyninst::Address endAddr,
                           std::list<block_instance*> &pageBlocks);
-    void findFuncsByRange(Address startAddr,
-                          Address endAddr,
+    void findFuncsByRange(Dyninst::Address startAddr,
+                          Dyninst::Address endAddr,
                           std::set<func_instance*> &pageFuncs);
-    void addEmulInsn(Address insnAddr, Register effective_addr);
-    bool isEmulInsn(Address insnAddr);
-    Register getEmulInsnReg(Address insnAddr);
-    void setEmulInsnVal(Address insnAddr, void * val);
+    void addEmulInsn(Dyninst::Address insnAddr, Dyninst::Register effective_addr);
+    bool isEmulInsn(Dyninst::Address insnAddr);
+    Dyninst::Register getEmulInsnReg(Dyninst::Address insnAddr);
+    void setEmulInsnVal(Dyninst::Address insnAddr, void * val);
     int codeByteUpdates() { return codeByteUpdates_; }
 
-    void replacePLTStub(SymtabAPI::Symbol *PLTsym, 
+    void replacePLTStub(Dyninst::SymtabAPI::Symbol *PLTsym, 
                         func_instance *func, 
-                        Address newAddr);
+                        Dyninst::Address newAddr);
 private:
     // helper functions
-    void updateCodeBytes(SymtabAPI::Region *reg);
-    bool isUpdateNeeded(Address entryAddr);
-    bool isExpansionNeeded(Address entryAddr);
-    void expandCodeBytes(SymtabAPI::Region *reg);
+    void updateCodeBytes(Dyninst::SymtabAPI::Region *reg);
+    bool isUpdateNeeded(Dyninst::Address entryAddr);
+    bool isExpansionNeeded(Dyninst::Address entryAddr);
+    void expandCodeBytes(Dyninst::SymtabAPI::Region *reg);
     // end exploratory and defensive mode functions //
 public:
 
@@ -299,13 +298,13 @@ public:
 	void setDirty(){ dirty_=true;}
 	bool isDirty() { return dirty_; }
 
-    func_instance *findFunction(ParseAPI::Function *img_func);
+    func_instance *findFunction(Dyninst::ParseAPI::Function *img_func);
 
     int_variable *findVariable(image_variable *img_var);
 
-    block_instance *findBlock(ParseAPI::Block *);
+    block_instance *findBlock(Dyninst::ParseAPI::Block *);
     // If we already know the source or target hand them in for efficiency
-    edge_instance *findEdge(ParseAPI::Edge *, block_instance *src = NULL, block_instance *trg = NULL);
+    edge_instance *findEdge(Dyninst::ParseAPI::Edge *, block_instance *src = NULL, block_instance *trg = NULL);
 
     // Find the global constructor and destructor functions in stripped, static binaries
     func_instance *findGlobalFunc(const std::string &handler);
@@ -318,8 +317,8 @@ public:
     void setCallee(const block_instance *, func_instance *);
     func_instance *getCallee(const block_instance *) const;
 
-    void destroy(PatchAPI::PatchFunction *f);
-    void destroy(PatchAPI::PatchBlock *b);
+    void destroy(Dyninst::PatchAPI::PatchFunction *f);
+    void destroy(Dyninst::PatchAPI::PatchBlock *b);
     // void destroy(PatchAPI::PatchEdge *e); // don't need to destroy anything
 
   private:
@@ -339,8 +338,8 @@ public:
     // of <valid>, codeOffset of 0. All of our incoming functions,
     // etc. from the image class have codeOffset built in.
 
-    Address   dataBase_; // Where the data starts...
-    Address   tocBase;
+    Dyninst::Address   dataBase_; // Where the data starts...
+    Dyninst::Address   tocBase;
 
     void set_short_name();
 
@@ -380,14 +379,14 @@ public:
         UNPROTECTED,
     } WriteableStatus;
     BPatch_hybridMode analysisMode_;
-    map<Address,WriteableStatus> protPages_;
-    std::set<SymtabAPI::Region*> expansionCheckedRegions_;
+    map<Dyninst::Address,WriteableStatus> protPages_;
+    std::set<Dyninst::SymtabAPI::Region*> expansionCheckedRegions_;
     bool pagesUpdated_;
     int codeByteUpdates_;
-    typedef std::map<Address, std::pair<Register,void*> > EmulInsnMap;
+    typedef std::map<Dyninst::Address, std::pair<Dyninst::Register,void*> > EmulInsnMap;
     EmulInsnMap emulInsns_;
 
-    Address memEnd_; // size of object in memory
+    Dyninst::Address memEnd_; // size of object in memory
 
     mapped_module *getOrCreateForkedModule(mapped_module *mod);
 
@@ -402,7 +401,7 @@ public:
 class mappedObjData : public codeRange {
  public:
     mappedObjData(mapped_object *obj_) : obj(obj_) {}
-    Address get_address() const { return obj->dataAbs(); }
+    Dyninst::Address get_address() const { return obj->dataAbs(); }
     unsigned get_size() const { return obj->dataSize(); }
     mapped_object *obj;
 };

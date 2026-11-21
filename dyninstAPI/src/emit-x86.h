@@ -60,14 +60,14 @@ using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 // Emitter moved to emitter.h - useful on other platforms as well
 
 // some useful 64-bit codegen functions
-void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen);
-void emitMovPCRMToReg64(Register dest, int offset, int size, codeGen &gen, bool deref_result);
-void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen);
-void emitPushReg64(Register src, codeGen &gen);
-void emitPopReg64(Register dest, codeGen &gen);
-void emitMovImmToRM64(Register base, int disp, int imm, bool is_64, codeGen &gen);
-void emitAddRM64(Register dest, int imm, bool is_64, codeGen &gen);
-void emitOpRegImm64(unsigned opcode, unsigned opcode_ext, Register rm_reg, int imm,
+void emitMovRegToReg64(Dyninst::Register dest, Dyninst::Register src, bool is_64, codeGen &gen);
+void emitMovPCRMToReg64(Dyninst::Register dest, int offset, int size, codeGen &gen, bool deref_result);
+void emitMovImmToReg64(Dyninst::Register dest, long imm, bool is_64, codeGen &gen);
+void emitPushReg64(Dyninst::Register src, codeGen &gen);
+void emitPopReg64(Dyninst::Register dest, codeGen &gen);
+void emitMovImmToRM64(Dyninst::Register base, int disp, int imm, bool is_64, codeGen &gen);
+void emitAddRM64(Dyninst::Register dest, int imm, bool is_64, codeGen &gen);
+void emitOpRegImm64(unsigned opcode, unsigned opcode_ext, Dyninst::Register rm_reg, int imm,
 		    bool is_64, codeGen &gen);
 
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
@@ -75,71 +75,71 @@ class EmitterAMD64 : public Dyninst::DyninstAPI::Emitterx86 {
 
 public:
     virtual ~EmitterAMD64() {}
-    codeBufIndex_t emitIf(Register expr_reg, Register target, Dyninst::DyninstAPI::RegControl rc, codeGen &gen);
-    void emitOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);
-    void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen, bool s);
-    void emitDiv(Register dest, Register src1, Register src2, codeGen &gen, bool s);
-    void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
+    codegen_arch::codeBufIndex_t emitIf(Dyninst::Register expr_reg, Dyninst::Register target, Dyninst::DyninstAPI::RegControl rc, codeGen &gen);
+    void emitOp(unsigned op, Dyninst::Register dest, Dyninst::Register src1, Dyninst::Register src2, codeGen &gen);
+    void emitRelOp(unsigned op, Dyninst::Register dest, Dyninst::Register src1, Dyninst::Register src2, codeGen &gen, bool s);
+    void emitDiv(Dyninst::Register dest, Dyninst::Register src1, Dyninst::Register src2, codeGen &gen, bool s);
+    void emitOpImm(unsigned opcode1, unsigned opcode2, Dyninst::Register dest, Dyninst::Register src1, Dyninst::RegValue src2imm,
 			   codeGen &gen);
-    void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s);
-    void emitTimesImm(Register dest, Register src1, RegValue src1imm, codeGen &gen);
-    void emitDivImm(Register dest, Register src1, RegValue src1imm, codeGen &gen, bool s);
-    void emitLoad(Register dest, Address addr, int size, codeGen &gen);
-    void emitLoadConst(Register dest, Address imm, codeGen &gen);
-    void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen);
-    bool emitCallRelative(Register, Address, Register, codeGen &) {assert (0); return false; }
-    bool emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen);
-    bool emitLoadRelativeSegReg(Register dest, Address offset, Register base, int size, codeGen &gen);
-    void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
+    void emitRelOpImm(unsigned op, Dyninst::Register dest, Dyninst::Register src1, Dyninst::RegValue src2imm, codeGen &gen, bool s);
+    void emitTimesImm(Dyninst::Register dest, Dyninst::Register src1, Dyninst::RegValue src1imm, codeGen &gen);
+    void emitDivImm(Dyninst::Register dest, Dyninst::Register src1, Dyninst::RegValue src1imm, codeGen &gen, bool s);
+    void emitLoad(Dyninst::Register dest, Dyninst::Address addr, int size, codeGen &gen);
+    void emitLoadConst(Dyninst::Register dest, Dyninst::Address imm, codeGen &gen);
+    void emitLoadIndir(Dyninst::Register dest, Dyninst::Register addr_reg, int size, codeGen &gen);
+    bool emitCallRelative(Dyninst::Register, Dyninst::Address, Dyninst::Register, codeGen &) {assert (0); return false; }
+    bool emitLoadRelative(Dyninst::Register dest, Dyninst::Address offset, Dyninst::Register base, int size, codeGen &gen);
+    bool emitLoadRelativeSegReg(Dyninst::Register dest, Dyninst::Address offset, Dyninst::Register base, int size, codeGen &gen);
+    void emitLoadFrameAddr(Dyninst::Register dest, Dyninst::Address offset, codeGen &gen);
 
-    void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
-    void emitLoadOrigRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store);
-    void emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen);
-    void emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local,int size, codeGen &gen, Address offset);
+    void emitLoadOrigFrameRelative(Dyninst::Register dest, Dyninst::Address offset, codeGen &gen);
+    void emitLoadOrigRegRelative(Dyninst::Register dest, Dyninst::Address offset, Dyninst::Register base, codeGen &gen, bool store);
+    void emitLoadOrigRegister(Dyninst::Address register_num, Dyninst::Register dest, codeGen &gen);
+    void emitLoadShared(opCode op, Dyninst::Register dest, const image_variable *var, bool is_local,int size, codeGen &gen, Dyninst::Address offset);
 
-    void emitStoreOrigRegister(Address register_num, Register dest, codeGen &gen);
+    void emitStoreOrigRegister(Dyninst::Address register_num, Dyninst::Register dest, codeGen &gen);
 
-    void emitStore(Address addr, Register src, int size, codeGen &gen);
-    void emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen);
-    void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen);
-    void emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen);
+    void emitStore(Dyninst::Address addr, Dyninst::Register src, int size, codeGen &gen);
+    void emitStoreIndir(Dyninst::Register addr_reg, Dyninst::Register src, int size, codeGen &gen);
+    void emitStoreFrameRelative(Dyninst::Address offset, Dyninst::Register src, Dyninst::Register scratch, int size, codeGen &gen);
+    void emitStoreRelative(Dyninst::Register source, Dyninst::Address offset, Dyninst::Register base, int size, codeGen &gen);
 
-    void emitStoreShared(Register source, const image_variable *var, bool is_local,int size, codeGen &gen);
+    void emitStoreShared(Dyninst::Register source, const image_variable *var, bool is_local,int size, codeGen &gen);
 
     bool clobberAllFuncCall(registerSpace *rs, func_instance *callee);
     // See comment on 32-bit emitCall
-    virtual Register emitCall(opCode op, codeGen &gen,
+    virtual Dyninst::Register emitCall(opCode op, codeGen &gen,
                               const std::vector<codeGenASTPtr> &operands,
                               func_instance *callee);
-    void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
-    void emitGetRetAddr(Register dest, codeGen &gen);
-    void emitGetParam(Register dest, Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen);
-    void emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen);
-    void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
+    void emitGetRetVal(Dyninst::Register dest, bool addr_of, codeGen &gen);
+    void emitGetRetAddr(Dyninst::Register dest, codeGen &gen);
+    void emitGetParam(Dyninst::Register dest, Dyninst::Register param_num, instPoint::Type pt_type, opCode op, bool addr_of, codeGen &gen);
+    void emitASload(int ra, int rb, int sc, long imm, Dyninst::Register dest, int stackShift, codeGen &gen);
+    void emitCSload(int ra, int rb, int sc, long imm, Dyninst::Register dest, codeGen &gen);
     void emitPushFlags(codeGen &gen);
     void emitRestoreFlags(codeGen &gen, unsigned offset);
     void emitRestoreFlagsFromStackSlot(codeGen &gen);
     void emitStackAlign(int offset, codeGen &gen);
     bool emitBTSaves(baseTramp* bt, codeGen &gen);
     bool emitBTRestores(baseTramp* bt, codeGen &gen);
-    void emitStoreImm(Address addr, int imm, codeGen &gen);
-    void emitAddSignedImm(Address addr, int imm, codeGen &gen);
-    bool emitPush(codeGen &gen, Register pushee);
-    bool emitPop(codeGen &gen, Register popee);
+    void emitStoreImm(Dyninst::Address addr, int imm, codeGen &gen);
+    void emitAddSignedImm(Dyninst::Address addr, int imm, codeGen &gen);
+    bool emitPush(codeGen &gen, Dyninst::Register pushee);
+    bool emitPop(codeGen &gen, Dyninst::Register popee);
 
     bool emitAdjustStackPointer(int index, codeGen &gen);
 
-    bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
+    bool emitMoveRegToReg(Dyninst::Register src, Dyninst::Register dest, codeGen &gen);
     bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
-    void emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen);
+    void emitLEA(Dyninst::Register base, Dyninst::Register index, unsigned int scale, int disp, Dyninst::Register dest, codeGen& gen);
 
-    bool emitXorRegRM(Register dest, Register base, int disp, codeGen& gen);
-    bool emitXorRegReg(Register dest, Register base, codeGen& gen);
-    bool emitXorRegImm(Register dest, int imm, codeGen& gen);
-    bool emitXorRegSegReg(Register dest, Register base, int disp, codeGen& gen);
+    bool emitXorRegRM(Dyninst::Register dest, Dyninst::Register base, int disp, codeGen& gen);
+    bool emitXorRegReg(Dyninst::Register dest, Dyninst::Register base, codeGen& gen);
+    bool emitXorRegImm(Dyninst::Register dest, int imm, codeGen& gen);
+    bool emitXorRegSegReg(Dyninst::Register dest, Dyninst::Register base, int disp, codeGen& gen);
 
  protected:
-    virtual bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret) = 0;
+    virtual bool emitCallInstruction(codeGen &gen, func_instance *target, Dyninst::Register ret) = 0;
 
  private:
     // clobberAllFuncCall can be expensive, so don't re-analyze functions
@@ -150,7 +150,7 @@ class EmitterAMD64Dyn : public EmitterAMD64 {
  public:
     ~EmitterAMD64Dyn() {}
 
-    bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
+    bool emitCallInstruction(codeGen &gen, func_instance *target, Dyninst::Register ret);
 };
 
 class EmitterAMD64Stat : public EmitterAMD64 {
@@ -160,7 +160,7 @@ class EmitterAMD64Stat : public EmitterAMD64 {
     virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
     virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
 
-    bool emitCallInstruction(codeGen &gen, func_instance *target, Register ret);
+    bool emitCallInstruction(codeGen &gen, func_instance *target, Dyninst::Register ret);
 };
 
 #endif

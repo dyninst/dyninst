@@ -55,7 +55,7 @@ class edge_instance : public Dyninst::PatchAPI::PatchEdge {
     block_instance *src() const;
     block_instance *trg() const;
     AddressSpace *proc();
-    edge_instance(ParseAPI::Edge *edge, block_instance *src, block_instance *trg);
+    edge_instance(Dyninst::ParseAPI::Edge *edge, block_instance *src, block_instance *trg);
     edge_instance(const edge_instance *parent, mapped_object *child);
     ~edge_instance();
 };
@@ -67,7 +67,7 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
   //typedef std::vector<edge_instance *> edges;
   //typedef std::vector<edge_instance *> edgelist;
 
-    block_instance(ParseAPI::Block *ib, mapped_object *obj);
+    block_instance(Dyninst::ParseAPI::Block *ib, mapped_object *obj);
     block_instance(const block_instance *parent, mapped_object *child);
     ~block_instance();
 
@@ -82,7 +82,7 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     void triggerModified();
     void setNotAbruptEnd();
     parse_block * llb() const { return SCAST_PB(block_); }
-    void *getPtrToInstruction(Address addr) const;
+    void *getPtrToInstruction(Dyninst::Address addr) const;
 
     //const edgelist &sources();
     //const edgelist &targets();
@@ -104,12 +104,12 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     func_instance *entryOfFunc() const;
     bool isFuncExit() const;
     // static void destroy(block_instance *b); // doesn't need to do anything
-    Address GetBlockStartingAddress();
+    Dyninst::Address GetBlockStartingAddress();
     virtual void markModified();
 
  private:
     void updateCallTarget(func_instance *func);
-    func_instance *findFunction(ParseAPI::Function *);
+    func_instance *findFunction(Dyninst::ParseAPI::Function *);
     func_instance* callee(std::string const&);
     // edges srcs_;
     // edges trgs_;
@@ -118,7 +118,7 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
 
 template <class OutputIterator>
 void block_instance::getFuncs(OutputIterator result) {
-   std::vector<ParseAPI::Function *> pFuncs;
+   std::vector<Dyninst::ParseAPI::Function *> pFuncs;
    llb()->getFuncs(pFuncs);
    for (unsigned i = 0; i < pFuncs.size(); ++i) {
       func_instance *func = findFunction(pFuncs[i]);

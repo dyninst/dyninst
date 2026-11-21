@@ -10,32 +10,31 @@
 #include "Graph.h"
 #include "BoundFactCalculator.h"
 #include "Absloc.h"
-using namespace Dyninst;
 
-class JumpTableIndexPred : public Slicer::Predicates {
+class JumpTableIndexPred : public Dyninst::Slicer::Predicates {
 
-    ParseAPI::Function *func;
-    ParseAPI::Block *block;
-    AbsRegion index;
+    Dyninst::ParseAPI::Function *func;
+    Dyninst::ParseAPI::Block *block;
+    Dyninst::AbsRegion index;
     SymbolicExpression &se;
     std::vector<AST::Ptr> readAST;
     
-    bool MatchReadAST(Assignment::Ptr a);
+    bool MatchReadAST(Dyninst::Assignment::Ptr a);
 
 
 public:
     bool unknownInstruction;
     bool findBound;
     StridedInterval bound;
-    std::set<Assignment::Ptr> currentAssigns;
-    virtual bool addNodeCallback(AssignmentPtr ap, std::set<ParseAPI::Edge*> &visitedEdges);
-    virtual bool modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g, Slicer*);
-    GraphPtr BuildAnalysisGraph(std::set<ParseAPI::Edge*> &visitedEdges);
-    bool IsIndexBounded(GraphPtr slice, BoundFactsCalculator &bfc, StridedInterval &target);
+    std::set<Dyninst::Assignment::Ptr> currentAssigns;
+    virtual bool addNodeCallback(Dyninst::AssignmentPtr ap, std::set<Dyninst::ParseAPI::Edge*> &visitedEdges);
+    virtual bool modifyCurrentFrame(Dyninst::Slicer::SliceFrame &frame, Dyninst::Graph::Ptr g, Dyninst::Slicer*);
+    Dyninst::GraphPtr BuildAnalysisGraph(std::set<Dyninst::ParseAPI::Edge*> &visitedEdges);
+    bool IsIndexBounded(Dyninst::GraphPtr slice, BoundFactsCalculator &bfc, StridedInterval &target);
 
-    JumpTableIndexPred(ParseAPI::Function *f,
-                       ParseAPI::Block *b,
-		       AbsRegion i,
+    JumpTableIndexPred(Dyninst::ParseAPI::Function *f,
+                       Dyninst::ParseAPI::Block *b,
+		       Dyninst::AbsRegion i,
 		       SymbolicExpression &sym)
 		          : func(f), 
 			    block(b),
@@ -44,28 +43,28 @@ public:
 			       unknownInstruction = false;
 			       findBound = false;
 		      }
-    virtual bool ignoreEdge(ParseAPI::Edge *e);
+    virtual bool ignoreEdge(Dyninst::ParseAPI::Edge *e);
     virtual int slicingSizeLimitFactor() { return 100; }
 };
 
 
 class TypedSliceEdge: public Dyninst::Edge {
-    ParseAPI::EdgeTypeEnum type_; 
+    Dyninst::ParseAPI::EdgeTypeEnum type_; 
     
-    TypedSliceEdge(const SliceNode::Ptr source,
-              const SliceNode::Ptr target,
-	      ParseAPI::EdgeTypeEnum t) 
+    TypedSliceEdge(const Dyninst::SliceNode::Ptr source,
+              const Dyninst::SliceNode::Ptr target,
+	      Dyninst::ParseAPI::EdgeTypeEnum t) 
 	      : Dyninst::Edge(source, target), type_(t) {}
   public:	      
    typedef boost::shared_ptr<TypedSliceEdge> Ptr; 
-   static TypedSliceEdge::Ptr create(SliceNode::Ptr source,
-                                     SliceNode::Ptr target,
-				     ParseAPI::EdgeTypeEnum t) {
+   static TypedSliceEdge::Ptr create(Dyninst::SliceNode::Ptr source,
+                                     Dyninst::SliceNode::Ptr target,
+				     Dyninst::ParseAPI::EdgeTypeEnum t) {
 	return Ptr(new TypedSliceEdge(source, target, t));       
    }                                                
 
   public:
-    ParseAPI::EdgeTypeEnum type() { return type_;}
+    Dyninst::ParseAPI::EdgeTypeEnum type() { return type_;}
 
 };
 

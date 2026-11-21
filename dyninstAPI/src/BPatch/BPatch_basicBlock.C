@@ -50,6 +50,9 @@
 #include "mapped_object.h"
 #include "addressSpace.h"
 
+using namespace Dyninst;
+using namespace Dyninst::ParseAPI;
+
 int bpatch_basicBlock_count = 0;
 
 BPatch_basicBlock::BPatch_basicBlock(block_instance *ib, BPatch_flowGraph *fg):

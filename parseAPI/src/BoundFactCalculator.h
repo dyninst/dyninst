@@ -11,8 +11,6 @@
 #include <unordered_set>
 #include <unordered_map>
 
-using namespace Dyninst;
-using namespace Dyninst::ParseAPI;
 
 // To avoid the bound fact calculation from deadlock
 #define IN_QUEUE_LIMIT 10
@@ -21,34 +19,34 @@ using namespace Dyninst::ParseAPI;
 
 class BoundFactsCalculator {
     BoundFactsType boundFactsIn, boundFactsOut;
-    ParseAPI::Function *func;
-    GraphPtr slice;
+    Dyninst::ParseAPI::Function *func;
+    Dyninst::GraphPtr slice;
     bool firstBlock;
     bool handleOneByteRead;
     SymbolicExpression &se;
 
-    BoundFact* Meet(Node::Ptr curNode);
-    void CalcTransferFunction(Node::Ptr curNode, BoundFact *newFact);
+    BoundFact* Meet(Dyninst::Node::Ptr curNode);
+    void CalcTransferFunction(Dyninst::Node::Ptr curNode, BoundFact *newFact);
 
-    std::unordered_map<Node::Ptr, int, Node::NodePtrHasher> analysisOrder, nodeColor;
-    vector<Node::Ptr> reverseOrder;
+    std::unordered_map<Dyninst::Node::Ptr, int, Dyninst::Node::NodePtrHasher> analysisOrder, nodeColor;
+    vector<Dyninst::Node::Ptr> reverseOrder;
     int orderStamp{};
     
     void DetermineAnalysisOrder();
-    void NaturalDFS(Node::Ptr);
-    void ReverseDFS(Node::Ptr);
-    bool HasIncomingEdgesFromLowerLevel(int curOrder, std::vector<Node::Ptr>& curNodes);
+    void NaturalDFS(Dyninst::Node::Ptr);
+    void ReverseDFS(Dyninst::Node::Ptr);
+    bool HasIncomingEdgesFromLowerLevel(int curOrder, std::vector<Dyninst::Node::Ptr>& curNodes);
 
 public:
     bool CalculateBoundedFacts();
 
-    BoundFactsCalculator(ParseAPI::Function *f, GraphPtr s, bool first,
+    BoundFactsCalculator(Dyninst::ParseAPI::Function *f, Dyninst::GraphPtr s, bool first,
                          bool oneByteRead, SymbolicExpression &sym)
         : func(f), slice(s), firstBlock(first), handleOneByteRead(oneByteRead),
           se(sym) {}
 
-    BoundFact *GetBoundFactIn(Node::Ptr node);
-    BoundFact *GetBoundFactOut(Node::Ptr node);
+    BoundFact *GetBoundFactIn(Dyninst::Node::Ptr node);
+    BoundFact *GetBoundFactOut(Dyninst::Node::Ptr node);
     ~BoundFactsCalculator();
 };
 

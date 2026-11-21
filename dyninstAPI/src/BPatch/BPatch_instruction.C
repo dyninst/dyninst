@@ -41,6 +41,8 @@
 #include "patching/instPoint.h"
 #include "addressSpace.h"
 
+using namespace Dyninst;
+
 /**************************************************************************
  * BPatch_instruction
  *************************************************************************/

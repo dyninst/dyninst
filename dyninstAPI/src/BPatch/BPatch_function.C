@@ -63,6 +63,8 @@
 #include "Point.h"
 #include "PatchMgr.h"
 
+using namespace Dyninst;
+
 using Dyninst::PatchAPI::PatchMgrPtr;
 using Dyninst::PatchAPI::Point;
 

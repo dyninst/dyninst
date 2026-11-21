@@ -44,6 +44,8 @@
 #include <set>
 #include <queue>
 #include <vector>
+
+using namespace Dyninst;
 using std::vector;
 using std::queue;
 using std::set;

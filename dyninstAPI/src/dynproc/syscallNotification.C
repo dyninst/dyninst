@@ -38,8 +38,8 @@
 #include "patchAPI/h/PatchMgr.h"
 #include "patchAPI/h/Point.h"
 
-using namespace ProcControlAPI;
-using namespace PatchAPI;
+using namespace Dyninst::PatchAPI;
+using namespace Dyninst::ProcControlAPI;
 
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using operandAST = Dyninst::DyninstAPI::operandAST;

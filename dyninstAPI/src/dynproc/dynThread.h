@@ -52,30 +52,30 @@ class PCThread {
     friend class PCEventHandler;
 
 public:
-    static PCThread *createPCThread(PCProcess *parent, ProcControlAPI::Thread::ptr thr);
+    static PCThread *createPCThread(PCProcess *parent, Dyninst::ProcControlAPI::Thread::ptr thr);
 
     // Stackwalking interface
     bool walkStack(std::vector<Frame> &stackWalk);
     Frame getActiveFrame();
-    bool getRegisters(ProcControlAPI::RegisterPool &regs, bool includeFP = false);
-    bool changePC(Address newPC);
+    bool getRegisters(Dyninst::ProcControlAPI::RegisterPool &regs, bool includeFP = false);
+    bool changePC(Dyninst::Address newPC);
 
     // Field accessors
     int getIndex() const;
     Dyninst::LWP getLWP() const;
     PCProcess *getProc() const;
     bool isLive() const;
-	ProcControlAPI::Thread::ptr pcThr() const { return pcThr_; }
+	Dyninst::ProcControlAPI::Thread::ptr pcThr() const { return pcThr_; }
     // Thread info
     dynthread_t getTid() const;
     func_instance *getStartFunc();
-    Address getStackAddr();
+    Dyninst::Address getStackAddr();
 
     void clearStackwalk();
 
 protected:
     PCThread(PCProcess *parent, int ind,
-            ProcControlAPI::Thread::ptr thr);
+            Dyninst::ProcControlAPI::Thread::ptr thr);
 
     void markExited();
     void setTid(dynthread_t tid);
@@ -87,11 +87,11 @@ protected:
     void findSingleThreadInfo();
 
     PCProcess *proc_;
-    ProcControlAPI::Thread::ptr pcThr_;
+    Dyninst::ProcControlAPI::Thread::ptr pcThr_;
 
     int index_;
-    Address stackAddr_;
-    Address startFuncAddr_;
+    Dyninst::Address stackAddr_;
+    Dyninst::Address startFuncAddr_;
     func_instance *startFunc_;
 
     // When we run an inferior RPC we cache the stackwalk of the

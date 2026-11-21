@@ -15,9 +15,6 @@
 #include <string>
 #include <utility>
 using namespace std;
-using namespace Dyninst;
-using namespace Dyninst::ParseAPI;
-using namespace Dyninst::DataflowAPI;
 
 struct StridedInterval {   
     static const int64_t minValue = LLONG_MIN;
@@ -75,7 +72,7 @@ struct StridedInterval {
 };
 
 struct BoundFact {
-    typedef map<AST::Ptr, StridedInterval*> FactType;
+    typedef map<Dyninst::AST::Ptr, StridedInterval*> FactType;
     FactType fact;
 
     // Sometimes the bound of a jump table index are derived from 
@@ -95,10 +92,10 @@ struct BoundFact {
     } RelationType;
 
     struct Relation {
-        AST::Ptr left;
-	AST::Ptr right;
+        Dyninst::AST::Ptr left;
+	Dyninst::AST::Ptr right;
 	RelationType type;
-	Relation(AST::Ptr l, AST::Ptr r, RelationType t):
+	Relation(Dyninst::AST::Ptr l, Dyninst::AST::Ptr r, RelationType t):
 	    left(l), right(r), type(t) {}
 
         bool operator != (const Relation &rhs) const {
@@ -127,14 +124,14 @@ struct BoundFact {
     //
     // Register abstract location with address 0 represents an absloc at the current address
     // Register abstract location with address 1 represents an input absloc
-    typedef std::map<AST::Ptr, AST::Ptr> AliasMap;
+    typedef std::map<Dyninst::AST::Ptr, Dyninst::AST::Ptr> AliasMap;
     AliasMap aliasMap;
 
     struct FlagPredicate {
         bool valid;
 	entryID id;
-	AST::Ptr e1;
-	AST::Ptr e2;
+	Dyninst::AST::Ptr e1;
+	Dyninst::AST::Ptr e2;
 
 	FlagPredicate():
 	    valid(false),
@@ -182,32 +179,32 @@ struct BoundFact {
     bool operator< (const BoundFact &bf) const {return fact < bf.fact; }
     bool operator!= (const BoundFact &bf) const;
 
-    StridedInterval* GetBound(const AST::Ptr ast); 
-    StridedInterval* GetBound(const AST* ast);
-    AST::Ptr GetAlias(const AST::Ptr ast);
+    StridedInterval* GetBound(const Dyninst::AST::Ptr ast); 
+    StridedInterval* GetBound(const Dyninst::AST* ast);
+    Dyninst::AST::Ptr GetAlias(const Dyninst::AST::Ptr ast);
     void Meet(BoundFact &bf);
 
 
-    bool ConditionalJumpBound(InstructionAPI::Instruction insn, EdgeTypeEnum type);
-    void SetPredicate(Assignment::Ptr assign, std::pair<AST::Ptr, bool> expand);
-    void GenFact(const AST::Ptr ast, StridedInterval* bv, bool isConditionalJump);
-    void KillFact(const AST::Ptr ast, bool isConditionalJump);
+    bool ConditionalJumpBound(Dyninst::InstructionAPI::Instruction insn, Dyninst::ParseAPI::EdgeTypeEnum type);
+    void SetPredicate(Dyninst::Assignment::Ptr assign, std::pair<Dyninst::AST::Ptr, bool> expand);
+    void GenFact(const Dyninst::AST::Ptr ast, StridedInterval* bv, bool isConditionalJump);
+    void KillFact(const Dyninst::AST::Ptr ast, bool isConditionalJump);
     void SetToBottom();
     void Print();
-    void AdjustPredicate(AST::Ptr out, AST::Ptr in);
+    void AdjustPredicate(Dyninst::AST::Ptr out, Dyninst::AST::Ptr in);
 
-    void IntersectInterval(const AST::Ptr ast, StridedInterval si);
-    void DeleteElementFromInterval(const AST::Ptr ast, int64_t val);
-    void InsertRelation(AST::Ptr left, AST::Ptr right, RelationType);
-    void TrackAlias(AST::Ptr expr, AST::Ptr outAST, bool findBound);
+    void IntersectInterval(const Dyninst::AST::Ptr ast, StridedInterval si);
+    void DeleteElementFromInterval(const Dyninst::AST::Ptr ast, int64_t val);
+    void InsertRelation(Dyninst::AST::Ptr left, Dyninst::AST::Ptr right, RelationType);
+    void TrackAlias(Dyninst::AST::Ptr expr, Dyninst::AST::Ptr outAST, bool findBound);
 
-    StridedInterval *ApplyRelations(AST::Ptr outAST);
-    StridedInterval *ApplyRelations2(AST::Ptr outAST);
+    StridedInterval *ApplyRelations(Dyninst::AST::Ptr outAST);
+    StridedInterval *ApplyRelations2(Dyninst::AST::Ptr outAST);
 
     void PushAConst(int64_t value);
-    bool PopAConst(AST::Ptr ast);
+    bool PopAConst(Dyninst::AST::Ptr ast);
     
-    void SwapFact(AST::Ptr a, AST::Ptr b);
+    void SwapFact(Dyninst::AST::Ptr a, Dyninst::AST::Ptr b);
 
     BoundFact();
     ~BoundFact();
@@ -216,7 +213,7 @@ struct BoundFact {
     BoundFact& operator = (const BoundFact &bf);
 };
 
-typedef map<Node::Ptr, BoundFact*> BoundFactsType;
+typedef map<Dyninst::Node::Ptr, BoundFact*> BoundFactsType;
 
 
 #endif

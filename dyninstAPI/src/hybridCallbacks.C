@@ -41,6 +41,9 @@
 #include "BPatch_image.h"
 #include "mapped_object.h"
 
+using namespace Dyninst;
+using namespace Dyninst::ParseAPI;
+
 extern std::vector<image*> allImages;
 
 void newCodeCB(std::vector<BPatch_function*> &newFuncs, 

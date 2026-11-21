@@ -3,6 +3,8 @@
 #include "InstructionDecoder.h"
 #include "parsing/parse_func.h"
 
+using namespace Dyninst;
+
 namespace st = Dyninst::SymtabAPI;
 namespace parse = Dyninst::ParseAPI;
 

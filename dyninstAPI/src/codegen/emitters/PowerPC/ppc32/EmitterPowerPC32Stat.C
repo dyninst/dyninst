@@ -7,6 +7,8 @@
 #include "RegisterConversion.h"
 #include "registerSpace/registerSpace.h"
 
+using namespace codegen_arch;
+
 namespace Dyninst { namespace DyninstAPI {
 
   // It seems like we should be able to do a better job...

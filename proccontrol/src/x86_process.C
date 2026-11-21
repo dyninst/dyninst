@@ -34,6 +34,9 @@
 #include "registers/x86_regs.h"
 #include "registers/x86_64_regs.h"
 
+using namespace Dyninst;
+using namespace Dyninst::ProcControlAPI;
+
 x86_process::x86_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, std::map<int, int> f) :
   int_process(p, e, a, envp, f)
 {

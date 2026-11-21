@@ -61,6 +61,9 @@
 #include "unaligned_memory_access.h"
 #include "codegen/emitters/x86/generators.h"
 
+using namespace Dyninst;
+using namespace codegen_arch;
+
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
 
 static int extra_space_check;

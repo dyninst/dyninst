@@ -33,6 +33,8 @@
 #include "Symtab.h"
 #include "annotations.h"
 
+using namespace Dyninst::SymtabAPI;
+
 const char* relocationEntry::relType2Str(unsigned long r, unsigned /*addressWidth*/) {
     switch(r) {
         CASE_RETURN_STR(R_PPC64_NONE);

@@ -48,7 +48,7 @@ namespace Dyninst { namespace DyninstAPI {
 
     virtual ~Emitterx86() = default;
 
-    codeBufIndex_t emitA(opCode op, Dyninst::Register src1, long dst, codeGen &gen, Dyninst::DyninstAPI::RegControl rc) final override;
+    codegen_arch::codeBufIndex_t emitA(opCode op, Dyninst::Register src1, long dst, codeGen &gen, Dyninst::DyninstAPI::RegControl rc) final override;
 
     Dyninst::Register emitR(opCode op, Dyninst::Register src1, Dyninst::Register src2, Dyninst::Register dst,
                             codeGen &gen, const instPoint *location) final override;

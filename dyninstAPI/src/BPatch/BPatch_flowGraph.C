@@ -58,6 +58,8 @@
 
 #include "PatchCFG.h"
 
+using namespace Dyninst;
+
 using namespace Dyninst::PatchAPI;
 
 // constructor of the class. It creates the CFG and

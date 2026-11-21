@@ -78,11 +78,11 @@ class Frame {
 	    (thread_  == F.thread_));
   }
 
-  Address  getPC() const { return (Address) sw_frame_.getRA(); }
+  Dyninst::Address  getPC() const { return (Dyninst::Address) sw_frame_.getRA(); }
   // New method: unwind instrumentation
-  Address  getUninstAddr() const;
-  Address  getFP() const { return (Address) sw_frame_.getFP(); }
-  Address  getSP() const { return (Address) sw_frame_.getSP(); }
+  Dyninst::Address  getUninstAddr() const;
+  Dyninst::Address  getFP() const { return (Dyninst::Address) sw_frame_.getFP(); }
+  Dyninst::Address  getSP() const { return (Dyninst::Address) sw_frame_.getSP(); }
   PCProcess *getProc() const { return proc_; }
   PCThread *getThread() const { return thread_; }
   void setThread(PCThread *thrd) { thread_ = thrd; }
@@ -95,14 +95,14 @@ class Frame {
 
   bool	   isSignalFrame();
   bool 	   isInstrumentation();
-  Address  getPClocation();
+  Dyninst::Address  getPClocation();
 
   friend std::ostream & operator << ( std::ostream & s, Frame & m );
-  bool setPC(Address newpc);
+  bool setPC(Dyninst::Address newpc);
 
 #if defined(DYNINST_HOST_ARCH_POWER)
   // We store the actual return addr in a word on the stack
-  bool setRealReturnAddr(Address retaddr);
+  bool setRealReturnAddr(Dyninst::Address retaddr);
 #endif
 
  private:

@@ -7,6 +7,11 @@
 #include "Instruction.h"
 #include "JumpTableIndexPred.h"
 #include "registers/x86_64_regs.h"
+
+using namespace Dyninst::DataflowAPI;
+
+using namespace Dyninst;
+using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InstructionAPI;
 
 void BoundFactsCalculator::NaturalDFS(Node::Ptr cur) {

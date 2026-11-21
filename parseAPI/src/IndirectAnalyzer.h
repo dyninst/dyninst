@@ -10,37 +10,36 @@
 #include "CFG.h"
 #include "slicing.h"
 #include "BoundFactCalculator.h"
-using namespace Dyninst;
 
 class IndirectControlFlowAnalyzer {
     // The function and block that contain the indirect jump
-    ParseAPI::Function *func;
-    ParseAPI::Block *block;
-    set<ParseAPI::Block*> reachable;
+    Dyninst::ParseAPI::Function *func;
+    Dyninst::ParseAPI::Block *block;
+    set<Dyninst::ParseAPI::Block*> reachable;
     ThunkData thunks;
 
     void GetAllReachableBlock();  
     void FindAllThunks();
     void ReadTable(AST::Ptr,
-                   AbsRegion,
+                   Dyninst::AbsRegion,
                    StridedInterval &,
                    int ,
                    bool, 
-                   std::set<Address> &,
-                   std::vector<std::pair<Address, Dyninst::ParseAPI::EdgeTypeEnum> > &,
-                   Address &,
-                   Address &,
+                   std::set<Dyninst::Address> &,
+                   std::vector<std::pair<Dyninst::Address, Dyninst::ParseAPI::EdgeTypeEnum> > &,
+                   Dyninst::Address &,
+                   Dyninst::Address &,
                    int &,
-                   std::map<Address, Address>&);
-    int GetMemoryReadSize(Assignment::Ptr loc);
-    bool IsZeroExtend(Assignment::Ptr loc);
-    bool FindJunkInstruction(Address);
+                   std::map<Dyninst::Address, Dyninst::Address>&);
+    int GetMemoryReadSize(Dyninst::Assignment::Ptr loc);
+    bool IsZeroExtend(Dyninst::Assignment::Ptr loc);
+    bool FindJunkInstruction(Dyninst::Address);
 
 
 public:
-    bool NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
+    bool NewJumpTableAnalysis(std::vector<std::pair< Dyninst::Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
     bool ResolveCallTargetBySlicing(Dyninst::Address& target);
-    IndirectControlFlowAnalyzer(ParseAPI::Function *f, ParseAPI::Block *b): func(f), block(b) {}
+    IndirectControlFlowAnalyzer(Dyninst::ParseAPI::Function *f, Dyninst::ParseAPI::Block *b): func(f), block(b) {}
 
 };
 

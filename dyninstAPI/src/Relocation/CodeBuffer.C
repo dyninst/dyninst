@@ -40,6 +40,8 @@
 #include "Instruction.h"
 #include "dyninstAPI/src/addressSpace.h"
 
+using namespace codegen_arch;
+
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;

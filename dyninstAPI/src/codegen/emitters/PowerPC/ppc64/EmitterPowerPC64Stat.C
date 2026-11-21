@@ -3,6 +3,8 @@
 #include "codegen/emitters/PowerPC/ppc64/EmitterPowerPC64Stat.h"
 #include "inst-power.h"
 
+using namespace codegen_arch;
+
 namespace Dyninst { namespace DyninstAPI {
 
   bool EmitterPowerPC64Stat::emitCallInstruction(codeGen &gen, func_instance *callee, bool,

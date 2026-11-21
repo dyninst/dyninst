@@ -32,6 +32,9 @@
 #include "common/src/arch-power.h"
 #include "parsing/parse_func.h"
 
+
+using namespace Dyninst;
+
 constexpr auto GET_IP = 0x429f0005;
 constexpr auto MFLR_30 = 0x7fc802a6;
 constexpr auto ADDIS_30_30 = 0x3fde0000;

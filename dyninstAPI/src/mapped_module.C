@@ -40,6 +40,8 @@
 #include <iomanip>
 #include <string>
 
+using namespace Dyninst;
+
 const std::vector<func_instance *> &mapped_module::getAllFunctions() 
 {
    std::vector<parse_func *> pdfuncs;

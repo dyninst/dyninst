@@ -36,7 +36,6 @@
 
 #include "StackLocation.h"
 
-using namespace Dyninst;
 
 class TMap
 {
@@ -57,7 +56,7 @@ class TMap
         mapping::reverse_iterator rend() { return _map.rend(); }
 
         void update(StackLocation* loc, int delta);
-        void update(StackLocation* loc, MachRegister reg, int size);
+        void update(StackLocation* loc, Dyninst::MachRegister reg, int size);
 
         StackLocation* findInMap(StackLocation* src);
 

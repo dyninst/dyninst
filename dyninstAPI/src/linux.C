@@ -57,6 +57,8 @@
 #include "common/src/linuxKludges.h"
 
 #include "symtabAPI/h/Symtab.h"
+
+using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace Dyninst::ProcControlAPI;
 

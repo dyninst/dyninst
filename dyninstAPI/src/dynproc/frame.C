@@ -42,6 +42,8 @@
 
 #include "stackwalk/h/framestepper.h"
 
+using namespace Dyninst;
+
 Frame::Frame() : 
   sw_frame_(Dyninst::Stackwalker::Frame()),
   proc_(NULL),

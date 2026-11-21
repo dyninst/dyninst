@@ -10,6 +10,8 @@
 #include "SymbolicExpression.h"
 #include <iostream>
 
+using namespace Dyninst;
+
 #define MAX_TABLE_ENTRY 1000000
 
 using namespace Dyninst::InstructionAPI;

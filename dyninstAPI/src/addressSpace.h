@@ -81,7 +81,6 @@ class BPatch_point;
 class Emitter;
 class fileDescriptor;
 
-using namespace Dyninst;
 //using namespace SymtabAPI;
 
 class func_instance;
@@ -114,7 +113,7 @@ namespace Dyninst {
 // Note: this is a pure virtual class; it serves as an interface
 // specification.
 
-class AddressSpace : public InstructionSource {
+class AddressSpace : public Dyninst::InstructionSource {
  public:
 
    // This is a little complex, so let me explain my logic
@@ -164,7 +163,7 @@ class AddressSpace : public InstructionSource {
                                 uint32_t amount,
                                 const void *inSelf) = 0;
 
-    Address getTOCoffsetInfo(func_instance *);
+    Dyninst::Address getTOCoffsetInfo(func_instance *);
 
     // Memory allocation
     // We don't specify how it should be done, only that it is. The model is
@@ -173,37 +172,37 @@ class AddressSpace : public InstructionSource {
     // best to give you what you want, but there are no promises - check the
     // address of the returned buffer to be sure.
 
-    virtual Address inferiorMalloc(unsigned size, inferiorHeapType type=anyHeap,
-                                   Address near = 0, bool *err = NULL) = 0;
-    virtual void inferiorFree(Address item) = 0;
-    void inferiorFreeInternal(Address item);
+    virtual Dyninst::Address inferiorMalloc(unsigned size, inferiorHeapType type=anyHeap,
+                                   Dyninst::Address near = 0, bool *err = NULL) = 0;
+    virtual void inferiorFree(Dyninst::Address item) = 0;
+    void inferiorFreeInternal(Dyninst::Address item);
     // And a "constrain" call to free unused memory. This is useful because our
     // instrumentation is incredibly wasteful.
-    virtual bool inferiorRealloc(Address item, unsigned newSize) = 0;
-    bool inferiorReallocInternal(Address item, unsigned newSize);
-    bool inferiorShrinkBlock(heapItem *h, Address block, unsigned newSize);
-    bool inferiorExpandBlock(heapItem *h, Address block, unsigned newSize);
+    virtual bool inferiorRealloc(Dyninst::Address item, unsigned newSize) = 0;
+    bool inferiorReallocInternal(Dyninst::Address item, unsigned newSize);
+    bool inferiorShrinkBlock(heapItem *h, Dyninst::Address block, unsigned newSize);
+    bool inferiorExpandBlock(heapItem *h, Dyninst::Address block, unsigned newSize);
 
-    bool isInferiorAllocated(Address block);
+    bool isInferiorAllocated(Dyninst::Address block);
 
     // Allow the AddressSpace to update any extra bookkeeping for trap-based
     // instrumentation
-    virtual void addTrap(Address from, Address to, codeGen &gen) = 0;
-    virtual void removeTrap(Address from) = 0;
+    virtual void addTrap(Dyninst::Address from, Dyninst::Address to, codeGen &gen) = 0;
+    virtual void removeTrap(Dyninst::Address from) = 0;
 
     virtual bool getDyninstRTLibName();
 
     // InstructionSource 
-    virtual bool isValidAddress(const Address) const;
-    virtual void *getPtrToInstruction(const Address) const;
-    virtual void *getPtrToData(const Address a) const { return getPtrToInstruction(a); }
+    virtual bool isValidAddress(const Dyninst::Address) const;
+    virtual void *getPtrToInstruction(const Dyninst::Address) const;
+    virtual void *getPtrToData(const Dyninst::Address a) const { return getPtrToInstruction(a); }
 
-    virtual bool isCode(const Address) const;
-    virtual bool isData(const Address) const;
-    virtual bool isReadOnly(const Address) const;
-    virtual Address offset() const = 0;
-    virtual Address length() const = 0;
-    virtual Architecture getArch() const = 0;
+    virtual bool isCode(const Dyninst::Address) const;
+    virtual bool isData(const Dyninst::Address) const;
+    virtual bool isReadOnly(const Dyninst::Address) const;
+    virtual Dyninst::Address offset() const = 0;
+    virtual Dyninst::Address length() const = 0;
+    virtual Dyninst::Architecture getArch() const = 0;
 
     // Trap address to base tramp address (for trap instrumentation)
     trampTrapMappings trapMapping;
@@ -253,20 +252,20 @@ class AddressSpace : public InstructionSource {
     void getAllFunctions(std::vector<func_instance *> &);
     
     // Find the code sequence containing an address
-    bool findFuncsByAddr(Address addr, std::set<func_instance *> &funcs, bool includeReloc = false);
-    bool findBlocksByAddr(Address addr, std::set<block_instance *> &blocks, bool includeReloc = false);
+    bool findFuncsByAddr(Dyninst::Address addr, std::set<func_instance *> &funcs, bool includeReloc = false);
+    bool findBlocksByAddr(Dyninst::Address addr, std::set<block_instance *> &blocks, bool includeReloc = false);
     // Don't use this...
     // I take it back. Use it when you _know_ that you want one function,
     // picked arbitrarily, from the possible functions.
-    func_instance *findOneFuncByAddr(Address addr);
+    func_instance *findOneFuncByAddr(Dyninst::Address addr);
     // And the one thing that is unique: entry address!
-    func_instance *findFuncByEntry(Address addr);
-    block_instance *findBlockByEntry(Address addr);
+    func_instance *findFuncByEntry(Dyninst::Address addr);
+    block_instance *findBlockByEntry(Dyninst::Address addr);
 
     // And a lookup by "internal" function to find clones during fork...
     func_instance *findFunction(parse_func *ifunc);
     block_instance *findBlock(parse_block *iblock);
-    edge_instance *findEdge(ParseAPI::Edge *iedge);
+    edge_instance *findEdge(Dyninst::ParseAPI::Edge *iedge);
 
 	// Fast lookups across all mapped_objects
 	func_instance *findFuncByEntry(const block_instance *block);
@@ -286,9 +285,9 @@ class AddressSpace : public InstructionSource {
     // And the same for objects
     // Wildcard: handles "*" and "?"
     mapped_object *findObject(std::string obj_name, bool wildcard = false) const;
-    mapped_object *findObject(Address addr) const;
+    mapped_object *findObject(Dyninst::Address addr) const;
     mapped_object *findObject(fileDescriptor desc) const;
-    mapped_object *findObject(const ParseAPI::CodeObject *co) const;
+    mapped_object *findObject(const Dyninst::ParseAPI::CodeObject *co) const;
 
     mapped_object *getAOut() { assert(mapped_objects.size()); return mapped_objects[0];}
     
@@ -330,7 +329,7 @@ class AddressSpace : public InstructionSource {
     void replaceFunction(func_instance *oldfunc, func_instance *newfunc);
     bool wrapFunction(func_instance *original, 
                       func_instance *wrapper, 
-                      SymtabAPI::Symbol *clone);
+                      Dyninst::SymtabAPI::Symbol *clone);
     void wrapFunctionPostPatch(func_instance *wrapped, Dyninst::SymtabAPI::Symbol *);
 
     void revertWrapFunction(func_instance *original);                      
@@ -340,18 +339,18 @@ class AddressSpace : public InstructionSource {
 
     // And this....
     typedef boost::shared_ptr<Dyninst::InstructionAPI::Instruction> InstructionPtr;
-    bool getDynamicCallSiteArgs(InstructionAPI::Instruction insn,
-                                Address addr,
+    bool getDynamicCallSiteArgs(Dyninst::InstructionAPI::Instruction insn,
+                                Dyninst::Address addr,
                                 std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &args);
 
     // Default to "nope"
-    virtual bool hasBeenBound(const SymtabAPI::relocationEntry &, 
+    virtual bool hasBeenBound(const Dyninst::SymtabAPI::relocationEntry &, 
                               func_instance *&, 
-                              Address) { return false; }
-    virtual bool bindPLTEntry(const SymtabAPI::relocationEntry & /*entry*/,
-                              Address /*base_addr*/, 
+                              Dyninst::Address) { return false; }
+    virtual bool bindPLTEntry(const Dyninst::SymtabAPI::relocationEntry & /*entry*/,
+                              Dyninst::Address /*base_addr*/, 
                               func_instance * /*target_func*/,
-                              Address /*target_addr*/) { return false; }
+                              Dyninst::Address /*target_addr*/) { return false; }
     
     // Trampoline guard get/set functions
     int_variable* trampGuardBase(void) { return trampGuardBase_; }
@@ -421,8 +420,8 @@ class AddressSpace : public InstructionSource {
     //////////////////////////////////////////////////////
     // Yuck
     //////////////////////////////////////////////////////
-    Address getObservedCostAddr() const { return costAddr_; }
-    void updateObservedCostAddr(Address addr) { costAddr_ = addr;}
+    Dyninst::Address getObservedCostAddr() const { return costAddr_; }
+    void updateObservedCostAddr(Dyninst::Address addr) { costAddr_ = addr;}
 
     // Can we use traps if necessary?
     bool canUseTraps();
@@ -448,24 +447,24 @@ class AddressSpace : public InstructionSource {
 
     // Get the list of addresses an address (in a block) 
     // has been relocated to.
-    void getRelocAddrs(Address orig,
+    void getRelocAddrs(Dyninst::Address orig,
                        block_instance *block,
                        func_instance *func,
-                       std::list<Address> &relocs,
+                       std::list<Dyninst::Address> &relocs,
                        bool getInstrumentationAddrs) const;
 
 
-    bool getAddrInfo(Address relocAddr,//input
-                     Address &origAddr,
+    bool getAddrInfo(Dyninst::Address relocAddr,//input
+                     Dyninst::Address &origAddr,
                      std::vector<func_instance *> &origFuncs,
                      baseTramp *&baseTramp);
-    typedef Relocation::CodeTracker::RelocInfo RelocInfo;
-    bool getRelocInfo(Address relocAddr,
+    typedef Dyninst::Relocation::CodeTracker::RelocInfo RelocInfo;
+    bool getRelocInfo(Dyninst::Address relocAddr,
                       RelocInfo &relocInfo);
     // defensive mode code // 
 
     // Debugging method
-    bool inEmulatedCode(Address addr);
+    bool inEmulatedCode(Dyninst::Address addr);
 
     std::map<func_instance*,std::vector<edgeStub> > 
     getStubs(const std::list<block_instance *> &owBBIs,
@@ -473,12 +472,12 @@ class AddressSpace : public InstructionSource {
              const std::list<func_instance*> &deadFuncs);
 
     void addDefensivePad(block_instance *callBlock, func_instance *callFunc,
-                         Address padStart, unsigned size);
+                         Dyninst::Address padStart, unsigned size);
 
     void getPreviousInstrumentationInstances(baseTramp *bt,
-					     std::set<Address>::iterator &b,
-					     std::set<Address>::iterator &e);
-    void addInstrumentationInstance(baseTramp *bt, Address addr);
+					     std::set<Dyninst::Address>::iterator &b,
+					     std::set<Dyninst::Address>::iterator &e);
+    void addInstrumentationInstance(baseTramp *bt, Dyninst::Address addr);
 
     void addModifiedFunction(func_instance *func);
     void addModifiedBlock(block_instance *block);
@@ -487,12 +486,12 @@ class AddressSpace : public InstructionSource {
 
     // inferior malloc support functions
     void inferiorFreeCompact();
-    int findFreeIndex(unsigned size, int type, Address lo, Address hi);
+    int findFreeIndex(unsigned size, int type, Dyninst::Address lo, Dyninst::Address hi);
     void addHeap(heapItem *h);
     void initializeHeap();
     
     // Centralization of certain inferiorMalloc operations
-    Address inferiorMallocInternal(unsigned size, Address lo, Address hi, 
+    Dyninst::Address inferiorMallocInternal(unsigned size, Dyninst::Address lo, Dyninst::Address hi, 
                                    inferiorHeapType type);
     void inferiorMallocAlign(unsigned &size);
 
@@ -509,21 +508,21 @@ class AddressSpace : public InstructionSource {
 
     void *up_ptr_;
 
-    Address costAddr_;
+    Dyninst::Address costAddr_;
 
     /////// New instrumentation system
-    typedef std::list<Relocation::CodeTracker *> CodeTrackers;
+    typedef std::list<Dyninst::Relocation::CodeTracker *> CodeTrackers;
     CodeTrackers relocatedCode_;
 
     bool transform(Dyninst::Relocation::CodeMoverPtr cm);
-    Address generateCode(Dyninst::Relocation::CodeMoverPtr cm, Address near);
+    Dyninst::Address generateCode(Dyninst::Relocation::CodeMoverPtr cm, Dyninst::Address near);
     bool patchCode(Dyninst::Relocation::CodeMoverPtr cm,
 		   Dyninst::Relocation::SpringboardBuilderPtr spb);
 
     typedef std::set<func_instance *> FuncSet;
     std::map<mapped_object *, FuncSet> modifiedFunctions_;
 
-    bool relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address near);
+    bool relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Dyninst::Address near);
     Dyninst::Relocation::InstalledSpringboards::Ptr installedSpringboards_;
  public:
     Dyninst::Relocation::InstalledSpringboards::Ptr getInstalledSpringboards() 
@@ -532,12 +531,12 @@ class AddressSpace : public InstructionSource {
     }
  protected:
     // defensive mode code
-    typedef std::pair<Address, unsigned> DefensivePad;
-    std::map<Address, std::map<func_instance*,std::set<DefensivePad> > > forwardDefensiveMap_;
-    IntervalTree<Address, std::pair<func_instance*,Address> > reverseDefensiveMap_;
+    typedef std::pair<Dyninst::Address, unsigned> DefensivePad;
+    std::map<Dyninst::Address, std::map<func_instance*,std::set<DefensivePad> > > forwardDefensiveMap_;
+    IntervalTree<Dyninst::Address, std::pair<func_instance*,Dyninst::Address> > reverseDefensiveMap_;
 
     // Tracking instrumentation for fast removal
-    std::map<baseTramp *, std::set<Address> > instrumentationInstances_;
+    std::map<baseTramp *, std::set<Dyninst::Address> > instrumentationInstances_;
 
     // Track desired function replacements/removals/call replacements
     // CallModMap callModifications_;

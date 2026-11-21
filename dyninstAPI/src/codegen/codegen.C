@@ -46,6 +46,10 @@
 #include "bitArray.h"
 #include "InstructionDecoder.h"
 
+using namespace Dyninst;
+using namespace Dyninst::InstructionAPI;
+using namespace codegen_arch;
+
 #if defined(DYNINST_CODEGEN_ARCH_I386) || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #define CODE_GEN_OFFSET_SIZE 1U
 #else

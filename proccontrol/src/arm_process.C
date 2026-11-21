@@ -35,6 +35,10 @@
 #include "registers/aarch64_regs.h"
 #include "registers/abstract_regs.h"
 
+using namespace Dyninst::ProcControlAPI;
+
+using namespace Dyninst;
+
 using namespace NS_aarch64;
 using namespace std;
 

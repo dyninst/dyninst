@@ -45,13 +45,11 @@
 #include "Type.h"
 
 
-using namespace Dyninst;
-using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-extern AnnotationClass<std::vector<std::string> > SymbolVersionNamesAnno;
-extern AnnotationClass<std::string> SymbolFileNameAnno;
-extern AnnotationClass<std::vector<Region *> > UserRegionsAnno; 
-extern AnnotationClass<std::vector<Type *> > UserTypesAnno;
-extern AnnotationClass<dyn_hash_map<Address, Symbol *> > IdToSymAnno;
+extern Dyninst::AnnotationClass<std::vector<std::string> > SymbolVersionNamesAnno;
+extern Dyninst::AnnotationClass<std::string> SymbolFileNameAnno;
+extern Dyninst::AnnotationClass<std::vector<Dyninst::SymtabAPI::Region *> > UserRegionsAnno; 
+extern Dyninst::AnnotationClass<std::vector<Dyninst::SymtabAPI::Type *> > UserTypesAnno;
+extern Dyninst::AnnotationClass<dyn_hash_map<Dyninst::Address, Dyninst::SymtabAPI::Symbol *> > IdToSymAnno;
 #endif

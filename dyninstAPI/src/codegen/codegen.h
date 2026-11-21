@@ -41,18 +41,18 @@
 
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
 #include "codegen/codegen-power.h"
-using namespace NS_power;
+namespace codegen_arch = NS_power;
 #elif defined(i386_unknown_nt4_0) \
    || defined(DYNINST_CODEGEN_ARCH_I386)           \
    || defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "codegen/codegen-x86.h"
-using namespace NS_x86;
+namespace codegen_arch = NS_x86;
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 #include "codegen/codegen-aarch64.h"
-using namespace NS_aarch64;
+namespace codegen_arch = NS_aarch64;
 #elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
 #include "codegen/codegen-amdgpu.h"
-using namespace NS_amdgpu;
+namespace codegen_arch = NS_amdgpu;
 #else
 #error "unknown architecture"
 #endif
@@ -60,9 +60,9 @@ using namespace NS_amdgpu;
 #include "bitArray.h"
 
 // For platforms that require bit-twiddling. These should go away in the future.
-#define GET_PTR(insn, gen) codeBuf_t *insn = (codeBuf_t *)(gen).cur_ptr()
+#define GET_PTR(insn, gen) codegen_arch::codeBuf_t *insn = (codegen_arch::codeBuf_t *)(gen).cur_ptr()
 #define SET_PTR(insn, gen) (gen).update(insn)
-#define REGET_PTR(insn, gen) insn = (codeBuf_t *)(gen).cur_ptr()
+#define REGET_PTR(insn, gen) insn = (codegen_arch::codeBuf_t *)(gen).cur_ptr()
 
 //hateful windows.h
 #if defined(_MSC_VER)
@@ -109,10 +109,10 @@ class codeGen {
     
     // Copy a buffer into here and move the offset
     void copy(const void *buf, const unsigned size);
-    void copy(const void *buf, const unsigned size, const codeBufIndex_t index);
+    void copy(const void *buf, const unsigned size, const codegen_arch::codeBufIndex_t index);
     void copy(const std::vector<unsigned char> &buf);
     // Insert buffer into index, moving previous content
-    void insert(const void *buf, const unsigned size, const codeBufIndex_t index);
+    void insert(const void *buf, const unsigned size, const codegen_arch::codeBufIndex_t index);
 
     // How much space are we using?
     unsigned used() const;
@@ -127,20 +127,20 @@ class codeGen {
     // For things that make a copy of the current pointer and
     // play around with it. This recalculates the current offset
     // based on a new pointer
-    void update(codeBuf_t *ptr);
+    void update(codegen_arch::codeBuf_t *ptr);
 
-    void update(void *ptr) { update(reinterpret_cast<codeBuf_t*>(ptr)); }
+    void update(void *ptr) { update(reinterpret_cast<codegen_arch::codeBuf_t*>(ptr)); }
 
     // Set the offset at a particular location.
-    void setIndex(codeBufIndex_t offset);
+    void setIndex(codegen_arch::codeBufIndex_t offset);
 
-    codeBufIndex_t getIndex() const;
+    codegen_arch::codeBufIndex_t getIndex() const;
 
     // Move up or down a certain amount
     void moveIndex(int disp);
 
     // To calculate a jump between the "from" and where we are
-    static  long getDisplacement(codeBufIndex_t from, codeBufIndex_t to);
+    static  long getDisplacement(codegen_arch::codeBufIndex_t from, codegen_arch::codeBufIndex_t to);
 
     // For code generation -- given the current state of 
     // generation and a base address in the mutatee, 
@@ -154,7 +154,7 @@ class codeGen {
     std::string format() const;
 
     //Create a patch into the codeRange
-    void addPatch(codeBufIndex_t index, patchTarget *source, 
+    void addPatch(codegen_arch::codeBufIndex_t index, patchTarget *source, 
                   unsigned size = sizeof(Dyninst::Address),
                   relocPatch::patch_type_t ptype = relocPatch::patch_type_t::abs,
                   Dyninst::Offset off = 0);
@@ -207,8 +207,8 @@ class codeGen {
     // And pointer to a given offset
     void *get_ptr(unsigned offset) const;
 
-    codeBuf_t *buffer_{};
-    codeBufIndex_t offset_{};
+    codegen_arch::codeBuf_t *buffer_{};
+    codegen_arch::codeBufIndex_t offset_{};
     unsigned size_{};
     unsigned max_{};
     int pc_rel_use_count{};

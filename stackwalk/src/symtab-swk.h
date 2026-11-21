@@ -39,20 +39,19 @@
 #include "symtabAPI/h/Function.h"
 #include <string>
 
-using namespace Dyninst::SymtabAPI;
 
 namespace Dyninst {
 namespace Stackwalker {
 
 class SymtabWrapper {
  private:
-   dyn_hash_map<std::string, Symtab *> map;
+   dyn_hash_map<std::string, Dyninst::SymtabAPI::Symtab *> map;
    static SymtabWrapper *wrapper;
  protected:
    SymtabWrapper();
  public:
-   static Symtab *getSymtab(std::string filename);
-   static void notifyOfSymtab(Symtab *symtab, std::string name);
+   static Dyninst::SymtabAPI::Symtab *getSymtab(std::string filename);
+   static void notifyOfSymtab(Dyninst::SymtabAPI::Symtab *symtab, std::string name);
    ~SymtabWrapper();
 };
 

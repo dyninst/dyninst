@@ -12,6 +12,8 @@
 
 #include <set>
 
+using namespace codegen_arch;
+
 bool baseTramp_x86::generateSaves(codeGen &gen, registerSpace *) {
   return gen.codeEmitter()->emitBTSaves(this, gen);
 }

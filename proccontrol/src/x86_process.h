@@ -51,7 +51,7 @@ class x86_process : virtual public int_process
   virtual unsigned plat_breakpointSize();
   virtual void plat_breakpointBytes(unsigned char *buffer);
   virtual bool plat_breakpointAdvancesPC() const;
-  virtual Address plat_findFreeMemory(size_t) { return 0; }
+  virtual Dyninst::Address plat_findFreeMemory(size_t) { return 0; }
 };
 
 class x86_thread : virtual public int_thread
@@ -78,7 +78,7 @@ class x86_thread : virtual public int_thread
                                 bool &done);
    virtual unsigned hwBPAvail(unsigned mode);
 
-   virtual EventBreakpoint::ptr decodeHWBreakpoint(response::ptr &resp,
+   virtual Dyninst::ProcControlAPI::EventBreakpoint::ptr decodeHWBreakpoint(response::ptr &resp,
                                                    bool have_reg = false,
                                                    Dyninst::MachRegisterVal regval = 0);
    virtual bool bpNeedsClear(hw_breakpoint *hwbp);

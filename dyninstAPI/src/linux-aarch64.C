@@ -45,6 +45,8 @@
 #include "registerSpace/registerSpace.h"
 #include "patching/function.h"
 
+using namespace Dyninst;
+
 using codeGenASTPtr = Dyninst::DyninstAPI::codeGenASTPtr;
 using nullAST = Dyninst::DyninstAPI::nullAST;
 

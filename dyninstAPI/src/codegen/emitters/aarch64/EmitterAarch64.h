@@ -46,7 +46,7 @@ namespace Dyninst { namespace DyninstAPI {
 
     bool clobberAllFuncCall(registerSpace *rs, func_instance *callee) override;
 
-    codeBufIndex_t emitA(opCode op, Dyninst::Register src1, long dst, codeGen &gen,
+    codegen_arch::codeBufIndex_t emitA(opCode op, Dyninst::Register src1, long dst, codeGen &gen,
                          Dyninst::DyninstAPI::RegControl rc) override;
 
     void emitAddrSpecLoad(const BPatch_addrSpec_NP *as, Dyninst::Register dest, int stackShift,
@@ -83,7 +83,7 @@ namespace Dyninst { namespace DyninstAPI {
 
     void emitGetRetVal(Dyninst::Register, bool, codeGen &) override;
 
-    codeBufIndex_t emitIf(Dyninst::Register, Dyninst::Register, Dyninst::DyninstAPI::RegControl,
+    codegen_arch::codeBufIndex_t emitIf(Dyninst::Register, Dyninst::Register, Dyninst::DyninstAPI::RegControl,
                           codeGen &) override;
 
     void emitImm(opCode op, Dyninst::Register src, Dyninst::RegValue src2imm, Dyninst::Register dst,

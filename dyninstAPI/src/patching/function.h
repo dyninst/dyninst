@@ -88,7 +88,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   public:
     // Almost everythcing gets filled in later.
     func_instance(parse_func *f,
-                  Address baseAddr,
+                  Dyninst::Address baseAddr,
                   mapped_module *mod);
 
     func_instance(const func_instance *parent,
@@ -108,27 +108,27 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   string typedName() const { return ifunc()->typedName(); }
   string name() const { return symTabName(); }
 
-  SymtabAPI::Aggregate::name_iter symtab_names_begin() const 
+  Dyninst::SymtabAPI::Aggregate::name_iter symtab_names_begin() const 
    {
      return ifunc()->symtab_names_begin();
    }
-   SymtabAPI::Aggregate::name_iter symtab_names_end() const 
+   Dyninst::SymtabAPI::Aggregate::name_iter symtab_names_end() const 
    {
      return ifunc()->symtab_names_end();
    }
-   SymtabAPI::Aggregate::name_iter pretty_names_begin() const 
+   Dyninst::SymtabAPI::Aggregate::name_iter pretty_names_begin() const 
    {
      return ifunc()->pretty_names_begin();
    }
-   SymtabAPI::Aggregate::name_iter pretty_names_end() const 
+   Dyninst::SymtabAPI::Aggregate::name_iter pretty_names_end() const 
    {
      return ifunc()->pretty_names_end();
    }
-   SymtabAPI::Aggregate::name_iter typed_names_begin() const 
+   Dyninst::SymtabAPI::Aggregate::name_iter typed_names_begin() const 
    {
      return ifunc()->typed_names_begin();
    }
-   SymtabAPI::Aggregate::name_iter typed_names_end() const 
+   Dyninst::SymtabAPI::Aggregate::name_iter typed_names_end() const 
    {
      return ifunc()->typed_names_end();
    }
@@ -144,7 +144,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   void addSymTabName(const std::string name, bool isPrimary = false);
   void addPrettyName(const std::string name, bool isPrimary = false);
 
-  Address getPtrAddress() const {return ptrAddr_;}
+  Dyninst::Address getPtrAddress() const {return ptrAddr_;}
 
   // Not defined here so we don't have to play header file magic
   // Not const; we can add names via the Dyninst layer
@@ -171,19 +171,19 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
                                std::set<block_instance*> &deadBlocks);
   // kevin signal-handler information
   bool isSignalHandler() {return handlerFaultAddr_ != 0;}
-  Address getHandlerFaultAddr() {return handlerFaultAddr_;}
-  Address getHandlerFaultAddrAddr() {return handlerFaultAddrAddr_;}
-  void setHandlerFaultAddr(Address fa);
-  void setHandlerFaultAddrAddr(Address faa, bool set);
+  Dyninst::Address getHandlerFaultAddr() {return handlerFaultAddr_;}
+  Dyninst::Address getHandlerFaultAddrAddr() {return handlerFaultAddrAddr_;}
+  void setHandlerFaultAddr(Dyninst::Address fa);
+  void setHandlerFaultAddrAddr(Dyninst::Address faa, bool set);
   void triggerModified();
 
-  block_instance *getBlockByEntry(const Address addr);
+  block_instance *getBlockByEntry(const Dyninst::Address addr);
   // get all blocks that contain the given address
-  bool getBlocks(const Address addr, std::set<block_instance*> &blks);
+  bool getBlocks(const Dyninst::Address addr, std::set<block_instance*> &blks);
   // Get the block with an instruction that starts at addr
-  block_instance *getBlock(const Address addr);
+  block_instance *getBlock(const Dyninst::Address addr);
 
-  Offset addrToOffset(const Address addr) const;
+  Dyninst::Offset addrToOffset(const Dyninst::Address addr) const;
 
   bool hasNoStackFrame() const {return ifunc()->hasNoStackFrame();}
   bool savesFramePointer() const {return ifunc()->savesFramePointer();}
@@ -202,7 +202,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
   bool isInstrumentable();
 
-  Address get_address() const;
+  Dyninst::Address get_address() const;
   unsigned get_size() const;
   unsigned footprint(); // not const, calls ifunc()->extents()
   std::string get_name() const;
@@ -247,7 +247,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
     void getCallerFuncs(OutputIterator result);
   bool getLiveCallerBlocks(const std::set<block_instance*> &deadBlocks,
                            const std::list<func_instance*> &deadFuncs,
-                           std::map<Address,vector<block_instance*> > & output_stubs);
+                           std::map<Dyninst::Address,vector<block_instance*> > & output_stubs);
 
 
 
@@ -272,11 +272,11 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   instPoint *postCallPoint(block_instance* blk, bool create);
   instPoint *blockEntryPoint(block_instance* blk, bool create);
   instPoint *blockExitPoint(block_instance* b, bool create);
-  instPoint *preInsnPoint(block_instance *b, Address a,
-                          InstructionAPI::Instruction insn,
+  instPoint *preInsnPoint(block_instance *b, Dyninst::Address a,
+                          Dyninst::InstructionAPI::Instruction insn,
                           bool trusted, bool create);
-  instPoint *postInsnPoint(block_instance *b, Address a,
-                           InstructionAPI::Instruction insn,
+  instPoint *postInsnPoint(block_instance *b, Dyninst::Address a,
+                           Dyninst::InstructionAPI::Instruction insn,
                            bool trusted, bool create);
   instPoint *edgePoint(edge_instance* eg, bool create);
 
@@ -293,7 +293,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 			      Dyninst::SymtabAPI::Symbol *newsym);
   Dyninst::SymtabAPI::Symbol *getWrapperSymbol();
   Dyninst::SymtabAPI::Symbol *getRelocSymbol();
-  void createWrapperSymbol(Address entry, std::string name);
+  void createWrapperSymbol(Dyninst::Address entry, std::string name);
 
   static void destroy(func_instance *f);
   void removeBlock(block_instance *block);
@@ -317,7 +317,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   std::set<StackMod*>* getMods() const { return _modifications; }
   void printMods() const;
 
-  Accesses* getAccesses(Address addr);
+  Accesses* getAccesses(Dyninst::Address addr);
 
   void setCanary(bool b) { _hasCanary = b; }
   bool hasCanary() { return _hasCanary; }
@@ -332,7 +332,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   TMap* getTMap() const { return _tMap; }
   void replaceTMap(TMap* newTMap) { _tMap = newTMap; }
 
-  std::map<Address, StackAccess *> *getDefinitionMap() {
+  std::map<Dyninst::Address, StackAccess *> *getDefinitionMap() {
     return _definitionMap;
   }
 
@@ -352,7 +352,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
   ///////////////////// Basic func info
   //Address addr_; // Absolute address of the start of the function
-  Address ptrAddr_; // Absolute address of the function descriptor, if exists
+  Dyninst::Address ptrAddr_; // Absolute address of the function descriptor, if exists
 
   // parse_func *ifunc_;
   mapped_module *mod_; // This is really a dodge; translate a list of
@@ -365,10 +365,10 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   size_t prevBlocksAbruptEnds_; // num func blocks when calculated
 
 
-  Address handlerFaultAddr_; /* if this is a signal handler, faultAddr_ is
+  Dyninst::Address handlerFaultAddr_; /* if this is a signal handler, faultAddr_ is
                                 set to -1, or to the address of the fault
                                 that last caused the handler to be invoked. */
-  Address handlerFaultAddrAddr_;
+  Dyninst::Address handlerFaultAddrAddr_;
 
   void addblock_instance(block_instance *instance);
 
@@ -383,17 +383,17 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // Stack modification
   bool createOffsetVector_Symbols();
 
-  bool createOffsetVector_Analysis(ParseAPI::Function *func,
-                                   ParseAPI::Block *block,
-                                   InstructionAPI::Instruction insn,
-                                   Address addr);
+  bool createOffsetVector_Analysis(Dyninst::ParseAPI::Function *func,
+                                   Dyninst::ParseAPI::Block *block,
+                                   Dyninst::InstructionAPI::Instruction insn,
+                                   Dyninst::Address addr);
 
-  bool addToOffsetVector(StackAnalysis::Height off,
+  bool addToOffsetVector(Dyninst::StackAnalysis::Height off,
           int size,
           StackAccess::StackAccessType type,
           bool isRegisterHeight,
           ValidPCRange* valid,
-          MachRegister reg = MachRegister());
+          Dyninst::MachRegister reg = Dyninst::MachRegister());
 
   void createTMap_internal(StackMod* mod, StackLocation* loc, TMap* tMap);
   void createTMap_internal(StackMod* mod, TMap* tMap);
@@ -421,11 +421,11 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
   // Records known accesses to stack locations (so we can determine how to
   // modify the accesses for stack modifications).
-  std::map<Address, Accesses*>* _accessMap;
+  std::map<Dyninst::Address, Accesses*>* _accessMap;
 
   // Records stack pointer definitions that need to be modified for stack
   // modifications.
-  std::map<Address, StackAccess *> *_definitionMap;
+  std::map<Dyninst::Address, StackAccess *> *_definitionMap;
 #endif
   func_instance* _noPowerPreambleFunc;
   func_instance* _powerPreambleFunc;
@@ -445,7 +445,7 @@ void func_instance::getCallerBlocks(OutputIterator result)
   for (PatchBlock::edgelist::const_iterator iter = ins.begin();
        iter != ins.end(); ++iter) 
   {
-      if ((*iter)->type() == ParseAPI::CALL) {
+      if ((*iter)->type() == Dyninst::ParseAPI::CALL) {
         *result = SCAST_EI(*iter)->src();
         ++result;
       }

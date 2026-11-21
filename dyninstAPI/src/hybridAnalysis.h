@@ -124,8 +124,8 @@ public:
     void getCallBlocks(Dyninst::Address retAddr, 
                        func_instance *retFunc,
                        block_instance *retBlock,
-                       pair<ParseAPI::Block*, Dyninst::Address> & returningCallB, // output
-                       set<ParseAPI::Block*> & callBlocks); // output
+                       pair<Dyninst::ParseAPI::Block*, Dyninst::Address> & returningCallB, // output
+                       set<Dyninst::ParseAPI::Block*> & callBlocks); // output
 
     std::map< BPatch_point* , SynchHandle* > & synchMap_pre();
     std::map< BPatch_point* , SynchHandle* > & synchMap_post();
@@ -195,8 +195,8 @@ private:
 
     // utility functions that could go in another class, but that no one else 
     // really needs
-    bool getCallAndBranchTargets(block_instance *block, std::vector<Address> & targs);
-    bool getCFTargets(BPatch_point *point, vector<Address> &targets);
+    bool getCallAndBranchTargets(block_instance *block, std::vector<Dyninst::Address> & targs);
+    bool getCFTargets(BPatch_point *point, vector<Dyninst::Address> &targets);
 
     // needs to call removeInstrumentation
     friend void BPatch_process::overwriteAnalysisUpdate

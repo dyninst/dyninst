@@ -48,6 +48,8 @@
 #include "common/src/freebsdKludges.h"
 #endif
 
+using namespace Dyninst::ProcControlAPI;
+
 using namespace std;
 
 unix_process::unix_process(Dyninst::PID p, std::string e, std::vector<std::string> a,

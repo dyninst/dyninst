@@ -37,14 +37,13 @@
 #include "dyn_register.h"
 #include "Register.h"
 
-using namespace Dyninst;
 
-extern std::multimap<Register, MachRegister> regToMachReg32;
-extern std::multimap<Register, MachRegister> regToMachReg64;
+extern std::multimap<Dyninst::Register, Dyninst::MachRegister> regToMachReg32;
+extern std::multimap<Dyninst::Register, Dyninst::MachRegister> regToMachReg64;
 
-Register convertRegID(Dyninst::InstructionAPI::RegisterAST::Ptr toBeConverted);
-Register convertRegID(Dyninst::InstructionAPI::RegisterAST* toBeConverted);
-Register convertRegID(Dyninst::MachRegister reg);
-Dyninst::MachRegister convertRegID(Register r, Dyninst::Architecture arch);
+Dyninst::Register convertRegID(Dyninst::InstructionAPI::RegisterAST::Ptr toBeConverted);
+Dyninst::Register convertRegID(Dyninst::InstructionAPI::RegisterAST* toBeConverted);
+Dyninst::Register convertRegID(Dyninst::MachRegister reg);
+Dyninst::MachRegister convertRegID(Dyninst::Register r, Dyninst::Architecture arch);
 
 #endif //!defined(REGISTER_CONVERSION_H)

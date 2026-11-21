@@ -9,6 +9,8 @@
 #include "opcode.h"
 #include "RegisterConversion.h"
 
+using namespace codegen_arch;
+
 /*
  * Saving and restoring registers
  * We create a new stack frame in the base tramp and save registers

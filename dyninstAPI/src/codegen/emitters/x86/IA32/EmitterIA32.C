@@ -22,6 +22,8 @@
 #include <cstdio>
 #include <limits>
 
+using namespace codegen_arch;
+
 static int extra_space_check{};
 
 namespace Dyninst { namespace DyninstAPI {

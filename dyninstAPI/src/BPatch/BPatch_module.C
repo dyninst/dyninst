@@ -52,6 +52,9 @@
 #include "mapped_object.h"
 #include "patching/instPoint.h"
 
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
+
 using namespace SymtabAPI;
 
 std::string current_func_name;

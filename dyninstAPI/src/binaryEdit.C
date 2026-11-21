@@ -50,6 +50,8 @@
 #include <map>
 #include <tuple>
 
+using namespace Dyninst;
+
 using namespace Dyninst::SymtabAPI;
 
 

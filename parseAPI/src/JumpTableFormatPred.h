@@ -10,12 +10,11 @@
 #include "Graph.h"
 #include "SymbolicExpression.h"
 //#include "BoundFactCalculator.h"
-using namespace Dyninst;
 
-class JumpTableFormatPred : public Slicer::Predicates {
+class JumpTableFormatPred : public Dyninst::Slicer::Predicates {
 public:
-    ParseAPI::Function *func;
-    ParseAPI::Block *block;
+    Dyninst::ParseAPI::Function *func;
+    Dyninst::ParseAPI::Block *block;
     ReachFact &rf;
     ThunkData &thunks;
     SymbolicExpression &se;
@@ -24,31 +23,31 @@ public:
     bool findIndex;
     bool findTableBase;
 
-    AbsRegion index;
-    Assignment::Ptr indexLoc;
+    Dyninst::AbsRegion index;
+    Dyninst::Assignment::Ptr indexLoc;
     bool firstMemoryRead;
-    Assignment::Ptr memLoc;
+    Dyninst::Assignment::Ptr memLoc;
     AST::Ptr jumpTargetExpr;
 
-    set<Address> constAddr;
-    dyn_hash_map<Assignment::Ptr, std::pair<AST::Ptr, AST::Ptr>, Assignment::AssignmentPtrHasher> aliases;
+    set<Dyninst::Address> constAddr;
+    dyn_hash_map<Dyninst::Assignment::Ptr, std::pair<AST::Ptr, AST::Ptr>, Dyninst::Assignment::AssignmentPtrHasher> aliases;
 
     // On ppc 64, r2 is reserved for storing the address of the global offset table 
-    Address toc_address;
+    Dyninst::Address toc_address;
 
-    virtual bool modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g, Slicer*);
+    virtual bool modifyCurrentFrame(Dyninst::Slicer::SliceFrame &frame, Dyninst::Graph::Ptr g, Dyninst::Slicer*);
     std::string format();
     bool isJumpTableFormat() { return jumpTableFormat && findIndex && findTableBase && memLoc;}
-    bool findRead(Graph::Ptr g, SliceNode::Ptr &);
-    bool adjustSliceFrame(Slicer::SliceFrame &frame, SliceNode::Ptr, Slicer*);
-    bool isTOCRead(Slicer::SliceFrame &frame, SliceNode::Ptr);
+    bool findRead(Dyninst::Graph::Ptr g, Dyninst::SliceNode::Ptr &);
+    bool adjustSliceFrame(Dyninst::Slicer::SliceFrame &frame, Dyninst::SliceNode::Ptr, Dyninst::Slicer*);
+    bool isTOCRead(Dyninst::Slicer::SliceFrame &frame, Dyninst::SliceNode::Ptr);
     void FindTOC();
-    JumpTableFormatPred(ParseAPI::Function *f,
-                        ParseAPI::Block *b,
+    JumpTableFormatPred(Dyninst::ParseAPI::Function *f,
+                        Dyninst::ParseAPI::Block *b,
 			ReachFact &r,
 			ThunkData &t,
 			SymbolicExpression &sym);
-    virtual bool ignoreEdge(ParseAPI::Edge *e);
+    virtual bool ignoreEdge(Dyninst::ParseAPI::Edge *e);
     virtual int slicingSizeLimitFactor() { return 100; }
     //virtual bool endAtPoint(AssignmentPtr) override;
 

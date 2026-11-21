@@ -66,6 +66,8 @@
 #include <assert.h>
 #include "unaligned_memory_access.h"
 
+using namespace Dyninst;
+
 class ExpandInstruction;
 class InsertNops;
 

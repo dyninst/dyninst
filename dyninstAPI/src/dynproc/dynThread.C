@@ -35,6 +35,8 @@
 #include "mapped_module.h"
 #include "mapped_object.h"
 
+using namespace Dyninst;
+
 using namespace Dyninst::ProcControlAPI;
 
 PCThread::PCThread(PCProcess *parent, int ind,

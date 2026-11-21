@@ -95,16 +95,16 @@ class BinaryEdit : public AddressSpace {
     // best to give you what you want, but there are no promises - check the
     // address of the returned buffer to be sure.
 
-    Address inferiorMalloc(unsigned size, 
+    Dyninst::Address inferiorMalloc(unsigned size, 
                            inferiorHeapType type=anyHeap,
-                           Address near = 0, 
+                           Dyninst::Address near = 0, 
                            bool *err = NULL);
-    virtual void inferiorFree(Address item);
-    virtual bool inferiorRealloc(Address item, unsigned newSize);
+    virtual void inferiorFree(Dyninst::Address item);
+    virtual bool inferiorRealloc(Dyninst::Address item, unsigned newSize);
 
-    Address offset() const;
-    Address length() const;
-    Architecture getArch() const;
+    Dyninst::Address offset() const;
+    Dyninst::Address length() const;
+    Dyninst::Architecture getArch() const;
     /*
     // Until we need these different from AddressSpace,
     // I'm not implementing.
@@ -126,9 +126,9 @@ class BinaryEdit : public AddressSpace {
     bool multithread_ready(bool ignore_if_mt_not_set = false);
 
     // Default to "nope"
-    virtual bool hasBeenBound(const SymtabAPI::relocationEntry &, 
+    virtual bool hasBeenBound(const Dyninst::SymtabAPI::relocationEntry &, 
                               func_instance *&, 
-                              Address) { return false; }
+                              Dyninst::Address) { return false; }
 
     // Should be easy if the process isn't _executing_ where
     // we're deleting...
@@ -154,10 +154,10 @@ class BinaryEdit : public AddressSpace {
     bool openSharedLibrary(const std::string &file, bool openDependencies = true);
 
     // add a shared library relocation
-    void addDependentRelocation(Address to, SymtabAPI::Symbol *referring);
+    void addDependentRelocation(Dyninst::Address to, Dyninst::SymtabAPI::Symbol *referring);
 
     // search for a shared library relocation
-    Address getDependentRelocationAddr(SymtabAPI::Symbol *referring);
+    Dyninst::Address getDependentRelocationAddr(Dyninst::SymtabAPI::Symbol *referring);
 
     // Add a library prerequisite
     void addLibraryPrereq(std::string libname);
@@ -184,20 +184,20 @@ class BinaryEdit : public AddressSpace {
 
    bool writing() { return writing_; }
 
-   void addDyninstSymbol(SymtabAPI::Symbol *sym) { newDyninstSyms_.push_back(sym); }
+   void addDyninstSymbol(Dyninst::SymtabAPI::Symbol *sym) { newDyninstSyms_.push_back(sym); }
 
-   virtual void addTrap(Address from, Address to, codeGen &gen);
-   virtual void removeTrap(Address /*from*/) {}
+   virtual void addTrap(Dyninst::Address from, Dyninst::Address to, codeGen &gen);
+   virtual void removeTrap(Dyninst::Address /*from*/) {}
     static bool getResolvedLibraryPath(const std::string &filename, std::vector<std::string> &paths);
 
  private:
-    Address highWaterMark_;
-    Address lowWaterMark_;
+    Dyninst::Address highWaterMark_;
+    Dyninst::Address lowWaterMark_;
     bool isDirty_;
 
     bool inferiorMallocStatic(unsigned size);
 
-    Address maxAllocedAddr();
+    Dyninst::Address maxAllocedAddr();
 
     bool createMemoryBackingStore(mapped_object *obj);
 
@@ -216,9 +216,9 @@ class BinaryEdit : public AddressSpace {
 
     std::vector<depRelocation *> dependentRelocations;
 
-    void buildDyninstSymbols(std::vector<SymtabAPI::Symbol *> &newSyms, 
-                             SymtabAPI::Region *newSec,
-                             SymtabAPI::Module *newMod);
+    void buildDyninstSymbols(std::vector<Dyninst::SymtabAPI::Symbol *> &newSyms, 
+                             Dyninst::SymtabAPI::Region *newSec,
+                             Dyninst::SymtabAPI::Module *newMod);
 
     // `mobj` is only a view. The actual object is owned by AddressSpace::mapped_objects
     mapped_object *mobj;
@@ -228,26 +228,26 @@ class BinaryEdit : public AddressSpace {
     bool writing_;
 
     // Symbols that other people (e.g., functions) want us to add
-    std::vector<SymtabAPI::Symbol *> newDyninstSyms_;
+    std::vector<Dyninst::SymtabAPI::Symbol *> newDyninstSyms_;
 
 };
 
 class depRelocation {
 	public:
- depRelocation(Address a, SymtabAPI::Symbol *r) : to(a), referring(r) { }
-  Address getAddress() const { return to; }
-  SymtabAPI::Symbol *getReferring() const { return referring; }
+ depRelocation(Dyninst::Address a, Dyninst::SymtabAPI::Symbol *r) : to(a), referring(r) { }
+  Dyninst::Address getAddress() const { return to; }
+  Dyninst::SymtabAPI::Symbol *getReferring() const { return referring; }
 
  private:
-  Address to;
-  SymtabAPI::Symbol *referring;
+  Dyninst::Address to;
+  Dyninst::SymtabAPI::Symbol *referring;
 };
 
 class memoryTracker : public codeRange {
 public:
-  memoryTracker(Address a, unsigned s) : memoryTracker(a, s, nullptr) {}
+  memoryTracker(Dyninst::Address a, unsigned s) : memoryTracker(a, s, nullptr) {}
 
-  memoryTracker(Address a, unsigned s, void *b)
+  memoryTracker(Dyninst::Address a, unsigned s, void *b)
       : a_(a), s_(s) {
     b_.reset(new char[s_]);
     if (b) {
@@ -264,7 +264,7 @@ public:
   memoryTracker(memoryTracker &&) = default;
   memoryTracker &operator=(memoryTracker &&) = default;
 
-  Address get_address() const { return a_; }
+  Dyninst::Address get_address() const { return a_; }
   unsigned get_size() const { return s_; }
   void *get_local_ptr() const { return static_cast<void*>(b_.get()); }
   void realloc(unsigned newsize) {
@@ -283,7 +283,7 @@ public:
   bool dirty{false};
 
 private:
-  Address a_;
+  Dyninst::Address a_;
   unsigned s_;
   std::unique_ptr<char[]> b_;
 };

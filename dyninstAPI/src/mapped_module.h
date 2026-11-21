@@ -70,7 +70,7 @@ class mapped_module {
 
       // A lot of stuff shared with the internal module
 
-      SymtabAPI::supportedLanguages language() const;
+      Dyninst::SymtabAPI::supportedLanguages language() const;
 
       const std::vector<func_instance *> &getAllFunctions();
       const std::vector<int_variable *> &getAllVariables();
@@ -84,9 +84,9 @@ class mapped_module {
       bool findFuncVectorByMangled(const std::string &funcname,
             std::vector<func_instance *> &funcs);
 
-    bool findFuncsByAddr(const Address addr, std::set<func_instance *> &funcs);
-    bool findBlocksByAddr(const Address addr, std::set<block_instance *> &blocks);
-    void getAnalyzedCodePages(std::set<Address> & pages);
+    bool findFuncsByAddr(const Dyninst::Address addr, std::set<func_instance *> &funcs);
+    bool findBlocksByAddr(const Dyninst::Address addr, std::set<block_instance *> &blocks);
+    void getAnalyzedCodePages(std::set<Dyninst::Address> & pages);
 
 
       void dumpMangled(std::string prefix) const;
@@ -103,7 +103,7 @@ class mapped_module {
 
       void addFunction(func_instance *func);
       void addVariable(int_variable *var);
-      int_variable* createVariable(std::string name, Address offset, int size);
+      int_variable* createVariable(std::string name, Dyninst::Address offset, int size);
       
       void remove(func_instance *func);
 

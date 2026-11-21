@@ -58,7 +58,7 @@
 
 typedef enum __ptrace_request pt_req;
 
-class GeneratorLinux : public GeneratorMT
+class GeneratorLinux : public Dyninst::ProcControlAPI::GeneratorMT
 {
   private:
    int generator_lwp;
@@ -70,11 +70,11 @@ class GeneratorLinux : public GeneratorMT
 
    virtual bool initialize();
    virtual bool canFastHandle();
-   virtual ArchEvent *getEvent(bool block);
+   virtual Dyninst::ProcControlAPI::ArchEvent *getEvent(bool block);
    void evictFromWaitpid();
 };
 
-class ArchEventLinux : public ArchEvent
+class ArchEventLinux : public Dyninst::ProcControlAPI::ArchEvent
 {
    static std::vector<ArchEventLinux *> pending_events;
 public:
@@ -94,13 +94,13 @@ public:
    virtual ~ArchEventLinux();
 };
 
-class DecoderLinux : public Decoder
+class DecoderLinux : public Dyninst::ProcControlAPI::Decoder
 {
  public:
    DecoderLinux();
    virtual ~DecoderLinux();
    virtual unsigned getPriority() const;
-   virtual bool decode(ArchEvent *ae, std::vector<Event::ptr> &events);
+   virtual bool decode(Dyninst::ProcControlAPI::ArchEvent *ae, std::vector<Dyninst::ProcControlAPI::Event::ptr> &events);
    Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
@@ -122,7 +122,7 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual bool plat_detach(result_response::ptr resp, bool leave_stopped);
    virtual bool plat_terminate(bool &needs_sync);
    virtual bool preTerminate();
-   virtual OSType getOS() const;
+   virtual Dyninst::OSType getOS() const;
 
    //The following async functions are only used if a linux debugging mode,
    // 'debug_async_simulate' is enabled, which tries to get Linux to simulate having
@@ -137,7 +137,7 @@ class linux_process : public sysv_process, public unix_process, public thread_db
                              Dyninst::Address remote, size_t size);
    virtual bool plat_writeMem(int_thread *thr, const void *local,
                               Dyninst::Address remote, size_t size, bp_write_t bp_write);
-   virtual SymbolReaderFactory *plat_defaultSymReader();
+   virtual Dyninst::SymbolReaderFactory *plat_defaultSymReader();
    virtual bool needIndividualThreadAttach();
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
    virtual bool plat_individualRegAccess();
@@ -146,9 +146,9 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual bool plat_supportLWPCreate();
    virtual bool plat_supportLWPPreDestroy();
    virtual bool plat_supportLWPPostDestroy();
-   virtual void plat_adjustSyncType(Event::ptr ev, bool gen);
-   virtual bool fork_setTracking(FollowFork::follow_t b);
-   virtual FollowFork::follow_t fork_isTracking();
+   virtual void plat_adjustSyncType(Dyninst::ProcControlAPI::Event::ptr ev, bool gen);
+   virtual bool fork_setTracking(Dyninst::ProcControlAPI::FollowFork::follow_t b);
+   virtual Dyninst::ProcControlAPI::FollowFork::follow_t fork_isTracking();
    virtual bool plat_lwpChangeTracking(bool b);
    virtual bool allowSignal(int signal_no);
 
@@ -314,36 +314,36 @@ public:
 
 long do_ptrace(pt_req request_, pid_t pid_, void *addr_, void *data_);
 
-class LinuxHandleNewThr : public Handler
+class LinuxHandleNewThr : public Dyninst::ProcControlAPI::Handler
 {
  public:
    LinuxHandleNewThr();
    virtual ~LinuxHandleNewThr();
-   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual handler_ret_t handleEvent(Dyninst::ProcControlAPI::Event::ptr ev);
    virtual int getPriority() const;
-   void getEventTypesHandled(std::vector<EventType> &etypes);
+   void getEventTypesHandled(std::vector<Dyninst::ProcControlAPI::EventType> &etypes);
 };
 
-class LinuxHandleLWPDestroy : public Handler
+class LinuxHandleLWPDestroy : public Dyninst::ProcControlAPI::Handler
 {
  public:
      LinuxHandleLWPDestroy();
      virtual ~LinuxHandleLWPDestroy();
-     virtual handler_ret_t handleEvent(Event::ptr ev);
+     virtual handler_ret_t handleEvent(Dyninst::ProcControlAPI::Event::ptr ev);
      virtual int getPriority() const;
-     void getEventTypesHandled(std::vector<EventType> &etypes);
+     void getEventTypesHandled(std::vector<Dyninst::ProcControlAPI::EventType> &etypes);
 };
 
-class LinuxHandleForceTerminate : public Handler
+class LinuxHandleForceTerminate : public Dyninst::ProcControlAPI::Handler
 {
   public:
    LinuxHandleForceTerminate();
    virtual ~LinuxHandleForceTerminate();
-   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual handler_ret_t handleEvent(Dyninst::ProcControlAPI::Event::ptr ev);
    virtual int getPriority() const;
-   void getEventTypesHandled(std::vector<EventType> &etypes);
+   void getEventTypesHandled(std::vector<Dyninst::ProcControlAPI::EventType> &etypes);
 };
 
-SymbolReaderFactory *getElfReader();
+Dyninst::SymbolReaderFactory *getElfReader();
 
 #endif
