@@ -118,9 +118,4 @@ typedef std::set<ParseAPI::CodeSource*> CodeSourceSet;
 } while(0)
 #endif
 
-using std::map;
-using std::set;
-using std::vector;
-using std::cerr;
-
 #endif  // PATCHAPI_H_COMMON_H_

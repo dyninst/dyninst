@@ -39,7 +39,7 @@ PatchFunction*
 CFGMaker::makeFunction(ParseAPI::Function* f, PatchObject* obj) {
   PatchFunction* ret = new PatchFunction(f, obj);
   if (!ret) {
-    cerr << "ERROR: Cannot create PatchFunction for " << f->name() << "\n";
+    std::cerr << "ERROR: Cannot create PatchFunction for " << f->name() << "\n";
     assert(0);
   }
   return ret;
@@ -54,7 +54,7 @@ PatchBlock*
 CFGMaker::makeBlock(ParseAPI::Block* b, PatchObject* obj) {
   PatchBlock* ret = new PatchBlock(b, obj);
   if (!ret) {
-    cerr << "ERROR: Cannot create PatchBlock for 0x" << std::hex
+    std::cerr << "ERROR: Cannot create PatchBlock for 0x" << std::hex
          << b->start() << "\n" << std::dec;
     assert(0);
   }

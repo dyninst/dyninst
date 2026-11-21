@@ -43,7 +43,6 @@
 #include <vector>
 
 namespace Dyninst { namespace InstructionAPI {
-  using std::vector;
 
   class DYNINST_EXPORT BinaryFunction : public Expression {
   public:

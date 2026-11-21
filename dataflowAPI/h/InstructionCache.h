@@ -36,7 +36,6 @@
 #include <map>
 #include "CFG.h"
 
-using namespace Dyninst;
 
 
 struct ReadWriteInfo
@@ -49,15 +48,15 @@ struct ReadWriteInfo
 
 class InstructionCache
 {
-  std::map<Address, ReadWriteInfo> cache;
-  ParseAPI::Function* currentFunction;
+  std::map<Dyninst::Address, ReadWriteInfo> cache;
+  Dyninst::ParseAPI::Function* currentFunction;
 
   public:
   InstructionCache(): currentFunction(NULL) {}
-  bool getLivenessInfo(Address addr, ParseAPI::Function* func, ReadWriteInfo& rw);
-  void insertInstructionInfo(Address addr, ReadWriteInfo rw, ParseAPI::Function* func);
+  bool getLivenessInfo(Dyninst::Address addr, Dyninst::ParseAPI::Function* func, ReadWriteInfo& rw);
+  void insertInstructionInfo(Dyninst::Address addr, ReadWriteInfo rw, Dyninst::ParseAPI::Function* func);
   void clean() {cache.clear();}
-  ParseAPI::Function* getCurFunc() {return currentFunction;}
+  Dyninst::ParseAPI::Function* getCurFunc() {return currentFunction;}
 };
 
 #endif //!defined(INSTRUCTION_CACHE_H)

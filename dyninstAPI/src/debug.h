@@ -105,7 +105,7 @@ extern const std::string CODEGEN_REGISTER_TIMER;
 extern const std::string CODEGEN_LIVENESS_TIMER;
 
 // C++ prototypes
-#define debug_sys_cerr(debug_sys)  if (dyn_debug_##debug_sys) cerr
+#define debug_sys_cerr(debug_sys)  if (dyn_debug_##debug_sys) std::cerr
 
 #define signal_cerr       debug_sys_cerr(signal)
 #define startup_cerr      debug_sys_cerr(startup)

@@ -244,24 +244,24 @@ class DYNINST_EXPORT PatchFunction {
     /* Loops */    
     PatchLoopTreeNode* getLoopTree();
     PatchLoop* findLoop(const char *name);
-    bool getLoops(vector<PatchLoop*> &loops);
-    bool getOuterLoops(vector<PatchLoop*> &loops);
+    bool getLoops(std::vector<PatchLoop*> &loops);
+    bool getOuterLoops(std::vector<PatchLoop*> &loops);
 
     /* Dominator info */
 
     /* Return true if A dominates B in this function */
     bool dominates(PatchBlock* A, PatchBlock *B);
     PatchBlock* getImmediateDominator(PatchBlock *A);
-    void getImmediateDominates(PatchBlock *A, set<PatchBlock*> &);
-    void getAllDominates(PatchBlock *A, set<PatchBlock*> &);
+    void getImmediateDominates(PatchBlock *A, std::set<PatchBlock*> &);
+    void getAllDominates(PatchBlock *A, std::set<PatchBlock*> &);
 
     /* Post-dominator info */
 
     /* Return true if A post-dominates B in this function */
     bool postDominates(PatchBlock* A, PatchBlock *B);
     PatchBlock* getImmediatePostDominator(PatchBlock *A);
-    void getImmediatePostDominates(PatchBlock *A, set<PatchBlock*> &);
-    void getAllPostDominates(PatchBlock *A, set<PatchBlock*> &);
+    void getImmediatePostDominates(PatchBlock *A, std::set<PatchBlock*> &);
+    void getAllPostDominates(PatchBlock *A, std::set<PatchBlock*> &);
 
    protected:
      // For callbacks from ParseAPI to PatchAPI
@@ -289,9 +289,9 @@ class DYNINST_EXPORT PatchFunction {
     /* Loop details*/
     bool _loop_analyzed; // true if loops in the function have been found and stored in _loops
     std::set<PatchLoop*> _loops;
-    map<ParseAPI::Loop*, PatchLoop*> _loop_map;
+    std::map<ParseAPI::Loop*, PatchLoop*> _loop_map;
     PatchLoopTreeNode *_loop_root; // NULL if the tree structure has not be calculated    
-    void getLoopsByNestingLevel(vector<PatchLoop*>& lbb, bool outerMostOnly);
+    void getLoopsByNestingLevel(std::vector<PatchLoop*>& lbb, bool outerMostOnly);
     void createLoops();
     void createLoopHierarchy();
 
@@ -342,26 +342,26 @@ public:
 
         /** Sets edges to the set of back edges that define this loop,
             returns the number of back edges that define this loop */
-        int getBackEdges(vector<PatchEdge*> &edges);
+        int getBackEdges(std::vector<PatchEdge*> &edges);
 
         /* returns the entry blocks of the loop.
 	 * A natural loop has a single entry block
 	 * and an irreducible loop has mulbile entry blocks
 	 * */
-	int getLoopEntries(vector<PatchBlock*>&);
+	int getLoopEntries(std::vector<PatchBlock*>&);
 
 	/** returns vector of contained loops */
-        bool getContainedLoops(vector<PatchLoop*> &loops);
+        bool getContainedLoops(std::vector<PatchLoop*> &loops);
 
 	/** returns vector of outer contained loops */
-	bool getOuterLoops(vector<PatchLoop*> &loops);
+	bool getOuterLoops(std::vector<PatchLoop*> &loops);
 
 	/** returns all basic blocks in the loop */
-        bool getLoopBasicBlocks(vector<PatchBlock*> &blocks);
+        bool getLoopBasicBlocks(std::vector<PatchBlock*> &blocks);
 
 	/** returns all basic blocks in this loop, exluding the blocks
 	    of its sub loops. */
-        bool getLoopBasicBlocksExclusive(vector<PatchBlock*> &blocks);
+        bool getLoopBasicBlocksExclusive(std::vector<PatchBlock*> &blocks);
 
         /** does this loop or its subloops contain the given block? */
         bool hasBlock(PatchBlock *b);
@@ -384,7 +384,7 @@ private:
 	PatchLoop(PatchObject* obj, ParseAPI::Loop *);
 
 	/** get either contained or outer loops, determined by outerMostOnly */
-	bool getLoops(vector<PatchLoop*>&, bool outerMostOnly) const;
+	bool getLoops(std::vector<PatchLoop*>&, bool outerMostOnly) const;
 }; // class PatchLoop
 
 
@@ -395,7 +395,7 @@ class DYNINST_EXPORT PatchLoopTreeNode {
     PatchLoop *loop;
 
     // The LoopTreeNode instances nested within this loop.
-    vector<PatchLoopTreeNode *> children;
+    std::vector<PatchLoopTreeNode *> children;
 
     //  LoopTreeNode::LoopTreeNode
     //  Create a loop tree node for Loop with name n 
@@ -417,7 +417,7 @@ class DYNINST_EXPORT PatchLoopTreeNode {
     unsigned int numCallees();
 
     //Returns a vector of the functions called by this loop.
-    bool getCallees(vector<PatchFunction *> &v);
+    bool getCallees(std::vector<PatchFunction *> &v);
     
 
     //  find loop by hierarchical name
@@ -430,7 +430,7 @@ class DYNINST_EXPORT PatchLoopTreeNode {
 
     // A vector of functions called within the body of this loop (and
     // not the body of sub loops). 
-    vector<PatchFunction *> callees;
+    std::vector<PatchFunction *> callees;
 
 }; // class LoopTreeNode 
 

@@ -294,7 +294,7 @@ void CodeBuffer::disassemble() const {
 
    Instruction cur = decoder.decode();
    while (cur.isValid()) {
-      cerr << "\t" << std::hex << addr << std::dec << ": " << cur.format() << std::endl;
+      std::cerr << "\t" << std::hex << addr << std::dec << ": " << cur.format() << std::endl;
       addr += cur.size();
       cur = decoder.decode();
    }
@@ -305,7 +305,7 @@ void CodeBuffer::updateLabel(unsigned id, Address offset, bool &regenerate) {
 
 
    if (id >= labels_.size()) {
-      cerr << "ERROR: id of " << id << " but only " << labels_.size() << " labels!" << std::endl;
+      std::cerr << "ERROR: id of " << id << " but only " << labels_.size() << " labels!" << std::endl;
    }
    assert(id < labels_.size());
    assert(id > 0);
@@ -328,7 +328,7 @@ Address CodeBuffer::getLabelAddr(unsigned id) {
 
 Address CodeBuffer::predictedAddr(unsigned id) {
    if (id >= labels_.size()) {
-      cerr << "ERROR: id of " << id << " but only " << labels_.size() << " labels!" << std::endl;
+      std::cerr << "ERROR: id of " << id << " but only " << labels_.size() << " labels!" << std::endl;
    }
    assert(id < labels_.size());
    assert(id > 0);

@@ -116,7 +116,7 @@ void PatchParseCallback::remove_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *
    if (!pe) return;
 
    PatchBlock *pb = _obj->addrSpace()->findObject(block->obj())->getBlock(block, false);
-   vector<PatchFunction*> funcs;
+   std::vector<PatchFunction*> funcs;
    assert(pb); // If we have an edge we better DAMN well have the block
    
    if (type == source) pb->removeSourceEdge(pe);
@@ -126,7 +126,7 @@ void PatchParseCallback::remove_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *
       int numCalls = pb->numCallEdges();
       if (numCalls == 1) {
          pb->getFuncs(std::back_inserter(funcs));
-         for (vector<PatchFunction*>::iterator fit = funcs.begin(); fit != funcs.end(); fit++) {
+         for (std::vector<PatchFunction*>::iterator fit = funcs.begin(); fit != funcs.end(); fit++) {
             (*fit)->call_blocks_.erase(pb);
          }
       }
@@ -136,7 +136,7 @@ void PatchParseCallback::remove_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *
        if (funcs.empty()) {
           pb->getFuncs(std::back_inserter(funcs));
        }
-       for (vector<PatchFunction*>::iterator fit = funcs.begin(); fit != funcs.end(); fit++) {
+       for (std::vector<PatchFunction*>::iterator fit = funcs.begin(); fit != funcs.end(); fit++) {
            (*fit)->remove(pe->points_.during);
        }
        pb->obj()->cb()->destroy(pe->points_.during);
@@ -219,7 +219,7 @@ bool PatchParseCallback::absAddr(Address absolute,
     for (; oit != objs.end(); oit++) {
         if (absolute > oit->second->codeBase()) {
             ParseAPI::CodeSource *cs = oit->first->cs();
-            set<ParseAPI::CodeRegion*> regs;
+            std::set<ParseAPI::CodeRegion*> regs;
             cs->findRegions(absolute - oit->second->codeBase(), regs);
             if (1 == regs.size()) {
                 loadAddr = oit->second->codeBase();

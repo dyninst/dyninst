@@ -37,7 +37,7 @@ void AnalyzeJumpTarget(Function* f, Block* b)
   // The first parameter means to cache the conversion results.  The second
   // parameter means whether to use stack analysis to anlyze stack accesses.
   AssignmentConverter ac(true, false);
-  vector<Assignment::Ptr> assignments;
+  std::vector<Assignment::Ptr> assignments;
   ac.convert(insn, b->last(), f, b, assignments);
 
   // An instruction can corresponds to multiple assignment.
