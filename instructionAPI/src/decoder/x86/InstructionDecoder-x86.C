@@ -1705,6 +1705,10 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   void InstructionDecoder_x86::doIA32Decode(InstructionDecoder::buffer& b) {
+    // One decoder object decodes a sequence of instructions; nothing about the
+    // previous instruction's prefixes may carry over to this one.
+    prefixID = prefix_none;
+    segPrefix = 0;
     if(decodedInstruction == NULL) {
       decodedInstruction = reinterpret_cast<ia32_instruction*>(malloc(sizeof(ia32_instruction)));
       assert(decodedInstruction);

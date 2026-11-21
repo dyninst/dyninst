@@ -197,7 +197,7 @@ enum {
   SSE78, SSE79, SSE7A, SSE7B, SSE7C, SSE7D, SSE7E, SSE7F,
   SSE90, SSE91, SSE92, SSE93,
   SSE98, SSE99,
-  SSEB8,                             SSEBD,
+  SSEB8,                      SSEBC, SSEBD,
                 SSEC2, SSEC4, SSEC5, SSEC6,
   SSED0, SSED1, SSED2, SSED3, SSED4, SSED5, SSED6, SSED7,
   SSED8, SSED9, SSEDA, SSEDB, SSEDC, SSEDD, SSEDE, SSEDF,
@@ -1424,7 +1424,7 @@ static ia32_entry twoByteMap[256] = {
   { e_ud1, t_done, 0, true, { Gv, Ev, Zz }, 0, sNONE, 0 },
   { e_No_Entry, t_grp, Grp8, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_btc, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R, 0 },
-  { e_bsf, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R, 0 },
+  { e_No_Entry, t_sse, SSEBC, 0, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_sse, SSEBD, 0, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_movsx, t_done, 0, true, { Gv, Eb, Zz }, 0, s1W2R, 0 },
   { e_movsx, t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R, 0 },
@@ -3248,11 +3248,17 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
+  { /* SSEBC */
+    { e_bsf, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R, 0 },
+    { e_tzcnt, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R, 0 },
+    { e_bsf, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R, 0 },
+    { e_bsf, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R, 0 }, // F2 is ignored
+  },
   { /* SSEBD */
     { e_bsr, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R, 0 },
     { e_lzcnt, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R, 0 },
     { e_bsr, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+    { e_bsr, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R, 0 }, // F2 is ignored
   },
   { /* SSEC2 */
     { e_cmpps, t_sse_mult, SSEC2_NO, true, { Vps, Wps, Ib }, 0, s1RW2R3R, 0 }, // comparison writes to dest!
@@ -9863,7 +9869,7 @@ static const unsigned char sse_prefix[256] = {
    /* 8x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
    /* 9x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
    /* Ax */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0, // AE: Grp15 is F3-discriminated (ptwrite vs xsave)
-   /* Bx */ 0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,
+   /* Bx */ 0,0,0,0,0,0,0,0,1,0,0,0,1,1,0,0, // B8 popcnt, BC tzcnt, BD lzcnt with F3
    /* Cx */ 0,0,1,0,1,1,1,0,0,0,0,0,0,0,0,0,
    /* Dx */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
    /* Ex */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
