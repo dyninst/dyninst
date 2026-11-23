@@ -76,12 +76,13 @@ namespace {
 }
 
 int main(int argc, char **argv) {
-  if (argc != 3) {
-    std::cerr << "Usage " << argv[0] << ": mutatee outdir\n";
+  if (argc != 4 || (std::string(argv[3]) != "constant" && std::string(argv[3]) != "computed")) {
+    std::cerr << "Usage " << argv[0] << ": mutatee outdir constant|computed\n";
     return EXIT_FAILURE;
   }
   std::string const mutatee = argv[1];
   std::string const outdir = argv[2];
+  bool const computed = std::string(argv[3]) == "computed";
 
   char const *rt = std::getenv("DYNINSTAPI_RT_LIB");
   if (!rt || !*rt) {
@@ -128,7 +129,12 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
       }
     }
-    stores.push_back(new BPatch_arithExpr(BPatch_assign, *var, BPatch_constExpr(0)));
+    if (computed) {
+      stores.push_back(
+          new BPatch_arithExpr(BPatch_assign, *var, BPatch_arithExpr(BPatch_minus, *var, *var)));
+    } else {
+      stores.push_back(new BPatch_arithExpr(BPatch_assign, *var, BPatch_constExpr(0)));
+    }
   }
   if (!edit->insertSnippet(BPatch_sequence(stores), *entry)) {
     std::cerr << "Cannot insert the stores at main's entry\n";

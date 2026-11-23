@@ -15,10 +15,20 @@ dyninst_add_test(
   TYPE regression
   SOURCE_FILES store_width.cpp
   DEPS dyninstAPI
-  ARGS $<TARGET_FILE:store_width_mutatee> ${CMAKE_CURRENT_BINARY_DIR}/rewritten
+  ARGS $<TARGET_FILE:store_width_mutatee> ${CMAKE_CURRENT_BINARY_DIR}/rewritten constant
   REQUIRES native
   PROPERTIES ENVIRONMENT "DYNINSTAPI_RT_LIB=$<TARGET_FILE:dyninstAPI_RT>"
 )
 if(TARGET dyninstAPI_store_width)
   add_dependencies(dyninstAPI_store_width dyninstAPI_RT)
 endif()
+
+dyninst_add_test(
+  dyninstAPI_store_width_computed
+  TYPE regression
+  COMMAND
+    dyninstAPI_store_width $<TARGET_FILE:store_width_mutatee>
+    ${CMAKE_CURRENT_BINARY_DIR}/rewritten_computed computed
+  REQUIRES native
+  PROPERTIES ENVIRONMENT "DYNINSTAPI_RT_LIB=$<TARGET_FILE:dyninstAPI_RT>"
+)
