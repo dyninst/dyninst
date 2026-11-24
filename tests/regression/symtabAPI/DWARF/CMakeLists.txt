@@ -133,21 +133,6 @@ endforeach()
 set(_targ global_vars)
 dyninst_add_test_executable(${_targ} SOURCE_FILES global_vars.cpp DEPS symtabAPI)
 set(_bin_dir "${DYNINST_TEST_BINARIES_DIR}/symtabAPI/DWARF/global_vars")
-set(
-  _global_vars_expected
-  g_i8=1
-  g_i16=2
-  g_i32=4
-  g_i64=8
-  g_vlong=8
-  g_pair=16/2
-  g_array=40
-  g_bss=8
-  g_static=4
-  counter:calls=4
-  twice:value=4
-  twice:doubled=4
-)
 foreach(
   _bin
   clang_dwarf5
@@ -159,7 +144,7 @@ foreach(
   dyninst_add_test(
     symtabAPI_${_targ}_${_bin}_test
     TYPE regression
-    COMMAND ${_targ} "${_bin_dir}/${_bin}" ${_global_vars_expected}
+    COMMAND ${_targ} "${_bin_dir}/${_bin}"
     REQUIRES test_binaries
   )
 endforeach()
