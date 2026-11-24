@@ -29,7 +29,7 @@
  */
 
 /*
- * emit-amdgpu-gfx908.C - the gfx908 concrete emitter: this gen's arch + its ENC-typed packers.
+ * emit-amdgpu-gfx908.C - the gfx908 concrete emitter: this gen's ENC-typed packers.
  * All arch-common codegen lives in the EmitterAmdgpu base (emit-amdgpu.C).
  */
 

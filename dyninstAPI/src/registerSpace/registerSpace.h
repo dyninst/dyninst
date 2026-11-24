@@ -98,11 +98,12 @@ class registerSpace {
 
 
     Dyninst::Register allocateRegister(codeGen &gen, bool realReg = false);
+    // Allocate numRegs consecutive registers of the given type (e.g. AMDGPU SGPR or VGPR), starting at
+    // a register number that is a multiple of alignment, and return the first one (Null_Register if
+    // none are free). Only registers that are free now are taken; no register is stolen.
+    Dyninst::Register allocateRegister(codeGen &gen, registerSlot::regType_t type, uint32_t numRegs = 1,
+                                       uint32_t alignment = 1);
     bool allocateSpecificRegister(codeGen &gen, Dyninst::Register r);
-
-    bool canAllocate(Dyninst::Register reg) const;
-    Dyninst::Register allocateGprBlock(Dyninst::RegKind regKind, uint32_t numRegs, Dyninst::Alignment alignment);
-    void freeGprBlock(Dyninst::Register regBlock);
 
 
     // Like allocate, but don't keep it around; if someone else tries to
@@ -124,8 +125,8 @@ class registerSpace {
     bool saveVolatileRegisters(codeGen &gen);
     bool restoreVolatileRegisters(codeGen &gen);
 
-    // Free the specified register (decrement its refCount)
-    void freeRegister(Dyninst::Register k);
+    // Free the numRegs registers starting at k (decrement their refCounts)
+    void freeRegister(Dyninst::Register k, uint32_t numRegs = 1);
     // Free the register even if its refCount is greater that 1
     void forceFreeRegister(Dyninst::Register k);
     // And mark a register as not being kept any more
@@ -219,6 +220,10 @@ class registerSpace {
     void pushNewRegState();
 
  private:
+    // Whether reg can be handed out now without spilling or stealing it.
+    bool canAllocate(Dyninst::Register reg) const;
+    void freeSingleRegister(Dyninst::Register num);
+
     int instFrameSize_{};// How much stack space we allocate for
                          // instrumentation before a frame is set up.
 

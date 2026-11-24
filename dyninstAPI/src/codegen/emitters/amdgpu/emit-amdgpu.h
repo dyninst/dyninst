@@ -168,6 +168,9 @@ public:
 
   bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
 
+  // Copy the numRegs SGPRs starting at src to the numRegs SGPRs starting at dest.
+  void emitMoveRegBlock(Register src, Register dest, uint32_t numRegs, codeGen &gen);
+
   Register emitCall(opCode op, codeGen &gen, const std::vector<Dyninst::DyninstAPI::codeGenASTPtr> &operands,
                     func_instance *callee);
 
@@ -241,9 +244,6 @@ public:
   void emitAtomicSub(Register baseAddrReg, Register src0, codeGen &gen);
 protected:
   // ---- per-gen hooks: the ONLY things a concrete gen subclass supplies ----
-  // The register/codegen ARCHITECTURE of this gen (gfx908, ...). Used everywhere the base needs an arch
-  // (register adapter, MachRegister construction) so the base names no gen.
-  virtual Dyninst::Architecture gpuArch() const = 0;
   // The gen's ENC-typed instruction packers (pack via that gen's <arch>::enc tables). Thin, sed-able.
   virtual void rawSop1(unsigned opcode, Dyninst::Register dest, Dyninst::Register src0, bool hasLiteral,
                        uint32_t literal, codeGen &gen) = 0;
@@ -254,14 +254,8 @@ protected:
   virtual void rawSopK(unsigned opcode, Dyninst::Register dest, int16_t simm16, codeGen &gen) = 0;
   virtual void rawSopC(unsigned opcode, Dyninst::Register src0, Dyninst::Register src1, codeGen &gen) = 0;
   virtual void rawSmem(unsigned opcode, uint64_t sdata, uint64_t sbase, uint64_t offset, codeGen &gen) = 0;
-  // Arch-common helper: adapt a codegen Register to a MachRegister of THIS gen's arch (one place).
-  Dyninst::MachRegister mrOf(Dyninst::Register r) const;
 
 private:
-  // Some helper functions
-  bool isValidSgpr(Register reg) const;
-  bool isValidSgprBlock(Register regBlock) const;
-  bool isValidSgprPair(Register regBlock) const;
 
   Address getInterModuleFuncAddr(func_instance *func, codeGen& gen) /* override */;
   Address getInterModuleVarAddr(const image_variable *var, codeGen& gen) /* override */;

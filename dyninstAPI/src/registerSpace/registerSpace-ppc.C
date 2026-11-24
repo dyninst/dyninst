@@ -291,7 +291,7 @@ void registerSpace::initialize() {
 
 unsigned registerSpace::SPR(Dyninst::Register x) {
     // Encodings from architecture manual
-    switch (static_cast<powerRegisters_t>(x.getId())) {
+    switch (static_cast<powerRegisters_t>(x)) {
     case xer:
         return SPR_XER;
         break;
@@ -314,13 +314,4 @@ unsigned registerSpace::SPR(Dyninst::Register x) {
         break;
     }
     return Dyninst::Null_Register;
-}
-
-Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind /*regKind*/, uint32_t /*numRegs*/, Dyninst::Alignment /*alignment*/) {
-  assert("registerSpace::allocateGprBlock not implemented for Power");
-  return Dyninst::Null_Register;
-}
-
-void registerSpace::freeGprBlock(Dyninst::Register /*regBlock*/) {
-  assert("registerSpace::allocateGprBlock not implemented for Power");
 }

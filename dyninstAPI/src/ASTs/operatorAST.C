@@ -707,9 +707,9 @@ bool operatorAST::generateCode_phase2(codeGen &gen, Dyninst::Address &retAddr,
          can_encode_directly((int64_t)roperand->getOValue(), gen.getArch())) {
         if(retReg == Dyninst::Null_Register) {
           retReg = allocateAndKeep(gen);
-          ast_printf("Operator node, const RHS, allocated register %u\n", retReg.getId());
+          ast_printf("Operator node, const RHS, allocated register %u\n", retReg);
         } else {
-          ast_printf("Operator node, const RHS, keeping register %u\n", retReg.getId());
+          ast_printf("Operator node, const RHS, keeping register %u\n", retReg);
         }
 
         gen.emitter()->emitImm(op, src1, (RegValue)roperand->getOValue(), retReg, gen, signedOp);

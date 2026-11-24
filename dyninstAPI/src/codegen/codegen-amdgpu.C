@@ -35,6 +35,7 @@
 #include "codegen/emitters/amdgpu/emit-amdgpu.h"
 #include "dyninstAPI/src/registerSpace/registerSpace.h"
 #include <cstdint>
+#include <cstdio>
 #include <stdlib.h>
 
 void insnCodeGen::generateTrap(codeGen & /* gen */) {
@@ -83,9 +84,14 @@ void insnCodeGen::generateBranch(codeGen &gen, Dyninst::Address from, Dyninst::A
     assert(regSpace);
 
     // We relax the alignment to pair because we will use the 4 registers as 2 pairs.
-    Dyninst::Register regBlock = regSpace->allocateGprBlock(Dyninst::RegKind::SCALAR, /* numRegs */4, NS_amdgpu::PAIR_ALIGNMENT);
+    Dyninst::Register regBlock = regSpace->allocateRegister(gen, registerSlot::SGPR, /* numRegs */4, /* alignment */2);
+    if (regBlock == Dyninst::Null_Register) {
+      fprintf(stderr, "AMDGPU generateBranch: no 4 free SGPRs (pair-aligned) for a long jump from %#lx to %#lx\n",
+              static_cast<unsigned long>(from), static_cast<unsigned long>(to));
+      assert(false && "no 4 free SGPRs for a long jump");
+    }
     emitter->emitLongJump(regBlock, from, to, gen);
-    regSpace->freeGprBlock(regBlock);
+    regSpace->freeRegister(regBlock, /* numRegs */4);
   }
 }
 

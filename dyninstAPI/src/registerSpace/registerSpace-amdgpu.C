@@ -3,21 +3,7 @@
 #include "registerSpace/RegisterConversion.h"
 #include "debug.h"
 #include "dyn_register.h"
-#include "amdgpu-reg-adapter.h"
 #include <vector>
-
-using Register = Dyninst::Register;
-using OperandRegId = Dyninst::OperandRegId;
-using BlockSize = Dyninst::BlockSize;
-using namespace Dyninst::amdgpu_adapter;
-
-namespace {
-// Supplies THIS register space's architecture to the (arch-general) register adapter, in one place.
-// Under runtime codegen-arch dispatch this gfx908 literal becomes the instrumented object's architecture.
-inline Dyninst::MachRegister mrOf(Dyninst::Register r) {
-  return Dyninst::amdgpu_adapter::amdgpuMachRegOf(r, Dyninst::Arch_amdgpu_gfx908);
-}
-} // namespace
 
 void registerSpace::initialize32() {
   static bool done = false;
@@ -33,18 +19,17 @@ void registerSpace::initialize32() {
   for (unsigned id = NS_amdgpu::MIN_SGPR_ID; id <= NS_amdgpu::MAX_SGPR_ID; id++) {
     char name[32];
     sprintf(name, "s%u", id);
-    Register sgpr = Register::makeScalarRegister(OperandRegId(id), BlockSize(1));
-    registers.push_back(new registerSlot(sgpr, name,
-                                         /*offLimits =*/false, registerSlot::liveAlways,
-                                         registerSlot::SGPR));
+    // s[100:101] alias vcc (see MAX_ALLOCATABLE_SGPR_ID), so they are never handed out.
+    registers.push_back(new registerSlot(id, name,
+                                         /*offLimits =*/id > NS_amdgpu::MAX_ALLOCATABLE_SGPR_ID,
+                                         registerSlot::liveAlways, registerSlot::SGPR));
   }
 
   // VGPRs
   for (unsigned id = 0; id <= 255; id++) {
     char name[32];
     sprintf(name, "v%u", id);
-    Register vgpr = Register::makeVectorRegister(OperandRegId(id), BlockSize(1));
-    registers.push_back(new registerSlot(vgpr, name,
+    registers.push_back(new registerSlot(NS_amdgpu::VGPR_OPERAND_BASE + id, name,
                                          /*offLimits =*/false, registerSlot::liveAlways,
                                          registerSlot::VGPR));
   }
@@ -70,70 +55,3 @@ void registerSpace::initialize32() {
 void registerSpace::initialize64() { assert(!"No 64-bit registers for AMDGPU"); }
 
 void registerSpace::initialize() { initialize32(); }
-
-Dyninst::Register registerSpace::allocateGprBlock(Dyninst::RegKind regKind, uint32_t numRegs,
-                                                  Dyninst::Alignment alignment) {
-  uint32_t minGprId = 0;
-  uint32_t maxGprId = 0;
-
-  switch(regKind) {
-    case Dyninst::RegKind::SCALAR:
-      minGprId = NS_amdgpu::MIN_SGPR_ID;
-      maxGprId = NS_amdgpu::MAX_ALLOCATABLE_SGPR_ID;
-      break;
-    case Dyninst::RegKind::VECTOR:
-      minGprId = NS_amdgpu::MIN_VGPR_ID;
-      maxGprId = NS_amdgpu::MAX_VGPR_ID;
-      break;
-    default:
-      regalloc_printf("regKind can't be allocated\n");
-      assert(0);
-      return Dyninst::Null_Register;
-  }
-
-  uint32_t alignmentValue{alignment.getValue()};
-  assert(minGprId % alignmentValue == 0);
-
-  // Check whether the single individual consecutive registers can be allocated
-  auto nextId{minGprId};  // next register to test
-  auto baseId{nextId};    // alignment aligned base id of register block
-
-  while (nextId + numRegs - 1 <= maxGprId) {
-    Dyninst::Register singleReg(OperandRegId(nextId), regKind, BlockSize(1));
-    if (canAllocate(singleReg)) {
-      if (nextId - baseId + 1 == numRegs) {
-        break;            // found enough registers: [baseId, nextId]
-      }
-      ++nextId;
-    } else {              // failed, begin at next alignment
-      baseId = ((nextId + alignmentValue) / alignmentValue) * alignmentValue;
-      nextId = baseId;
-    }
-  }
-
-  if (nextId - baseId + 1 != numRegs) {
-    return Dyninst::Null_Register; // not enough registers, fail
-  }
-
-  for (auto allocId = baseId; allocId <= nextId; ++allocId) {
-    Dyninst::Register reg(OperandRegId(allocId), regKind, BlockSize(1));
-    auto *regSlot = this->registers_[reg];
-    regSlot->markUsed(true);
-    regSlot->refCount = 1;
-
-    const char *regIdPrefix = regKind == Dyninst::RegKind::SCALAR ? "s" : "v";
-    regalloc_printf("Allocated register %s%u\n", regIdPrefix, baseId);
-  }
-
-  return Register(OperandRegId(baseId), regKind, BlockSize(numRegs));
-}
-
-void registerSpace::freeGprBlock(Dyninst::Register regBlock) {
-  Dyninst::MachRegister mr = mrOf(regBlock);
-  bool scalarOrVector = amdgpuIsSgpr(mr) || amdgpuIsVgpr(mr);
-  assert(scalarOrVector && "regBlock must be a scalar or vector block");
-
-  for (auto reg : regBlock.getIndividualRegisters()) {
-    freeRegister(reg);
-  }
-}
