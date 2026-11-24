@@ -12,6 +12,9 @@
 #ifndef AMDGPU_ENCODE_HPP
 #define AMDGPU_ENCODE_HPP
 
+#include <algorithm>
+#include <cassert>
+#include <cstdio>
 #include <stdint.h>
 #include <initializer_list>
 #include <utility>
@@ -24,8 +27,11 @@ namespace amdgpu_enc {
 // padBits bits are implied (== padValue) and stored shifted right (e.g. SMEM SBASE). Sets hit if any
 // range matched. On a padBits-precondition violation it leaves that range unset (a call-site bug).
 // FormatSpecT / FieldT are the generated gen's detail::FormatSpec / detail::Field (deduced from the caller).
+// The value must fit the field (asserted, naming the format and field): an out-of-range register would
+// otherwise encode as a different one. Pass a signed value already narrowed to the field width (e.g. (uint16_t)simm16).
 template <class FormatSpecT, class FieldT>
 inline uint64_t putField(uint64_t word, const FormatSpecT &f, FieldT field, uint32_t value, bool &hit) {
+  uint32_t topBit = 0;
   for (uint8_t i = 0; i < f.nfields; ++i) {
     const auto &fs = f.fields[i];
     if (fs.field != field)
@@ -36,6 +42,12 @@ inline uint64_t putField(uint64_t word, const FormatSpecT &f, FieldT field, uint
     uint32_t mask = (fs.width >= 32) ? 0xffffffffu : ((1u << fs.width) - 1u);
     uint64_t slice = (uint64_t)((value >> fs.valueLo) & mask);
     word |= slice << fs.loBit;
+    topBit = std::max<uint32_t>(topBit, fs.valueLo + fs.width);
+  }
+  if (hit && topBit < 32 && (value >> topBit) != 0) {
+    fprintf(stderr, "AMDGPU %s: value %#x does not fit field %u (%u bits; see detail::Field)\n", f.name, value,
+            static_cast<unsigned>(field), topBit);
+    assert(false && "value does not fit its instruction field");
   }
   return word;
 }

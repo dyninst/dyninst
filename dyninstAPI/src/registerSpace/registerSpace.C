@@ -49,6 +49,7 @@
 
 #include "liveness.h"
 #include "registerSpace/RegisterConversion.h"
+#include <cstdio>
 #include <map>
 
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
@@ -279,6 +280,11 @@ Register registerSpace::getScratchRegister(codeGen &gen, std::vector<Register> &
 
         if (found) continue;
 
+        // On AMDGPU, GPRs_ holds the VGPRs after the SGPRs. Callers of this untyped allocator expect a
+        // scalar register that fits an SGPR operand field; a VGPR holds one value per lane and its operand
+        // code (VGPR_OPERAND_BASE + n) does not fit, so it would be encoded as a different SGPR. A VGPR is
+        // handed out only by allocateRegister(gen, registerSlot::VGPR, ...).
+        if (reg->type == registerSlot::VGPR) continue;
         if (reg->offLimits) continue;
         if (reg->refCount > 0) continue;
         if (reg->liveState == registerSlot::live) {
@@ -358,6 +364,11 @@ bool registerSpace::canAllocate(Register reg) const {
 
 Register registerSpace::allocateRegister(codeGen &gen, registerSlot::regType_t type, uint32_t numRegs,
                                          uint32_t alignment) {
+  if (numRegs == 0 || alignment == 0) {
+    fprintf(stderr, "registerSpace::allocateRegister: invalid request for %u registers of type %d, alignment %u\n",
+            numRegs, static_cast<int>(type), alignment);
+    assert(false && "numRegs and alignment must be at least 1");
+  }
   regalloc_printf("Allocating %u registers of type %d, alignment %u\n", numRegs, static_cast<int>(type), alignment);
 
   for (registerSlot *first : GPRs_) {
