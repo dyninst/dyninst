@@ -49,7 +49,7 @@ PatchLoopTreeNode::PatchLoopTreeNode(PatchObject *obj,
     for (auto cit = tree->children.begin(); cit != tree->children.end(); ++cit)
         children.push_back(new PatchLoopTreeNode(obj, *cit, loopMap));
 
-    vector<ParseAPI::Function*> parseCallees;
+    std::vector<ParseAPI::Function*> parseCallees;
     tree->getCallees(parseCallees);
     for (auto fit = parseCallees.begin(); fit != parseCallees.end(); ++fit)
         callees.push_back(obj->getFunc(*fit));
@@ -101,7 +101,7 @@ PatchLoopTreeNode::findLoop(const char *name)
     return NULL;
 }
 
-bool PatchLoopTreeNode::getCallees(vector<PatchFunction *> &v)
+bool PatchLoopTreeNode::getCallees(std::vector<PatchFunction *> &v)
 {
    for (unsigned i=0; i<callees.size(); i++) {
       v.push_back(callees[i]);

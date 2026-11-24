@@ -35,12 +35,11 @@
 #include "bitArray.h"
 #include <map>
 
-using namespace Dyninst;
 class ABI{
 
     static dyn_tls ABI* globalABI_; 
     static dyn_tls ABI* globalABI64_;
-    std::map<MachRegister,int> *index;
+    std::map<Dyninst::MachRegister,int> *index;
     int addr_width;
 
  public:
@@ -57,18 +56,18 @@ class ABI{
 
     DYNINST_EXPORT const bitArray &getAllRegs() const;
 
-    DYNINST_EXPORT int getIndex(MachRegister machReg);
-    DYNINST_EXPORT std::map<MachRegister,int>* getIndexMap();
+    DYNINST_EXPORT int getIndex(Dyninst::MachRegister machReg);
+    DYNINST_EXPORT std::map<Dyninst::MachRegister,int>* getIndexMap();
 
     DYNINST_EXPORT static void initialize32();
     DYNINST_EXPORT static void initialize64();
-    DYNINST_EXPORT static void initialize64(Architecture arch);
+    DYNINST_EXPORT static void initialize64(Dyninst::Architecture arch);
     // Warning: the architecture is fixed on first use and cannot be reset
     //
     // if not set, set the architecture to the host, return addr_width ABI.
     DYNINST_EXPORT static ABI* getABI(int addr_width);
     // if not set, set the architecture to arch. return the 64-bit ABI.
-    DYNINST_EXPORT static ABI* getABI(Architecture arch);
+    DYNINST_EXPORT static ABI* getABI(Dyninst::Architecture arch);
     DYNINST_EXPORT bitArray getBitArray();
  private:
     static dyn_tls bitArray* callRead_;

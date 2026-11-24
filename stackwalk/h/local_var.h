@@ -47,46 +47,43 @@
 #include <string>
 #include <map>
 
-using namespace Dyninst;
-using namespace SymtabAPI;
-using namespace Stackwalker;
 
-static Symtab *getSymtabForName(std::string name)
+static Dyninst::SymtabAPI::Symtab *getSymtabForName(std::string name)
 {
-   static std::map<std::string, Symtab *> symtabs;
-   std::map<std::string, Symtab *>::iterator i;
+   static std::map<std::string, Dyninst::SymtabAPI::Symtab *> symtabs;
+   std::map<std::string, Dyninst::SymtabAPI::Symtab *>::iterator i;
    
    i = symtabs.find(name);
    if (i != symtabs.end()) {
       return i->second;
    }
 
-   Symtab *obj = NULL;
-   Symtab::openFile(obj, name);
+   Dyninst::SymtabAPI::Symtab *obj = NULL;
+   Dyninst::SymtabAPI::Symtab::openFile(obj, name);
    symtabs[name] = obj;
    return obj;
 }
 
-class LVReader : public MemRegReader
+class LVReader : public Dyninst::SymtabAPI::MemRegReader
 {
  private:
-   ProcessState *proc;
+   Dyninst::Stackwalker::ProcessState *proc;
    int current_depth;
-   std::vector<Frame> *swalk;
+   std::vector<Dyninst::Stackwalker::Frame> *swalk;
    Dyninst::THR_ID thrd;
 
-   bool isFrameRegister(MachRegister reg)
+   bool isFrameRegister(Dyninst::MachRegister reg)
    {
       return reg.isFramePointer();
    }
 
-   bool isStackRegister(MachRegister reg)
+   bool isStackRegister(Dyninst::MachRegister reg)
    {
       return reg.isStackPointer();
    }
  public:
 
-   LVReader(ProcessState *p, int f, std::vector<Frame> *s, Dyninst::THR_ID t) :
+   LVReader(Dyninst::Stackwalker::ProcessState *p, int f, std::vector<Dyninst::Stackwalker::Frame> *s, Dyninst::THR_ID t) :
       proc(p),
       current_depth(f),
       swalk(s),
@@ -94,25 +91,25 @@ class LVReader : public MemRegReader
    {
    }
 
-   virtual bool ReadMem(Address addr, void *buffer, unsigned size)
+   virtual bool ReadMem(Dyninst::Address addr, void *buffer, unsigned size)
    {
       return proc->readMem(buffer, addr, size);
    }
 
 
-   virtual bool GetReg(MachRegister reg, MachRegisterVal &val)
+   virtual bool GetReg(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
    {
-      Frame &f = (*swalk)[current_depth];
+      Dyninst::Stackwalker::Frame &f = (*swalk)[current_depth];
       if (isFrameRegister(reg)) {
-         val = static_cast<MachRegisterVal>(f.getFP());
+         val = static_cast<Dyninst::MachRegisterVal>(f.getFP());
          return true;
       }
       if (isStackRegister(reg)) {
-         val = static_cast<MachRegisterVal>(f.getSP());
+         val = static_cast<Dyninst::MachRegisterVal>(f.getSP());
          return true;
       }
       if (reg.isPC() || reg == Dyninst::ReturnAddr) {
-         val = static_cast<MachRegisterVal>(f.getRA());
+         val = static_cast<Dyninst::MachRegisterVal>(f.getRA());
          return true;
       }
 
@@ -121,15 +118,15 @@ class LVReader : public MemRegReader
       }
 
       current_depth--;
-      Frame &g = (*swalk)[current_depth];
-      Offset offset;
+      Dyninst::Stackwalker::Frame &g = (*swalk)[current_depth];
+      Dyninst::Offset offset;
       void *symtab_v{};
       std::string lib;
-      Symtab *symtab{};
+      Dyninst::SymtabAPI::Symtab *symtab{};
       if (g.getLibOffset(lib, offset, symtab_v)) {
-         symtab = symtab_v ? static_cast<Symtab *>(symtab_v) : getSymtabForName(lib);
+         symtab = symtab_v ? static_cast<Dyninst::SymtabAPI::Symtab *>(symtab_v) : getSymtabForName(lib);
          if (!symtab)
-            setLastError(err_symtab, "No Symtab for the library of a frame");
+            Dyninst::Stackwalker::setLastError(Dyninst::Stackwalker::err_symtab, "No Symtab for the library of a frame");
       }
 
       bool result = symtab && symtab->getRegValueAtFrame(offset, reg, val, this);
@@ -150,17 +147,17 @@ class LVReader : public MemRegReader
  * Given a StackwalkerAPI frame, return the SymtabAPI function
  * that created the frame.
  **/
-static Dyninst::SymtabAPI::Function *getFunctionForFrame(Frame f)
+static Dyninst::SymtabAPI::Function *getFunctionForFrame(Dyninst::Stackwalker::Frame f)
 {
-   Offset offset;
+   Dyninst::Offset offset;
    void *symtab_v;
    std::string lib_name;
    bool result = f.getLibOffset(lib_name, offset, symtab_v);
    if (!result)
       return NULL;
-   Symtab *symtab = NULL;
+   Dyninst::SymtabAPI::Symtab *symtab = NULL;
    if (symtab_v) {
-      symtab = (Symtab *) symtab_v;
+      symtab = (Dyninst::SymtabAPI::Symtab *) symtab_v;
    }
    else {
       symtab = getSymtabForName(lib_name);
@@ -168,10 +165,10 @@ static Dyninst::SymtabAPI::Function *getFunctionForFrame(Frame f)
    // A frame in a library the walker knows should always have a Symtab;
    // report a missing one instead of passing NULL on.
    if (!symtab) {
-      setLastError(err_symtab, "No Symtab for the library of a frame");
+      Dyninst::Stackwalker::setLastError(Dyninst::Stackwalker::err_symtab, "No Symtab for the library of a frame");
       return NULL;
    }
-   Function *func;
+   Dyninst::SymtabAPI::Function *func;
    result = symtab->getContainingFunction(offset, func);
    if (!result)
       return NULL;
@@ -198,8 +195,8 @@ static int glvv_EOutOfScope = -2;
 static int glvv_EBufferSize = -3;
 static int glvv_EUnknown = -4;
 
-static int getLocalVariableValue(localVar *var, 
-                                 std::vector<Frame> &swalk, unsigned frame,
+static int getLocalVariableValue(Dyninst::SymtabAPI::localVar *var, 
+                                 std::vector<Dyninst::Stackwalker::Frame> &swalk, unsigned frame,
                                  void *out_buffer, unsigned out_buffer_size)
 {
    bool result;
@@ -213,18 +210,18 @@ static int getLocalVariableValue(localVar *var,
     * Find the offset for this frame's RA()
     **/
    std::string lib_name;
-   Offset offset;
+   Dyninst::Offset offset;
    void *symtab_v;
    swalk[frame].getLibOffset(lib_name, offset, symtab_v);
-   THR_ID thrd = swalk[frame].getThread();
-   ProcessState *proc = swalk[frame].getWalker()->getProcessState();
+   Dyninst::THR_ID thrd = swalk[frame].getThread();
+   Dyninst::Stackwalker::ProcessState *proc = swalk[frame].getWalker()->getProcessState();
 
    /**
     * Find the variable location that is valid at this point.
     **/
    bool deref;
-   std::vector<VariableLocation> &locs = var->getLocationLists();
-   std::vector<VariableLocation>::iterator i;
+   std::vector<Dyninst::VariableLocation> &locs = var->getLocationLists();
+   std::vector<Dyninst::VariableLocation>::iterator i;
    for (i = locs.begin(); i != locs.end(); i++) {
       if (i->lowPC <= offset && offset < i->hiPC) {
          break;
@@ -233,29 +230,29 @@ static int getLocalVariableValue(localVar *var,
    if (i == locs.end()) {
       return glvv_EOutOfScope;
    }
-   VariableLocation &loc = *i;
+   Dyninst::VariableLocation &loc = *i;
    
    /**
     * Interpret the variable location
     **/
-   Address var_addr = 0;
-   deref = (loc.refClass == storageRef);
+   Dyninst::Address var_addr = 0;
+   deref = (loc.refClass == Dyninst::storageRef);
    switch (loc.stClass) { 
-      case storageAddr:
+      case Dyninst::storageAddr:
          var_addr = loc.frameOffset;
          break;
-      case storageReg:
-      case storageRegOffset: {
-         MachRegisterVal reg_value;
-         MachRegister reg = loc.mr_reg;
-         if (loc.stClass == storageRegOffset && reg == -1) {
-            reg = MachRegister::getFramePointer(proc->getAddressWidth() == 4 ? Arch_x86 : Arch_x86_64);
+      case Dyninst::storageReg:
+      case Dyninst::storageRegOffset: {
+         Dyninst::MachRegisterVal reg_value;
+         Dyninst::MachRegister reg = loc.mr_reg;
+         if (loc.stClass == Dyninst::storageRegOffset && reg == -1) {
+            reg = Dyninst::MachRegister::getFramePointer(proc->getAddressWidth() == 4 ? Dyninst::Arch_x86 : Dyninst::Arch_x86_64);
          }
          
          LVReader r(proc, frame, &swalk, thrd);
          result = r.GetReg(reg, reg_value);
          
-         if (loc.stClass == storageReg) {
+         if (loc.stClass == Dyninst::storageReg) {
             var_addr = reg_value;
          }
          else {
@@ -270,7 +267,7 @@ static int getLocalVariableValue(localVar *var,
     * Get the size of the variable
     **/
    unsigned size = out_buffer_size;
-   Type *var_type = var->getType();
+   Dyninst::SymtabAPI::Type *var_type = var->getType();
    if (var_type) {
       size = var_type->getSize();
    }
