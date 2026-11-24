@@ -41,7 +41,7 @@
 # include "codegen/emitters/x86/Emitterx86.h"
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 # include "common/src/arch-aarch64.h"
-#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
 # include "common/src/arch-amdgpu.h"
 #endif
 
