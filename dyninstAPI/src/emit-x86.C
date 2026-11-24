@@ -1131,40 +1131,47 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, func_instance *callee, 
       emitPLTCall(callee, gen);
    } else {
       dest = callee->addr();
-      signed long disp = dest - (gen.currAddr() + 5);
-      int disp_i = (int) disp;
-      assert(disp == (signed long) disp_i);
-      emitCallRel32(disp_i, gen);
+      insnCodeGen::generateCall(gen, gen.currAddr(), dest);
       return true;
    }
    return true;
 }
 
+// ModRM.reg of the FF opcode: FF /2 is an indirect call, FF /4 an indirect jmp.
+enum class IndirectBranch : uint8_t { Call = 2, Jump = 4 };
+
+// call or jmp through the jump slot at 'slot'.
+static void emitThroughJumpSlot(Address slot, IndirectBranch branch, codeGen &gen) {
+  auto const reg = static_cast<uint8_t>(static_cast<uint8_t>(branch) << 3);
+  constexpr int64_t ripFormSize = 6; // FF modrm disp32
+  int64_t const offset = static_cast<int64_t>(slot - (gen.currAddr() + ripFormSize));
+  if (is_disp32(offset)) {
+    GET_PTR(insn, gen);
+    append_memory_as_byte(insn, 0xFF);
+    append_memory_as_byte(insn, static_cast<uint8_t>(reg | 0x05)); // [%rip + disp32]
+    append_memory_as(insn, static_cast<int32_t>(offset));
+    SET_PTR(insn, gen);
+    return;
+  }
+  // Out of reach of a 32-bit displacement: form the slot's address in %r11
+  // and go through (%r11). %r11 is free at a call and at a jump to a
+  // function's entry: the ABI passes nothing in it and does not preserve
+  // it across calls.
+  insnCodeGen::generateFarAddress(gen, REGNUM_R11, slot);
+  GET_PTR(insn, gen);
+  append_memory_as_byte(insn, 0x41); // REX.B
+  append_memory_as_byte(insn, 0xFF);
+  append_memory_as_byte(insn, static_cast<uint8_t>(reg | 0x03)); // [%r11]
+  SET_PTR(insn, gen);
+}
+
 bool EmitterAMD64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
-   // create or retrieve jump slot
-   Address dest = getInterModuleFuncAddr(callee, gen);
-   GET_PTR(insn, gen);
-   append_memory_as_byte(insn, 0xFF);
-   // Note: this is a combination of 00 (MOD), 100 (opcode extension), and 101
-   // (disp32)
-   append_memory_as_byte(insn, 0x25);
-   int64_t offset = dest - (gen.currAddr() + sizeof(int32_t) + 2);
-   assert(numeric_limits<int32_t>::lowest() <= offset && offset <= numeric_limits<int32_t>::max() && "offset more than 32 bits");
-   append_memory_as(insn, static_cast<int32_t>(offset));
-   SET_PTR(insn, gen);
+   emitThroughJumpSlot(getInterModuleFuncAddr(callee, gen), IndirectBranch::Jump, gen);
    return true;
 }
 
 bool EmitterAMD64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
-   // create or retrieve jump slot
-   Address dest = getInterModuleFuncAddr(callee, gen);
-   GET_PTR(insn, gen);
-   append_memory_as_byte(insn, 0xFF);
-   append_memory_as_byte(insn, 0x15);
-   int64_t offset = dest - (gen.currAddr() + sizeof(int32_t) + 2);
-   assert(numeric_limits<int32_t>::lowest() <= offset && offset <= numeric_limits<int32_t>::max() && "offset more than 32 bits");
-   append_memory_as(insn, static_cast<int32_t>(offset));
-   SET_PTR(insn, gen);
+   emitThroughJumpSlot(getInterModuleFuncAddr(callee, gen), IndirectBranch::Call, gen);
    return true;
 }
 
