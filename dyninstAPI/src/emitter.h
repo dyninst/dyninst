@@ -122,7 +122,7 @@ public:
   virtual void emitEndProgram(codeGen & /* gen */) {}
   virtual void emitNops(unsigned /* numNops */, codeGen & /* gen */) {}
   virtual void emitConditionalBranch(bool /* onConditionTrue */, int16_t /* wordOffset */, codeGen & /* gen */) {}
-  virtual void emitLongJump(Register /* reg */, uint64_t /* fromAddress */, uint64_t /* toAddress */, codeGen & /* gen */) {}
+  virtual void emitLongJump(Register /* pcPair */, Register /* diffPair */, uint64_t /* fromAddress */, uint64_t /* toAddress */, codeGen & /* gen */) {}
   virtual void emitShortJump(int16_t /* wordOffset */, codeGen & /* gen */) {}
   virtual void emitMovLiteral(Register /* reg */, uint32_t /* value */, codeGen & /* gen */) {}
   virtual void emitOpImmSimple(unsigned /* op */, Register /* dest */, Register /* src1 */, RegValue /* src2imm */, codeGen & /* gen */) {}
