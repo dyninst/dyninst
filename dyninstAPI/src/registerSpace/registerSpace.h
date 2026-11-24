@@ -45,7 +45,7 @@
 
 #if defined(DYNINST_CODEGEN_ARCH_X86_64)
 #include "inst-x86.h"
-#elif defined DYNINST_CODEGEN_ARCH_AMDGPU_GFX908
+#elif defined DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN
 #include "arch-amdgpu.h"
 #endif
 
@@ -321,7 +321,7 @@ class registerSpace {
     static unsigned FPR(Dyninst::Register x) { return x - fpr0; }
     int framePointer() { return r29; }
 #endif
-#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
     static unsigned GPR(Dyninst::Register x) { return x; }
     static unsigned FPR(Dyninst::Register x) { return x; }
     static unsigned SPR(Dyninst::Register x) { return x; }
@@ -330,6 +330,15 @@ class registerSpace {
     static unsigned AGPR(Dyninst::Register x) { return x; }
 
     int framePointer() { return 33; } // s33 (SGPR 33); codegen id == register number
+
+    // AMDGPU generations can coexist in one process (a mutator may touch kernels of
+    // different generations). Each gets its own register space, keyed by
+    // AddressSpace::getArch(), instead of being shared through the single global space
+    // above. This is an AMDGPU-only concept and does not touch the shared width/global
+    // fast path used by the CPU arches.
+    static std::map<Dyninst::Architecture, registerSpace *> regSpaceByArch_;
+    static registerSpace *getRegisterSpaceForArch(Dyninst::Architecture arch);
+    static registerSpace *buildAmdgpuRegisterSpace(Dyninst::Architecture arch);
 #endif
 
 };
