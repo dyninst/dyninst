@@ -1555,7 +1555,7 @@ void BPatch_process::overwriteAnalysisUpdate
              sit != srcVec.end();
              sit++)
         {
-           if ((*sit)->type() == ParseAPI::CALL) {
+           if ((*sit)->isCall()) {
               PatchAPI::PatchModifier::redirect(*sit, NULL);
            }
         }

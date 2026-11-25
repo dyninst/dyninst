@@ -68,9 +68,8 @@ AddressSpace *block_instance::addrSpace() const {
 
 edge_instance *block_instance::getFallthrough() {
   for (edgelist::const_iterator iter = targets().begin(); iter != targets().end(); ++iter) {
-    if ((*iter)->type() == FALLTHROUGH ||
-        (*iter)->type() == CALL_FT ||
-        (*iter)->type() == COND_NOT_TAKEN) {
+    if ((*iter)->isFallthrough() ||
+        (*iter)->isCallFallthrough()) {
       return SCAST_EI(*iter);
     }
   }
@@ -88,9 +87,9 @@ block_instance *block_instance::getFallthroughBlock() {
 
 edge_instance *block_instance::getTarget() {
   for (edgelist::const_iterator iter = targets().begin(); iter != targets().end(); ++iter) {
-    if ((*iter)->type() == CALL ||
-        (*iter)->type() == DIRECT ||
-        (*iter)->type() == COND_TAKEN) {
+    if ((*iter)->isCall() ||
+        ((*iter)->isBranch() &&
+         ((*iter)->isConditional() || !(*iter)->isIndirect()))) {
       return SCAST_EI(*iter);
     }
   }

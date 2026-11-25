@@ -149,42 +149,27 @@ class ParseWorkElem
 
     { 
       if(e) {
-        switch(e->type()) {
-            case CALL:
-                _order = call; break;
-            case COND_TAKEN:
-                {
-                    if (tailcall) {
-                        _order = call;
-                    } else {
-                        _order = cond_taken; 
-                    }
-                    break;
-                }
-            case COND_NOT_TAKEN:
-                _order = cond_not_taken; break;
-            case INDIRECT:
-                _order = br_indirect; break;
-            case DIRECT:
-                {
-                    if (tailcall) {
-                        _order = call;
-                    } else {
-                        _order = br_direct; 
-                    }
-                    break;
-                }
-            case FALLTHROUGH:
-                _order = ret_fallthrough; break;
-            case CATCH:
-                _order = catch_block; break;
-            case CALL_FT:
-                _order = call_fallthrough; break;
-            default:
-                fprintf(stderr,"[%s:%d] FATAL: bad edge type %d\n",
-                    FILE__,__LINE__,e->type());
-                assert(0);
-        } 
+        if (e->isCall()) {
+            _order = call;
+        } else if (e->isBranch() && e->isConditional()) {
+            _order = tailcall ? call : cond_taken;
+        } else if (e->isFallthrough() && e->isConditional()) {
+            _order = cond_not_taken;
+        } else if (e->isBranch() && e->isIndirect()) {
+            _order = br_indirect;
+        } else if (e->isBranch()) {
+            _order = tailcall ? call : br_direct;
+        } else if (e->isFallthrough()) {
+            _order = ret_fallthrough;
+        } else if (e->isCatch()) {
+            _order = catch_block;
+        } else if (e->isCallFallthrough()) {
+            _order = call_fallthrough;
+        } else {
+            fprintf(stderr,"[%s:%d] FATAL: bad edge type %d\n",
+                FILE__,__LINE__,e->type());
+            assert(0);
+        }
       } else 
         _order = seed_addr;
     }

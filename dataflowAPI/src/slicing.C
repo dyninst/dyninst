@@ -713,17 +713,14 @@ void Slicer::handlePredecessorEdge(ParseAPI::Edge* e,
       slicing_printf("ignore edge from %lx to %lx, type %d according to predicate\n", e->src()->last(), e->trg()->start(), e->type()); 
       return ;
   }
-  switch(e->type()) 
-  {
-  case CALL:
+  if (e->isCall()) {
     slicing_printf("\t\t Handling call... ");
     if(handleCallBackward(p,cand,newCands,e,err)) {
       slicing_printf("succeess, err: %d\n",err);
     } else {
       slicing_printf("failed, err: %d\n",err);
     }
-    break;
-  case RET:
+  } else if (e->isReturn()) {
     slicing_printf("\t\t Handling return... ");
     nf = cand;
     if(handleReturnBackward(p,cand,nf,e,err)) {
@@ -731,11 +728,9 @@ void Slicer::handlePredecessorEdge(ParseAPI::Edge* e,
     } else {
       slicing_printf("failed, err: %d\n",err);
     }
-    break;
-  case CATCH:
+  } else if (e->isCatch()) {
     slicing_printf("\t\t Ignore catch edges ... ");
-    break;
-  default:
+  } else {
     if (e->interproc()) {
       slicing_printf("\t\t Handling tail call... ");
       if(handleCallBackward(p,cand,newCands,e,err)) {
@@ -851,13 +846,13 @@ Slicer::handleCall(
     for( ; eit != targets.end(); ++eit) {
         ParseAPI::Edge * e = *eit;
         if (e->sinkEdge()) widen = true;
-        else if(e->type() == CALL) {
+        else if(e->isCall()) {
             if (callee && callee != e->trg()) {
                 // Oops
                 widen = true;
             }
             callee = e->trg();
-        } else if(e->type() == CALL_FT) {
+        } else if(e->isCallFallthrough()) {
            funlink = e;
         }
     }
@@ -1042,7 +1037,7 @@ Slicer::handleReturn(
     const Block::edgelist & targets = cur.loc.block->targets();
     Block::edgelist::const_iterator eit = targets.begin();
     for(; eit != targets.end(); ++eit) {
-        if((*eit)->type() == CALL_FT) {
+        if((*eit)->isCallFallthrough()) {
             retBlock = (*eit)->trg();
             if ((*eit)->sinkEdge()) {
                 cerr << "Weird!" << endl;
@@ -1089,10 +1084,10 @@ Slicer::handleReturnDetails(
 static bool EndsWithConditionalJump(ParseAPI::Block *b) {
     bool cond = false;
     for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
-      auto etype = (*eit)->type();
       // During CFG construction, it could be the case where only
       // one of the edges are present.
-      if(etype == COND_TAKEN || etype == COND_NOT_TAKEN) cond = true;
+      if((*eit)->isConditional() &&
+         ((*eit)->isBranch() || (*eit)->isFallthrough())) cond = true;
     }
     return cond;
 }
@@ -1340,7 +1335,7 @@ bool containsCall(ParseAPI::Block *block) {
   Block::edgelist::const_iterator eit = targets.begin();
   for (; eit != targets.end(); ++eit) {
     ParseAPI::Edge *edge = *eit;
-    if (edge->type() == CALL) return true;
+    if (edge->isCall()) return true;
   }
   return false;
 }
@@ -1352,7 +1347,7 @@ bool containsRet(ParseAPI::Block *block) {
   Block::edgelist::const_iterator eit = targets.begin();
   for (; eit != targets.end(); ++eit) {
     ParseAPI::Edge *edge = *eit;
-    if (edge->type() == RET) return true;
+    if (edge->isReturn()) return true;
   }
   return false;
 }

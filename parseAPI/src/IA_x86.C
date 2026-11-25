@@ -421,7 +421,7 @@ bool IA_x86::isTailCall(const Function *context, EdgeTypeEnum type, unsigned int
 
 				if (_curBlk->start() == prevIter->first) {
 					for (auto eit = _curBlk->sources().begin(); eit != _curBlk->sources().end(); ++eit) {						
-						if ((*eit)->type() == CALL_FT) {
+						if ((*eit)->isCallFallthrough()) {
 							call_fallthrough = true;
 							break;
 						}

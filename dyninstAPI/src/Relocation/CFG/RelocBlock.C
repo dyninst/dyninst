@@ -170,8 +170,7 @@ void RelocBlock::getPredecessors(RelocGraph *cfg) {
 void RelocBlock::processEdge(EdgeDirection e, edge_instance *edge, RelocGraph *cfg) {
    ParseAPI::EdgeTypeEnum type = edge->type();
    // Maybe we want exception edges too?
-   if (type == ParseAPI::RET || 
-       type == ParseAPI::NOEDGE) return;
+   if (edge->isReturn()) return;
    
    if (edge->sinkEdge()) {
       assert(e == OutEdge);
@@ -182,33 +181,23 @@ void RelocBlock::processEdge(EdgeDirection e, edge_instance *edge, RelocGraph *c
       //   4) An abrupt end if we think we're parsing garbage
       //   5) A call that may tamper with its return address or not return
       // In these cases we run with "mimic the original code behavior"
-      switch (type) {
-         case ParseAPI::CALL:
-         case ParseAPI::COND_TAKEN:
-         case ParseAPI::DIRECT: {
-            bool valid;
-            Address addr;
-            boost::tie(valid, addr) = getJumpTarget();
-            if (valid) {
-               cfg->makeEdge(new Target<RelocBlock *>(this), 
-                             new Target<Address>(addr),
-                             edge, 
-                             type);
-            }
-            break;
-         }
-         case ParseAPI::COND_NOT_TAKEN:
-         case ParseAPI::FALLTHROUGH:
-         case ParseAPI::CALL_FT: {
-
+      if (edge->isCall() ||
+          (edge->isBranch() && (edge->isConditional() || !edge->isIndirect()))) {
+         bool valid;
+         Address addr;
+         boost::tie(valid, addr) = getJumpTarget();
+         if (valid) {
             cfg->makeEdge(new Target<RelocBlock *>(this), 
-                          new Target<Address>(block_->end()),
-                          edge,
+                          new Target<Address>(addr),
+                          edge, 
                           type);
-            break;
          }
-         default:
-            break;
+      } else if (edge->isFallthrough() ||
+                 edge->isCallFallthrough()) {
+         cfg->makeEdge(new Target<RelocBlock *>(this), 
+                       new Target<Address>(block_->end()),
+                       edge,
+                       type);
       }
    }
    else {
@@ -365,16 +354,15 @@ void RelocBlock::preserveBlockGap() {
    bool hasCall = false;
    bool hasFT = false;
    for (auto iter = targets.begin(); iter != targets.end(); ++iter) {
-      if ((*iter)->type() == ParseAPI::CALL) {
+      if ((*iter)->isCall()) {
          hasCall = true;
       }
       if ((*iter)->trg()->wasUserAdded()) {
          // DO NOT ADD A GAP. 
          continue;
       }
-      if ((*iter)->type() == ParseAPI::CALL_FT ||
-          (*iter)->type() == ParseAPI::FALLTHROUGH ||
-          (*iter)->type() == ParseAPI::COND_NOT_TAKEN) {
+      if ((*iter)->isCallFallthrough() ||
+          (*iter)->isFallthrough()) {
          // Okay, I admit - I want to see this code trigger in the
          // fallthrough or cond_not_taken cases...
          hasFT = true;

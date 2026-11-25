@@ -255,10 +255,10 @@ Parser::tamper_post_processing(LockFreeQueue<ParseFrame *> &work_queue, ParseFra
                     if (NULL == elems[eix]->edge()) {
                         continue;
                     }
-                    if (elems[eix]->edge()->type() == CALL &&
+                    if (elems[eix]->edge()->isCall() &&
                         elems[eix]->target() == pf->func->addr()) {
                         rightBundle = true;
-                    } else if (elems[eix]->edge()->type() == CALL_FT) {
+                    } else if (elems[eix]->edge()->isCallFallthrough()) {
                         ftEdge = elems[eix];
                     }
                 }

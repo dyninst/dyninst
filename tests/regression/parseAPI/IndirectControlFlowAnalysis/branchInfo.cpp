@@ -63,7 +63,7 @@ int main(int argc, char **argv){
                 void * insn_ptr = f->isrc()->getPtrToInstruction(branch_addr);
                 auto instr = decoder.decode((unsigned char * ) insn_ptr);
                 std::string instr_str = instr.format(branch_addr);
-                if( edges->type() == COND_TAKEN || edges->type() == DIRECT || edges->type() == CALL || edges->type() == INDIRECT){
+                if( edges->isBranch() || edges->isCall()){
                     std::locale loc;
                     of << std::hex << branch_addr << " : ";
                     for (std::string::size_type i =0 ; i < instr_str.length(); i++){

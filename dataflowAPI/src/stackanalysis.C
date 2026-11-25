@@ -239,7 +239,7 @@ struct intra_nosink_nocatch : public ParseAPI::EdgePredicate {
    virtual bool operator()(Edge* e) {
       static Intraproc i;
       static NoSinkPredicate n;
-      return i(e) && n(e) && e->type() != CATCH;
+      return i(e) && n(e) && !e->isCatch();
    }
 };
 
@@ -429,8 +429,8 @@ void getRetAndTailCallBlocks(Function *func, std::set<Block *> &retBlocks) {
       const Block::edgelist &targs = currBlock->targets();
       for (auto iter = targs.begin(); iter != targs.end(); iter++) {
          Edge *currEdge = *iter;
-         if (currEdge->type() == RET ||
-            (currEdge->interproc() && currEdge->type() == DIRECT)) {
+         if (currEdge->isReturn() ||
+            (currEdge->interproc() && (currEdge->isBranch() && !currEdge->isConditional() && !currEdge->isIndirect()))) {
             retBlocks.insert(currEdge->src());
          }
       }
@@ -2520,7 +2520,7 @@ bool StackAnalysis::handleNormalCall(Instruction insn, Block *block,
    const Block::edgelist &outs = block->targets();
    for (auto eit = outs.begin(); eit != outs.end(); eit++) {
       Edge *edge = *eit;
-      if (edge->type() != CALL) continue;
+      if (!edge->isCall()) continue;
 
       if (callResolutionMap.find(off) != callResolutionMap.end()) {
          // This call has already been resolved with PLT info available, so we
@@ -2653,7 +2653,7 @@ bool StackAnalysis::handleNormalCall(Instruction insn, Block *block,
 
       Absloc sploc(sp());
 
-      if (cur_edge->type() == DIRECT) {
+      if (cur_edge->isBranch() && !cur_edge->isConditional() && !cur_edge->isIndirect()) {
          // For some reason we're treating this
          // call as a branch. So it shifts the stack
          // like a push (heh) and then we're done.
@@ -2662,7 +2662,7 @@ bool StackAnalysis::handleNormalCall(Instruction insn, Block *block,
          return true;
       }
       
-      if (cur_edge->type() != CALL) continue;
+      if (!cur_edge->isCall()) continue;
       
       Block *target_bbl = cur_edge->trg();
       Function *target_func = target_bbl->obj()->findFuncByEntry(
@@ -2691,7 +2691,7 @@ bool StackAnalysis::handleJump(Instruction insn, Block *block, Offset off,
    const Block::edgelist &outs = block->targets();
    for (auto eit = outs.begin(); eit != outs.end(); eit++) {
       Edge *edge = *eit;
-      if (!edge->interproc() || edge->type() != DIRECT) continue;
+      if (!edge->interproc() || !(edge->isBranch() && !edge->isConditional() && !edge->isIndirect())) continue;
 
       if (callResolutionMap.find(off) != callResolutionMap.end()) {
          // This tail call has already been resolved with PLT info available, so

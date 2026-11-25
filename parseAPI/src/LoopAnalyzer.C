@@ -116,7 +116,7 @@ void LoopAnalyzer::createLoopHierarchy()
     Block *b = *bit;
     for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
       // Can tail call happen here?
-      if ((*eit)->type() == CALL) {
+      if ((*eit)->isCall()) {
           Block *target = (*eit)->trg();
           Function* callee = target->obj()->findFuncByEntry(target->region(), target->start());
           if (callee)
@@ -130,7 +130,7 @@ void LoopAnalyzer::createLoopHierarchy()
               // Make sure that the function entry block will fall through to the call target
               bool findFT = false;
               for (auto i : callee->entry()->targets()) {
-                  if (i->type() == FALLTHROUGH) {
+                  if (i->isFallthrough() && !i->isConditional()) {
                       findFT = true;
                       break;
                   }
@@ -238,7 +238,7 @@ Block* LoopAnalyzer::WMZC_DFS(Block* b0, int pos) {
     visitOrder.insert(visitOrder.end(), b0->targets().begin(), b0->targets().end());
     sort(visitOrder.begin(), visitOrder.end(), es);
     for (auto eit = visitOrder.begin(); eit != visitOrder.end(); ++eit) {
-        if ((*eit)->interproc() || (*eit)->sinkEdge() || (*eit)->type() == CATCH) continue;
+        if ((*eit)->interproc() || (*eit)->sinkEdge() || (*eit)->isCatch()) continue;
 	Block* b = (*eit)->trg();	
 	if (visited.find(b) == visited.end()) {
 	    // case A, new

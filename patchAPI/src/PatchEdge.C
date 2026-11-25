@@ -97,8 +97,8 @@ PatchEdge::sinkEdge() const {
 bool
 PatchEdge::interproc() const {
   return edge_->interproc() ||
-         (edge_->type() == ParseAPI::CALL) ||
-         (edge_->type() == ParseAPI::RET);
+         edge_->isCall() ||
+         edge_->isReturn();
 }
 
 void PatchEdge::remove(Point *p) {

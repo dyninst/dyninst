@@ -65,14 +65,14 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
  	// so, I should be consistent here.
 	// If the slice code considers tail calls, need to change
 	// the predicate to (*eit)->interproc()
-        if ((*eit)->type() != CALL && 
-            (*eit)->type() != RET && 
-	    (*eit)->type() != CATCH && 
+        if (!(*eit)->isCall() && 
+            !(*eit)->isReturn() && 
+	    !(*eit)->isCatch() && 
 	    !(*eit)->interproc() && 
 	    allowedEdges.find(*eit) != allowedEdges.end()) {
 	    EdgeTypeEnum newT = t; 
 	    if (t == _edgetype_end_) {
-	        if ((*eit)->type() == COND_TAKEN || (*eit)->type() == COND_NOT_TAKEN) 
+	        if ((*eit)->isConditional() && ((*eit)->isBranch() || (*eit)->isFallthrough())) 
 		    newT = (*eit)->type();
 		else 
 		    newT = FALLTHROUGH;
@@ -318,6 +318,6 @@ bool JumpTableIndexPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Pt
 
 bool JumpTableIndexPred::ignoreEdge(ParseAPI::Edge *e) {
     // Assume that jump tables are independent
-    if (e->type() == INDIRECT) return true;
+    if (e->isBranch() && !e->isConditional() && e->isIndirect()) return true;
     return false;
 }

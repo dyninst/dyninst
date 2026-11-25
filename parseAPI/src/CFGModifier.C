@@ -119,7 +119,7 @@ bool CFGModifier::redirect(Edge *edge, Block *target) {
 
    // And if this was an interprocedural edge, mark the target as a function entry
    // and create a function for it
-   if (edge->type() == CALL) {
+   if (edge->isCall()) {
       makeEntry(target);
    }
 
@@ -265,7 +265,7 @@ bool CFGModifier::remove(vector<Block*> &blks, bool force) {
             pcb->removeEdge(b, edge, ParseCallback::source);
             edge->src()->obj()->_pcb->removeEdge(edge->src(), edge, ParseCallback::target);
             // clear up _call_edge_list vector in the caller function         
-            if (edge->type() == CALL) {
+            if (edge->isCall()) {
                std::vector<Function *> funcs;
                edge->src()->getFuncs(funcs);
                for (unsigned k = 0; k < funcs.size(); ++k) {

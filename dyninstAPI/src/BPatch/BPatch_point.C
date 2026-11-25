@@ -385,14 +385,13 @@ bool BPatch_point::isDynamic()
       case instPoint::PostCall:
          return point->block()->containsDynamicCall();
       case instPoint::EdgeDuring:
-         switch(point->edge()->type()) {
-            case ParseAPI::INDIRECT:
-               return true;
-            case ParseAPI::CALL:
-               return point->edge()->src()->containsDynamicCall();
-            default:
-               return false;
-          }
+         if (point->edge()->isBranch() && !point->edge()->isConditional() &&
+             point->edge()->isIndirect()) {
+            return true;
+         }
+         if (point->edge()->isCall()) {
+            return point->edge()->src()->containsDynamicCall();
+         }
          return false;
       case instPoint::FuncExit:
       case instPoint::BlockEntry:
@@ -408,7 +407,7 @@ bool BPatch_point::isDynamic()
                   eit != trgs.end(); 
                   eit++)
              {
-                 if ((*eit)->type() == ParseAPI::INDIRECT) {
+                 if ((*eit)->isBranch() && !(*eit)->isConditional() && (*eit)->isIndirect()) {
                      return true;
                  }
              }

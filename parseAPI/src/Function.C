@@ -266,14 +266,14 @@ Function::blocks_int()
         if (targets.empty()) exit_func = true;
         for (auto e : targets) {
             Block *t = e->trg();
-            if(e->type() == CALL || e->interproc()) {
+            if(e->isCall() || e->interproc()) {
                 found_call = true;
             }
-            if (e->type() == CALL_FT) {
+            if (e->isCallFallthrough()) {
                 found_call_ft = true;
             }
             
-            if (e->type() == RET || !t || t->obj() != cur->obj()) {
+            if (e->isReturn() || !t || t->obj() != cur->obj()) {
                 exit_func = true;
                 break;
             }
@@ -318,18 +318,18 @@ Function::blocks_int()
                                t->start(), t->end(), (void*)e);
             }
 
-            if (e->type() == CALL_FT) {
+            if (e->isCallFallthrough()) {
                 found_call_ft = true;
             }
 
-            if(e->type() == CALL) {
+            if(e->isCall()) {
                 parsing_printf("\t Call typed\n");
                 _call_edge_list.insert(e);
                 found_call = true;
                 continue;
             }
 
-            if(e->type() == RET) {
+            if(e->isReturn()) {
                 link_return = true;
                 exits_func = true;
                 parsing_printf("Block has return edge\n");
@@ -422,7 +422,7 @@ Function::delayed_link_return(CodeObject * o, Block * retblk)
     eit = _entry->sources().begin();
     for( ; eit != _entry->sources().end(); ++eit) {
         Edge * e = *eit;
-        if(e->type() == CALL) {
+        if(e->isCall()) {
             parsing_printf("[%s:%d] linking return edge %lx -> %lx\n",
                 FILE__,__LINE__,retblk->lastInsnAddr(),e->src()->end());
 
@@ -554,27 +554,21 @@ Function::removeBlock(Block* dead)
          outs.end() != oit; 
          oit++ ) 
     {
-        switch((*oit)->type()) {
-            case CALL: {
-                bool foundEdge = false;
-                for (set<Edge*>::iterator cit = _call_edge_list.begin();
-                     _call_edge_list.end() != cit;
-                     cit++) 
-                {
-                    if (*oit == *cit) {
-                        foundEdge = true;
-                        _call_edge_list.erase(cit);
-                        break;
-                    }
+        if ((*oit)->isCall()) {
+            bool foundEdge = false;
+            for (set<Edge*>::iterator cit = _call_edge_list.begin();
+                 _call_edge_list.end() != cit;
+                 cit++) 
+            {
+                if (*oit == *cit) {
+                    foundEdge = true;
+                    _call_edge_list.erase(cit);
+                    break;
                 }
-                assert(foundEdge || (*oit)->sinkEdge());
-                break;
             }
-            case RET:
-	      _retBL.erase(dead->start());
-	      break;
-            default:
-                break;
+            assert(foundEdge || (*oit)->sinkEdge());
+        } else if ((*oit)->isReturn()) {
+            _retBL.erase(dead->start());
         }
     }
     // remove dead block from block map

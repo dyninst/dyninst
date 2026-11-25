@@ -445,7 +445,7 @@ void func_instance::getCallerBlocks(OutputIterator result)
   for (PatchBlock::edgelist::const_iterator iter = ins.begin();
        iter != ins.end(); ++iter) 
   {
-      if ((*iter)->type() == ParseAPI::CALL) {
+      if ((*iter)->isCall()) {
         *result = SCAST_EI(*iter)->src();
         ++result;
       }

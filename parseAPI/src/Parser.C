@@ -426,7 +426,7 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
                     eit != trgs.end();
                     eit++)
             {
-                if ((*eit)->type() == CALL) {
+                if ((*eit)->isCall()) {
                     callEdge = *eit;
                     if (!(*eit)->sinkEdge()) // if it's a sink edge, look for nonsink CALL
                         break;
@@ -952,7 +952,7 @@ Parser::finalize(Function *f)
         for (auto e : targets) {
             // Tail call corretions are only relevant to non-sink COND_TAKEN or non-sink DIRECT edges
             if (e->sinkEdge()) continue;
-            if (e->type() != COND_TAKEN && e->type() != DIRECT) continue;
+            if (!e->isBranch() || (!e->isConditional() && e->isIndirect())) continue;
 
             Block* trg_block = e->trg();
 
@@ -1023,7 +1023,7 @@ Parser::finalize(Function *f)
             Block::edgelist targets;
             b->copy_targets(targets);
             for (auto e : targets) {
-                if (!e->interproc() && (e->type() == INDIRECT || e->type() == DIRECT)) {
+                if (!e->interproc() && (e->isBranch() && !e->isConditional())) {
 		  if (b->last() != e->trg()->start()) { // if not an instruction that branches to itself
                     e->setTailCall(true);
                     parsing_printf("from %lx to %lx, marked as tail call (jump at entry), re-finalize\n", b->last(), e->trg()->start());
@@ -1253,7 +1253,7 @@ Parser::finalize_jump_tables()
             std::map<Address, Edge*> edgeMap;
             jti->block->copy_targets(targets);
             for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
-                if ((*eit)->type() != INDIRECT || (*eit)->sinkEdge()) continue;
+                if (!((*eit)->isBranch() && !(*eit)->isConditional() && (*eit)->isIndirect()) || (*eit)->sinkEdge()) continue;
                 edgeMap.insert(make_pair((*eit)->trg_addr(), *eit));
             }
 
@@ -1445,7 +1445,7 @@ namespace {
         vector<ParseWorkElem*> const& elems = b->elems();
         vector<ParseWorkElem*>::const_iterator it = elems.begin();
         for( ; it != elems.end(); ++it) {
-            if((*it)->edge()->type() == CALL)
+            if((*it)->edge()->isCall())
                 return (*it)->edge();
         }
         return NULL;
@@ -1457,7 +1457,7 @@ namespace {
         vector<ParseWorkElem*> const& elems = b->elems();
         vector<ParseWorkElem*>::const_iterator it = elems.begin();
         for( ; it != elems.end(); ++it) {
-            if((*it)->edge()->type() == CALL)
+            if((*it)->edge()->isCall())
                 return (*it);
         }
         return NULL;
@@ -2183,7 +2183,7 @@ Parser::add_edge(
         retpair.second = newedge;
     } else {
         assert(src->last() == src_addr);
-        if (exist->type() == FALLTHROUGH || exist->type() == COND_NOT_TAKEN || exist->type() == CALL_FT) {
+        if (exist->isFallthrough() || exist->isCallFallthrough()) {
             if (src->end() != ret->start()) {
                 fprintf(stderr, "src_addr %lx, src: [%lx, %lx), dst [%lx, %lx), target %lx, edge type %d\n", src_addr, src->start(), src->end(), ret->start(), src->end(), dst, et);
             }
@@ -2403,7 +2403,7 @@ Parser::link_tempsink(Block *src, EdgeTypeEnum et)
     void
 Parser::relink(ParseAPI::Edge * e, Block *src, Block *dst)
 {
-    if (e->type() == FALLTHROUGH || e->type() == COND_NOT_TAKEN || e->type() == CALL_FT) {
+    if (e->isFallthrough() || e->isCallFallthrough()) {
         if (src->end() != dst->start()) {
             fprintf(stderr, "In relink : src [%lx, %lx) dst [%lx, %lx)\n", src->start(), src->end(), dst->start(), dst->end());
             assert(src->end() == dst->start());

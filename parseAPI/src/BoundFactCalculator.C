@@ -51,7 +51,7 @@ static void BuildEdgeFromVirtualEntry(SliceNode::Ptr virtualEntry,
     Block::edgelist targets;
     curBlock->copy_targets(targets);
     for (auto eit = targets.begin(); eit != targets.end(); ++eit)
-        if ((*eit)->type() != CALL && (*eit)->type() != RET && (*eit)->type() != CATCH && !(*eit)->interproc()) {
+        if (!(*eit)->isCall() && !(*eit)->isReturn() && !(*eit)->isCatch() && !(*eit)->interproc()) {
 	    BuildEdgeFromVirtualEntry(virtualEntry, (*eit)->trg(), targetMap, visit, slice);
 	}
 }
