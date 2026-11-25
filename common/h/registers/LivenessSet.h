@@ -69,6 +69,11 @@ namespace Dyninst {
 
     ABI const* getABI() const { return abi_; }
 
+    // False for a default-constructed set, which belongs to no ABI; e.g. the
+    // set LivenessAnalyzer::query returns when it fails. A valid set may
+    // still contain no registers (see none()).
+    bool isValid() const { return abi_ != nullptr; }
+
     // Register view
     bool contains(MachRegister reg) const;
     void insert(MachRegister reg);

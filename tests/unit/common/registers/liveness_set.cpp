@@ -81,6 +81,16 @@ namespace {
     expect(arm.getIndex(a::s0) == arm.getIndex(a::q0), "s0 aliases q0");
   }
 
+  void check_validity() {
+    auto const& abi = Dyninst::ABI::get(Dyninst::Arch_x86_64);
+
+    expect(!Dyninst::LivenessSet{}.isValid(), "a default-constructed set is not valid");
+    Dyninst::LivenessSet const empty(abi);
+    expect(empty.isValid() && empty.none(), "a set with an ABI is valid even with no registers");
+    expect(Dyninst::LivenessSet(abi, Dyninst::register_set{Dyninst::x86_64::rax}).isValid(),
+           "a set with registers is valid");
+  }
+
   void check_set_algebra() {
     namespace x = Dyninst::x86_64;
     auto const& abi = Dyninst::ABI::get(Dyninst::Arch_x86_64);
@@ -171,6 +181,7 @@ namespace {
 
 int main() {
   check_layout();
+  check_validity();
   check_set_algebra();
 
   for(auto arch : {Dyninst::Arch_x86, Dyninst::Arch_x86_64, Dyninst::Arch_ppc64,

@@ -17,17 +17,19 @@ void LivenessAnalysis(Function* f, Block* b)
   Location loc(f, b);
 
   // Query live registers at the block entry
-  LivenessSet liveEntry;
-  if (!la.query(loc, LivenessAnalyzer::Before, liveEntry))  {
+  LivenessSet const liveEntry = la.query(loc, LivenessAnalyzer::Before);
+  if (!liveEntry.isValid())  {
     printf("Cannot look up live registers at block entry\n");
+    return;
   }
 
   printf("There are %lu registers live at the block entry\n", liveEntry.count());
 
   // Query live register at the block exit
-  LivenessSet liveExit;
-  if (!la.query(loc, LivenessAnalyzer::After, liveExit))  {
+  LivenessSet const liveExit = la.query(loc, LivenessAnalyzer::After);
+  if (!liveExit.isValid())  {
     printf("Cannot look up live registers at block exit\n");
+    return;
   }
 
   printf("rbx is live or not at the block exit: %d\n",

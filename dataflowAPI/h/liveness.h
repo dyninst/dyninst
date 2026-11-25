@@ -76,7 +76,9 @@ public:
 	void analyze(Dyninst::ParseAPI::Function *func);
 
 	bool query(Dyninst::ParseAPI::Location loc, Type type, const Dyninst::MachRegister &machReg, bool& live);
-	bool query(Dyninst::ParseAPI::Location loc, Type type, Dyninst::LivenessSet &live);
+	// The registers live at `loc`. On failure the set is not valid
+	// (LivenessSet::isValid) and getLastError() says why.
+	Dyninst::LivenessSet query(Dyninst::ParseAPI::Location loc, Type type);
 
 	// The live registers as raw bits, indexed by getIndex(). The bits follow
 	// the ABI's layout, not the per-architecture index tables of earlier

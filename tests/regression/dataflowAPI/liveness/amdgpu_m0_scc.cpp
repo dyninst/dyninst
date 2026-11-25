@@ -73,9 +73,9 @@ int main(int argc, char **argv) {
           continue;
         }
         int const index = la.getIndex(e.reg);
-        Dyninst::LivenessSet live;
         Dyninst::ParseAPI::Location loc(f, Dyninst::ParseAPI::InsnLoc(b, i->first, i->second));
-        bool const queried = la.query(loc, LivenessAnalyzer::Before, live);
+        Dyninst::LivenessSet const live = la.query(loc, LivenessAnalyzer::Before);
+        bool const queried = live.isValid();
         if(index < 0 || !queried || live.contains(e.reg) != e.live) {
           std::fprintf(stderr, "FAILED: 0x%lx %s: expected %s, got %s\n", static_cast<unsigned long>(e.addr),
                               e.reg.name().c_str(), e.live ? "live" : "dead",

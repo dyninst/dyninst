@@ -316,12 +316,12 @@ void LivenessAnalyzer::analyze(Function *func) {
 // any instPoints we cover. Since an iP only exists if the user
 // asked for it, we take its existence to indicate that they'll
 // also be instrumenting. 
-bool LivenessAnalyzer::query(Location loc, Type type, LivenessSet &live) {
+LivenessSet LivenessAnalyzer::query(Location loc, Type type) {
 //TODO: consider the trustness of the location 
 
    if (!loc.isValid()){
    	errorno = Invalid_Location;
-	return false;
+	return {};
    }
 
    // First, ensure that the block liveness is done.
@@ -338,8 +338,7 @@ bool LivenessAnalyzer::query(Location loc, Type type, LivenessSet &live) {
       // instruction of a CFG element.
       case Location::function_:
       	 if (type == Before){
-	 	live = getLivenessIn(loc.func->entry());
-		return true;
+	 	return getLivenessIn(loc.func->entry());
 	 }
 	 assert(0);
       case Location::block_:
@@ -347,8 +346,7 @@ bool LivenessAnalyzer::query(Location loc, Type type, LivenessSet &live) {
       case Location::blockInstance_:
          
 	 if (type == Before) {
-	 	live = getLivenessIn(loc.block);
-		return true;
+	 	return getLivenessIn(loc.block);
 	 }
 	 addr = loc.block->lastInsnAddr()-1;
 	 break;
@@ -359,34 +357,29 @@ bool LivenessAnalyzer::query(Location loc, Type type, LivenessSet &live) {
 
          if (type == Before) {
 	 	if (loc.offset == loc.block->start()) {
-			live = getLivenessIn(loc.block);
-			return true;
+			return getLivenessIn(loc.block);
 		}
 		addr = loc.offset - 1;
 	 }
 	 if (type == After) {
 	 	if (loc.offset == loc.block->lastInsnAddr()) {
-                   live = blockLiveInfo[loc.block].out;
-                   return true;
+                   return blockLiveInfo[loc.block].out;
 		}
 	 	addr = loc.offset;
 	}
 	 break;
 
       case Location::edge_:
-         live = getLivenessIn(loc.edge->trg());
-	 return true;
+         return getLivenessIn(loc.edge->trg());
       case Location::entry_:
       	 if (type == Before) {
-	 	live = getLivenessIn(loc.block);
-		return true;
+	 	return getLivenessIn(loc.block);
 	 }
 	 assert(0);
       case Location::call_:
 	 if (type == Before) addr = loc.block->lastInsnAddr()-1;
 	 if (type == After) {
-            live = blockLiveInfo[loc.block].out;
-            return true;
+            return blockLiveInfo[loc.block].out;
 	 }
 	 break;
       case Location::exit_:
@@ -461,26 +454,22 @@ bool LivenessAnalyzer::query(Location loc, Type type, LivenessSet &live) {
       
       ++current;
    }
-   live = working;
-   return true;
+   return working;
 }
 
 bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
-	LivenessSet liveRegs;
-	if (!query(loc, type, liveRegs)) return false;
+	LivenessSet const liveRegs = query(loc, type);
+	if (!liveRegs.isValid()) return false;
 	bitarray = liveRegs.bits();
 	return true;
 }
 
 bool LivenessAnalyzer::query(Location loc, Type type, const MachRegister& machReg, bool &live){
-	LivenessSet liveRegs;
-	if (query(loc, type, liveRegs)){
-        assert(getIndex(machReg) >= 0);
-		live = liveRegs.contains(machReg);
-		return true;
-	}
-	return false;
-
+	LivenessSet const liveRegs = query(loc, type);
+	if (!liveRegs.isValid()) return false;
+	assert(getIndex(machReg) >= 0);
+	live = liveRegs.contains(machReg);
+	return true;
 }
 
 
