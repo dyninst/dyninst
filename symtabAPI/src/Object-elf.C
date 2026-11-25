@@ -1587,6 +1587,18 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                     }
                     }
 
+                    // The relocation names its symbol by index.  Several dynamic symbols can share
+                    // a name (two versions of a definition, foo@V1 and foo@@V2, at different
+                    // addresses), so take the one at that index; fall back to the first symbol of
+                    // that name only if none has it.
+                    Symbol *relSym{dynsym_list.empty() ? nullptr : dynsym_list[0]};
+                    for (Symbol *s : dynsym_list) {
+                        if (s->getIndex() == static_cast<int>(index)) {
+                            relSym = s;
+                            break;
+                        }
+                    }
+
                     // Where the stub for this relocation is.  Everywhere but
                     // aarch64 that is the next entry in a fixed-size table.
                     Offset stub_addr = next_plt_entry_addr;
@@ -1635,8 +1647,8 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                         }
                         re.setAddend(addend);
                         re.setRegionType(rtype);
-                        if (dynsym_list.size() > 0)
-                            re.addDynSym(dynsym_list[0]);
+                        if (relSym != nullptr)
+                            re.addDynSym(relSym);
                         fbt_.push_back(re);
 
                     } else { // Update existing relocation entry.
@@ -1646,8 +1658,8 @@ bool ObjectELF::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                             fbt_[fbt_iter].setRelAddr(offset);
                             fbt_[fbt_iter].setAddend(addend);
                             fbt_[fbt_iter].setRegionType(rtype);
-                            if (dynsym_list.size() > 0)
-                                fbt_[fbt_iter].addDynSym(dynsym_list[0]);
+                            if (relSym != nullptr)
+                                fbt_[fbt_iter].addDynSym(relSym);
 
                             ++fbt_iter;
                         }
