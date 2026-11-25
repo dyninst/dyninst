@@ -81,7 +81,7 @@ bool parse_block::isCallBlock() {
 
 bool parse_block::isIndirectTailCallBlock() {
   for(parse::Edge *e : targets()) {
-    if(e->isTailCall() && !e->isConditional() && e->isIndirect()) {
+    if(e->isTailCall() && e->isIndirect()) {
       return true;
     }
   }

@@ -429,9 +429,7 @@ void getRetAndTailCallBlocks(Function *func, std::set<Block *> &retBlocks) {
       const Block::edgelist &targs = currBlock->targets();
       for (auto iter = targs.begin(); iter != targs.end(); iter++) {
          Edge *currEdge = *iter;
-         if (currEdge->isReturn() ||
-            (currEdge->isTailCall() && !currEdge->isConditional() &&
-             !currEdge->isIndirect())) {
+         if (currEdge->isReturn() || currEdge->isTailCall()) {
             retBlocks.insert(currEdge->src());
          }
       }
