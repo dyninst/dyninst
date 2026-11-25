@@ -962,7 +962,7 @@ Parser::finalize(Function *f)
             // If an edge is currently not a tail call, but the edge target has a CALL incoming edge,
             // the current edge should be marked as a tail call
             if (trg_has_call_edge && !e->interproc()) {
-                e->_type._interproc = true;
+                e->setTailCall(true);
                 parsing_printf("from %lx to %lx, marked as tail call (target has a CALL incoming edge), re-finalize\n", b->last(), e->trg()->start());
                 return false;
             }
@@ -989,7 +989,7 @@ Parser::finalize(Function *f)
             // it is a recursive tail call.
             // Otherwise,  this edge is not a tail call
             if (visited.find(e->trg()) != visited.end() && e->trg() != f->entry()) {
-                e->_type._interproc = false;
+                e->setTailCall(false);
                 parsing_printf("from %lx to %lx, marked as not tail call (part of the function), re-finalize\n", b->last(), e->trg()->start());
                 return false;
             }     
@@ -998,7 +998,7 @@ Parser::finalize(Function *f)
             // If an edge is currently a tail call, but the edge target has only the current edge as incoming edges,
             // we treat this as not tail call.        
             if (trg_block->getOnlyIncomingEdge() == e) {
-                e->_type._interproc = false;
+                e->setTailCall(false);
                 parsing_printf("from %lx to %lx, marked as not tail call (single entry), re-finalize\n", b->last(), e->trg()->start());
                 return false;
             }
@@ -1025,7 +1025,7 @@ Parser::finalize(Function *f)
             for (auto e : targets) {
                 if (!e->interproc() && (e->type() == INDIRECT || e->type() == DIRECT)) {
 		  if (b->last() != e->trg()->start()) { // if not an instruction that branches to itself
-                    e->_type._interproc = true;
+                    e->setTailCall(true);
                     parsing_printf("from %lx to %lx, marked as tail call (jump at entry), re-finalize\n", b->last(), e->trg()->start());
                     return false;
 		  }

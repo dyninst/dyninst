@@ -73,6 +73,37 @@ std::string ParseAPI::format(EdgeTypeEnum e) {
     use pooled allocators, etc.
  */
 
+Edge::EdgeType::EdgeType(EdgeTypeEnum t, bool s)
+    : _kind(K_NOEDGE), _sink(s), _conditional(false), _indirect(false), _tailCall(false) {
+    switch (t) {
+        case CALL: _kind = K_CALL; break;
+        case COND_TAKEN: _kind = K_BRANCH; _conditional = true; break;
+        case COND_NOT_TAKEN: _kind = K_FALLTHROUGH; _conditional = true; break;
+        case INDIRECT: _kind = K_BRANCH; _indirect = true; break;
+        case DIRECT: _kind = K_BRANCH; break;
+        case FALLTHROUGH: _kind = K_FALLTHROUGH; break;
+        case CATCH: _kind = K_CATCH; break;
+        case CALL_FT: _kind = K_CALL_FT; break;
+        case RET: _kind = K_RET; _indirect = true; break;
+        default: break;
+    }
+}
+
+EdgeTypeEnum Edge::type() const {
+    bool cond = isConditional();
+    switch (_type._kind) {
+        case K_CALL: return CALL;
+        case K_RET: return cond ? COND_TAKEN : RET;
+        case K_BRANCH:
+            if (cond) return COND_TAKEN;
+            return isIndirect() ? INDIRECT : DIRECT;
+        case K_FALLTHROUGH: return cond ? COND_NOT_TAKEN : FALLTHROUGH;
+        case K_CALL_FT: return CALL_FT;
+        case K_CATCH: return CATCH;
+        default: return NOEDGE;
+    }
+}
+
 Edge::Edge(Block *source, Block *target, EdgeTypeEnum type)
 : _source(source),
   _target(target),

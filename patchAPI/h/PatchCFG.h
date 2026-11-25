@@ -80,6 +80,17 @@ class DYNINST_EXPORT PatchEdge {
    bool interproc() const;
    bool intraproc() const { return !interproc(); }
 
+   // The underlying ParseAPI::Edge's kind and flags; see ParseAPI::Edge.
+   bool isCall() const { return edge_->isCall(); }
+   bool isReturn() const { return edge_->isReturn(); }
+   bool isBranch() const { return edge_->isBranch(); }
+   bool isFallthrough() const { return edge_->isFallthrough(); }
+   bool isCallFallthrough() const { return edge_->isCallFallthrough(); }
+   bool isCatch() const { return edge_->isCatch(); }
+   bool isConditional() const { return edge_->isConditional(); }
+   bool isIndirect() const { return edge_->isIndirect(); }
+   bool isTailCall() const { return edge_->isTailCall(); }
+
    void remove(Point *);
    PatchCallback *cb() const;
 

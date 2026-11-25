@@ -491,6 +491,8 @@ bool Parser::ProcessCFInsn(
         ProcessReturnInsn(frame, cur, ah);
 
     bool dynamic_call = ah->isDynamicCall();
+    const Architecture insn_arch = ah->getInstruction().getArch();
+    const bool is_power = insn_arch == Arch_ppc32 || insn_arch == Arch_ppc64;
     bool absolute_call = ah->isAbsoluteCall();
     // unresolved is true for indirect calls, unresolved indirect branches, 
     // and later on is set set to true for transfers to bad addresses
@@ -530,13 +532,8 @@ bool Parser::ProcessCFInsn(
             } else {
                 newedge = link_block(cur, _sink, CALL, true);
             }
-            if (!ah->isCall()) {
-                parsing_printf("Setting edge 0x%p (0x%lx/0x%lx) to interproc\n",
-                               (void*)newedge,
-                               newedge->src()->start(),
-                               newedge->trg_addr());
-                newedge->_type._interproc = true;
-            }
+            if (dynamic_call)
+                newedge->setIndirect();
         }
             /*
              * All other edge types are handled identically
@@ -548,13 +545,31 @@ bool Parser::ProcessCFInsn(
                 newedge = link_block(cur, _sink, curEdge->second, true);
         }
 
+        // The edge type says whether a branch is conditional or indirect. A
+        // conditional call (ppc bcl), the CALL_FT after it, and a conditional
+        // branch through CTR (ppc bcctr) need the instruction.
+        if (is_power) {
+            const InstructionAPI::Instruction &insn = ah->getInstruction();
+            if ((newedge->isCall() || newedge->isCallFallthrough()) &&
+                insn.allowsFallThrough())
+                newedge->setConditional();
+            // The decoder marks the CTR or LR target of a conditional bcctr
+            // or bclr as a fall-through, so look at every target.
+            if (curEdge->second == COND_TAKEN) {
+                for (auto c = insn.cft_begin(); c != insn.cft_end(); ++c) {
+                    if (c->isIndirect)
+                        newedge->setIndirect();
+                }
+            }
+        }
+
         if (ah->isTailCall(frame.func, curEdge->second, frame.num_insns, frame.knownTargets)) {
             tailcall = true;
-            parsing_printf("Setting edge 0x%p (0x%lx/0x%lx) to interproc (tail call)\n",
+            parsing_printf("Setting edge 0x%p (0x%lx/0x%lx) to tail call\n",
                            (void*)newedge,
                            newedge->src()->start(),
                            newedge->trg_addr());
-            newedge->_type._interproc = true;
+            newedge->setTailCall(true);
         }
 
         if (!bundle) {
