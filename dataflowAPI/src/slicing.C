@@ -731,7 +731,7 @@ void Slicer::handlePredecessorEdge(ParseAPI::Edge* e,
   } else if (e->isCatch()) {
     slicing_printf("\t\t Ignore catch edges ... ");
   } else {
-    if (e->interproc()) {
+    if (e->isTailCall()) {
       slicing_printf("\t\t Handling tail call... ");
       if(handleCallBackward(p,cand,newCands,e,err)) {
         slicing_printf("succeess, err: %d\n",err);

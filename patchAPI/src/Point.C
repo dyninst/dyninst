@@ -81,8 +81,8 @@ Point::getCallee() {
   PatchBlock::edgelist::const_iterator it = b->targets().begin();
   for (; it != b->targets().end(); ++it) {
     if ((*it)->isCall() ||
-        ((*it)->isBranch() && ((*it)->isConditional() || !(*it)->isIndirect()) &&
-         (*it)->interproc())) {
+        ((*it)->isTailCall() &&
+         ((*it)->isConditional() || !(*it)->isIndirect()))) {
       PatchBlock* trg = (*it)->trg();
       return obj()->getFunc(obj()->co()->findFuncByEntry(trg->block()->region(),
                                                          trg->block()->start()));

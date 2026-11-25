@@ -342,7 +342,7 @@ Function::blocks_int()
             }
 
             /* Handle tailcall edges */
-            if(e->interproc()) {
+            if(e->isTailCall()) {
                 parsing_printf("\t Interprocedural\n");
                 _call_edge_list.insert(e);
                 found_call = true;

@@ -430,7 +430,8 @@ void getRetAndTailCallBlocks(Function *func, std::set<Block *> &retBlocks) {
       for (auto iter = targs.begin(); iter != targs.end(); iter++) {
          Edge *currEdge = *iter;
          if (currEdge->isReturn() ||
-            (currEdge->interproc() && (currEdge->isBranch() && !currEdge->isConditional() && !currEdge->isIndirect()))) {
+            (currEdge->isTailCall() && !currEdge->isConditional() &&
+             !currEdge->isIndirect())) {
             retBlocks.insert(currEdge->src());
          }
       }
@@ -2691,7 +2692,7 @@ bool StackAnalysis::handleJump(Instruction insn, Block *block, Offset off,
    const Block::edgelist &outs = block->targets();
    for (auto eit = outs.begin(); eit != outs.end(); eit++) {
       Edge *edge = *eit;
-      if (!edge->interproc() || !(edge->isBranch() && !edge->isConditional() && !edge->isIndirect())) continue;
+      if (!edge->isTailCall() || edge->isConditional() || edge->isIndirect()) continue;
 
       if (callResolutionMap.find(off) != callResolutionMap.end()) {
          // This tail call has already been resolved with PLT info available, so

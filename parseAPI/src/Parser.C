@@ -962,7 +962,7 @@ Parser::finalize(Function *f)
             // Rule 1:
             // If an edge is currently not a tail call, but the edge target has a CALL incoming edge,
             // the current edge should be marked as a tail call
-            if (trg_has_call_edge && !e->interproc()) {
+            if (trg_has_call_edge && !e->isTailCall()) {
                 e->setTailCall(true);
                 parsing_printf("from %lx to %lx, marked as tail call (target has a CALL incoming edge), re-finalize\n", b->last(), e->trg()->start());
                 return false;
@@ -971,7 +971,7 @@ Parser::finalize(Function *f)
             // Now let's deal with fliping tail-call to not-tail-call
             // If the target has a CALL incoming edge, or the current edge
             // is currently not marked as tail call, then we can skip this edge
-            if (trg_has_call_edge || !e->interproc()) continue;
+            if (trg_has_call_edge || !e->isTailCall()) continue;
 
             // Look up the tail call target.
             // If the tail call target is created from a symbol, then keep it as a tail call
@@ -1024,7 +1024,7 @@ Parser::finalize(Function *f)
             Block::edgelist targets;
             b->copy_targets(targets);
             for (auto e : targets) {
-                if (!e->interproc() && (e->isBranch() && !e->isConditional())) {
+                if (!e->isTailCall() && e->isBranch() && !e->isConditional()) {
 		  if (b->last() != e->trg()->start()) { // if not an instruction that branches to itself
                     e->setTailCall(true);
                     parsing_printf("from %lx to %lx, marked as tail call (jump at entry), re-finalize\n", b->last(), e->trg()->start());

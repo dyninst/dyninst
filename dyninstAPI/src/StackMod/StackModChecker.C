@@ -1115,8 +1115,7 @@ bool StackModChecker::findInsertOrRemovePoints(StackAnalysis& sa, StackMod* m, s
         ParseAPI::Function::edgelist callEdges = func->ifunc()->callEdges();
         for (auto iter = callEdges.begin(); iter != callEdges.end(); ++iter) {
             ParseAPI::Edge* edge = *iter;
-            if ( (edge->isBranch() && !edge->isConditional()) &&
-                    (edge->interproc())) {
+            if (edge->isTailCall() && !edge->isConditional()) {
                 ParseAPI::Block* block = edge->src();
                 worklist.push_back(block);
             }
@@ -1245,8 +1244,8 @@ bool StackModChecker::findCanaryPoints(std::vector<BPatch_point*>* insertPoints,
     for (auto iter = exitBlocks.begin(); iter != exitBlocks.end(); iter++) {
         ParseAPI::Block::edgelist exitEdges = (*iter)->targets();
         for (auto eiter = exitEdges.begin(); eiter != exitEdges.end(); eiter++) {
-            if ((*eiter)->interproc() && ((*eiter)->isReturn() ||
-                ((*eiter)->isBranch() && !(*eiter)->isConditional()))) {
+            if ((*eiter)->isReturn() ||
+                ((*eiter)->isTailCall() && !(*eiter)->isConditional())) {
                 checkAddrs.insert((*iter)->last());
             }
         }
