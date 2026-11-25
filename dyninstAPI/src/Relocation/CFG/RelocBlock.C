@@ -268,15 +268,7 @@ bool RelocBlock::determineSpringboards(PriorityMap &p) {
    // Slow crawl
    for (RelocEdges::const_iterator iter = inEdges_.begin();
         iter != inEdges_.end(); ++iter) {
-     if ((*iter)->type == ParseAPI::CALL) continue;
-     /* Skip tailcalls also */
-     edge_instance* edge = (*iter)->edge;
-     if (edge) {
-         if (edge->interproc() && 
-            (((*iter)->type == ParseAPI::DIRECT) || ((*iter)->type == ParseAPI::INDIRECT))) {
-             continue;
-         }
-     }
+     if ((*iter)->isCall() || (*iter)->isTailCall()) continue;
       if ((*iter)->src->type() != TargetInt::RelocBlockTarget) {
 	relocation_cerr << "determineSpringboards (non-relocated source): " << func_->symTabName()
 			<< " / " << hex << block_->start() << " is required (type "
@@ -542,22 +534,17 @@ bool RelocBlock::finalizeCF() {
    // We've had people munging our out-edges; now
    // push them to the CFWidget so that it can do its work. 
    for (RelocEdges::iterator iter = outEdges_.begin(); iter != outEdges_.end(); ++iter) {
-      if ((*iter)->type == ParseAPI::CATCH ||
-          (*iter)->type == ParseAPI::RET ||
-          (*iter)->type == ParseAPI::NOEDGE) continue;
+      if ((*iter)->isCatch() || (*iter)->isReturn()) continue;
       Address index;
-      if ((*iter)->type == ParseAPI::FALLTHROUGH ||
-          (*iter)->type == ParseAPI::COND_NOT_TAKEN ||
-          (*iter)->type == ParseAPI::CALL_FT) {
+      if ((*iter)->isFallthrough() || (*iter)->isCallFallthrough()) {
          index = CFWidget::Fallthrough;
       }
-      else if ((*iter)->type == ParseAPI::DIRECT ||
-               (*iter)->type == ParseAPI::COND_TAKEN ||
-               (*iter)->type == ParseAPI::CALL) {
+      else if ((*iter)->isCall() ||
+               ((*iter)->isBranch() && !(*iter)->isIndirect())) {
          index = CFWidget::Taken;
       }
       else {
-         assert((*iter)->type == ParseAPI::INDIRECT);
+         assert((*iter)->isBranch() && (*iter)->isIndirect());
          index = (*iter)->trg->origAddr();
       }
       cfWidget_->addDestination(index, (*iter)->trg);
