@@ -169,7 +169,7 @@ SingleContextOrInterproc::pred_impl(Edge * e) const
         (!_forward || _context->contains(e->trg())) &&
         (!_backward || _context->contains(e->src()));
 
-    bool interproc = !base || e->isCall() || e->isReturn();
+    bool interproc = !base || e->isCall() || e->isSyscall() || e->isReturn();
 
     return singleContext || interproc;
 }
@@ -211,7 +211,7 @@ void Edge::uninstall()
     mal_printf("Uninstalling edge [%lx]->[%lx]\n", 
                src()->lastInsnAddr(), _target_off);
     // if it's a call edge, it's cached in the function object, remove it
-    if (isCall()) {
+    if (isCall() || isSyscall()) {
         vector<Function*> srcFs;
         src()->getFuncs(srcFs);
         for (vector<Function*>::iterator fit = srcFs.begin(); 
@@ -256,6 +256,7 @@ std::string format(EdgeTypeEnum e) {
 		case CALL_FT: return "call_ft";
 		case RET: return "ret";
 		case NOEDGE: return "noedge";
+		case SYS_CALL: return "syscall";
 		default: return "<unknown>";
 	}
 }

@@ -426,7 +426,8 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
                     eit != trgs.end();
                     eit++)
             {
-                if ((*eit)->isCall()) {
+                // A system call has a CALL_FT too.
+                if ((*eit)->isCall() || (*eit)->isSyscall()) {
                     callEdge = *eit;
                     if (!(*eit)->sinkEdge()) // if it's a sink edge, look for nonsink CALL
                         break;
@@ -1445,7 +1446,8 @@ namespace {
         vector<ParseWorkElem*> const& elems = b->elems();
         vector<ParseWorkElem*>::const_iterator it = elems.begin();
         for( ; it != elems.end(); ++it) {
-            if((*it)->edge()->isCall())
+            // A system call has a CALL_FT too.
+            if((*it)->edge()->isCall() || (*it)->edge()->isSyscall())
                 return (*it)->edge();
         }
         return NULL;
@@ -1457,7 +1459,9 @@ namespace {
         vector<ParseWorkElem*> const& elems = b->elems();
         vector<ParseWorkElem*>::const_iterator it = elems.begin();
         for( ; it != elems.end(); ++it) {
-            if((*it)->edge()->isCall())
+            // The CALL_FT handling uses this edge to find the
+            // non-returning system calls too.
+            if((*it)->edge()->isCall() || (*it)->edge()->isSyscall())
                 return (*it);
         }
         return NULL;

@@ -512,9 +512,9 @@ bool IA_IAPI::isIndirectJump() const {
 
 void IA_IAPI::parseSyscall(std::vector<std::pair<Address, EdgeTypeEnum> >& outEdges) const
 {
-    parsing_printf("[%s:%d] Treating syscall as call to sink w/ possible FT edge to next insn at 0x%lx\n",
+    parsing_printf("[%s:%d] Treating syscall as syscall edge to sink w/ possible FT edge to next insn at 0x%lx\n",
             FILE__, __LINE__, getAddr());
-    outEdges.push_back(std::make_pair(Dyninst::ADDRESS_INVALID,CALL));
+    outEdges.push_back(std::make_pair(Dyninst::ADDRESS_INVALID,SYS_CALL));
     outEdges.push_back(std::make_pair(getNextAddr(), CALL_FT));
 }
 

@@ -216,7 +216,7 @@ int PatchBlock::numCallEdges() const
         titer != trgs.end();
         titer++)
    {
-      if ((*titer)->isCall()) {
+      if ((*titer)->isCall() || (*titer)->isSyscall()) {
          numCalls++;
       }
    }
@@ -228,7 +228,7 @@ PatchBlock::containsDynamicCall() {
   const ParseAPI::Block::edgelist & out_edges = block_->targets();
   ParseAPI::Block::edgelist::const_iterator eit = out_edges.begin();
    for( ; eit != out_edges.end(); ++eit) {
-     if ( (*eit)->isCall() ) { 
+     if ( (*eit)->isCall() || (*eit)->isSyscall() ) { 
          // see if it's a static call to a bad address
          if ((*eit)->sinkEdge()) {
              using namespace InstructionAPI;

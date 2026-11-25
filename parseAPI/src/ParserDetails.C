@@ -394,6 +394,18 @@ void Parser::ProcessCallInsn(
     _pcb.interproc_cf(frame.func, cur, ah->getAddr(), &det);
 }
 
+void Parser::ProcessSyscallInsn(
+        ParseFrame &frame,
+        Block *cur,
+        InstructionAdapter_t *ah) {
+    ParseCallback::interproc_details det;
+    det.ibuf = (unsigned char *)
+            frame.func->isrc()->getPtrToInstruction(ah->getAddr());
+    det.isize = ah->getSize();
+    det.type = ParseCallback::interproc_details::syscall;
+    _pcb.interproc_cf(frame.func, cur, ah->getAddr(), &det);
+}
+
 bool Parser::ProcessCFInsn(
         ParseFrame &frame,
         Block *cur,
@@ -534,6 +546,10 @@ bool Parser::ProcessCFInsn(
             }
             if (dynamic_call)
                 newedge->setIndirect();
+        }
+        else if (curEdge->second == SYS_CALL) {
+            ProcessSyscallInsn(frame, cur, ah);
+            newedge = link_block(cur, _sink, SYS_CALL, true);
         }
             /*
              * All other edge types are handled identically

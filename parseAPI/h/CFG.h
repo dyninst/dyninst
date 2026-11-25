@@ -86,6 +86,7 @@ enum EdgeTypeEnum {
     CALL_FT,        // fallthrough after call instruction
     RET,
     NOEDGE,
+    SYS_CALL,       // into the kernel; the target is the sink
     _edgetype_end_
 };
 
@@ -109,6 +110,7 @@ class DYNINST_EXPORT Edge {
     // indirect, and whether a branch is a tail call, are separate fields.
     enum Kind : uint8_t {
         K_CALL,
+        K_SYSCALL,
         K_RET,
         K_BRANCH,       // taken path of a jump
         K_FALLTHROUGH,  // to the next instruction
@@ -151,6 +153,9 @@ class DYNINST_EXPORT Edge {
 
     // The kind of transfer.
     bool isCall() const { return _type._kind == K_CALL; }
+    // A system call. isCall() is false for it, but it is a call site: it is
+    // in Function::callEdges(), and its block has call points.
+    bool isSyscall() const { return _type._kind == K_SYSCALL; }
     bool isReturn() const { return _type._kind == K_RET; }
     // The taken path of a jump: conditional or not, direct or not.
     bool isBranch() const { return _type._kind == K_BRANCH; }
@@ -172,7 +177,7 @@ class DYNINST_EXPORT Edge {
 
     bool sinkEdge() const { return _type._sink != 0; }
     bool interproc() const { 
-       return isTailCall() || isCall() || isReturn();
+       return isTailCall() || isCall() || isSyscall() || isReturn();
     }
 
     bool intraproc() const {

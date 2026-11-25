@@ -62,6 +62,8 @@ std::string ParseAPI::format(EdgeTypeEnum e) {
          return "ret";
       case NOEDGE:
          return "noedge";
+      case SYS_CALL:
+         return "syscall";
       default:
          return "<unknown>";
    }
@@ -77,6 +79,7 @@ Edge::EdgeType::EdgeType(EdgeTypeEnum t, bool s)
     : _kind(K_NOEDGE), _sink(s), _conditional(false), _indirect(false), _tailCall(false) {
     switch (t) {
         case CALL: _kind = K_CALL; break;
+        case SYS_CALL: _kind = K_SYSCALL; break;
         case COND_TAKEN: _kind = K_BRANCH; _conditional = true; break;
         case COND_NOT_TAKEN: _kind = K_FALLTHROUGH; _conditional = true; break;
         case INDIRECT: _kind = K_BRANCH; _indirect = true; break;
@@ -93,6 +96,7 @@ EdgeTypeEnum Edge::type() const {
     bool cond = isConditional();
     switch (_type._kind) {
         case K_CALL: return CALL;
+        case K_SYSCALL: return SYS_CALL;
         case K_RET: return cond ? COND_TAKEN : RET;
         case K_BRANCH:
             if (cond) return COND_TAKEN;

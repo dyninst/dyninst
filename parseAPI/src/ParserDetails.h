@@ -149,7 +149,8 @@ class ParseWorkElem
 
     { 
       if(e) {
-        if (e->isCall()) {
+        // A system call is processed before its CALL_FT, like a call.
+        if (e->isCall() || e->isSyscall()) {
             _order = call;
         } else if (e->isBranch() && e->isConditional()) {
             _order = tailcall ? call : cond_taken;

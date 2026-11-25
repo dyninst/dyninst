@@ -322,7 +322,8 @@ Function::blocks_int()
                 found_call_ft = true;
             }
 
-            if(e->isCall()) {
+            // A system call is a call site.
+            if(e->isCall() || e->isSyscall()) {
                 parsing_printf("\t Call typed\n");
                 _call_edge_list.insert(e);
                 found_call = true;
@@ -554,7 +555,7 @@ Function::removeBlock(Block* dead)
          outs.end() != oit; 
          oit++ ) 
     {
-        if ((*oit)->isCall()) {
+        if ((*oit)->isCall() || (*oit)->isSyscall()) {
             bool foundEdge = false;
             for (set<Edge*>::iterator cit = _call_edge_list.begin();
                  _call_edge_list.end() != cit;

@@ -82,6 +82,7 @@ class DYNINST_EXPORT PatchEdge {
 
    // The underlying ParseAPI::Edge's kind and flags; see ParseAPI::Edge.
    bool isCall() const { return edge_->isCall(); }
+   bool isSyscall() const { return edge_->isSyscall(); }
    bool isReturn() const { return edge_->isReturn(); }
    bool isBranch() const { return edge_->isBranch(); }
    bool isFallthrough() const { return edge_->isFallthrough(); }

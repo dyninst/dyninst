@@ -57,7 +57,8 @@ bool parse_block::isExitBlock() {
     return false;
   }
 
-  if(e->isCall() && trgs.size() > 1) {
+  // A system call that does not return has no CALL_FT either.
+  if((e->isCall() || e->isSyscall()) && trgs.size() > 1) {
     // there's a CALL edge and at least one other edge,
     // it's an exit block if there is no CALL_FT edge
     for(Block::edgelist::const_iterator eit = ++(trgs.begin()); eit != trgs.end(); eit++) {
@@ -71,7 +72,7 @@ bool parse_block::isExitBlock() {
 
 bool parse_block::isCallBlock() {
   for(parse::Edge *e : targets()) {
-    if(e->isCall()) {
+    if(e->isCall() || e->isSyscall()) {
       return true;
     }
   }

@@ -713,7 +713,7 @@ void Slicer::handlePredecessorEdge(ParseAPI::Edge* e,
       slicing_printf("ignore edge from %lx to %lx, type %d according to predicate\n", e->src()->last(), e->trg()->start(), e->type()); 
       return ;
   }
-  if (e->isCall()) {
+  if (e->isCall() || e->isSyscall()) {
     slicing_printf("\t\t Handling call... ");
     if(handleCallBackward(p,cand,newCands,e,err)) {
       slicing_printf("succeess, err: %d\n",err);
@@ -1335,7 +1335,9 @@ bool containsCall(ParseAPI::Block *block) {
   Block::edgelist::const_iterator eit = targets.begin();
   for (; eit != targets.end(); ++eit) {
     ParseAPI::Edge *edge = *eit;
-    if (edge->isCall()) return true;
+    // A system call is a call site with no callee: handleCall continues
+    // at its CALL_FT.
+    if (edge->isCall() || edge->isSyscall()) return true;
   }
   return false;
 }

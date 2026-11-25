@@ -389,7 +389,7 @@ bool BPatch_point::isDynamic()
              point->edge()->isIndirect()) {
             return true;
          }
-         if (point->edge()->isCall()) {
+         if (point->edge()->isCall() || point->edge()->isSyscall()) {
             return point->edge()->src()->containsDynamicCall();
          }
          return false;
