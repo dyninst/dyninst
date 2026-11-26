@@ -62,7 +62,7 @@ typedef NS_x86::instruction arch_insn;
 typedef NS_power::instruction arch_insn;
 #elif defined(DYNINST_CODEGEN_ARCH_AARCH64)
 typedef NS_aarch64::instruction arch_insn;
-#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
+#elif defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX9_CODEGEN)
 typedef NS_amdgpu::instruction arch_insn;
 #else
 #error "Unknown architecture"

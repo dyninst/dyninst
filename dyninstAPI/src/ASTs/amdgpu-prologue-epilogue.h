@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AMDGPU_PROLOGUE_H
-#define AMDGPU_PROLOGUE_H
+#ifndef AMDGPU_PROLOGUE_EPILOGUE_H
+#define AMDGPU_PROLOGUE_EPILOGUE_H
 
 #include "BPatch_snippet.h"
 #include "ASTs/ast.h"
@@ -71,6 +71,28 @@ public:
 class AmdgpuPrologueSnippet : public BPatch_snippet {
 public:
   AmdgpuPrologueSnippet(const codeGenASTPtr &p) : BPatch_snippet(p) {}
+};
+
+// The epilogue writes back the contents of scalar data cache to corresponding global memory.
+// PatchAPI snippet is used to insert the following epilogue:
+//
+//  s_dcache_wb
+//
+class AmdgpuEpilogue : public Dyninst::PatchAPI::Snippet {
+public:
+  bool generate(Dyninst::PatchAPI::Point *point, Dyninst::Buffer &buffer);
+};
+
+// The AST node for the above PatchAPI snippet.
+class AmdgpuEpilogueNode : public snippetAST {
+public:
+  AmdgpuEpilogueNode(Dyninst::PatchAPI::SnippetPtr p) : snippetAST(p) {}
+};
+
+// BPatch_snippet that uses the above AST node.
+class AmdgpuEpilogueSnippet : public BPatch_snippet {
+public:
+  AmdgpuEpilogueSnippet(const codeGenASTPtr &p) : BPatch_snippet(p) {}
 };
 
 }}
