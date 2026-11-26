@@ -86,7 +86,6 @@ if(DYNINST_OS_Linux)
   set(
     CAP_DEFINES
     ${CAP_DEFINES}
-    -Dcap_binary_rewriter
     -Dcap_dwarf
     -Dcap_mutatee_traps
     -Dcap_ptrace
@@ -106,7 +105,7 @@ if(DYNINST_OS_Linux)
 
 elseif(DYNINST_OS_FreeBSD)
   set(OS_DEFINES -Dos_freebsd)
-  set(CAP_DEFINES ${CAP_DEFINES} -Dcap_binary_rewriter -Dcap_dwarf -Dcap_mutatee_traps)
+  set(CAP_DEFINES ${CAP_DEFINES} -Dcap_dwarf -Dcap_mutatee_traps)
   set(
     BUG_DEFINES
     -Dbug_freebsd_missing_sigstop

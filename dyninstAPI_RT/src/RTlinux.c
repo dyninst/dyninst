@@ -410,8 +410,6 @@ void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
    UC_PC(context) = (long) trap_to;
 }
 
-#if defined(cap_binary_rewriter)
-
 extern struct r_debug _r_debug;
 
 /* Verify that the r_debug variable is visible */
@@ -639,7 +637,6 @@ static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos) {
    }
    return NUM_LIBRARIES;
 }
-#endif
 
 #endif
 
@@ -647,7 +644,7 @@ static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos) {
 
 #endif /* cap_mutatee_traps */
 
-#if defined(cap_binary_rewriter) && !defined(DYNINST_RT_STATIC_LIB)
+#if !defined(DYNINST_RT_STATIC_LIB)
 /* For a static binary, all global constructors are combined in an undefined
  * order. Also, DYNINSTBaseInit must be run after all global constructors have
  * been run. Since the order of global constructors is undefined, DYNINSTBaseInit
