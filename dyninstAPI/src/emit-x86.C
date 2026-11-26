@@ -400,7 +400,7 @@ bool EmitterAMD64::emitMoveRegToReg(registerSlot *source, registerSlot *dest, co
     return emitMoveRegToReg(source->encoding(), dest->encoding(), gen);
 }
 
-void EmitterAMD64::emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen)
+void emitLEA64(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen)
 {
     Register tmp_base = base;
     Register tmp_index = index;
@@ -411,6 +411,11 @@ void EmitterAMD64::emitLEA(Register base, Register index, unsigned int scale, in
 	    gen);
    ::emitLEA(RealRegister(tmp_base), RealRegister(tmp_index), scale, disp,
             RealRegister(tmp_dest), gen);
+}
+
+void EmitterAMD64::emitLEA(Register base, Register index, unsigned int scale, int disp, Register dest, codeGen& gen)
+{
+    emitLEA64(base, index, scale, disp, dest, gen);
     gen.markRegDefined(dest);
 }
 
@@ -1126,40 +1131,47 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, func_instance *callee, 
       emitPLTCall(callee, gen);
    } else {
       dest = callee->addr();
-      signed long disp = dest - (gen.currAddr() + 5);
-      int disp_i = (int) disp;
-      assert(disp == (signed long) disp_i);
-      emitCallRel32(disp_i, gen);
+      insnCodeGen::generateCall(gen, gen.currAddr(), dest);
       return true;
    }
    return true;
 }
 
+// ModRM.reg of the FF opcode: FF /2 is an indirect call, FF /4 an indirect jmp.
+enum class IndirectBranch : uint8_t { Call = 2, Jump = 4 };
+
+// call or jmp through the jump slot at 'slot'.
+static void emitThroughJumpSlot(Address slot, IndirectBranch branch, codeGen &gen) {
+  auto const reg = static_cast<uint8_t>(static_cast<uint8_t>(branch) << 3);
+  constexpr int64_t ripFormSize = 6; // FF modrm disp32
+  int64_t const offset = static_cast<int64_t>(slot - (gen.currAddr() + ripFormSize));
+  if (is_disp32(offset)) {
+    GET_PTR(insn, gen);
+    append_memory_as_byte(insn, 0xFF);
+    append_memory_as_byte(insn, static_cast<uint8_t>(reg | 0x05)); // [%rip + disp32]
+    append_memory_as(insn, static_cast<int32_t>(offset));
+    SET_PTR(insn, gen);
+    return;
+  }
+  // Out of reach of a 32-bit displacement: form the slot's address in %r11
+  // and go through (%r11). %r11 is free at a call and at a jump to a
+  // function's entry: the ABI passes nothing in it and does not preserve
+  // it across calls.
+  insnCodeGen::generateFarAddress(gen, REGNUM_R11, slot);
+  GET_PTR(insn, gen);
+  append_memory_as_byte(insn, 0x41); // REX.B
+  append_memory_as_byte(insn, 0xFF);
+  append_memory_as_byte(insn, static_cast<uint8_t>(reg | 0x03)); // [%r11]
+  SET_PTR(insn, gen);
+}
+
 bool EmitterAMD64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
-   // create or retrieve jump slot
-   Address dest = getInterModuleFuncAddr(callee, gen);
-   GET_PTR(insn, gen);
-   append_memory_as_byte(insn, 0xFF);
-   // Note: this is a combination of 00 (MOD), 100 (opcode extension), and 101
-   // (disp32)
-   append_memory_as_byte(insn, 0x25);
-   int64_t offset = dest - (gen.currAddr() + sizeof(int32_t) + 2);
-   assert(numeric_limits<int32_t>::lowest() <= offset && offset <= numeric_limits<int32_t>::max() && "offset more than 32 bits");
-   append_memory_as(insn, static_cast<int32_t>(offset));
-   SET_PTR(insn, gen);
+   emitThroughJumpSlot(getInterModuleFuncAddr(callee, gen), IndirectBranch::Jump, gen);
    return true;
 }
 
 bool EmitterAMD64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
-   // create or retrieve jump slot
-   Address dest = getInterModuleFuncAddr(callee, gen);
-   GET_PTR(insn, gen);
-   append_memory_as_byte(insn, 0xFF);
-   append_memory_as_byte(insn, 0x15);
-   int64_t offset = dest - (gen.currAddr() + sizeof(int32_t) + 2);
-   assert(numeric_limits<int32_t>::lowest() <= offset && offset <= numeric_limits<int32_t>::max() && "offset more than 32 bits");
-   append_memory_as(insn, static_cast<int32_t>(offset));
-   SET_PTR(insn, gen);
+   emitThroughJumpSlot(getInterModuleFuncAddr(callee, gen), IndirectBranch::Call, gen);
    return true;
 }
 
@@ -2028,6 +2040,21 @@ void EmitterAMD64::emitLoadShared(opCode op, Register dest, const image_variable
     addr = getInterModuleVarAddr(var, gen);
   }
   
+  // RIP-relative forms below take a 32-bit displacement from the end of a
+  // 7-byte instruction. Out of that reach, form the address in dest instead.
+  if (!is_disp32(addr - (gen.currAddr() + 7))) {
+    insnCodeGen::generateFarAddress(gen, dest, addr);
+    if (op == loadConstOp) {
+      if (!(is_local || !var))
+        emitLoadIndir(dest, dest, 8, gen); // the jump slot holds the address
+      return;
+    }
+    if (!is_local)
+      emitLoadIndir(dest, dest, 8, gen); // the jump slot holds the address
+    emitLoadIndir(dest, dest, size, gen);
+    return;
+  }
+
   if(op == loadConstOp) {
     int addr_offset = addr - gen.currAddr();
     // Brutal hack for IP-relative: displacement operand on 32-bit = IP-relative on 64-bit.
@@ -2065,8 +2092,10 @@ void EmitterAMD64::emitStoreShared(Register source, const image_variable *var, b
   gen.markRegDefined(dest);
  
   // load register with address from jump slot
-  emitLEA(Null_Register, Null_Register, 0, addr-gen.currAddr() - 7, dest, gen);
-  //emitMovPCRMToReg64(dest, addr-gen.currAddr(), gen, true);
+  if (is_disp32(addr - (gen.currAddr() + 7)))
+    emitLEA(Null_Register, Null_Register, 0, addr-gen.currAddr() - 7, dest, gen);
+  else
+    insnCodeGen::generateFarAddress(gen, dest, addr);
   if(!is_local)
      emitLoadIndir(dest, dest, 8, gen);
     
