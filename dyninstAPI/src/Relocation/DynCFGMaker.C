@@ -46,6 +46,10 @@ PatchFunction* DynCFGMaker::makeFunction(Function* f,
                                          PatchObject* obj) {
   Address code_base = obj->codeBase();
   mapped_object* mo = SCAST_MO(obj);
+
+  // func_instance being constructed is unusable without blocks
+  if (!f->entry()) mo->analyzeIfDeferred();
+
   parse_func* img_func = SCAST_PF(f);
   if (!img_func) return NULL;
   assert(img_func->getSymtabFunction());
