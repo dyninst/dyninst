@@ -758,6 +758,7 @@ bool emitElf<ElfTypes>::driver(std::string fName, std::set<Symbol *> &allSymbols
 
         if (address_adjust != 0 &&
                 (strcmp(name, ".init_array") == 0 || strcmp(name, ".fini_array") == 0 ||
+                 strcmp(name, ".preinit_array") == 0 ||
                  strcmp(name, "__libc_subfreeres") == 0 || strcmp(name, "__libc_atexit") == 0 ||
                  strcmp(name, "__libc_thread_subfreeres") == 0 || strcmp(name, "__libc_IO_vtables") == 0)) {
             std::vector<Offset> &relr_relocs = object->getRelrDynRelocs();
@@ -2523,6 +2524,8 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
             case DT_INIT:
             case DT_FINI:
             case DT_DYNINST:
+            case DT_PREINIT_ARRAY:
+            case DT_DYNINST_PREINIT_ARRAY:
                 adjust = address_adjust;
                 break;
             default:
@@ -2552,7 +2555,14 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData_, unsigned size, Elf_
     // There may be multiple HASH (ELF, GNU etc) sections in the original binary. We consolidate all of them into one.
     bool foundHashSection = false;
 
+    // A new DT_PREINIT_ARRAY replaces the original one rather than adding a
+    // second entry; the original is kept as DT_DYNINST_PREINIT_ARRAY.
+    bool newPreinit = std::any_of(new_dynamic_entries.begin(), new_dynamic_entries.end(),
+                                  [](std::pair<long, long> const &e) { return e.first == DT_PREINIT_ARRAY; });
+
     for (unsigned i = 0; i < count; i++) {
+        if (newPreinit && (dyns[i].d_tag == DT_PREINIT_ARRAY || dyns[i].d_tag == DT_PREINIT_ARRAYSZ))
+            continue;
         switch (dyns[i].d_tag) {
             case DT_NULL:
                 break;
