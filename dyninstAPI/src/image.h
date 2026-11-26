@@ -393,7 +393,6 @@ class image : public codeRange {
     int getNextBlockID() { return nextBlockID_++; }
 
    std::unordered_map<Address, std::string> *getPltFuncs();
-   void getPltFuncs(std::map<Address, std::string> &out);
 #if defined(DYNINST_CODEGEN_ARCH_POWER)
    bool updatePltFunc(parse_func *caller_func, Address stub_targ);
 #endif
