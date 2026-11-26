@@ -142,6 +142,14 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     mutable std::map<Address, std::string> _linkage;
 
     /*
+     * PLT stub -> the function defined in this object that the stub's jump slot
+     * binds to by default.  Only stubs whose relocation symbol is a function (not
+     * an IFUNC) defined in this object have an entry.  Filled for the stubs of
+     * .plt and, on x86_64 with two PLTs, .plt.sec; not for .plt.got.
+     */
+    std::map<Address, Address> _linkage_definitions;
+
+    /*
      * .rela.dyn external linkage table. Used in RISC-V
      */
     std::map<Address, std::pair<std::string, Address> > _reladyn_linkage;
@@ -206,6 +214,12 @@ class DYNINST_EXPORT CodeSource : public Dyninst::InstructionSource {
     virtual Address loadAddress() const { return 0; }
 
     const std::map< Address, std::string > & linkage() const { return _linkage; }
+    // The in-object definition a PLT stub's jump slot binds to by default, or
+    // ADDRESS_INVALID if the slot binds to another object or has no usable symbol.
+    Address linkageDefinition(Address stub) const {
+        auto const it = _linkage_definitions.find(stub);
+        return it == _linkage_definitions.end() ? Dyninst::ADDRESS_INVALID : it->second;
+    }
     const std::map< Address, std::pair<std::string, Address> > & reladyn_linkage() const { return _reladyn_linkage; }
     const std::map< Address, std::string> & symtab_linkage() const { return _symtab_linkage; }
 

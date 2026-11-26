@@ -631,9 +631,21 @@ SymtabCodeSource::init_linkage()
         return;
     }
 
+    // GOT slot -> the function defined in this object that the slot's relocation names.
+    // A jump slot whose symbol is a function defined here binds to that definition
+    // unless another object interposes it at run time; an IFUNC's symbol is its
+    // resolver, not the function called, so it is left out.
+    std::map<Address, Address> defByGotSlot;
     for(fbtit = fbt.begin(); fbtit != fbt.end(); ++fbtit){
         //fprintf( stderr, "%lx %s\n", (*fbtit).target_addr(), (*fbtit).name().c_str());
         _linkage[(*fbtit).target_addr()] = (*fbtit).name(); 
+        SymtabAPI::Symbol const *const def{(*fbtit).getDynSym()};
+        if (def == nullptr || def->getRegion() == nullptr ||
+            def->getType() != SymtabAPI::Symbol::ST_FUNCTION)
+            continue;
+        defByGotSlot[(*fbtit).rel_addr()] = def->getOffset();
+        if ((*fbtit).target_addr() != 0)
+            _linkage_definitions[(*fbtit).target_addr()] = def->getOffset();
     }
     // Other relocation entries used by RISC-V
     if (getArch() == Arch_riscv64) {
@@ -698,6 +710,10 @@ SymtabCodeSource::init_linkage()
                 } else {
                     _linkage[tar] = rel_addr_to_name[rel_addr];
                 }
+                // Calls go through .plt.sec here, so its stubs are the ones to resolve.
+                auto const def = defByGotSlot.find(rel_addr);
+                if (def != defByGotSlot.end())
+                    _linkage_definitions[tar] = def->second;
             }
         }
         return;
