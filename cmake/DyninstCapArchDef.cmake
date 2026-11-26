@@ -25,7 +25,6 @@ if(DYNINST_CODEGEN_ARCH_I386)
   set(
     CAP_DEFINES
     ${CAP_DEFINES}
-    -Dcap_noaddr_gen
     -Dcap_stripped_binaries
     -Dcap_tramp_liveness
     -Dcap_stack_mods
@@ -37,7 +36,6 @@ elseif(DYNINST_CODEGEN_ARCH_X86_64)
     CAP_DEFINES
     ${CAP_DEFINES}
     -Dcap_32_64
-    -Dcap_noaddr_gen
     -Dcap_registers
     -Dcap_stripped_binaries
     -Dcap_tramp_liveness
@@ -57,7 +55,6 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx908 -Darch_64bit)
   set(
     CAP_DEFINES
-    -Dcap_noaddr_gen
     -Dcap_registers
     -Dcap_tramp_liveness
   )
@@ -65,7 +62,6 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A)
   set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx90a -Darch_64bit)
   set(
     CAP_DEFINES
-    -Dcap_noaddr_gen
     -Dcap_registers
     -Dcap_tramp_liveness
   )
@@ -73,7 +69,6 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
   set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx940 -Darch_64bit)
   set(
     CAP_DEFINES
-    -Dcap_noaddr_gen
     -Dcap_registers
     -Dcap_tramp_liveness
   )
@@ -81,7 +76,6 @@ elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX950)
   set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx950 -Darch_64bit)
   set(
     CAP_DEFINES
-    -Dcap_noaddr_gen
     -Dcap_registers
     -Dcap_tramp_liveness
   )
