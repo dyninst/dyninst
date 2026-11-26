@@ -275,12 +275,10 @@ void OS::unlink(char *file) {
 #define TF_BIT 0x100
 #endif
 
-#if defined (cap_dynamic_heap)
 void PCProcess::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
                                         inferiorHeapType /* type */ ) 
 {
 }
-#endif
 
 /**
  stdcall:
