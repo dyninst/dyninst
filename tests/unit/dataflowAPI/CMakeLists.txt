@@ -11,3 +11,10 @@ dyninst_add_test(
   # host. Parsing x86_64 code with i386 code generation crashes (#2397).
   REQUIRES native
 )
+
+dyninst_add_test(
+  dataflowAPI_forward_slice_edges
+  TYPE unit
+  SOURCE_FILES slicing/forward-slice-edges.cpp
+  DEPS parseAPI
+)
