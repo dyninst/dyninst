@@ -66,10 +66,13 @@ namespace {
     }
     return ia::Instruction{};
   }
-  ui::callback_t callback{zydis_unknown_instruction_callback};
+  constexpr ui::callback_t builtin_callback{zydis_unknown_instruction_callback};
+  constexpr Dyninst::Architecture builtin_callback_arch{Dyninst::Arch_x86_64};
 #else
-  ui::callback_t callback{};
+  constexpr ui::callback_t builtin_callback{nullptr};
+  constexpr Dyninst::Architecture builtin_callback_arch{Dyninst::Arch_none};
 #endif
+  ui::callback_t callback{builtin_callback};
 }
 
 using namespace std;
@@ -92,7 +95,11 @@ namespace Dyninst { namespace InstructionAPI {
       return Instruction();
     Instruction const& ins = m_Impl->decode(m_buf);
 
-    if(!ins.isLegalInsn() && ::callback) {
+    // The callback is shared by every decoder; the built-in one decodes x86-64,
+    // so it only stands in for an x86-64 decoder.
+    bool const callback_applies{::callback != nullptr &&
+                                (::callback != builtin_callback || m_Impl->getArch() == builtin_callback_arch)};
+    if(!ins.isLegalInsn() && callback_applies) {
       auto const buf_len = static_cast<unsigned int>(m_buf.end - m_buf.start);
       auto const size = (maxInstructionLength < buf_len) ? maxInstructionLength : buf_len;
 
@@ -125,7 +132,7 @@ namespace Dyninst { namespace InstructionAPI {
 
   bool InstructionDecoder::unknown_instruction::register_default_callback() {
 #if defined(DYNINST_ENABLE_ZYDIS)
-    register_callback(zydis_unknown_instruction_callback);
+    register_callback(builtin_callback);
     return true;
 #else
     return false;

@@ -57,6 +57,8 @@ namespace Dyninst { namespace InstructionAPI {
 
     InstructionDecoderImpl(Architecture a) : m_Arch(a) {}
 
+    Architecture getArch() const { return m_Arch; }
+
     virtual ~InstructionDecoderImpl() {}
 
     virtual Instruction decode(InstructionDecoder::buffer &b) = 0;
