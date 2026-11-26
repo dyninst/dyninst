@@ -97,9 +97,9 @@ void LivenessAnalyzer::processEdgeLiveness(Edge* e, livenessData& data, Block* b
 					   const bitArray& allRegsDefined)
 {
   // covered by Intraproc predicate
-  //if ((*eit)->type() == CALL) continue;
+  //if ((*eit)->isCall()) continue;
   // Is this correct?
-  if (e->type() == CATCH) return;
+  if (e->isCatch()) return;
   if (e->sinkEdge()) {
     liveness_cerr << "Sink edge from " << hex << block->start() << dec << endl;
     data.out |= allRegsDefined;
@@ -286,7 +286,7 @@ void LivenessAnalyzer::analyze(Function *func) {
             // those rejected by Intraproc, and CATCH edges, which
             // processEdgeLiveness ignores. This filter must never be stricter
             // than getLivenessOut's, or a predecessor would miss the change.
-            if (!epred(e) || e->type() == CATCH) continue;
+            if (!epred(e) || e->isCatch()) continue;
             // Skip a predecessor outside this function: it may have no summary
             // from step 1. Comparing the block, not only its address, also
             // rejects a block of another code region at the same address.
@@ -614,7 +614,7 @@ bool LivenessAnalyzer::isExitBlock(Block *block)
     bool interprocEdge = false;
     bool intraprocEdge = false;
     for (Block::edgelist::const_iterator eit=trgs.begin(); eit != trgs.end(); ++eit){
-        if ((*eit)->type() == CATCH) continue;
+        if ((*eit)->isCatch()) continue;
 	if ((*eit)->interproc()) interprocEdge = true; else intraprocEdge = true;
     }
 

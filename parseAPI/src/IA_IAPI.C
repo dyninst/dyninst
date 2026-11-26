@@ -512,9 +512,9 @@ bool IA_IAPI::isIndirectJump() const {
 
 void IA_IAPI::parseSyscall(std::vector<std::pair<Address, EdgeTypeEnum> >& outEdges) const
 {
-    parsing_printf("[%s:%d] Treating syscall as call to sink w/ possible FT edge to next insn at 0x%lx\n",
+    parsing_printf("[%s:%d] Treating syscall as syscall edge to sink w/ possible FT edge to next insn at 0x%lx\n",
             FILE__, __LINE__, getAddr());
-    outEdges.push_back(std::make_pair(Dyninst::ADDRESS_INVALID,CALL));
+    outEdges.push_back(std::make_pair(Dyninst::ADDRESS_INVALID,SYS_CALL));
     outEdges.push_back(std::make_pair(getNextAddr(), CALL_FT));
 }
 
@@ -632,6 +632,13 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
     {
         if(ci.allowsFallThrough())
         {
+            // The taken side of a conditional return is the RET edge
+            // that Parser::ProcessReturnInsn adds.
+            if(isConditionalReturn())
+            {
+                outEdges.push_back(std::make_pair(getNextAddr(), COND_NOT_TAKEN));
+                return;
+            }
             bool takenValid;
             Address takenTarget;
             boost::tie(takenValid, takenTarget) = getCFT();
@@ -893,6 +900,11 @@ std::map<Address, bool> IA_IAPI::thunkAtTarget;
 bool IA_IAPI::isConditional() const
 {
     return curInsn().allowsFallThrough();
+}
+
+bool IA_IAPI::isConditionalReturn() const
+{
+    return false;
 }
 
 bool IA_IAPI::simulateJump() const

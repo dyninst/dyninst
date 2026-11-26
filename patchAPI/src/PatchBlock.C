@@ -200,7 +200,7 @@ PatchBlock::numRetEdges() const {
   const ParseAPI::Block::edgelist & out_edges = block_->targets();
   ParseAPI::Block::edgelist::const_iterator eit = out_edges.begin();
   for( ; eit != out_edges.end(); ++eit) {
-    if ( ParseAPI::RET == (*eit)->type() ) {
+    if ( (*eit)->isReturn() ) {
       numRets++;
     }
   }
@@ -216,7 +216,7 @@ int PatchBlock::numCallEdges() const
         titer != trgs.end();
         titer++)
    {
-      if ((*titer)->type() == CALL) {
+      if ((*titer)->isCall() || (*titer)->isSyscall()) {
          numCalls++;
       }
    }
@@ -228,7 +228,7 @@ PatchBlock::containsDynamicCall() {
   const ParseAPI::Block::edgelist & out_edges = block_->targets();
   ParseAPI::Block::edgelist::const_iterator eit = out_edges.begin();
    for( ; eit != out_edges.end(); ++eit) {
-     if ( ParseAPI::CALL == (*eit)->type() ) { 
+     if ( (*eit)->isCall() || (*eit)->isSyscall() ) { 
          // see if it's a static call to a bad address
          if ((*eit)->sinkEdge()) {
              using namespace InstructionAPI;
@@ -306,7 +306,7 @@ PatchFunction*
 PatchBlock::getCallee() {
    PatchBlock::edgelist::const_iterator it = targets().begin();
    for (; it != targets().end(); ++it) {
-    if ((*it)->type() == ParseAPI::CALL) {
+    if ((*it)->isCall()) {
       PatchBlock* trg = (*it)->trg();
       return obj_->getFunc(obj_->co()->findFuncByEntry(trg->block()->region(),
                                                        trg->block()->start()));
@@ -549,8 +549,8 @@ bool PatchBlock::consistency() const {
          // is a conditional taken and the other a conditional not-taken
          // (even this is weird, but it happens in obfuscated code)
          if (trgs.find(trglist_[i]->trg()) != trgs.end() &&
-             trglist_[i]->type() != ParseAPI::COND_TAKEN && 
-             trglist_[i]->type() != ParseAPI::COND_NOT_TAKEN) 
+             !(trglist_[i]->isBranch() && trglist_[i]->isConditional()) && 
+             !(trglist_[i]->isFallthrough() && trglist_[i]->isConditional())) 
          {
             cerr << "Error: multiple target edges to same block" << endl;
             CONSIST_FAIL;

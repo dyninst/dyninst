@@ -211,8 +211,8 @@ bool RelocGraph::changeType(RelocEdge *e, ParseAPI::EdgeTypeEnum t) {
 }
    
 bool Predicates::Interprocedural::operator()(RelocEdge *e) {
-    // Calls and returns are always interprocedural
-    if (e->type == ParseAPI::CALL || e->type == ParseAPI::RET) return true;
+    // Calls, system calls and returns are always interprocedural
+    if (e->isCall() || e->isSyscall() || e->isReturn()) return true;
 
     // If there is an underlying edge_instance, use its interproc() method
     if (e->edge != NULL) return e->edge->interproc();
@@ -229,8 +229,8 @@ bool Predicates::Interprocedural::operator()(RelocEdge *e) {
 }
 
 bool Predicates::Intraprocedural::operator()(RelocEdge *e) {
-    // Calls and returns are always interprocedural
-    if (e->type == ParseAPI::CALL || e->type == ParseAPI::RET) return false;
+    // Calls, system calls and returns are always interprocedural
+    if (e->isCall() || e->isSyscall() || e->isReturn()) return false;
 
     // If there is an underlying edge_instance, use its interproc() method
     if (e->edge != NULL) return !e->edge->interproc();
@@ -247,19 +247,19 @@ bool Predicates::Intraprocedural::operator()(RelocEdge *e) {
 }
 
 bool Predicates::Fallthrough::operator()(RelocEdge *e) {
-   return (e->type == ParseAPI::FALLTHROUGH);
+   return e->isFallthrough() && !e->isConditional();
 }
 
 bool Predicates::Call::operator()(RelocEdge *e) {
-   return (e->type == ParseAPI::CALL);
+   return e->isCall();
 }
 
 bool Predicates::NonCall::operator()(RelocEdge *e) {
-   return (e->type != ParseAPI::CALL);
+   return !e->isCall();
 }
 
 bool Predicates::CallFallthrough::operator()(RelocEdge *e) {
-   return (e->type == ParseAPI::CALL_FT);
+   return e->isCallFallthrough();
 }
 
 bool Predicates::Edge::operator()(RelocEdge *e) {

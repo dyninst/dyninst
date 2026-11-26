@@ -113,7 +113,7 @@ bool parse_func::hasUnresolvedCF() {
           if((*iter2)->interproc()) {
             continue;
           }
-          if(((*iter2)->type() == ParseAPI::INDIRECT) || ((*iter2)->type() == ParseAPI::DIRECT)) {
+          if((*iter2)->isBranch() && !(*iter2)->isConditional()) {
             unresolvedCF_ = HAS_UNRESOLVED_CF;
             break;
           }

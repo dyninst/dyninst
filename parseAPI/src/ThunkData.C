@@ -17,7 +17,7 @@ void ReachFact::ReverseDFS(ParseAPI::Block *cur, set<ParseAPI::Block*> &visited)
     Block::edgelist src;
     cur->copy_sources(src);    
     for (auto eit = src.begin(); eit != src.end(); ++eit) 
-        if ((*eit)->type() != CALL && (*eit)->type() != RET) ReverseDFS((*eit)->src(), visited);
+        if (!(*eit)->isCall() && !(*eit)->isSyscall() && !(*eit)->isReturn()) ReverseDFS((*eit)->src(), visited);
 }
 
 void ReachFact::NaturalDFS(ParseAPI::Block *cur, set<ParseAPI::Block*> &visited) {
@@ -26,7 +26,7 @@ void ReachFact::NaturalDFS(ParseAPI::Block *cur, set<ParseAPI::Block*> &visited)
     Block::edgelist trg;
     cur->copy_targets(trg);
     for (auto eit = trg.begin(); eit != trg.end(); ++eit) 
-        if ((*eit)->type() != CALL && (*eit)->type() != RET) NaturalDFS((*eit)->trg(), visited);
+        if (!(*eit)->isCall() && !(*eit)->isSyscall() && !(*eit)->isReturn()) NaturalDFS((*eit)->trg(), visited);
 }
 
 

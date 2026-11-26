@@ -41,6 +41,10 @@ RelocEdge::~RelocEdge() {
    if (trg) delete trg;
 }
 
+bool RelocEdge::isTailCall() const {
+   return isBranch() && edge && edge->isTailCall();
+}
+
 RelocEdge *RelocEdges::find(ParseAPI::EdgeTypeEnum e) {
    // Returns the first one
    for (iterator iter = begin(); iter != end(); ++iter) {

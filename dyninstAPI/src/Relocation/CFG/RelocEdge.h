@@ -45,6 +45,30 @@ struct RelocEdge {
    TargetInt *trg;
    edge_instance *edge;
    ParseAPI::EdgeTypeEnum type;
+
+   // The kind and flags of the edge, as for ParseAPI::Edge, made from this
+   // edge's own type, which a transformer may change. The type cannot say
+   // that a conditional branch is indirect, so isIndirect() is false for one.
+   bool isCall() const { return type == ParseAPI::CALL; }
+   bool isSyscall() const { return type == ParseAPI::SYS_CALL; }
+   bool isReturn() const { return type == ParseAPI::RET; }
+   bool isBranch() const {
+      return type == ParseAPI::COND_TAKEN || type == ParseAPI::DIRECT ||
+             type == ParseAPI::INDIRECT;
+   }
+   bool isFallthrough() const {
+      return type == ParseAPI::FALLTHROUGH || type == ParseAPI::COND_NOT_TAKEN;
+   }
+   bool isCallFallthrough() const { return type == ParseAPI::CALL_FT; }
+   bool isCatch() const { return type == ParseAPI::CATCH; }
+   bool isConditional() const {
+      return type == ParseAPI::COND_TAKEN || type == ParseAPI::COND_NOT_TAKEN;
+   }
+   bool isIndirect() const {
+      return type == ParseAPI::INDIRECT || type == ParseAPI::RET;
+   }
+   // A branch that the underlying edge says leaves the function.
+   bool isTailCall() const;
 };
 
 struct RelocEdges {

@@ -275,7 +275,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
         const ParseAPI::Block::edgelist &inEdges = func->lowlevel_func()->ifunc()->entry()->sources();
         for (ParseAPI::Block::edgelist::const_iterator iter = inEdges.begin(); iter != inEdges.end(); ++iter)
         {
-            if ((*iter)->type() != ParseAPI::CALL)
+            if (!(*iter)->isCall())
             {
                 malware_cerr << "Setting instrumentation for function " 
                     << func->getName() << " to instrument returns, detected " 
@@ -1322,10 +1322,9 @@ bool HybridAnalysis::getCallAndBranchTargets(block_instance *block,
          eit++)
     {
         if ( !(*eit)->sinkEdge() && 
-             FALLTHROUGH != (*eit)->type() &&
-             CALL_FT != (*eit)->type() &&
-             NOEDGE != (*eit)->type() /* &&
-             INDIRECT != (*eit)->type()*/) 
+             !((*eit)->isFallthrough() && !(*eit)->isConditional()) &&
+             !(*eit)->isCallFallthrough() /* &&
+             !((*eit)->isBranch() && !(*eit)->isConditional() && (*eit)->isIndirect())*/) 
         {
             Block *trg = (*eit)->trg();
             mapped_object *targObj = proc()->lowlevel_process()->findObject(trg->obj());
@@ -1411,21 +1410,17 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
                 // this is a sink edge, if the edge type is cond'l branch 
                 // taken or direct, crack instruction to get its target,
                 // otherwise we won't find a target for this instruction
-                switch((*iter)->type()) {
-                case INDIRECT:
-                case RET:
-                    break;
-                case COND_NOT_TAKEN:
-                case FALLTHROUGH:
+                if (((*iter)->isBranch() && (*iter)->isIndirect()) || (*iter)->isReturn()) {
+                    // no target to find
+                } else if ((*iter)->isFallthrough()) {
                     if (ipoint->proc()->proc() && 
                         BPatch_defensiveMode == 
                         ipoint->proc()->proc()->getHybridMode()) 
                     {
                         assert( 0 && "should be an abrupt end point");
                     }
-                    break;
-                default:
-                { // this is a cond'l taken or jump target, crack instruction 
+                } else {
+                  // this is a cond'l taken or jump target, crack instruction 
                   // to get target
                     using namespace InstructionAPI;
                     RegisterAST::Ptr thePC = RegisterAST::Ptr
@@ -1446,9 +1441,7 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
                         Address targ = actualTarget.convert<Address>();
                         targets.push_back( targ );
                     }
-                    break;
-                } // end default case
-                } // end edge-type switch
+                }
             }
         }
         break;

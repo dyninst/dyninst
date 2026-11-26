@@ -49,7 +49,7 @@ bool parse_block::isExitBlock() {
   }
 
   parse::Edge *e = *trgs.begin();
-  if(e->type() == parse::RET) {
+  if(e->isReturn()) {
     return true;
   }
 
@@ -57,11 +57,12 @@ bool parse_block::isExitBlock() {
     return false;
   }
 
-  if(e->type() == parse::CALL && trgs.size() > 1) {
+  // A system call that does not return has no CALL_FT either.
+  if((e->isCall() || e->isSyscall()) && trgs.size() > 1) {
     // there's a CALL edge and at least one other edge,
     // it's an exit block if there is no CALL_FT edge
     for(Block::edgelist::const_iterator eit = ++(trgs.begin()); eit != trgs.end(); eit++) {
-      if((*eit)->type() == parse::CALL_FT && !(*eit)->sinkEdge()) {
+      if((*eit)->isCallFallthrough() && !(*eit)->sinkEdge()) {
         return false;
       }
     }
@@ -71,7 +72,7 @@ bool parse_block::isExitBlock() {
 
 bool parse_block::isCallBlock() {
   for(parse::Edge *e : targets()) {
-    if(e->type() == parse::CALL) {
+    if(e->isCall() || e->isSyscall()) {
       return true;
     }
   }
@@ -80,7 +81,7 @@ bool parse_block::isCallBlock() {
 
 bool parse_block::isIndirectTailCallBlock() {
   for(parse::Edge *e : targets()) {
-    if(e->type() == parse::INDIRECT && e->interproc()) {
+    if(e->isTailCall() && e->isIndirect()) {
       return true;
     }
   }

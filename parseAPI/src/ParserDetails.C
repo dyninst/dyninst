@@ -255,10 +255,10 @@ Parser::tamper_post_processing(LockFreeQueue<ParseFrame *> &work_queue, ParseFra
                     if (NULL == elems[eix]->edge()) {
                         continue;
                     }
-                    if (elems[eix]->edge()->type() == CALL &&
+                    if (elems[eix]->edge()->isCall() &&
                         elems[eix]->target() == pf->func->addr()) {
                         rightBundle = true;
-                    } else if (elems[eix]->edge()->type() == CALL_FT) {
+                    } else if (elems[eix]->edge()->isCallFallthrough()) {
                         ftEdge = elems[eix];
                     }
                 }
@@ -350,7 +350,9 @@ void Parser::ProcessReturnInsn(
         Block *cur,
         InstructionAdapter_t *ah) {
     // returns always target the sink block
-    link_block(cur, _sink, RET, true);
+    Edge *ret = link_block(cur, _sink, RET, true);
+    if (ah->isConditionalReturn())
+        ret->setConditional();
 
     ParseCallback::interproc_details det;
     det.ibuf = (unsigned char *)
@@ -391,6 +393,18 @@ void Parser::ProcessCallInsn(
     } else
         det.type = ParseCallback::interproc_details::branch_interproc;
 
+    _pcb.interproc_cf(frame.func, cur, ah->getAddr(), &det);
+}
+
+void Parser::ProcessSyscallInsn(
+        ParseFrame &frame,
+        Block *cur,
+        InstructionAdapter_t *ah) {
+    ParseCallback::interproc_details det;
+    det.ibuf = (unsigned char *)
+            frame.func->isrc()->getPtrToInstruction(ah->getAddr());
+    det.isize = ah->getSize();
+    det.type = ParseCallback::interproc_details::syscall;
     _pcb.interproc_cf(frame.func, cur, ah->getAddr(), &det);
 }
 
@@ -491,6 +505,8 @@ bool Parser::ProcessCFInsn(
         ProcessReturnInsn(frame, cur, ah);
 
     bool dynamic_call = ah->isDynamicCall();
+    const Architecture insn_arch = ah->getInstruction().getArch();
+    const bool is_power = insn_arch == Arch_ppc32 || insn_arch == Arch_ppc64;
     bool absolute_call = ah->isAbsoluteCall();
     // unresolved is true for indirect calls, unresolved indirect branches, 
     // and later on is set set to true for transfers to bad addresses
@@ -530,13 +546,12 @@ bool Parser::ProcessCFInsn(
             } else {
                 newedge = link_block(cur, _sink, CALL, true);
             }
-            if (!ah->isCall()) {
-                parsing_printf("Setting edge 0x%p (0x%lx/0x%lx) to interproc\n",
-                               (void*)newedge,
-                               newedge->src()->start(),
-                               newedge->trg_addr());
-                newedge->_type._interproc = true;
-            }
+            if (dynamic_call)
+                newedge->setIndirect();
+        }
+        else if (curEdge->second == SYS_CALL) {
+            ProcessSyscallInsn(frame, cur, ah);
+            newedge = link_block(cur, _sink, SYS_CALL, true);
         }
             /*
              * All other edge types are handled identically
@@ -548,13 +563,31 @@ bool Parser::ProcessCFInsn(
                 newedge = link_block(cur, _sink, curEdge->second, true);
         }
 
+        // The edge type says whether a branch is conditional or indirect. A
+        // conditional call (ppc bcl), the CALL_FT after it, and a conditional
+        // branch through CTR (ppc bcctr) need the instruction.
+        if (is_power) {
+            const InstructionAPI::Instruction &insn = ah->getInstruction();
+            if ((newedge->isCall() || newedge->isCallFallthrough()) &&
+                insn.allowsFallThrough())
+                newedge->setConditional();
+            // The decoder marks the CTR or LR target of a conditional bcctr
+            // or bclr as a fall-through, so look at every target.
+            if (curEdge->second == COND_TAKEN) {
+                for (auto c = insn.cft_begin(); c != insn.cft_end(); ++c) {
+                    if (c->isIndirect)
+                        newedge->setIndirect();
+                }
+            }
+        }
+
         if (ah->isTailCall(frame.func, curEdge->second, frame.num_insns, frame.knownTargets)) {
             tailcall = true;
-            parsing_printf("Setting edge 0x%p (0x%lx/0x%lx) to interproc (tail call)\n",
+            parsing_printf("Setting edge 0x%p (0x%lx/0x%lx) to tail call\n",
                            (void*)newedge,
                            newedge->src()->start(),
                            newedge->trg_addr());
-            newedge->_type._interproc = true;
+            newedge->setTailCall(true);
         }
 
         if (!bundle) {

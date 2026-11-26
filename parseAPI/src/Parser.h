@@ -281,6 +281,11 @@ namespace Dyninst {
                     bool,
                     Address);
 
+            void ProcessSyscallInsn(
+                    ParseFrame &,
+                    Block *,
+                    InstructionAdapter_t *);
+
             void ProcessReturnInsn(
                     ParseFrame &,
                     Block *,

@@ -86,6 +86,7 @@ enum EdgeTypeEnum {
     CALL_FT,        // fallthrough after call instruction
     RET,
     NOEDGE,
+    SYS_CALL,       // into the kernel; the target is the sink
     _edgetype_end_
 };
 
@@ -105,16 +106,35 @@ class DYNINST_EXPORT Edge {
 
  private:
 
+    // What transfer the edge represents. Whether it is conditional or
+    // indirect, and whether a branch is a tail call, are separate fields.
+    enum Kind : uint8_t {
+        K_CALL,
+        K_SYSCALL,
+        K_RET,
+        K_BRANCH,       // taken path of a jump
+        K_FALLTHROUGH,  // to the next instruction
+        K_CALL_FT,      // to the instruction after a call
+        K_CATCH,
+        K_NOEDGE
+    };
+
     struct EdgeType {
-        EdgeType(EdgeTypeEnum t, bool s) :
-            _type_enum(t), _sink(s), _interproc(false)
-        { }
-        uint16_t _type_enum;
+        EdgeType(EdgeTypeEnum t, bool s);
+        uint16_t _kind;
         uint8_t _sink;
-        uint8_t  _interproc;    // modifier for interprocedural branches
-                                // (tail calls)
+        bool _conditional;  // the source instruction may fall through instead
+        bool _indirect;     // the target comes from a register or memory
+        bool _tailCall;     // a branch that leaves the function
     };
     EdgeType _type;
+
+    // Only the parser writes these.
+    void setConditional() { _type._conditional = true; }
+    void setIndirect() { _type._indirect = true; }
+    // Only a branch can be a tail call; a request on any other edge is
+    // ignored, and isTailCall() is then false for it.
+    void setTailCall(bool on) { if (isBranch()) _type._tailCall = on; }
 
  public:
     Edge(Block * source,
@@ -127,14 +147,37 @@ class DYNINST_EXPORT Edge {
     Block * src() const { return _source.load(); }
     Block * trg() const;
     Address trg_addr() const { return _target_off; }
-    EdgeTypeEnum type() const { 
-        return static_cast<EdgeTypeEnum>(_type._type_enum); 
-    }
+    // The edge's EdgeTypeEnum, made from its kind and its conditional and
+    // indirect flags. Test an edge with the predicates below instead.
+    EdgeTypeEnum type() const;
+
+    // The kind of transfer.
+    bool isCall() const { return _type._kind == K_CALL; }
+    // A system call. isCall() is false for it, but it is a call site: it is
+    // in Function::callEdges(), and its block has call points.
+    bool isSyscall() const { return _type._kind == K_SYSCALL; }
+    bool isReturn() const { return _type._kind == K_RET; }
+    // The taken path of a jump: conditional or not, direct or not.
+    bool isBranch() const { return _type._kind == K_BRANCH; }
+    // To the next instruction: the not-taken path of a conditional
+    // instruction, or the end of a block that has no control flow.
+    bool isFallthrough() const { return _type._kind == K_FALLTHROUGH; }
+    // To the instruction after a call.
+    bool isCallFallthrough() const { return _type._kind == K_CALL_FT; }
+    bool isCatch() const { return _type._kind == K_CATCH; }
+
+    // The source instruction may fall through instead of transferring. All
+    // out-edges of a conditional instruction say so, the not-taken one too.
+    bool isConditional() const { return _type._conditional; }
+    // The target comes from a register or memory. Always true for a return.
+    bool isIndirect() const { return _type._indirect; }
+    // A branch that leaves the function. The parser decides this, and only
+    // a branch can be one.
+    bool isTailCall() const { return _type._tailCall; }
+
     bool sinkEdge() const { return _type._sink != 0; }
     bool interproc() const { 
-       return (_type._interproc != 0 ||
-               type() == CALL ||
-               type() == RET);
+       return isTailCall() || isCall() || isSyscall() || isReturn();
     }
 
     bool intraproc() const {

@@ -252,8 +252,10 @@ bool Instrumenter::funcExitInstrumentation(RelocBlock *trace, RelocGraph *cfg) {
      // or taken/not taken conditional
      if (trace->outs()->find(ParseAPI::INDIRECT))
        return handleCondIndExits(trace, cfg, exit);
-     else
+     else if (trace->outs()->find(ParseAPI::COND_TAKEN))
        return handleCondDirExits(trace, cfg, exit);
+     else
+       return handleCondReturnExits(trace, cfg, exit);
    }
    else {
      return handleUnconditionalExitInstrumentation(trace, cfg, exit);
@@ -386,6 +388,41 @@ bool Instrumenter::handleCondDirExits(RelocBlock *trace, RelocGraph *cfg, instPo
    relocation_cerr << trace->format();
    relocation_cerr << instRelocBlock->format() << endl;
    relocation_cerr << "----" << endl;
+
+   return true;
+}
+
+// A conditional return (ppc beqlr, bdnzlr, ...): its taken side goes to the
+// caller, so the only out-edge is the not-taken one.
+bool Instrumenter::handleCondReturnExits(RelocBlock *trace, RelocGraph *cfg, instPoint *exit) {
+   CFWidget::Ptr retcc = trace->cfWidget();
+   assert(retcc);
+
+   relocation_cerr << "Function exit instrumentation /w/ conditional return "
+                   << (retcc->insn().isValid() ? retcc->insn().format() : "<no insn>") << endl;
+
+   CFWidget::Ptr jcc = CFWidget::create(retcc);
+   jcc->clearIsIndirect(); // Will turn this into a straight conditional branch
+   jcc->clearIsCall();
+   assert(jcc->isConditional());
+   trace->setCF(jcc);
+
+   // The instrumentation block ends in an unconditional return: the condition
+   // was already tested by jcc, and testing it again would decrement CTR twice
+   // for bdnzlr.
+   RelocBlock *instRelocBlock = RelocBlock::createInst(exit, retcc->addr(), trace->block(), trace->func());
+   retcc->clearIsConditional();
+   instRelocBlock->setCF(retcc);
+   cfg->addRelocBlockAfter(trace, instRelocBlock);
+
+   // Skip this block when it comes up; we don't want to re-instrument it :)
+   skip = trace;
+
+   // The not-taken edge stays on trace; jcc's taken side goes to instRelocBlock.
+   cfg->makeEdge(new Target<RelocBlock *>(trace),
+                 new Target<RelocBlock *>(instRelocBlock),
+                 NULL,
+                 ParseAPI::COND_TAKEN);
 
    return true;
 }

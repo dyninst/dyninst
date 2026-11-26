@@ -50,9 +50,9 @@ bool PatchModifier::redirect(PatchEdge *edge, PatchBlock *target) {
    // Current limitation: cannot retarget indirect edges (well, we can,
    // but don't expect it to work)
    // Also, changing catch edges would be awesome! ... but we can't. 
-   if (edge->type() == ParseAPI::INDIRECT || 
-       edge->type() == ParseAPI::CATCH ||
-       edge->type() == ParseAPI::RET) return false;
+   if ((edge->isBranch() && edge->isIndirect()) || 
+       edge->isCatch() ||
+       edge->isReturn()) return false;
    
    // I think this is all we do...
    PatchBlock *src = edge->src();

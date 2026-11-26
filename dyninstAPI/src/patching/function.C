@@ -811,7 +811,7 @@ bool func_instance::getLiveCallerBlocks
    const PatchBlock::edgelist &callEdges = entryBlock()->sources();
    PatchBlock::edgelist::const_iterator eit = callEdges.begin();
    for( ; eit != callEdges.end(); ++eit) {
-      if (CALL == (*eit)->type()) {// includes tail calls
+      if ((*eit)->isCall()) {// includes tail calls
           block_instance *cbbi = static_cast<block_instance*>((*eit)->src());
           if (deadBlocks.end() != deadBlocks.find(cbbi)) {
              continue; 

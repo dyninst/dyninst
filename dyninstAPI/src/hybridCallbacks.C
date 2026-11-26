@@ -567,7 +567,7 @@ void HybridAnalysis::getCallBlocks(Address retAddr,
            eit != trgs.end(); 
            eit++)
       {
-          if ((*eit)->type() == ParseAPI::CALL && 
+          if ((*eit)->isCall() && 
               !(*eit)->sinkEdge()) 
           {
               Block *calledB = (*eit)->trg();

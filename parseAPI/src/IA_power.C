@@ -314,6 +314,26 @@ bool IA_power::isReturn(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block*
   return curInsn().isReturn();
 }
 
+// The decoder gives a conditional bclr the category of a branch, with an
+// indirect LR target and a fall-through. With LK=0 it returns to the caller
+// when taken. bclrl (LK=1) also writes LR and is not a return.
+bool IA_power::isConditionalReturn() const
+{
+  const Instruction &ci = curInsn();
+  return ci.getOperation().getID() == power_op_bclr &&
+         ci.allowsFallThrough() &&
+         !ci.isWritten(ppc32_LR) && !ci.isWritten(ppc64_LR);
+}
+
+FuncReturnStatus IA_power::getReturnStatus(Function *context, unsigned int num_insns) const
+{
+  // InstructionAdapter::getReturnStatus takes a branch without a static
+  // target for an indirect jump before asking isReturn.
+  if (isConditionalReturn())
+    return RETURN;
+  return IA_IAPI::getReturnStatus(context, num_insns);
+}
+
 bool IA_power::isFakeCall() const
 {
     return false;

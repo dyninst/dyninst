@@ -470,7 +470,7 @@ static Assignment::Ptr SearchForWrite(SliceNode::Ptr n, AbsRegion &src, Slicer::
         for (auto eit = sources.begin(); eit != sources.end(); ++eit) {
             ParseAPI::Edge *e = *eit;
             if (e->interproc()) continue;
-            if (e->type() == CATCH) continue;
+            if (e->isCatch()) continue;
             if (inQueue.find(e->src()) != inQueue.end()) continue;
             inQueue.insert(e->src());
             workingList.push(e->src());	    
@@ -538,7 +538,7 @@ bool JumpTableFormatPred::isTOCRead(Slicer::SliceFrame &frame, SliceNode::Ptr n)
 
 bool JumpTableFormatPred::ignoreEdge(ParseAPI::Edge *e) {
     // Assume that jump tables are independent
-    if (e->type() == INDIRECT) return true;
+    if (e->isBranch() && e->isIndirect()) return true;
     return false;
 }
 

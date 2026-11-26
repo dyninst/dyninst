@@ -426,7 +426,8 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
                     eit != trgs.end();
                     eit++)
             {
-                if ((*eit)->type() == CALL) {
+                // A system call has a CALL_FT too.
+                if ((*eit)->isCall() || (*eit)->isSyscall()) {
                     callEdge = *eit;
                     if (!(*eit)->sinkEdge()) // if it's a sink edge, look for nonsink CALL
                         break;
@@ -952,7 +953,7 @@ Parser::finalize(Function *f)
         for (auto e : targets) {
             // Tail call corretions are only relevant to non-sink COND_TAKEN or non-sink DIRECT edges
             if (e->sinkEdge()) continue;
-            if (e->type() != COND_TAKEN && e->type() != DIRECT) continue;
+            if (!e->isBranch() || (!e->isConditional() && e->isIndirect())) continue;
 
             Block* trg_block = e->trg();
 
@@ -961,8 +962,8 @@ Parser::finalize(Function *f)
             // Rule 1:
             // If an edge is currently not a tail call, but the edge target has a CALL incoming edge,
             // the current edge should be marked as a tail call
-            if (trg_has_call_edge && !e->interproc()) {
-                e->_type._interproc = true;
+            if (trg_has_call_edge && !e->isTailCall()) {
+                e->setTailCall(true);
                 parsing_printf("from %lx to %lx, marked as tail call (target has a CALL incoming edge), re-finalize\n", b->last(), e->trg()->start());
                 return false;
             }
@@ -970,7 +971,7 @@ Parser::finalize(Function *f)
             // Now let's deal with fliping tail-call to not-tail-call
             // If the target has a CALL incoming edge, or the current edge
             // is currently not marked as tail call, then we can skip this edge
-            if (trg_has_call_edge || !e->interproc()) continue;
+            if (trg_has_call_edge || !e->isTailCall()) continue;
 
             // Look up the tail call target.
             // If the tail call target is created from a symbol, then keep it as a tail call
@@ -989,7 +990,7 @@ Parser::finalize(Function *f)
             // it is a recursive tail call.
             // Otherwise,  this edge is not a tail call
             if (visited.find(e->trg()) != visited.end() && e->trg() != f->entry()) {
-                e->_type._interproc = false;
+                e->setTailCall(false);
                 parsing_printf("from %lx to %lx, marked as not tail call (part of the function), re-finalize\n", b->last(), e->trg()->start());
                 return false;
             }     
@@ -998,7 +999,7 @@ Parser::finalize(Function *f)
             // If an edge is currently a tail call, but the edge target has only the current edge as incoming edges,
             // we treat this as not tail call.        
             if (trg_block->getOnlyIncomingEdge() == e) {
-                e->_type._interproc = false;
+                e->setTailCall(false);
                 parsing_printf("from %lx to %lx, marked as not tail call (single entry), re-finalize\n", b->last(), e->trg()->start());
                 return false;
             }
@@ -1023,9 +1024,9 @@ Parser::finalize(Function *f)
             Block::edgelist targets;
             b->copy_targets(targets);
             for (auto e : targets) {
-                if (!e->interproc() && (e->type() == INDIRECT || e->type() == DIRECT)) {
+                if (!e->isTailCall() && e->isBranch() && !e->isConditional()) {
 		  if (b->last() != e->trg()->start()) { // if not an instruction that branches to itself
-                    e->_type._interproc = true;
+                    e->setTailCall(true);
                     parsing_printf("from %lx to %lx, marked as tail call (jump at entry), re-finalize\n", b->last(), e->trg()->start());
                     return false;
 		  }
@@ -1253,7 +1254,7 @@ Parser::finalize_jump_tables()
             std::map<Address, Edge*> edgeMap;
             jti->block->copy_targets(targets);
             for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
-                if ((*eit)->type() != INDIRECT || (*eit)->sinkEdge()) continue;
+                if (!((*eit)->isBranch() && (*eit)->isIndirect()) || (*eit)->sinkEdge()) continue;
                 edgeMap.insert(make_pair((*eit)->trg_addr(), *eit));
             }
 
@@ -1445,7 +1446,8 @@ namespace {
         vector<ParseWorkElem*> const& elems = b->elems();
         vector<ParseWorkElem*>::const_iterator it = elems.begin();
         for( ; it != elems.end(); ++it) {
-            if((*it)->edge()->type() == CALL)
+            // A system call has a CALL_FT too.
+            if((*it)->edge()->isCall() || (*it)->edge()->isSyscall())
                 return (*it)->edge();
         }
         return NULL;
@@ -1457,7 +1459,9 @@ namespace {
         vector<ParseWorkElem*> const& elems = b->elems();
         vector<ParseWorkElem*>::const_iterator it = elems.begin();
         for( ; it != elems.end(); ++it) {
-            if((*it)->edge()->type() == CALL)
+            // The CALL_FT handling uses this edge to find the
+            // non-returning system calls too.
+            if((*it)->edge()->isCall() || (*it)->edge()->isSyscall())
                 return (*it);
         }
         return NULL;
@@ -2183,7 +2187,7 @@ Parser::add_edge(
         retpair.second = newedge;
     } else {
         assert(src->last() == src_addr);
-        if (exist->type() == FALLTHROUGH || exist->type() == COND_NOT_TAKEN || exist->type() == CALL_FT) {
+        if (exist->isFallthrough() || exist->isCallFallthrough()) {
             if (src->end() != ret->start()) {
                 fprintf(stderr, "src_addr %lx, src: [%lx, %lx), dst [%lx, %lx), target %lx, edge type %d\n", src_addr, src->start(), src->end(), ret->start(), src->end(), dst, et);
             }
@@ -2403,7 +2407,7 @@ Parser::link_tempsink(Block *src, EdgeTypeEnum et)
     void
 Parser::relink(ParseAPI::Edge * e, Block *src, Block *dst)
 {
-    if (e->type() == FALLTHROUGH || e->type() == COND_NOT_TAKEN || e->type() == CALL_FT) {
+    if (e->isFallthrough() || e->isCallFallthrough()) {
         if (src->end() != dst->start()) {
             fprintf(stderr, "In relink : src [%lx, %lx) dst [%lx, %lx)\n", src->start(), src->end(), dst->start(), dst->end());
             assert(src->end() == dst->start());

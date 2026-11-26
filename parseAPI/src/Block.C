@@ -141,14 +141,14 @@ bool
 Intraproc::pred_impl(Edge * e) const
 {
     bool base = EdgePredicate::pred_impl(e);
-    return base && (e->type() != CALL) && (e->type() != RET) && (!e->interproc());
+    return base && !e->isCall() && !e->isReturn() && !e->interproc();
 }
 
 bool Interproc::pred_impl(Edge *e) const 
 {
     bool base = EdgePredicate::pred_impl(e);
 
-    return !base || ((e->type() == CALL) || (e->type() == RET)) || (e->interproc());
+    return !base || e->isCall() || e->isReturn() || e->interproc();
 }
 
 bool
@@ -169,7 +169,7 @@ SingleContextOrInterproc::pred_impl(Edge * e) const
         (!_forward || _context->contains(e->trg())) &&
         (!_backward || _context->contains(e->src()));
 
-    bool interproc = !base || ((e->type() == CALL) || (e->type() == RET));
+    bool interproc = !base || e->isCall() || e->isSyscall() || e->isReturn();
 
     return singleContext || interproc;
 }
@@ -211,7 +211,7 @@ void Edge::uninstall()
     mal_printf("Uninstalling edge [%lx]->[%lx]\n", 
                src()->lastInsnAddr(), _target_off);
     // if it's a call edge, it's cached in the function object, remove it
-    if (CALL == type()) {
+    if (isCall() || isSyscall()) {
         vector<Function*> srcFs;
         src()->getFuncs(srcFs);
         for (vector<Function*>::iterator fit = srcFs.begin(); 
@@ -256,6 +256,7 @@ std::string format(EdgeTypeEnum e) {
 		case CALL_FT: return "call_ft";
 		case RET: return "ret";
 		case NOEDGE: return "noedge";
+		case SYS_CALL: return "syscall";
 		default: return "<unknown>";
 	}
 }
@@ -310,8 +311,7 @@ void Block::addSource(Edge * e)
 void Block::addTarget(Edge * e)
 {
     boost::lock_guard<Block> g(*this);
-    if(e->type() == FALLTHROUGH ||
-            e->type() == COND_NOT_TAKEN)
+    if(e->isFallthrough())
     {
         assert(e->_target_off == end());
     }
@@ -365,7 +365,7 @@ void Block::copy_targets(edgelist & trg) const {
 bool Block::hasCallSource() const {
     boost::lock_guard<boost::recursive_mutex> g(lockable());
     for (auto e: _srclist)
-        if (e->type() == CALL)
+        if (e->isCall())
             return true;
     return false;
 }
