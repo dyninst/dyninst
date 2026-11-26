@@ -29,7 +29,6 @@ if(DYNINST_CODEGEN_ARCH_I386)
     -Dcap_noaddr_gen
     -Dcap_stripped_binaries
     -Dcap_tramp_liveness
-    -Dcap_virtual_registers
     -Dcap_stack_mods
   )
 
