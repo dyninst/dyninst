@@ -692,9 +692,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
     static FreeBSDPreStopHandler *lprestop = NULL;
     static FreeBSDBootstrapHandler *lboot = NULL;
 
-#if defined(bug_freebsd_change_pc)
     static FreeBSDChangePCHandler *lpc = NULL;
-#endif
 
     if( !initialized ) {
         lpolldeath = new FreeBSDPollLWPDeathHandler();
@@ -704,9 +702,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
         lprestop = new FreeBSDPreStopHandler();
         lboot = new FreeBSDBootstrapHandler();
 
-#if defined(bug_freebsd_change_pc)
         lpc = new FreeBSDChangePCHandler();
-#endif
 
         initialized = true;
     }
@@ -717,9 +713,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
     hpool->addHandler(lprestop);
     hpool->addHandler(lboot);
 
-#if defined(bug_freebsd_change_pc)
     hpool->addHandler(lpc);
-#endif
 
     thread_db_process::addThreadDBHandlers(hpool);
     sysv_process::addSysVHandlers(hpool);
@@ -1436,7 +1430,6 @@ async_ret_t freebsd_process::post_attach(bool wasDetached, set<response::ptr> &a
   return aret_success;
 }
 
-#if defined(bug_freebsd_change_pc)
 FreeBSDChangePCHandler::FreeBSDChangePCHandler() 
     : Handler("FreeBSD Change PC Handler")
 {}
@@ -1463,7 +1456,6 @@ int FreeBSDChangePCHandler::getPriority() const {
 void FreeBSDChangePCHandler::getEventTypesHandled(std::vector<EventType> &etypes) {
     etypes.push_back(EventType(EventType::None, EventType::ChangePCStop));
 }
-#endif
 
 bool freebsd_thread::plat_stop() {
     Dyninst::PID pid = llproc()->getPid();
@@ -1530,7 +1522,6 @@ bool freebsd_thread::plat_cont()
    }
 
 
-#if defined(bug_freebsd_change_pc)
    for (i = tp->begin(); i != tp->end(); i++) {
       freebsd_thread *thrd = dynamic_cast<freebsd_thread *>(*i);
       if (thrd->hasPCBugCondition() && !thrd->isSuspended()) {
@@ -1557,7 +1548,6 @@ bool freebsd_thread::plat_cont()
          return false;
       }
    }
-#endif
 
     /* Single-stepping is enabled/disabled using PT_SETSTEP
      * and PT_CLEARSTEP instead of continuing the process
@@ -1840,13 +1830,11 @@ bool freebsd_thread::plat_setAllRegisters(int_registerPool &regpool) {
         }
     }
 
-#if defined(bug_freebsd_change_pc)
     if( !isSignalStopped() ) {
         pthrd_printf("Setting change PC bug condition for %d/%d\n",
                 llproc()->getPid(), lwp);
         setPCBugCondition(true);
     }
-#endif
 
     pthrd_printf("Successfully set the values of all registers for LWP %d\n", lwp);
 
