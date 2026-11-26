@@ -62,11 +62,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: get-oses
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: ${{ fromJson(needs.get-oses.outputs.latest) }}
     permissions:
       packages: read
+      actions: write  # cancel-head-ci
     container:
       image: ghcr.io/dyninst/amd64/${{ matrix.os }}-base:latest
       credentials:
@@ -165,3 +166,8 @@ jobs:
           fi
 
           echo "all ${found} manuals installed in ${dest}"
+
+      - name: Cancel the rest of this commit's CI
+        if: ${{ failure() }}
+        continue-on-error: true
+        uses: ./src/.github/actions/cancel-head-ci
