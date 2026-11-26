@@ -86,7 +86,6 @@ if(DYNINST_OS_Linux)
   set(
     CAP_DEFINES
     ${CAP_DEFINES}
-    -Dcap_mutatee_traps
     -Dcap_ptrace
   )
   set(BUG_DEFINES -Dbug_syscall_changepc_rewind -Dbug_force_terminate_failure)
@@ -104,7 +103,6 @@ if(DYNINST_OS_Linux)
 
 elseif(DYNINST_OS_FreeBSD)
   set(OS_DEFINES -Dos_freebsd)
-  set(CAP_DEFINES ${CAP_DEFINES} -Dcap_mutatee_traps)
   set(
     BUG_DEFINES
     -Dbug_freebsd_missing_sigstop
@@ -122,7 +120,6 @@ elseif(DYNINST_OS_FreeBSD)
 
 elseif(DYNINST_OS_Windows)
   set(OS_DEFINES -Dos_windows)
-  set(CAP_DEFINES ${CAP_DEFINES} -Dcap_mutatee_traps)
   set(OLD_DEFINES -Di386_unknown_nt4_0)
 endif()
 

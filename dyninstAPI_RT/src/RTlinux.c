@@ -323,8 +323,6 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
 	return 0;
 } /* end DYNINST_am_initial_thread() */
 
-#if defined(cap_mutatee_traps)
-
 #include <ucontext.h>
 
 // Register numbers experimentally verified
@@ -639,10 +637,6 @@ static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos) {
 }
 
 #endif
-
-
-
-#endif /* cap_mutatee_traps */
 
 #if !defined(DYNINST_RT_STATIC_LIB)
 /* For a static binary, all global constructors are combined in an undefined

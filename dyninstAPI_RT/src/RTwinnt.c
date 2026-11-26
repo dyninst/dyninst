@@ -102,11 +102,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 
    DYNINSTinit();
 
-#if defined(cap_mutatee_traps)
    if (DYNINSTstaticMode) {
       DYNINSTinitializeTrapHandler();
    }
-#endif
 
    return 1; 
 }

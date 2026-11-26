@@ -247,8 +247,6 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
 
 /** trap based instrumentation **/
 
-#if defined(cap_mutatee_traps)
-
 #include <ucontext.h>
 
 #if defined(DYNINST_HOST_ARCH_X86) || defined(MUTATEE_32)
@@ -552,8 +550,6 @@ static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos) {
    }
    return NUM_LIBRARIES;
 }
-
-#endif /* cap_mutatee_traps */
 
 /*
  * Note: this program is for historical purposes only, we use libthread_db
