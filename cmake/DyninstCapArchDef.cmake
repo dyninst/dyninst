@@ -53,32 +53,16 @@ elseif(DYNINST_CODEGEN_ARCH_RISCV64)
   set(CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
   set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx908 -Darch_64bit)
-  set(
-    CAP_DEFINES
-    -Dcap_registers
-    -Dcap_tramp_liveness
-  )
+  set(CAP_DEFINES -Dcap_registers -Dcap_tramp_liveness)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX90A)
   set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx90a -Darch_64bit)
-  set(
-    CAP_DEFINES
-    -Dcap_registers
-    -Dcap_tramp_liveness
-  )
+  set(CAP_DEFINES -Dcap_registers -Dcap_tramp_liveness)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX940)
   set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx940 -Darch_64bit)
-  set(
-    CAP_DEFINES
-    -Dcap_registers
-    -Dcap_tramp_liveness
-  )
+  set(CAP_DEFINES -Dcap_registers -Dcap_tramp_liveness)
 elseif(DYNINST_CODEGEN_ARCH_AMDGPU_GFX950)
   set(ARCH_DEFINES_CODEGEN -Darch_amdgpu_gfx950 -Darch_64bit)
-  set(
-    CAP_DEFINES
-    -Dcap_registers
-    -Dcap_tramp_liveness
-  )
+  set(CAP_DEFINES -Dcap_registers -Dcap_tramp_liveness)
 endif()
 
 if(DYNINST_OS_Linux)
@@ -97,10 +81,7 @@ if(DYNINST_OS_Linux)
 
 elseif(DYNINST_OS_FreeBSD)
   set(OS_DEFINES -Dos_freebsd)
-  set(
-    BUG_DEFINES
-    -Dbug_syscall_changepc_rewind
-  )
+  set(BUG_DEFINES -Dbug_syscall_changepc_rewind)
 
   if(DYNINST_HOST_ARCH_I386)
     set(OLD_DEFINES -Di386_unknown_freebsd7_0)
