@@ -408,7 +408,7 @@ BPatch_module::findFunction(const char *name,
       }
       else {
          if (mod->findFuncVectorByMangled(name,
-                  int_funcs)) {
+                  int_funcs, incUninstrumentable)) {
             for (unsigned miter = 0; miter < int_funcs.size(); miter++) {
                if (incUninstrumentable || int_funcs[miter]->isInstrumentable()) 
                {
@@ -562,7 +562,7 @@ BPatch_function * BPatch_module::findFunctionByMangled(const char *mangled_name,
    std::string mangled_str(mangled_name);
 
    if (!mod->findFuncVectorByMangled(mangled_str,
-            int_funcs))
+            int_funcs, incUninstrumentable))
       return NULL;
 
    if (int_funcs.size() > 1) {

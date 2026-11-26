@@ -116,7 +116,8 @@ SymtabAPI::supportedLanguages mapped_module::language() const
 }
 
 bool mapped_module::findFuncVectorByMangled(const std::string &funcname,
-      std::vector<func_instance *> &funcs)
+      std::vector<func_instance *> &funcs,
+      bool includePLTStubs)
 {
    // For efficiency sake, we grab the image vector and strip out the
    // functions we want.
@@ -124,7 +125,8 @@ bool mapped_module::findFuncVectorByMangled(const std::string &funcname,
    // the problem is that BPatch goes by module and internal goes by image. 
    unsigned orig_size = funcs.size();
 
-   const std::vector<func_instance *> *obj_funcs = obj()->findFuncVectorByMangled(funcname);
+   const std::vector<func_instance *> *obj_funcs =
+      obj()->findFuncVectorByMangled(funcname, includePLTStubs);
    if (!obj_funcs) {
       return false;
    }
