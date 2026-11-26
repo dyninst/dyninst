@@ -58,6 +58,11 @@ bool CFWidget::generateIndirect(CodeBuffer &buffer,
 
   NS_power::instruction ugly_insn(insn.ptr());
   IFORM_LK_SET(ugly_insn, 0);
+  // A conditional bclr/bcctr whose condition was already tested (exit
+  // instrumentation of a conditional return) branches always. bclr and
+  // bcctr keep BO in the same field as bc.
+  if (!isConditional_)
+    BFORM_BO_SET(ugly_insn, BALWAYScond);
   codeGen gen(4);
   insnCodeGen::generate(gen, ugly_insn);
 

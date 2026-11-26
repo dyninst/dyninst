@@ -75,6 +75,7 @@ class Instrumenter : public Transformer {
   bool handleUnconditionalExitInstrumentation(RelocBlock *trace, RelocGraph *cfg, instPoint *exit);
   bool handleCondIndExits(RelocBlock *trace, RelocGraph *cfg, instPoint *exit);
   bool handleCondDirExits(RelocBlock *trace, RelocGraph *cfg, instPoint *exit);
+  bool handleCondReturnExits(RelocBlock *trace, RelocGraph *cfg, instPoint *exit);
 
   WidgetPtr makeInstrumentation(PatchAPI::Point *point);
 
