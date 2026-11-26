@@ -61,6 +61,8 @@
 #include <fstream>
 #include <numeric>
 
+#include "CodeSource.h"
+
 using namespace std;
 using namespace SymtabAPI;
 
@@ -247,6 +249,16 @@ bool BPatch::parseDebugInfo()
 void BPatch::setDebugParsing(bool x)
 {
   debugParseOn = x;
+}
+
+bool BPatch::addNonReturningMangledName(const std::string &name)
+{
+  return Dyninst::ParseAPI::CodeSource::addNonReturningMangledName(name);
+}
+
+bool BPatch::addNonReturningDemangledName(const std::string &name)
+{
+  return Dyninst::ParseAPI::CodeSource::addNonReturningDemangledName(name);
 }
 bool BPatch::baseTrampDeletion()
 {
