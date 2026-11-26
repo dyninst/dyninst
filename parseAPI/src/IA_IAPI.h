@@ -125,6 +125,9 @@ class IA_IAPI : public InstructionAdapter {
         virtual bool savesFP() const = 0;
         virtual bool cleansStack() const = 0;
         virtual bool isConditional() const;
+        // A return that falls through when its condition is false (ppc
+        // beqlr, bdnzlr, ...).
+        virtual bool isConditionalReturn() const;
         virtual bool isBranch() const;
         virtual bool isInterruptOrSyscall() const;
         virtual bool isCall() const;

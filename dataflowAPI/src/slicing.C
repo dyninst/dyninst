@@ -1349,7 +1349,9 @@ bool containsRet(ParseAPI::Block *block) {
   Block::edgelist::const_iterator eit = targets.begin();
   for (; eit != targets.end(); ++eit) {
     ParseAPI::Edge *edge = *eit;
-    if (edge->isReturn()) return true;
+    // A conditional return (ppc beqlr) also falls through; the default
+    // successor handling follows that edge.
+    if (edge->isReturn() && !edge->isConditional()) return true;
   }
   return false;
 }

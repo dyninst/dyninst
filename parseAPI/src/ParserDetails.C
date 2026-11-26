@@ -350,7 +350,9 @@ void Parser::ProcessReturnInsn(
         Block *cur,
         InstructionAdapter_t *ah) {
     // returns always target the sink block
-    link_block(cur, _sink, RET, true);
+    Edge *ret = link_block(cur, _sink, RET, true);
+    if (ah->isConditionalReturn())
+        ret->setConditional();
 
     ParseCallback::interproc_details det;
     det.ibuf = (unsigned char *)

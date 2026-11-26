@@ -91,6 +91,8 @@ class IA_power : public IA_IAPI {
 	virtual bool sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const;
 	virtual bool isReturnAddrSave(Address& retAddr) const;
 	virtual bool isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const;
+	virtual bool isConditionalReturn() const;
+	virtual ParseAPI::FuncReturnStatus getReturnStatus(ParseAPI::Function* context, unsigned int num_insns) const;
 	virtual bool isFakeCall() const;
 	virtual bool isIATcall(std::string &) const;
 	virtual bool isLinkerStub() const;

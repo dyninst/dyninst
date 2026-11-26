@@ -632,6 +632,13 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
     {
         if(ci.allowsFallThrough())
         {
+            // The taken side of a conditional return is the RET edge
+            // that Parser::ProcessReturnInsn adds.
+            if(isConditionalReturn())
+            {
+                outEdges.push_back(std::make_pair(getNextAddr(), COND_NOT_TAKEN));
+                return;
+            }
             bool takenValid;
             Address takenTarget;
             boost::tie(takenValid, takenTarget) = getCFT();
@@ -893,6 +900,11 @@ std::map<Address, bool> IA_IAPI::thunkAtTarget;
 bool IA_IAPI::isConditional() const
 {
     return curInsn().allowsFallThrough();
+}
+
+bool IA_IAPI::isConditionalReturn() const
+{
+    return false;
 }
 
 bool IA_IAPI::simulateJump() const
