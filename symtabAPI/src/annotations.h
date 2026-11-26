@@ -49,8 +49,6 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-extern AnnotationClass<std::vector<std::string> > SymbolVersionNamesAnno;
-extern AnnotationClass<std::string> SymbolFileNameAnno;
 extern AnnotationClass<std::vector<Region *> > UserRegionsAnno; 
 extern AnnotationClass<std::vector<Type *> > UserTypesAnno;
 extern AnnotationClass<dyn_hash_map<Address, Symbol *> > IdToSymAnno;
