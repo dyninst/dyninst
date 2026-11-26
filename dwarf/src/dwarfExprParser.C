@@ -367,7 +367,7 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
                 return false;
 
             default:
-                dwarf_printf("\t\t error: unrecognized dwarf operation 0x%d\n", locations[i].atom);
+                dwarf_printf("\t\t error: unrecognized dwarf operation 0x%x\n", locations[i].atom);
                 return false;
         } /* end operand switch */
     } /* end iteration over Dwarf_Op entries. */
