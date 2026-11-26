@@ -99,7 +99,6 @@ elseif(DYNINST_OS_FreeBSD)
   set(OS_DEFINES -Dos_freebsd)
   set(
     BUG_DEFINES
-    -Dbug_freebsd_missing_sigstop
     -Dbug_freebsd_mt_suspend
     -Dbug_freebsd_change_pc
     -Dbug_phdrs_first_page

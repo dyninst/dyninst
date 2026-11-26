@@ -1584,11 +1584,9 @@ bool freebsd_thread::plat_cont()
     }
     cont_thread->continueSig_ = 0;
 
-#if defined(bug_freebsd_missing_sigstop)
+    // bug_freebsd_missing_sigstop
     // XXX this workaround doesn't always work
     sched_yield();
-#endif
-
     return true;
 }
 
