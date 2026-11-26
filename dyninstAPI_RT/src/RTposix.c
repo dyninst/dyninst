@@ -75,10 +75,6 @@ void libdyninstAPI_RT_init(void) __attribute__ ((constructor));
 #endif
 #endif
 
-#if defined (cap_async_events)
-struct passwd *passwd_info = NULL;
-#endif
-
 void libdyninstAPI_RT_init(void)
 {
    static int initCalledOnce = 0;

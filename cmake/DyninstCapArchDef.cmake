@@ -86,7 +86,6 @@ if(DYNINST_OS_Linux)
   set(
     CAP_DEFINES
     ${CAP_DEFINES}
-    -Dcap_async_events
     -Dcap_binary_rewriter
     -Dcap_dwarf
     -Dcap_mutatee_traps
