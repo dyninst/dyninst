@@ -88,8 +88,7 @@ block_instance *block_instance::getFallthroughBlock() {
 edge_instance *block_instance::getTarget() {
   for (edgelist::const_iterator iter = targets().begin(); iter != targets().end(); ++iter) {
     if ((*iter)->isCall() ||
-        ((*iter)->isBranch() &&
-         ((*iter)->isConditional() || !(*iter)->isIndirect()))) {
+        ((*iter)->isBranch() && !(*iter)->isIndirect())) {
       return SCAST_EI(*iter);
     }
   }

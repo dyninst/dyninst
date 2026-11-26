@@ -538,7 +538,7 @@ bool JumpTableFormatPred::isTOCRead(Slicer::SliceFrame &frame, SliceNode::Ptr n)
 
 bool JumpTableFormatPred::ignoreEdge(ParseAPI::Edge *e) {
     // Assume that jump tables are independent
-    if (e->isBranch() && !e->isConditional() && e->isIndirect()) return true;
+    if (e->isBranch() && e->isIndirect()) return true;
     return false;
 }
 

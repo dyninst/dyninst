@@ -1410,7 +1410,7 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
                 // this is a sink edge, if the edge type is cond'l branch 
                 // taken or direct, crack instruction to get its target,
                 // otherwise we won't find a target for this instruction
-                if (((*iter)->isBranch() && !(*iter)->isConditional() && (*iter)->isIndirect()) || (*iter)->isReturn()) {
+                if (((*iter)->isBranch() && (*iter)->isIndirect()) || (*iter)->isReturn()) {
                     // no target to find
                 } else if ((*iter)->isFallthrough()) {
                     if (ipoint->proc()->proc() && 

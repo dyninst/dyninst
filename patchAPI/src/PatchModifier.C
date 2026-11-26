@@ -50,7 +50,7 @@ bool PatchModifier::redirect(PatchEdge *edge, PatchBlock *target) {
    // Current limitation: cannot retarget indirect edges (well, we can,
    // but don't expect it to work)
    // Also, changing catch edges would be awesome! ... but we can't. 
-   if ((edge->isBranch() && !edge->isConditional() && edge->isIndirect()) || 
+   if ((edge->isBranch() && edge->isIndirect()) || 
        edge->isCatch() ||
        edge->isReturn()) return false;
    

@@ -154,7 +154,7 @@ static bool hasSingleIndirectSinkEdge(PatchBlock *b)
    const ParseAPI::Block::edgelist & trgs = b->block()->targets();
    if (trgs.size() == 1) {
       ParseAPI::Edge *edge = * trgs.begin();
-      if (edge->sinkEdge() && (edge->isBranch() && !edge->isConditional() && edge->isIndirect())) {
+      if (edge->sinkEdge() && edge->isBranch() && edge->isIndirect()) {
          fprintf(stderr,"true\n");
          return true;
       }

@@ -385,8 +385,7 @@ bool BPatch_point::isDynamic()
       case instPoint::PostCall:
          return point->block()->containsDynamicCall();
       case instPoint::EdgeDuring:
-         if (point->edge()->isBranch() && !point->edge()->isConditional() &&
-             point->edge()->isIndirect()) {
+         if (point->edge()->isBranch() && point->edge()->isIndirect()) {
             return true;
          }
          if (point->edge()->isCall() || point->edge()->isSyscall()) {
@@ -407,7 +406,7 @@ bool BPatch_point::isDynamic()
                   eit != trgs.end(); 
                   eit++)
              {
-                 if ((*eit)->isBranch() && !(*eit)->isConditional() && (*eit)->isIndirect()) {
+                 if ((*eit)->isBranch() && (*eit)->isIndirect()) {
                      return true;
                  }
              }

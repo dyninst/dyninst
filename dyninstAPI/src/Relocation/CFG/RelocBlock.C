@@ -182,7 +182,7 @@ void RelocBlock::processEdge(EdgeDirection e, edge_instance *edge, RelocGraph *c
       //   5) A call that may tamper with its return address or not return
       // In these cases we run with "mimic the original code behavior"
       if (edge->isCall() ||
-          (edge->isBranch() && (edge->isConditional() || !edge->isIndirect()))) {
+          (edge->isBranch() && !edge->isIndirect())) {
          bool valid;
          Address addr;
          boost::tie(valid, addr) = getJumpTarget();

@@ -1254,7 +1254,7 @@ Parser::finalize_jump_tables()
             std::map<Address, Edge*> edgeMap;
             jti->block->copy_targets(targets);
             for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
-                if (!((*eit)->isBranch() && !(*eit)->isConditional() && (*eit)->isIndirect()) || (*eit)->sinkEdge()) continue;
+                if (!((*eit)->isBranch() && (*eit)->isIndirect()) || (*eit)->sinkEdge()) continue;
                 edgeMap.insert(make_pair((*eit)->trg_addr(), *eit));
             }
 
