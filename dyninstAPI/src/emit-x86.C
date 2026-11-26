@@ -234,15 +234,11 @@ static void emitMovRegToRM64(Register base, int disp, Register src, int size, co
 {
     Register tmp_base = base;
     Register tmp_src = src;
-    Register rax = REGNUM_RAX;
     if (size == 1 || size == 2) {
        //mov src, rax
        //mov a[l/x], (dest)
        gen.markRegDefined(REGNUM_RAX);
-       if (tmp_src != REGNUM_RAX) {
-          emitRex(true, &tmp_src, NULL, &rax, gen);
-          emitMovRegToReg(RealRegister(rax), RealRegister(tmp_src), gen);
-       }
+       emitMovRegToReg64(REGNUM_RAX, src, true, gen);
 
        // emit prefix
        if (size == 2)
