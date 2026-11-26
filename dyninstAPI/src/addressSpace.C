@@ -178,6 +178,7 @@ void AddressSpace::copyAddressSpace(AddressSpace *parent) {
     /////////////////////////
     heap_ = inferiorHeap(parent->heap_);
     heapInitialized_ = parent->heapInitialized_;
+    stringConstants_ = parent->stringConstants_;
 
     /////////////////////////
     // Trap mappings
@@ -226,6 +227,7 @@ void AddressSpace::copyAddressSpace(AddressSpace *parent) {
 void AddressSpace::deleteAddressSpace() {
    heapInitialized_ = false;
    heap_.clear();
+   stringConstants_.clear();
 
    for (auto *mo : mapped_objects) {
       delete mo;
@@ -392,6 +394,20 @@ void AddressSpace::initializeHeap() {
 */
 bool AddressSpace::isInferiorAllocated(Address block) {
    return (heap_.heapActive.find(block) != heap_.heapActive.end());
+}
+
+Address AddressSpace::getStringConstant(std::string const &str) {
+  auto const found = stringConstants_.find(str);
+  if(found != stringConstants_.end()) {
+    return found->second;
+  }
+  auto const len = static_cast<uint32_t>(str.size() + 1);
+  Address const addr = inferiorMalloc(len, dataHeap);
+  if(addr == ADDR_NULL || !writeDataSpace(reinterpret_cast<void *>(addr), len, str.c_str())) {
+    return ADDR_NULL;
+  }
+  stringConstants_.emplace(str, addr);
+  return addr;
 }
 
 Address AddressSpace::inferiorMallocInternal(unsigned size,

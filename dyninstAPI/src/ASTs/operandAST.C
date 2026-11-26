@@ -62,7 +62,6 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
   }
   Dyninst::Register temp;
   int tSize;
-  int len;
   BPatch_type *Type;
   switch(oType) {
 #if defined(DYNINST_CODEGEN_ARCH_AMDGPU_GFX908)
@@ -179,11 +178,8 @@ bool operandAST::generateCode_phase2(codeGen &gen, Address &,
     case operandType::ConstantString:
       // XXX This is for the std::string type.  If/when we fix the std::string type
       // to make it less of a hack, we'll need to change this.
-      len = strlen((char *)oValue) + 1;
-
-      addr = (Address)gen.addrSpace()->inferiorMalloc(len, dataHeap); // dataheap
-
-      if(!gen.addrSpace()->writeDataSpace((char *)addr, len, (char *)oValue)) {
+      addr = gen.addrSpace()->getStringConstant(static_cast<char const *>(oValue));
+      if(addr == ADDR_NULL) {
         ast_printf("Failed to write string constant into mutatee\n");
         return false;
       }
