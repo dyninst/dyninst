@@ -88,4 +88,13 @@ dyninst_add_test(
   REQUIRES capstone
 )
 
+dyninst_add_test(
+  instructionAPI_jalr_target_riscv64
+  TYPE integration
+  SOURCE_FILES jalr_target.cpp
+  DEPS instructionAPI
+  COMPILE_OPTIONS ${_flags}
+  REQUIRES capstone
+)
+
 unset(_flags)
