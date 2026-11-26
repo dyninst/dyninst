@@ -45,9 +45,12 @@ namespace ParseAPI {
             DYNINST_PRINTF_ANNOTATION(1, 2);
     extern int DYNINST_EXPORT indirect_collect_printf_int(const char *format, ...)
             DYNINST_PRINTF_ANNOTATION(1, 2);
+    extern int DYNINST_EXPORT invalid_insn_printf_int(const char *format, ...)
+            DYNINST_PRINTF_ANNOTATION(1, 2);
     extern int dyn_debug_parsing;
     extern int dyn_debug_malware;
     extern int dyn_debug_indirect_collect;
+    extern int dyn_debug_invalid_insn;
     extern int dyn_debug_initialized;
 
 #define parsing_cerr if (dyn_debug_parsing) cerr
@@ -58,6 +61,8 @@ namespace ParseAPI {
 #define parsing_printf(...)              dyn_debug_printf(parsing, __VA_ARGS__)
 #define mal_printf(...)                  dyn_debug_printf(malware, __VA_ARGS__)
 #define indirect_collect_printf(...)     dyn_debug_printf(indirect_collect, __VA_ARGS__)
+// -1 until DYNINST_DEBUG_INVALID_INSN has been read, independently of dyn_debug_initialized
+#define invalid_insn_printf(...)         do { if(dyn_debug_invalid_insn) invalid_insn_printf_int(__VA_ARGS__); } while(0)
 }
 }
 
