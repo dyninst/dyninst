@@ -1618,7 +1618,10 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 // If func's return status is RETURN, 
                 // then this tail callee does not impact the func's return status
                 if (func->retstatus() != RETURN) {
-                    update_function_ret_status(frame, ct, work);
+                    // A tail call through an in-object PLT stub returns exactly when the
+                    // stub's definition does.
+                    Function * const plt_def{plt_definition(frame.codereg, ct->addr())};
+                    update_function_ret_status(frame, plt_def != nullptr ? plt_def : ct, work);
                 }
             }
 
@@ -1673,6 +1676,13 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                     Function * ct = _parse_data->findFunc(frame.codereg,target);
                     assert(ct);
                     bool is_plt = false;
+                    // A PLT stub whose jump slot binds to a function defined in this object
+                    // returns exactly when that definition does, so judge the call by the
+                    // definition (waiting for it like any direct callee) instead of by the
+                    // stub, whose own status only comes from its name.
+                    Function * const plt_def{plt_definition(frame.codereg, target)};
+                    if (plt_def != nullptr)
+                        ct = plt_def;
 
                     // check if associated call edge's return status is still unknown
                     if (ct && (ct->retstatus() == UNSET) ) {
@@ -1689,14 +1699,14 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                         continue;
                     }
 
-                    is_plt = HASHDEF(plt_entries,target);
+                    is_plt = HASHDEF(plt_entries,target) && plt_def == nullptr;
 
                     // CodeSource-defined tests 
                     is_nonret = obj().cs()->nonReturning(target);
                     if (is_nonret) {
                         parsing_printf("\t Disallowing FT edge: CodeSource reports nonreturning\n");
                     }
-                    if (!is_nonret && is_plt) {
+                    if (!is_nonret && HASHDEF(plt_entries,target)) {
                         is_nonret |= obj().cs()->nonReturning(plt_entries[target]);
                         if (is_nonret) {
                             parsing_printf("\t Disallowing FT edge: CodeSource reports PLT nonreturning\n");
@@ -2776,6 +2786,18 @@ bool Parser::inspect_value_driven_jump_tables(ParseFrame &frame) {
     return ret;
 }
 
+
+Function *
+Parser::plt_definition(CodeRegion * region, Address stub)
+{
+    Address const def_addr{obj().cs()->linkageDefinition(stub)};
+    if (def_addr == Dyninst::ADDRESS_INVALID)
+        return nullptr;
+    Function * const def{_parse_data->findFunc(region, def_addr)};
+    if (def != nullptr)
+        parsing_printf("[%s] PLT stub %lx binds to %s at %lx\n", FILE__, stub, def->name().c_str(), def_addr);
+    return def;
+}
 
 void
 Parser::update_function_ret_status(ParseFrame &frame, Function * other_func, ParseWorkElem *work) {
