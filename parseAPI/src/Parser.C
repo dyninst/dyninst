@@ -1284,11 +1284,12 @@ Parser::delete_bogus_edges(Edge* e)
             (void*)e->trg(), e->trg()->start(), e->trg()->end(),
             e->type());
     e->src()->removeTarget(e);
-    // Bogus control flow may lead to invalid instructions,
-    // which will cause a sink edge. So, the sink block may
-    // have a large number of incoming edges. 
-    if (e->sinkEdge()) return;
+    // Remove the edge from the target's sources too, including the sink's: a sink edge
+    // left in the sink's sources keeps its (otherwise unreachable) source block visible to
+    // anyone walking the sink's predecessors.  Block::removeSource erases by pointer, so
+    // this is cheap even though the sink has a very large number of incoming edges.
     cur->removeSource(e);
+    if (e->sinkEdge()) return;
 
     // If the target block has other incoming edges,
     // then we do not remove the block at this point.
