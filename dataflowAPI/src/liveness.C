@@ -473,6 +473,41 @@ bool LivenessAnalyzer::query(Location loc, Type type, const MachRegister& machRe
 }
 
 
+namespace {
+  // A branch into a function entry is a tail call. A conditional branch can be one on its
+  // taken path, and an indirect jump through one of its jump-table slots, so this looks at
+  // each out-edge rather than at the branch instruction or at isExitBlock. An unresolved
+  // indirect jump the parser marked interprocedural counts as well.
+  bool isTailCallEdge(Edge *e) {
+    switch(e->type()) {
+      case COND_TAKEN:
+      case DIRECT:
+      case INDIRECT:
+        break;
+      default:
+        return false;
+    }
+    if(e->interproc()) {
+      return true;
+    }
+    if(e->sinkEdge()) {
+      return false;
+    }
+    Block *target = e->trg();
+    return target->obj()->findFuncByEntry(target->region(), target->start()) != nullptr;
+  }
+
+  bool branchesIntoFunction(Block *block) {
+    boost::lock_guard<Block> g(*block);
+    for(Edge *e : block->targets()) {
+      if(isTailCallEdge(e)) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
 ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction curInsn, Block *blk, Address a)
 {
 
@@ -584,11 +619,13 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction curInsn, Block *blk, Addr
     // Nothing written implicitly by a return
   }
   else if(curInsn.isBranch()) {
-    if(!curInsn.allowsFallThrough() && isExitBlock(blk))
-    {
-      //Tail call, union of call and return
-      ret.read |= ((abi->getCallReadRegisters()) | (abi->getReturnReadRegisters()));
-      ret.written |= (abi->getCallWrittenRegisters());
+    if(branchesIntoFunction(blk)) {
+      // Tail call: the callee reads its arguments and returns to our caller.
+      ret.read |= (abi->getCallReadRegisters() | abi->getReturnReadRegisters());
+      // The callee overwrites the call-written registers only if it runs on every path.
+      if(!curInsn.allowsFallThrough() && isExitBlock(blk)) {
+        ret.written |= (abi->getCallWrittenRegisters());
+      }
     }
   }
   else {
