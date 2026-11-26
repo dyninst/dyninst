@@ -1705,6 +1705,10 @@ namespace Dyninst { namespace InstructionAPI {
   }
 
   void InstructionDecoder_x86::doIA32Decode(InstructionDecoder::buffer& b) {
+    // One decoder object decodes a sequence of instructions; nothing about the
+    // previous instruction's prefixes may carry over to this one.
+    prefixID = prefix_none;
+    segPrefix = 0;
     if(decodedInstruction == NULL) {
       decodedInstruction = reinterpret_cast<ia32_instruction*>(malloc(sizeof(ia32_instruction)));
       assert(decodedInstruction);
@@ -1783,10 +1787,14 @@ namespace Dyninst { namespace InstructionAPI {
         this->addrWidth = (m_Arch == Arch_x86) ? u32 : u64;
 
         if(p && p->getCount()) {
-          if(p->getPrefix(0) == PREFIX_REP)
-            this->prefixID = prefix_rep;
-          if(p->getPrefix(0) == PREFIX_REPNZ)
-            this->prefixID = prefix_repnz;
+          // F3/F2 repeat only the string instructions; on any other instruction they are
+          // ignored (rep ret) or are the BND prefix (bnd jmp) and must not add rcx/df/zf.
+          if(e->isStringOp()) {
+            if(p->getPrefix(0) == PREFIX_REP)
+              this->prefixID = prefix_rep;
+            if(p->getPrefix(0) == PREFIX_REPNZ)
+              this->prefixID = prefix_repnz;
+          }
           this->segPrefix = p->getPrefix(1);
           if(p->getAddrSzPrefix()) {
             this->addrWidth = u16;
