@@ -46,8 +46,32 @@ namespace {
 #if defined(DYNINST_ENABLE_ZYDIS)
   // Built-in "unknown instruction" callback for x86-64. InstructionAPI calls
   // this when it cannot decode a byte sequence; we use Zydis to recover the
-  // instruction's length and mnemonic so the decoder can skip over it and the
-  // instruction reports the mnemonic Zydis decoded.
+  // instruction's length and mnemonic.
+  //
+  // An instruction Zydis says transfers control (a branch, call, return,
+  // system call or interrupt) stays invalid: stepping over it would invent a
+  // fallthrough and lose its targets.  Any other instruction is returned as a
+  // valid no-op of the right length, so a parse continues past it.  Its
+  // effects are unknown to Dyninst, including any registers it writes; the
+  // mnemonic is Zydis's, for display.
+  bool zydis_transfers_control(ZydisDecodedInstruction const& insn) {
+    if(insn.meta.branch_type != ZYDIS_BRANCH_TYPE_NONE) {
+      return true;
+    }
+    switch(insn.meta.category) {
+      case ZYDIS_CATEGORY_CALL:
+      case ZYDIS_CATEGORY_COND_BR:
+      case ZYDIS_CATEGORY_UNCOND_BR:
+      case ZYDIS_CATEGORY_RET:
+      case ZYDIS_CATEGORY_SYSCALL:
+      case ZYDIS_CATEGORY_SYSRET:
+      case ZYDIS_CATEGORY_INTERRUPT:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   ia::Instruction zydis_unknown_instruction_callback(ia::InstructionDecoder::buffer seqn) {
     using namespace Dyninst;
     auto const buf_len = static_cast<size_t>(seqn.end - seqn.start);
@@ -59,12 +83,12 @@ namespace {
     ZydisDecodedOperand operands[ZYDIS_MAX_OPERAND_COUNT];
     ZyanStatus status =
         ZydisDecoderDecodeFull(&decoder, seqn.start, buf_len, &insn, operands);
-    if(ZYAN_SUCCESS(status) && insn.length > 0) {
-      char const* mnemonic = ZydisMnemonicGetString(insn.mnemonic);
-      return ia::Instruction{ia::Operation{e_No_Entry, mnemonic ? mnemonic : "", Arch_x86_64},
-                             insn.length, seqn.start, Arch_x86_64};
+    if(!ZYAN_SUCCESS(status) || insn.length == 0 || zydis_transfers_control(insn)) {
+      return ia::Instruction{};
     }
-    return ia::Instruction{};
+    char const* mnemonic = ZydisMnemonicGetString(insn.mnemonic);
+    return ia::Instruction{ia::Operation{e_nop, mnemonic ? mnemonic : "nop", Arch_x86_64},
+                           insn.length, seqn.start, Arch_x86_64};
   }
   constexpr ui::callback_t builtin_callback{zydis_unknown_instruction_callback};
   constexpr Dyninst::Architecture builtin_callback_arch{Dyninst::Arch_x86_64};
