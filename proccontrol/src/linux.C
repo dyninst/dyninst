@@ -2239,16 +2239,16 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
 #endif
    static bool tested_getregs = false;
 
-#if defined(bug_registers_after_exit)
-   /* On some kernels, attempting to read registers from a thread in a pre-Exit
-    * state causes an oops
-    */
-   if( isExiting() ) {
-       perr_printf("Cannot reliably retrieve registers from an exited thread\n");
-       setLastError(err_exited, "Cannot retrieve registers from an exited thread");
-       return false;
+   if(this->proc()->getArchitecture() == Dyninst::Arch_ppc64) {
+     /* On some kernels, attempting to read registers from a thread in a pre-Exit
+      * state causes an oops
+      */
+     if( isExiting() ) {
+         perr_printf("Cannot reliably retrieve registers from an exited thread\n");
+         setLastError(err_exited, "Cannot retrieve registers from an exited thread");
+         return false;
+     }
    }
-#endif
 
    volatile unsigned int sentinel1 = 0xfeedface;
    unsigned char user_area[MAX_USER_SIZE];
@@ -2386,16 +2386,16 @@ bool linux_thread::plat_getInstructionPacMask(Dyninst::MachRegisterVal &mask)
 
 bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
 {
-#if defined(bug_registers_after_exit)
-   /* On some kernels, attempting to read registers from a thread in a pre-Exit
-    * state causes an oops
-    */
-   if( isExiting() ) {
-       perr_printf("Cannot reliably retrieve registers from an exited thread\n");
-       setLastError(err_exited, "Cannot retrieve registers from an exited thread");
-       return false;
-   }
-#endif
+  if(this->proc()->getArchitecture() == Dyninst::Arch_ppc64) {
+     /* On some kernels, attempting to read registers from a thread in a pre-Exit
+      * state causes an oops
+      */
+     if( isExiting() ) {
+         perr_printf("Cannot reliably retrieve registers from an exited thread\n");
+         setLastError(err_exited, "Cannot retrieve registers from an exited thread");
+         return false;
+     }
+  }
 
    if (x86::fsbase == reg || x86::gsbase == reg
        || x86_64::fsbase == reg || x86_64::gsbase == reg) {
@@ -2474,17 +2474,17 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
    static bool have_setregs = false;
 #endif
    static bool tested_setregs = false;
-#if defined(bug_registers_after_exit)
-   /* On some kernels, attempting to read registers from a thread in a pre-Exit
-    * state causes an oops
-    */
-   if( isExiting() ) {
-       perr_printf("Cannot reliably retrieve registers from an exited thread\n");
-       setLastError(err_exited, "Cannot retrieve registers from an exited thread");
-       return false;
-   }
-#endif
 
+   if(this->proc()->getArchitecture() == Dyninst::Arch_ppc64) {
+     /* On some kernels, attempting to read registers from a thread in a pre-Exit
+      * state causes an oops
+      */
+     if( isExiting() ) {
+         perr_printf("Cannot reliably retrieve registers from an exited thread\n");
+         setLastError(err_exited, "Cannot retrieve registers from an exited thread");
+         return false;
+     }
+   }
 
    if (have_setregs)
    {
@@ -2676,16 +2676,16 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
 
 bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val)
 {
-#if defined(bug_registers_after_exit)
-   /* On some kernels, attempting to read registers from a thread in a pre-Exit
-    * state causes an oops
-    */
-   if( isExiting() ) {
-       perr_printf("Cannot reliably retrieve registers from an exited thread\n");
-       setLastError(err_exited, "Cannot retrieve registers from an exited thread");
-       return false;
-   }
-#endif
+  if(this->proc()->getArchitecture() == Dyninst::Arch_ppc64) {
+     /* On some kernels, attempting to read registers from a thread in a pre-Exit
+      * state causes an oops
+      */
+     if( isExiting() ) {
+         perr_printf("Cannot reliably retrieve registers from an exited thread\n");
+         setLastError(err_exited, "Cannot retrieve registers from an exited thread");
+         return false;
+     }
+  }
 
    init_dynreg_to_user();
    dynreg_to_user_t::iterator i = dynreg_to_user.find(reg);
