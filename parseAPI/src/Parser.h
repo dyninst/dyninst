@@ -300,6 +300,9 @@ namespace Dyninst {
             void delete_bogus_edges(Edge*);
             bool set_edge_parsing_status(ParseFrame&, Address addr, Block *b);
             void update_function_ret_status(ParseFrame &, Function*, ParseWorkElem* );
+            // The function a PLT stub at `stub` binds to by default when that function is
+            // defined in this object, or nullptr.
+            Function * plt_definition(CodeRegion * region, Address stub);
             void record_hint_functions();
 
 
