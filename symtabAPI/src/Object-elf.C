@@ -62,12 +62,8 @@ using namespace std;
 #error "Object-elf.h not #included"
 #endif
 
-#if defined(cap_dwarf)
-
 #include "dwarf.h"
 #include <dwarf_names.h>
-
-#endif
 
 //#include "symutil.h"
 #if defined(TIMED_PARSE)
@@ -2408,8 +2404,6 @@ dyn_scnp, Elf_X_Data &symdata,
  *
  ********************************************************/
 
-#if defined(cap_dwarf)
-
 bool ObjectELF::fix_global_symbol_modules_static_dwarf() {
     /* Initialize libdwarf. */
     Dwarf **dbg_ptr = dwarf->type_dbg();
@@ -2504,14 +2498,6 @@ bool ObjectELF::fix_global_symbol_modules_static_dwarf() {
 
     return true;
 }
-
-#else
-
-// dummy definition for non-DWARF platforms
-bool ObjectELF::fix_global_symbol_modules_static_dwarf()
-{ return false; }
-
-#endif // cap_dwarf
 
 // find_code_and_data(): populates the following members:
 //   code_ptr_, code_off_, code_len_
@@ -3332,7 +3318,6 @@ void ObjectELF::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *
     string working_module;
     string mod_string;
 
-#if defined(cap_dwarf)
     if (hasDwarfInfo()) {
         Dwarf **dbg_ptr = dwarf->type_dbg();
         if (!dbg_ptr) return;
@@ -3397,7 +3382,6 @@ void ObjectELF::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *
             } /* end languageConstant switch */
         }
     }
-#endif
 }
 
 bool ObjectELF::getSegments(vector<Segment> &segs) const {
