@@ -83,7 +83,7 @@ endif()
 
 if(DYNINST_OS_Linux)
   set(OS_DEFINES -Dos_linux)
-  set(BUG_DEFINES -Dbug_syscall_changepc_rewind -Dbug_force_terminate_failure)
+  set(BUG_DEFINES -Dbug_syscall_changepc_rewind)
 
   if(DYNINST_HOST_ARCH_I386)
     set(OLD_DEFINES -Di386_unknown_linux2_0)

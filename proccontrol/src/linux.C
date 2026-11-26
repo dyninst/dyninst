@@ -1700,7 +1700,6 @@ bool linux_process::preTerminate() {
    pthrd_printf("Putting process %d back into previous state\n", getPid());
    threadPool()->initialThread()->getInternalState().restoreStateProc();
 
-#if defined(bug_force_terminate_failure)
     // On some Linux versions (currently only identified on our power platform),
     // a force terminate can fail to actually kill a process due to some OS level
     // race condition. The result is that some threads in a process are stopped
@@ -1724,7 +1723,6 @@ bool linux_process::preTerminate() {
          return false;
       }
    }
-#endif
 
    // We don't want to be mixing termination and breakpoint stepping.
    removeAllBreakpoints();
