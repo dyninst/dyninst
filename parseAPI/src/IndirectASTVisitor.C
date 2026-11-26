@@ -25,6 +25,10 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
         ast->child(i)->accept(this);
     }
     switch (ast->val().op) {
+	case ROSEOperation::extendOp:
+	    if (IsResultBounded(ast->child(0)))
+	        bound.insert(make_pair(ast, new StridedInterval(*GetResultBound(ast->child(0)))));
+	    break;
         case ROSEOperation::addOp:
 	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))) {	    
 		StridedInterval* val = new StridedInterval(*GetResultBound(ast->child(0)));		
@@ -379,6 +383,9 @@ AST::Ptr JumpTableReadVisitor::visit(DataflowAPI::RoseAST *ast) {
     // As soon as we do not know the value of one child, we will return.
     // So, we will always have good values for each child at this point.
     switch (ast->val().op) {
+	case ROSEOperation::extendOp:
+	    results.insert(make_pair(ast, results[ast->child(0).get()]));
+	    break;
         case ROSEOperation::addOp:
 	    results.insert(make_pair(ast, results[ast->child(0).get()] + results[ast->child(1).get()]));
 	    break;

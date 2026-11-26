@@ -36,3 +36,10 @@ dyninst_add_test(
   DEPS parseAPI
   REQUIRES capstone
 )
+
+dyninst_add_test(
+  rose_semantics_amdgpu_scalar_add
+  TYPE unit
+  SOURCE_FILES amdgpu_scalar_add.cpp
+  DEPS parseAPI
+)
