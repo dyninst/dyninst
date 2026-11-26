@@ -40,3 +40,25 @@ dyninst_add_test(
     ext_func 0x2a0 ext_tls "${CMAKE_CURRENT_BINARY_DIR}/libtlsdesc.rewritten.so"
   REQUIRES test_binaries native
 )
+
+# Two versions of a function, foo@V1 and foo@@V2, both dynamic symbols named
+# "foo", and a call to foo through its PLT stub. The PLT relocation's symbol
+# must be the one the relocation names by index (foo@@V2).
+add_library(plt_symbol_version SHARED plt_symbol_version_fixture.c)
+target_compile_options(plt_symbol_version PRIVATE -fPIC)
+target_link_options(
+  plt_symbol_version
+  PRIVATE
+    -nostdlib
+    "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/plt_symbol_version.map"
+)
+dyninst_add_test_executable(
+  plt_symbol_version_check
+  SOURCE_FILES plt_symbol_version.cpp
+  DEPS symtabAPI
+)
+dyninst_add_test(
+  symtabAPI_plt_symbol_version
+  TYPE regression
+  COMMAND plt_symbol_version_check $<TARGET_FILE:plt_symbol_version>
+)
