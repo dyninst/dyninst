@@ -6,7 +6,7 @@
 
 include_guard(GLOBAL)
 
-set(CAP_DEFINES -Dcap_liveness -Dcap_threads)
+set(CAP_DEFINES -Dcap_threads)
 
 if(DYNINST_HOST_ARCH_I386)
   set(ARCH_DEFINES_TESTSUITE -Darch_x86)
