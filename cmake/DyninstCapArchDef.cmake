@@ -83,11 +83,6 @@ endif()
 
 if(DYNINST_OS_Linux)
   set(OS_DEFINES -Dos_linux)
-  set(
-    CAP_DEFINES
-    ${CAP_DEFINES}
-    -Dcap_ptrace
-  )
   set(BUG_DEFINES -Dbug_syscall_changepc_rewind -Dbug_force_terminate_failure)
 
   if(DYNINST_HOST_ARCH_I386)
