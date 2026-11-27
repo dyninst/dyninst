@@ -2239,7 +2239,7 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
 #endif
    static bool tested_getregs = false;
 
-   if(this->proc()->getArchitecture() == Dyninst::Arch_ppc64) {
+   if(llproc()->getTargetArch() == Dyninst::Arch_ppc64) {
      /* On some kernels, attempting to read registers from a thread in a pre-Exit
       * state causes an oops
       */
