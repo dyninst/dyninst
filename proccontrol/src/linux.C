@@ -2386,7 +2386,7 @@ bool linux_thread::plat_getInstructionPacMask(Dyninst::MachRegisterVal &mask)
 
 bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
 {
-  if(this->proc()->getArchitecture() == Dyninst::Arch_ppc64) {
+  if(llproc()->getTargetArch() == Dyninst::Arch_ppc64) {
      /* On some kernels, attempting to read registers from a thread in a pre-Exit
       * state causes an oops
       */
@@ -2475,7 +2475,7 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
 #endif
    static bool tested_setregs = false;
 
-   if(this->proc()->getArchitecture() == Dyninst::Arch_ppc64) {
+   if(llproc()->getTargetArch() == Dyninst::Arch_ppc64) {
      /* On some kernels, attempting to read registers from a thread in a pre-Exit
       * state causes an oops
       */
@@ -2676,7 +2676,7 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
 
 bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val)
 {
-  if(this->proc()->getArchitecture() == Dyninst::Arch_ppc64) {
+  if(llproc()->getTargetArch() == Dyninst::Arch_ppc64) {
      /* On some kernels, attempting to read registers from a thread in a pre-Exit
       * state causes an oops
       */
