@@ -46,12 +46,6 @@
 #include "Object.h"
 #include <boost/foreach.hpp>
 #include <algorithm>
-
-#if defined(cap_dwarf)
-#include "dwarfWalker.h"
-#include "dwarf.h"
-#endif
-
 #include <vector>
 
 using namespace Dyninst;

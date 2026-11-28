@@ -689,28 +689,20 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
     static FreeBSDPreForkHandler *luserfork = NULL;
     static FreeBSDPostThreadDeathBreakpointHandler *ldeathbp = NULL;
 
-#if defined(bug_freebsd_mt_suspend)
     static FreeBSDPreStopHandler *lprestop = NULL;
     static FreeBSDBootstrapHandler *lboot = NULL;
-#endif
 
-#if defined(bug_freebsd_change_pc)
     static FreeBSDChangePCHandler *lpc = NULL;
-#endif
 
     if( !initialized ) {
         lpolldeath = new FreeBSDPollLWPDeathHandler();
         luserfork = new FreeBSDPreForkHandler();
 	ldeathbp = new FreeBSDPostThreadDeathBreakpointHandler();
 
-#if defined(bug_freebsd_mt_suspend)
         lprestop = new FreeBSDPreStopHandler();
         lboot = new FreeBSDBootstrapHandler();
-#endif
 
-#if defined(bug_freebsd_change_pc)
         lpc = new FreeBSDChangePCHandler();
-#endif
 
         initialized = true;
     }
@@ -718,14 +710,10 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
     hpool->addHandler(luserfork);
     hpool->addHandler(ldeathbp);
 
-#if defined(bug_freebsd_mt_suspend)
     hpool->addHandler(lprestop);
     hpool->addHandler(lboot);
-#endif
 
-#if defined(bug_freebsd_change_pc)
     hpool->addHandler(lpc);
-#endif
 
     thread_db_process::addThreadDBHandlers(hpool);
     sysv_process::addSysVHandlers(hpool);
@@ -1243,7 +1231,6 @@ void FreeBSDPostThreadDeathBreakpointHandler::getEventTypesHandled(std::vector<E
 }
 
 
-#if defined(bug_freebsd_mt_suspend)
 FreeBSDPreStopHandler::FreeBSDPreStopHandler() 
     : Handler("FreeBSD Post Stop Handler")
 {
@@ -1323,7 +1310,6 @@ int FreeBSDBootstrapHandler::getPriority() const {
 void FreeBSDBootstrapHandler::getEventTypesHandled(std::vector<EventType> &etypes) {
     etypes.push_back(EventType(EventType::None, EventType::Bootstrap));
 }
-#endif
 
 FreeBSDPreForkHandler::FreeBSDPreForkHandler() 
     : Handler("FreeBSD Pre-Fork Handler")
@@ -1402,7 +1388,6 @@ async_ret_t freebsd_process::post_attach(bool wasDetached, set<response::ptr> &a
   
   if( !initKQueueEvents() ) return aret_error;
 
-#if defined(bug_freebsd_mt_suspend)
   if( threadPool()->size() <= 1 ) return aret_success;
   
   threadPool()->initialThread()->getStartupState().desyncStateProc(int_thread::stopped);
@@ -1441,12 +1426,10 @@ async_ret_t freebsd_process::post_attach(bool wasDetached, set<response::ptr> &a
     }
   }
   threadPool()->initialThread()->getStartupState().restoreStateProc();
-#endif
 
   return aret_success;
 }
 
-#if defined(bug_freebsd_change_pc)
 FreeBSDChangePCHandler::FreeBSDChangePCHandler() 
     : Handler("FreeBSD Change PC Handler")
 {}
@@ -1473,7 +1456,6 @@ int FreeBSDChangePCHandler::getPriority() const {
 void FreeBSDChangePCHandler::getEventTypesHandled(std::vector<EventType> &etypes) {
     etypes.push_back(EventType(EventType::None, EventType::ChangePCStop));
 }
-#endif
 
 bool freebsd_thread::plat_stop() {
     Dyninst::PID pid = llproc()->getPid();
@@ -1540,7 +1522,6 @@ bool freebsd_thread::plat_cont()
    }
 
 
-#if defined(bug_freebsd_change_pc)
    for (i = tp->begin(); i != tp->end(); i++) {
       freebsd_thread *thrd = dynamic_cast<freebsd_thread *>(*i);
       if (thrd->hasPCBugCondition() && !thrd->isSuspended()) {
@@ -1567,7 +1548,6 @@ bool freebsd_thread::plat_cont()
          return false;
       }
    }
-#endif
 
     /* Single-stepping is enabled/disabled using PT_SETSTEP
      * and PT_CLEARSTEP instead of continuing the process
@@ -1584,11 +1564,9 @@ bool freebsd_thread::plat_cont()
     }
     cont_thread->continueSig_ = 0;
 
-#if defined(bug_freebsd_missing_sigstop)
+    // bug_freebsd_missing_sigstop
     // XXX this workaround doesn't always work
     sched_yield();
-#endif
-
     return true;
 }
 
@@ -1852,13 +1830,11 @@ bool freebsd_thread::plat_setAllRegisters(int_registerPool &regpool) {
         }
     }
 
-#if defined(bug_freebsd_change_pc)
     if( !isSignalStopped() ) {
         pthrd_printf("Setting change PC bug condition for %d/%d\n",
                 llproc()->getPid(), lwp);
         setPCBugCondition(true);
     }
-#endif
 
     pthrd_printf("Successfully set the values of all registers for LWP %d\n", lwp);
 

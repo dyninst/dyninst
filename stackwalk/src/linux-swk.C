@@ -71,8 +71,6 @@ using namespace Dyninst::Stackwalker;
 // them.
 #include <sys/ptrace.h>
 typedef enum __ptrace_request pt_req;
-#define cap_ptrace_traceclone
-#define cap_ptrace_setoptions
 
 int P_gettid()
 {

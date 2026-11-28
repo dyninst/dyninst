@@ -211,7 +211,6 @@ class FreeBSDPostThreadDeathBreakpointHandler : public Handler
   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
-#if defined(bug_freebsd_mt_suspend)
 class FreeBSDPreStopHandler : public Handler
 {
 public:
@@ -231,9 +230,7 @@ public:
     virtual int getPriority() const;
     void getEventTypesHandled(std::vector<EventType> &etypes);
 };
-#endif
 
-#if defined(bug_freebsd_change_pc)
 class FreeBSDChangePCHandler : public Handler
 {
 public:
@@ -243,7 +240,6 @@ public:
     virtual int getPriority() const;
     void getEventTypesHandled(std::vector<EventType> &etypes);
 };
-#endif
 
 class FreeBSDPreForkHandler : public Handler
 {

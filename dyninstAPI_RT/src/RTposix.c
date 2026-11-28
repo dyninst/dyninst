@@ -75,10 +75,6 @@ void libdyninstAPI_RT_init(void) __attribute__ ((constructor));
 #endif
 #endif
 
-#if defined (cap_async_events)
-struct passwd *passwd_info = NULL;
-#endif
-
 void libdyninstAPI_RT_init(void)
 {
    static int initCalledOnce = 0;
@@ -119,7 +115,6 @@ int unmap_region(void *addr, int len) {
     return 1;
 }
 
-#if defined(cap_mutatee_traps)
 extern void dyninstTrapHandler(int sig, siginfo_t *info, void *context);
 
 int DYNINSTinitializeTrapHandler(void)
@@ -144,5 +139,3 @@ int DYNINSTinitializeTrapHandler(void)
    result = sigaction(signo, &new_handler, NULL);
    return (result == 0) ? 1 /*Success*/ : 0 /*Fail*/ ;
 }
-
-#endif

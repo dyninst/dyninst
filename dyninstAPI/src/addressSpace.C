@@ -1013,13 +1013,11 @@ void trampTrapMappings::addTrapMapping(Address from, Address to,
    m.cur_index = existing_trap ? mapping[from].cur_index : INDEX_INVALID;
    m.mutatee_side = write_to_mutatee;
    mapping[from] = m;
-#if defined(cap_mutatee_traps)
    updated_mappings.insert(& mapping[from]);
    if (write_to_mutatee && !existing_trap) {
       table_mutatee_size++;
    }
    needs_updating = true;
-#endif
 #if defined(DYNINST_HOST_ARCH_X86) || defined(DYNINST_HOST_ARCH_X86_64)
    from--;
 #endif
@@ -1410,11 +1408,7 @@ func_instance *AddressSpace::findFuncByEntry(Address addr) {
 
 bool AddressSpace::canUseTraps()
 {
-#if !defined(cap_mutatee_traps)
-   return false;
-#else
    return useTraps_;
-#endif
 }
 
 void AddressSpace::setUseTraps(bool usetraps)

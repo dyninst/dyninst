@@ -37,11 +37,8 @@
 #if !defined(_Object_elf_h_)
 #define _Object_elf_h_
 
-#if defined(cap_dwarf)
-//#include "dwarf.h"
 #include "elfutils/libdw.h"
 #include "dwarfHandle.h"
-#endif
 
 #include <assert.h>
 #include <ostream>

@@ -166,9 +166,7 @@ static void initFPU(void)
  **/
 void DYNINSTBaseInit(void)
 {
-#if defined(cap_mutatee_traps)
    DYNINSTinitializeTrapHandler();
-#endif
    DYNINST_unlock_tramp_guard();
    DYNINSThasInitialized = 1;
 }

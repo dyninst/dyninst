@@ -101,7 +101,7 @@ void mark_heaps_exec() {
 } /* end mark_heaps_exec() */
 
 
-#if defined(cap_binary_rewriter) && !defined(DYNINST_RT_STATIC_LIB)
+#if !defined(DYNINST_RT_STATIC_LIB)
 /* For a static binary, all global constructors are combined in an undefined
  * order. Also, DYNINSTBaseInit must be run after all global constructors have
  * been run. Since the order of global constructors is undefined, DYNINSTBaseInit
@@ -247,8 +247,6 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
 
 /** trap based instrumentation **/
 
-#if defined(cap_mutatee_traps)
-
 #include <ucontext.h>
 
 #if defined(DYNINST_HOST_ARCH_X86) || defined(MUTATEE_32)
@@ -319,8 +317,6 @@ void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
    }
    UC_PC(context) = (long) trap_to;
 }
-
-#if defined(cap_binary_rewriter)
 
 #define NUM_LIBRARIES 512 //Important, max number of rewritten libraries
 
@@ -554,10 +550,6 @@ static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos) {
    }
    return NUM_LIBRARIES;
 }
-
-#endif
-
-#endif /* cap_mutatee_traps */
 
 /*
  * Note: this program is for historical purposes only, we use libthread_db

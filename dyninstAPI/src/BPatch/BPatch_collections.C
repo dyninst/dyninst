@@ -116,14 +116,12 @@ BPatch_typeCollection *BPatch_typeCollection::getModTypeCollection(BPatch_module
     assert(bpmod);
     mapped_object *moduleImage = bpmod->lowlevel_mod()->obj();
     assert( moduleImage != NULL );
-#if defined(cap_dwarf)
-    // TODO: can we use this on other platforms as well?    
+
     auto iter = fileToTypesMap.find(moduleImage->fullName());
     if (iter != fileToTypesMap.end()) {
        iter->second->refcount++;
        return iter->second;
     }
-#endif
 
     BPatch_typeCollection *newTC = new BPatch_typeCollection();
     fileToTypesMap[moduleImage->fullName()] = newTC;
